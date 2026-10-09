@@ -62,7 +62,7 @@ A focused Nsight Systems trace captures five warmup and twenty timed updates
 without full-split evaluation. Before optimization, embedding backpropagation
 accounted for 67.2% of kernel time and mesh weight gradients for 23.8%.
 
-| Kernel family | Baseline GPU ms/update | Final GPU ms/update |
+| Kernel family | Baseline GPU ms/update | Const-generic GPU ms/update |
 | --- | ---: | ---: |
 | Embedding gradient and conversion to feature rows | 108.819 | 1.099 |
 | All mesh weight-gradient kernels | 38.473 | 1.798 |
@@ -142,20 +142,26 @@ The default workload reuses a `0.77 MiB` partial-sum allocation across updates.
 All new writes use typed disjoint ownership and checked launch contracts;
 `src/gpt/gpu.rs` contains no `unsafe` operations.
 
-| Final representative kernel | Blocks | Registers/thread | SM throughput (%) | Achieved occupancy (%) |
+| Representative kernel | Blocks | Registers/thread | SM throughput (%) | Achieved occupancy (%) |
 | --- | ---: | ---: | ---: | ---: |
-| Embedding gradients | 99 | 23 | 26.58 | 51.56 |
+| Direct embedding gradients (previous) | 99 | 23 | 26.58 | 51.56 |
 | Mesh gradient partial sums | 128 | 26 | 30.79 | 64.55 |
 | Decoder mesh forward | 2048 | 18 | 54.45 | 79.93 |
+| Chunked embedding gradients | 1584 | 28 | 53.73 | 96.97 |
+| Warp mesh-gradient reduction | 384 | 20 | 9.99 | 54.50 |
 
 Each capture uses 128 threads per block and an initial update with unlocked
 frequencies. The decoder capture skips the four embedding-mesh launches.
+The last two captures use the selected FP32 kernels after the normalization
+and gradient optimizations. Their durations are `566.82` and `4.77` microseconds;
+the reduction capture measures one layer, while the traces sum all layers.
 Occupancy and SM throughput measure different things; these counters do not
 establish that the whole training workload reaches 80% of GPU peak throughput.
-The final trace's largest remaining families are mesh weight gradients
-(`1.798` GPU ms/update), RMSNorm/QK-Norm forward and backward (`1.706`), and mesh
-forward/input gradients (`1.455`). Full kernel timings are saved in
-`comparison.json` for further optimization.
+The latest FP32 trace's largest remaining families are mesh forward/input
+gradients (`1.467` GPU ms/update), mesh weight gradients (`1.400`), and embedding
+gradient reductions (`0.579`). Normalization forward/backward is now `0.543`.
+Raw timings are saved in `fp32-reductions-stats_cuda_gpu_kern_sum.csv` alongside
+the earlier captures and numerical comparisons.
 
 ## Capture profiles
 
@@ -247,3 +253,47 @@ parameter difference from the previous const-generic FP32 binary is `1.43e-6`
 (relative L2 `8.32e-8`). A complete 4704-example epoch reaches train/validation
 losses `6.532873915`/`6.547292586`; its maximum parameter difference from the
 previous epoch checkpoint is `2.44e-7`. All storage and arithmetic remain FP32.
+
+Embedding chunks of 32 and 64 rows were also compared with the final 128-row
+choice. Their medians were `5.749` and `5.737` ms/update, respectively, versus
+`5.734` for a repeated 128-row run. The smaller chunks do not demonstrate an
+improvement and require four or two times as much partial-sum storage, so the
+implementation keeps 128. Verification covers boundaries around 32, 64, and
+128 rows even though the selected chunk size is 128.
+
+## Compiler flags
+
+Rust's release profile already uses `opt-level=3`; see the
+[Cargo release defaults](https://doc.rust-lang.org/cargo/reference/profiles.html#release).
+The CUDA architecture is explicitly `sm_86`. CPU `target-cpu=native` selects
+instructions for the host processor; it does not select a CUDA architecture.
+
+The 128-row embedding-chunk implementation was rebuilt and measured with the
+same 30-update, ten-warmup, three-trial protocol:
+
+| Compiler setup | Trial 1 (ms/update) | Trial 2 | Trial 3 | Median |
+| --- | ---: | ---: | ---: | ---: |
+| Portable CPU release, default CUDA LLVM pipeline | 5.989 | 5.722 | 5.734 | 5.734 |
+| CPU `target-cpu=native`, default CUDA LLVM pipeline | 6.402 | 5.729 | 5.726 | 5.729 |
+| CPU native, CUDA LLVM `opt` and `llc` at O3 | 6.494 | 5.735 | 5.730 | 5.735 |
+
+The CUDA Rust PTX pipeline runs LLVM's middle-end at O2 and uses `llc`'s default
+optimization level. The O3 experiment temporarily replaced `-O2` and
+`default<O2>` with O3 and supplied `llc -O3` through process-local tool overrides.
+Both experimental builds pass CUDA verification and produce byte-identical
+40-update checkpoints to the portable build. Differences between warmed
+medians are within `0.1%`; these flags provide no demonstrated speedup here.
+Native and O3 overrides are not persisted in the repository configuration.
+
+The CPU-native build on this AMD Ryzen 5 5600H can be reproduced in a separate
+output directory:
+
+```bash
+RUSTFLAGS='-C target-cpu=native' CARGO_TARGET_DIR=target/native-release \
+  cargo oxide build --arch sm_86 -- --release --locked \
+  --bin mesh-gpt --bin mesh-gpt-bench
+
+target/native-release/release/mesh-gpt-bench \
+  --steps 30 --warmup 10 --trials 3 \
+  --output target/mesh-gpt-profile/native-release-run
+```

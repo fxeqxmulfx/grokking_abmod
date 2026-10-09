@@ -12,6 +12,8 @@ use super::{
     config::{Layout, token_codes},
 };
 
+const EMBEDDING_GRADIENT_ROWS: usize = 128;
+
 #[cuda_module]
 // Explicit tensor indices keep the channel, head, and neighborhood math visible.
 #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
@@ -1127,7 +1129,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             embedding_gradient_partials: DeviceBuffer::zeroed(
                 stream,
                 if use_chunked_embedding(config, rows) {
-                    rows.div_ceil(128) * config.vocab_size * config.width
+                    rows.div_ceil(EMBEDDING_GRADIENT_ROWS) * config.vocab_size * config.width
                 } else {
                     0
                 },
@@ -1930,12 +1932,12 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         }
         let embedding_output = c.attention_mesh_depth - 1;
         if use_chunked_embedding(c, workspace.rows) {
-            let chunks = workspace.rows.div_ceil(128);
+            let chunks = workspace.rows.div_ceil(EMBEDDING_GRADIENT_ROWS);
             let launch = self
                 .module
-                .prepare_gpt_embedding_gradient_partials::<W, V, 128>(config(
-                    workspace.embedding_gradient_partials.len(),
-                ))?;
+                .prepare_gpt_embedding_gradient_partials::<W, V, EMBEDDING_GRADIENT_ROWS>(
+                    config(workspace.embedding_gradient_partials.len()),
+                )?;
             self.module.gpt_embedding_gradient_partials(
                 &self.stream,
                 &launch,
@@ -2161,7 +2163,9 @@ mod verification {
         pub fn verify_embedding_gradient_reduction(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             for (width, vocab) in [(2, 3), (18, 17), (32, 17), (128, 99)] {
-                for rows in [1_usize, 127, 128, 129, 257, 2048, 4096] {
+                for rows in [
+                    1_usize, 31, 32, 33, 63, 64, 65, 127, 128, 129, 257, 2048, 4096,
+                ] {
                     let tokens: Vec<_> = (0..rows).map(|row| (row % vocab) as u32).collect();
                     let mut input = vec![[0.0; MAX_WIDTH]; rows];
                     let mut features = input.clone();
@@ -2182,13 +2186,15 @@ mod verification {
                     let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
                     let features_gpu = DeviceBuffer::from_host(&model.stream, &features)?;
                     let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
-                    let chunks = rows.div_ceil(128);
+                    let chunks = rows.div_ceil(EMBEDDING_GRADIENT_ROWS);
                     let mut partials = DeviceBuffer::zeroed(&model.stream, chunks * vocab * width)?;
                     let launch = model
                         .module
-                        .prepare_gpt_embedding_gradient_partials::<128, 256, 128>(config(
-                            partials.len(),
-                        ))?;
+                        .prepare_gpt_embedding_gradient_partials::<
+                            128,
+                            256,
+                            EMBEDDING_GRADIENT_ROWS,
+                        >(config(partials.len()))?;
                     model.module.gpt_embedding_gradient_partials(
                         &model.stream,
                         &launch,
