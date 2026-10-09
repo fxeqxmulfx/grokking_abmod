@@ -24,7 +24,7 @@ impl Checkpoint {
         }
         validate_finite(&self.parameters, "checkpoint parameters")?;
         let mut file = File::create(path)?;
-        file.write_all(b"MSHGPT04")?;
+        file.write_all(b"MSHGPT06")?;
         for field in [
             self.config.vocab_size,
             self.config.context,
@@ -61,7 +61,15 @@ impl Checkpoint {
         if &magic == b"MSHGPT03" {
             return Err("checkpoint uses LayerNorm; retrain Mesh GPT with RMSNorm".into());
         }
-        if &magic != b"MSHGPT04" {
+        if &magic == b"MSHGPT04" {
+            return Err("checkpoint contains biases; retrain bias-free Mesh GPT".into());
+        }
+        if &magic == b"MSHGPT05" {
+            return Err(
+                "checkpoint uses learned RMSNorm without QK-Norm; retrain Mesh GPT with parameter-free QK-Norm".into(),
+            );
+        }
+        if &magic != b"MSHGPT06" {
             return Err("unsupported Mesh GPT checkpoint format".into());
         }
         let mut scalar = || -> Result<usize> {
@@ -132,6 +140,7 @@ mod tests {
         assert_eq!(loaded.tokenizer, checkpoint.tokenizer);
         assert_eq!(loaded.parameters, checkpoint.parameters);
         let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(&bytes[..8], b"MSHGPT06");
         std::fs::remove_file(path).unwrap();
         for corrupted in [
             vec![0; 60],
@@ -150,6 +159,14 @@ mod tests {
         legacy[..8].copy_from_slice(b"MSHGPT03");
         let error = Checkpoint::read(&mut legacy.as_slice()).err().unwrap();
         assert!(error.to_string().contains("retrain Mesh GPT with RMSNorm"));
+        let mut legacy = bytes.clone();
+        legacy[..8].copy_from_slice(b"MSHGPT04");
+        let error = Checkpoint::read(&mut legacy.as_slice()).err().unwrap();
+        assert!(error.to_string().contains("retrain bias-free Mesh GPT"));
+        let mut legacy = bytes.clone();
+        legacy[..8].copy_from_slice(b"MSHGPT05");
+        let error = Checkpoint::read(&mut legacy.as_slice()).err().unwrap();
+        assert!(error.to_string().contains("parameter-free QK-Norm"));
         let mut nonfinite = bytes.clone();
         let last = nonfinite.len() - 4;
         nonfinite[last..].copy_from_slice(&f32::NAN.to_le_bytes());

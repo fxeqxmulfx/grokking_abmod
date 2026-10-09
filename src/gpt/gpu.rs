@@ -50,12 +50,13 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, state.len() == width,
+        heads >= 1, heads <= 8, head_width >= 2, head_width <= 64,
+        heads * head_width <= 64,
         out.len() == input.len(), cache.len() == input.len()))]
     pub fn gpt_rmsnorm(
-        width: usize,
+        heads: usize,
+        head_width: usize,
         input: &[Features],
-        state: &[[f32; 3]],
         mut out: DisjointSlice<Features>,
         mut cache: DisjointSlice<NormCache>,
     ) {
@@ -64,16 +65,19 @@ mod kernels {
         if let Some(output) = out.get_mut(index)
             && let Some(saved) = cache.get_mut(thread::index_1d())
         {
-            let mut squares = 0.0;
-            for channel in 0..width {
-                let x = input[row][channel];
-                squares += x * x;
-            }
-            let inverse = 1.0 / (squares / width as f32 + RMSNORM_EPSILON).sqrt();
-            saved[64] = inverse;
-            for channel in 0..width {
-                saved[channel] = input[row][channel] * inverse;
-                output[channel] = saved[channel] * state[channel][0];
+            for head in 0..heads {
+                let begin = head * head_width;
+                let mut squares = 0.0;
+                for channel in begin..begin + head_width {
+                    let x = input[row][channel];
+                    squares += x * x;
+                }
+                let inverse = 1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt();
+                saved[64 + head] = inverse;
+                for channel in begin..begin + head_width {
+                    saved[channel] = input[row][channel] * inverse;
+                    output[channel] = saved[channel];
+                }
             }
         }
     }
@@ -81,7 +85,7 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, offset + 3 * width <= state.len(), activated <= 1,
+        width >= 2, width <= 64, offset + 2 * width <= state.len(), activated <= 1,
         out.len() == input.len()))]
     pub fn gpt_mesh(
         width: usize,
@@ -95,10 +99,9 @@ mod kernels {
         let row = index.get();
         if let Some(output) = out.get_mut(index) {
             for channel in 0..width {
-                let p = offset + 3 * channel;
+                let p = offset + 2 * channel;
                 let value = input[row][channel] * state[p][0]
-                    + input[row][(channel + 1) % width] * state[p + 1][0]
-                    + state[p + 2][0];
+                    + input[row][(channel + 1) % width] * state[p + 1][0];
                 output[channel] = if activated == 1 && value < 0.0 {
                     value.exp() - 1.0
                 } else {
@@ -326,13 +329,12 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= 64, vocab >= 2, vocab <= 256,
-        embedding.len() >= vocab * width, bias.len() == vocab, out.len() == input.len()))]
+        embedding.len() == vocab * width, out.len() == input.len()))]
     pub fn gpt_head(
         width: usize,
         vocab: usize,
         input: &[Features],
         embedding: &[[f32; 3]],
-        bias: &[[f32; 3]],
         mut out: DisjointSlice<Vocabulary>,
     ) {
         let index = thread::index_1d();
@@ -343,7 +345,7 @@ mod kernels {
                 for channel in 0..width {
                     value += input[row][channel] * embedding[token * width + channel][0];
                 }
-                output[token] = value + bias[token][0];
+                output[token] = value;
             }
         }
     }
@@ -391,7 +393,7 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, vocab >= 2, vocab <= 256, embedding.len() >= vocab * width, out.len() == gradient.len()))]
+        width >= 2, width <= 64, vocab >= 2, vocab <= 256, embedding.len() == vocab * width, out.len() == gradient.len()))]
     pub fn gpt_head_backward(
         width: usize,
         vocab: usize,
@@ -414,46 +416,30 @@ mod kernels {
 
     #[kernel]
     #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (vocab >= 2, vocab <= 256, out.len() == vocab))]
-    pub fn gpt_bias_gradient(vocab: usize, gradient: &[Vocabulary], mut out: DisjointSlice<f32>) {
-        let index = thread::index_1d();
-        let token = index.get();
-        if token >= vocab {
-            return;
-        }
-        if let Some(output) = out.get_mut(index) {
-            let mut total = 0.0;
-            for row in gradient {
-                total += row[token];
-            }
-            *output = total;
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, state.len() == width,
+        heads >= 1, heads <= 8, head_width >= 2, head_width <= 64,
+        heads * head_width <= 64,
         gradient.len() == cache.len(), out.len() == cache.len()))]
     pub fn gpt_rmsnorm_backward(
-        width: usize,
+        heads: usize,
+        head_width: usize,
         gradient: &[Features],
         cache: &[NormCache],
-        state: &[[f32; 3]],
         mut out: DisjointSlice<Features>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
         if let Some(output) = out.get_mut(index) {
-            let mut dot = 0.0;
-            for channel in 0..width {
-                let value = gradient[row][channel] * state[channel][0];
-                dot += value * cache[row][channel];
-            }
-            for channel in 0..width {
-                let value = gradient[row][channel] * state[channel][0];
-                output[channel] =
-                    cache[row][64] * (value - cache[row][channel] * dot / width as f32);
+            for head in 0..heads {
+                let begin = head * head_width;
+                let mut dot = 0.0;
+                for channel in begin..begin + head_width {
+                    dot += gradient[row][channel] * cache[row][channel];
+                }
+                for channel in begin..begin + head_width {
+                    output[channel] = cache[row][64 + head]
+                        * (gradient[row][channel] - cache[row][channel] * dot / head_width as f32);
+                }
             }
         }
     }
@@ -461,28 +447,7 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        _width >= 2, _width <= 64, gradient.len() == cache.len(), out.len() == _width))]
-    pub fn gpt_rmsnorm_gradient(
-        _width: usize,
-        gradient: &[Features],
-        cache: &[NormCache],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let channel = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let mut total = 0.0;
-            for row in 0..gradient.len() {
-                total += gradient[row][channel] * cache[row][channel];
-            }
-            *output = total;
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, offset + 3 * width <= state.len(), activated <= 1,
+        width >= 2, width <= 64, offset + 2 * width <= state.len(), activated <= 1,
         gradient.len() == activation.len(), out.len() == activation.len()))]
     pub fn gpt_mesh_backward(
         width: usize,
@@ -500,10 +465,10 @@ mod kernels {
                 let previous = (channel + width - 1) % width;
                 output[channel] = gradient[row][channel]
                     * slope(activation[row][channel], activated)
-                    * state[offset + 3 * channel][0]
+                    * state[offset + 2 * channel][0]
                     + gradient[row][previous]
                         * slope(activation[row][previous], activated)
-                        * state[offset + 3 * previous + 1][0];
+                        * state[offset + 2 * previous + 1][0];
             }
         }
     }
@@ -511,7 +476,7 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, offset + 3 * width <= out.len(), activated <= 1,
+        width >= 2, width <= 64, offset + 2 * width <= out.len(), activated <= 1,
         input.len() == activation.len(), gradient.len() == activation.len()))]
     pub fn gpt_mesh_gradient(
         width: usize,
@@ -525,19 +490,17 @@ mod kernels {
         let index = thread::index_1d();
         let parameter = index.get();
         if parameter >= offset
-            && parameter < offset + 3 * width
+            && parameter < offset + 2 * width
             && let Some(output) = out.get_mut(index)
         {
-            let channel = (parameter - offset) / 3;
-            let edge = (parameter - offset) % 3;
+            let channel = (parameter - offset) / 2;
+            let edge = (parameter - offset) % 2;
             let mut total = 0.0;
             for row in 0..gradient.len() {
                 let x = if edge == 0 {
                     input[row][channel]
-                } else if edge == 1 {
-                    input[row][(channel + 1) % width]
                 } else {
-                    1.0
+                    input[row][(channel + 1) % width]
                 };
                 total += gradient[row][channel] * slope(activation[row][channel], activated) * x;
             }
@@ -695,7 +658,7 @@ enum Op {
         out: usize,
     },
     RmsNorm {
-        group: usize,
+        heads: usize,
         input: usize,
         out: usize,
         cache: usize,
@@ -749,10 +712,12 @@ impl Plan {
         };
         let mut x = 0;
         for block in &layout.blocks {
-            let normalized = plan.rmsnorm(x, block.norm1);
+            let normalized = plan.rmsnorm(x, 1);
             let query = plan.mesh(normalized, block.query, config.attention_mesh_depth);
             let key = plan.mesh(normalized, block.key, config.attention_mesh_depth);
             let value = plan.mesh(normalized, block.value, config.attention_mesh_depth);
+            let query = plan.rmsnorm(query, config.heads);
+            let key = plan.rmsnorm(key, config.heads);
             let query = plan.rope(query);
             let key = plan.rope(key);
             let out = plan.feature();
@@ -773,11 +738,11 @@ impl Plan {
             });
             let projected = plan.mesh(exclusive, block.projection, config.attention_mesh_depth);
             x = plan.add(x, projected);
-            let normalized = plan.rmsnorm(x, block.norm2);
+            let normalized = plan.rmsnorm(x, 1);
             let ffn = plan.mesh(normalized, block.ffn, config.ffn_mesh_depth);
             x = plan.add(x, ffn);
         }
-        plan.final_features = plan.rmsnorm(x, layout.final_norm);
+        plan.final_features = plan.rmsnorm(x, 1);
         plan
     }
     fn feature(&mut self) -> usize {
@@ -785,12 +750,12 @@ impl Plan {
         self.features += 1;
         id
     }
-    fn rmsnorm(&mut self, input: usize, group: usize) -> usize {
+    fn rmsnorm(&mut self, input: usize, heads: usize) -> usize {
         let out = self.feature();
         let cache = self.norms;
         self.norms += 1;
         self.ops.push(Op::RmsNorm {
-            group,
+            heads,
             input,
             out,
             cache,
@@ -1103,7 +1068,7 @@ impl GpuMeshGpt {
                     )?;
                 }
                 Op::RmsNorm {
-                    group,
+                    heads,
                     input,
                     out,
                     cache,
@@ -1113,9 +1078,9 @@ impl GpuMeshGpt {
                     self.module.gpt_rmsnorm(
                         &self.stream,
                         &launch,
-                        c.width,
+                        heads,
+                        c.width / heads,
                         &before[input],
-                        &self.parameters[group].state,
                         &mut after[0],
                         &mut workspace.norms[cache],
                     )?;
@@ -1133,7 +1098,7 @@ impl GpuMeshGpt {
                         &self.stream,
                         &launch,
                         c.width,
-                        layer * 3 * c.width,
+                        layer * 2 * c.width,
                         activated,
                         &before[input],
                         &self.parameters[group].state,
@@ -1211,7 +1176,6 @@ impl GpuMeshGpt {
             c.vocab_size,
             &workspace.features[self.plan.final_features],
             &self.parameters[0].state,
-            &self.parameters[self.layout.head_bias].state,
             &mut workspace.logits,
         )?;
         Ok(())
@@ -1270,47 +1234,24 @@ impl GpuMeshGpt {
             &mut workspace.scratch[0],
         )?;
         self.accumulate_scratch(workspace, self.plan.final_features, 0)?;
-        let group = &mut self.parameters[self.layout.head_bias];
-        let launch = self
-            .module
-            .prepare_gpt_bias_gradient(config(group.gradient.len()))?;
-        self.module.gpt_bias_gradient(
-            &self.stream,
-            &launch,
-            c.vocab_size,
-            &workspace.head_gradient,
-            &mut group.gradient,
-        )?;
 
         for index in (0..self.plan.ops.len()).rev() {
             match self.plan.ops[index] {
                 Op::Embed { .. } => {}
                 Op::RmsNorm {
-                    group,
+                    heads,
                     input,
                     out,
                     cache,
                 } => {
-                    let parameters = &mut self.parameters[group];
-                    let launch = self
-                        .module
-                        .prepare_gpt_rmsnorm_gradient(config(parameters.gradient.len()))?;
-                    self.module.gpt_rmsnorm_gradient(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        &workspace.adjoints[out],
-                        &workspace.norms[cache],
-                        &mut parameters.gradient,
-                    )?;
                     let launch = self.module.prepare_gpt_rmsnorm_backward(row_config)?;
                     self.module.gpt_rmsnorm_backward(
                         &self.stream,
                         &launch,
-                        c.width,
+                        heads,
+                        c.width / heads,
                         &workspace.adjoints[out],
                         &workspace.norms[cache],
-                        &parameters.state,
                         &mut workspace.scratch[0],
                     )?;
                     self.accumulate_scratch(workspace, input, 0)?;
@@ -1330,7 +1271,7 @@ impl GpuMeshGpt {
                         &self.stream,
                         &launch,
                         c.width,
-                        layer * 3 * c.width,
+                        layer * 2 * c.width,
                         activated,
                         &workspace.features[input],
                         &workspace.features[out],
@@ -1342,7 +1283,7 @@ impl GpuMeshGpt {
                         &self.stream,
                         &launch,
                         c.width,
-                        layer * 3 * c.width,
+                        layer * 2 * c.width,
                         activated,
                         &workspace.adjoints[out],
                         &workspace.features[out],
@@ -1522,23 +1463,21 @@ mod verification {
     };
 
     impl GpuMeshGpt {
-        /// Checks RMSNorm outputs, input derivatives, and scale gradients against f64 autodiff.
+        /// Checks parameter-free full-width RMSNorm and per-head QK-Norm against f64 autodiff.
         pub fn verify_rmsnorm(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             let rows = 129;
-            for width in [2, 6, 32, 64] {
-                let weight: Vec<_> = (0..width)
-                    .map(|channel| 0.25 * (channel % 9) as f32 - 1.0)
-                    .collect();
-                let state: Vec<_> = weight.iter().map(|&w| [w, 0.0, 0.0]).collect();
+            for (width, heads) in [(2, 1), (4, 2), (6, 1), (12, 2), (32, 4), (64, 1), (64, 8)] {
+                let head_width = width / heads;
                 let mut input = vec![[0.0; MAX_WIDTH]; rows];
                 let mut gradient = input.clone();
                 for row in 0..rows {
                     for channel in 0..width {
-                        let x = ((row + 3 * channel) % 19) as f32 * 0.2 - 1.7;
+                        let scale = (channel / head_width + 1) as f32;
+                        let x = (((row + 3 * channel) % 19) as f32 * 0.2 - 1.7) * scale;
                         input[row][channel] = match row % 5 {
                             0 => 0.0,
-                            1 => 2.0,
+                            1 => 2.0 * scale,
                             2 => x * 1e-7,
                             3 => x * RMSNORM_EPSILON.sqrt(),
                             _ => x,
@@ -1548,18 +1487,16 @@ mod verification {
                 }
                 let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
                 let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
-                let state_gpu = DeviceBuffer::from_host(&model.stream, &state)?;
                 let mut output_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut cache = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let mut scale_gradient = DeviceBuffer::zeroed(&model.stream, width)?;
                 let launch = model.module.prepare_gpt_rmsnorm(config(rows))?;
                 model.module.gpt_rmsnorm(
                     &model.stream,
                     &launch,
-                    width,
+                    heads,
+                    head_width,
                     &input_gpu,
-                    &state_gpu,
                     &mut output_gpu,
                     &mut cache,
                 )?;
@@ -1567,31 +1504,20 @@ mod verification {
                 model.module.gpt_rmsnorm_backward(
                     &model.stream,
                     &backward,
-                    width,
+                    heads,
+                    head_width,
                     &gradient_gpu,
                     &cache,
-                    &state_gpu,
                     &mut derivative_gpu,
-                )?;
-                let reduction = model.module.prepare_gpt_rmsnorm_gradient(config(width))?;
-                model.module.gpt_rmsnorm_gradient(
-                    &model.stream,
-                    &reduction,
-                    width,
-                    &gradient_gpu,
-                    &cache,
-                    &mut scale_gradient,
                 )?;
                 let output = output_gpu.to_host_vec(&model.stream)?;
                 let derivative = derivative_gpu.to_host_vec(&model.stream)?;
-                let scale_gradient = scale_gradient.to_host_vec(&model.stream)?;
                 let doubles = |x: &[f32]| x.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
-                let mut expected_scale_gradient = vec![0.0; width];
                 for row in 0..rows {
                     let (expected, gradients) = rmsnorm_reference(
                         &doubles(&input[row][..width]),
-                        &doubles(&weight),
                         &doubles(&gradient[row][..width]),
+                        heads,
                     );
                     for channel in 0..width {
                         for (name, cpu, gpu) in [
@@ -1601,57 +1527,77 @@ mod verification {
                             let gpu = f64::from(gpu);
                             assert!(
                                 gpu.is_finite() && (cpu - gpu).abs() < 4e-5 * (1.0 + cpu.abs()),
-                                "RMSNorm {name} width={width} row={row} channel={channel}: {cpu} vs {gpu}"
+                                "RMSNorm {name} width={width} heads={heads} row={row} channel={channel}: {cpu} vs {gpu}"
                             );
                         }
-                        expected_scale_gradient[channel] += gradients[width + channel];
                         if row % 5 == 0 {
                             assert_eq!(output[row][channel], 0.0);
                         }
                     }
                 }
-                for (channel, (&cpu, gpu)) in expected_scale_gradient
-                    .iter()
-                    .zip(scale_gradient)
-                    .enumerate()
-                {
-                    let gpu = f64::from(gpu);
-                    assert!(
-                        gpu.is_finite() && (cpu - gpu).abs() < 4e-5 * (1.0 + cpu.abs()),
-                        "RMSNorm scale gradient width={width} channel={channel}: {cpu} vs {gpu}"
-                    );
-                }
-                let wrong_state = DeviceBuffer::<[f32; 3]>::zeroed(&model.stream, width + 1)?;
-                let mut wrong_cache = DeviceBuffer::zeroed(&model.stream, rows - 1)?;
-                for (invalid_width, state) in
-                    [(1, &state_gpu), (65, &state_gpu), (width, &wrong_state)]
-                {
+                for (invalid_heads, invalid_width) in [
+                    (0, head_width),
+                    (9, head_width),
+                    (heads, 0),
+                    (heads, 1),
+                    (heads, 65),
+                    (8, 16),
+                ] {
                     assert!(
                         model
                             .module
                             .gpt_rmsnorm(
                                 &model.stream,
                                 &launch,
+                                invalid_heads,
                                 invalid_width,
                                 &input_gpu,
-                                state,
                                 &mut output_gpu,
                                 &mut cache,
                             )
                             .is_err()
                     );
+                    assert!(
+                        model
+                            .module
+                            .gpt_rmsnorm_backward(
+                                &model.stream,
+                                &backward,
+                                invalid_heads,
+                                invalid_width,
+                                &gradient_gpu,
+                                &cache,
+                                &mut derivative_gpu,
+                            )
+                            .is_err()
+                    );
                 }
+                let mut wrong_cache = DeviceBuffer::zeroed(&model.stream, rows - 1)?;
                 assert!(
                     model
                         .module
                         .gpt_rmsnorm(
                             &model.stream,
                             &launch,
-                            width,
+                            heads,
+                            head_width,
                             &input_gpu,
-                            &state_gpu,
                             &mut output_gpu,
                             &mut wrong_cache,
+                        )
+                        .is_err()
+                );
+                assert!(
+                    model
+                        .module
+                        .gpt_rmsnorm_backward(
+                            &model.stream,
+                            &backward,
+                            heads,
+                            head_width,
+                            &gradient_gpu,
+                            &wrong_cache,
+                            &mut derivative_gpu,
                         )
                         .is_err()
                 );

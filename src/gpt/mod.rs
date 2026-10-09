@@ -1,4 +1,4 @@
-//! A pre-RMSNorm Transformer with mesh mixers, slice RoPE, and exclusive attention.
+//! A bias-free Transformer with parameter-free RMSNorm, QK-Norm, slice RoPE, and XSA.
 
 mod checkpoint;
 mod config;
@@ -24,5 +24,5 @@ pub(crate) const XSA_EPSILON: f32 = 1e-12;
 pub(crate) type Features = [f32; MAX_WIDTH];
 pub(crate) type Attention = [f32; MAX_CONTEXT * MAX_HEADS];
 pub(crate) type Vocabulary = [f32; MAX_VOCAB];
-// RMS-normalized channels followed by the inverse RMS in the last slot.
-pub(crate) type NormCache = [f32; MAX_WIDTH + 1];
+// RMS-normalized channels followed by up to MAX_HEADS inverse RMS values.
+pub(crate) type NormCache = [f32; MAX_WIDTH + MAX_HEADS];

@@ -94,7 +94,7 @@ fn main() -> Result<()> {
     let options = Options::parse()?;
     if options.help {
         println!(
-            "Mesh GPT: a pre-RMSNorm Transformer with mesh projections, slice RoPE, and XSA\n\
+            "Mesh GPT: a bias-free Transformer with fixed RMSNorm, QK-Norm, slice RoPE, and XSA\n\
             Usage: cargo oxide run --bin mesh-gpt -- [train|generate|verify] [options]\n\n\
             --dataset PATH        UTF-8 training corpus (default: data/mesh-gpt-demo.txt)\n\
             --output PATH         Artifacts (default: target/mesh-gpt)\n\
@@ -165,7 +165,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
         dataset.batch(true, options.config.context, options.batch, 101)?;
     let mut model = GpuMeshGpt::new(options.device, options.config, options.seed)?;
     println!(
-        "Mesh GPT (pre-RMSNorm, slice RoPE + XSA): blocks={}, width={}, heads={}, context={}, vocabulary={}, parameters={}",
+        "Mesh GPT (bias-free, fixed RMSNorm + QK-Norm, slice RoPE + XSA): blocks={}, width={}, heads={}, context={}, vocabulary={}, parameters={}",
         options.config.layers,
         options.config.width,
         options.config.heads,
@@ -243,7 +243,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "attention=xsa\npositions=slice_rope\nrope_base=10000\nnormalization=pre_rmsnorm\nrmsnorm_epsilon=1e-5\ndataset={}\nseed={}\nsteps={}\nbatch={}\nwidth={}\nheads={}\nlayers={}\ncontext={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nlearning_rate={}\nweight_decay={}\ntraining_seconds={elapsed:.6}\ninitial_validation_cross_entropy={initial_validation:.9}\nfinal_validation_cross_entropy={final_validation:.9}\n",
+            "attention=xsa\npositions=slice_rope\nrope_base=10000\nnormalization=pre_rmsnorm\nrmsnorm_epsilon=1e-5\nrmsnorm_affine=false\nqk_norm=per_head_rmsnorm\nbias=false\ndataset={}\nseed={}\nsteps={}\nbatch={}\nwidth={}\nheads={}\nlayers={}\ncontext={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nlearning_rate={}\nweight_decay={}\ntraining_seconds={elapsed:.6}\ninitial_validation_cross_entropy={initial_validation:.9}\nfinal_validation_cross_entropy={final_validation:.9}\n",
             options.dataset.display(),
             options.seed,
             options.training.steps,
@@ -292,7 +292,7 @@ fn close(name: &str, expected: f64, actual: f64) -> Result<()> {
 fn verify(device: usize) -> Result<()> {
     GpuMeshGpt::verify_rmsnorm(device)?;
     println!(
-        "PASS isolated RMSNorm: outputs, input/scale gradients, zero/tiny values, batch tails, contracts"
+        "PASS isolated RMSNorm/QK-Norm: outputs, input gradients, per-head groups, zero/tiny values, batch tails, contracts"
     );
     GpuMeshGpt::verify_rotary_embeddings(device)?;
     println!(
@@ -417,8 +417,14 @@ fn verify(device: usize) -> Result<()> {
                 f64::from(gpu),
             )?;
         }
+        let mut zero_embeddings = vec![0.5; config.parameter_count()?];
+        zero_embeddings[..config.vocab_size * config.width].fill(0.0);
+        model.set_parameters(&zero_embeddings)?;
+        if model.logits(&x, 3)?.iter().flatten().any(|&x| x != 0.0) {
+            return Err("zero token embeddings produced additive logit offsets".into());
+        }
         println!(
-            "PASS RMSNorm/RoPE/XSA width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset",
+            "PASS fixed RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset, zero-input offsets",
             config.width, config.heads, config.layers
         );
     }

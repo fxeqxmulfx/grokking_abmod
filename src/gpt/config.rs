@@ -7,6 +7,8 @@ use super::{MAX_CONTEXT, MAX_HEADS, MAX_ROWS, MAX_VOCAB, MAX_WIDTH};
 /// Attention always uses per-head exclusive self attention (XSA).
 /// Query/key positions use full-head slice RoPE with split-half channel pairs.
 /// Every block uses pre-RMSNorm, with a final RMSNorm before the vocabulary head.
+/// Q/K use per-head RMS QK-Norm before RoPE; all RMSNorms are parameter-free.
+/// Mesh mixers, RMSNorm, and the tied vocabulary head have no additive biases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GptConfig {
     pub vocab_size: usize,
@@ -141,9 +143,7 @@ impl GptTrainOptions {
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Kind {
     Embedding,
-    Norm,
     Mesh(usize),
-    Bias,
 }
 
 #[derive(Clone, Debug)]
@@ -155,12 +155,10 @@ pub(crate) struct Group {
 
 #[derive(Clone, Debug)]
 pub(crate) struct Block {
-    pub norm1: usize,
     pub query: usize,
     pub key: usize,
     pub value: usize,
     pub projection: usize,
-    pub norm2: usize,
     pub ffn: usize,
 }
 
@@ -168,8 +166,6 @@ pub(crate) struct Block {
 pub(crate) struct Layout {
     pub groups: Vec<Group>,
     pub blocks: Vec<Block>,
-    pub final_norm: usize,
-    pub head_bias: usize,
 }
 
 impl Layout {
@@ -178,15 +174,12 @@ impl Layout {
         let mut layout = Self {
             groups: Vec::new(),
             blocks: Vec::new(),
-            final_norm: 0,
-            head_bias: 0,
         };
         layout.push(config.vocab_size * config.width, Kind::Embedding);
         for _ in 0..config.layers {
-            let norm1 = layout.push(config.width, Kind::Norm);
             let mut mesh = || {
                 layout.push(
-                    3 * config.width * config.attention_mesh_depth,
+                    2 * config.width * config.attention_mesh_depth,
                     Kind::Mesh(config.attention_mesh_depth),
                 )
             };
@@ -194,23 +187,18 @@ impl Layout {
             let key = mesh();
             let value = mesh();
             let projection = mesh();
-            let norm2 = layout.push(config.width, Kind::Norm);
             let ffn = layout.push(
-                3 * config.width * config.ffn_mesh_depth,
+                2 * config.width * config.ffn_mesh_depth,
                 Kind::Mesh(config.ffn_mesh_depth),
             );
             layout.blocks.push(Block {
-                norm1,
                 query,
                 key,
                 value,
                 projection,
-                norm2,
                 ffn,
             });
         }
-        layout.final_norm = layout.push(config.width, Kind::Norm);
-        layout.head_bias = layout.push(config.vocab_size, Kind::Bias);
         Ok(layout)
     }
 
@@ -241,11 +229,10 @@ impl Layout {
                         *value = 0.2 * (random.unit() - 0.5);
                     }
                 }
-                Kind::Norm => values.fill(1.0),
                 Kind::Mesh(depth) => {
                     for layer in 0..depth {
                         for channel in 0..config.width {
-                            let offset = layer * 3 * config.width + channel * 3;
+                            let offset = layer * 2 * config.width + channel * 2;
                             values[offset] = 0.7 + 0.2 * (random.unit() - 0.5);
                             values[offset + 1] = 0.4 * (random.unit() - 0.5);
                             // Smaller output weights stabilize the residual branches.
@@ -256,7 +243,6 @@ impl Layout {
                         }
                     }
                 }
-                Kind::Bias => {}
             }
         }
         parameters

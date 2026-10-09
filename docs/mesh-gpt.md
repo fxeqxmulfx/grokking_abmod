@@ -1,19 +1,20 @@
 # Mesh GPT
 
 A character-level autoregressive Transformer using CUDA Oxide. The decoder uses
-multi-head causal exclusive self attention (XSA), slice RoPE, learned token
+multi-head causal exclusive self attention (XSA), QK-Norm, slice RoPE, learned token
 embeddings, pre-RMSNorm, residual connections, a final RMSNorm, and a tied
-vocabulary head. This follows
+vocabulary head. All mesh layers, normalization layers, and the vocabulary head
+are bias-free; every RMSNorm is parameter-free. This follows
 the decoder design described in [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
 and the pre-norm placement in the [GPT-2 report](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
 
 The experimental change is to use sparse two-parent meshes for **all Q/K/V
 projections, the attention output projection, and the feed-forward branch**.
 Every mesh layer preserves channel width. Neuron `c` reads channels `c` and
-`(c + 1) mod width` from the preceding layer, with separate weights and a bias:
+`(c + 1) mod width` from the preceding layer, with two separate weights:
 
 ```text
-z[c] = w_self[c] * x[c] + w_neighbor[c] * x[(c + 1) mod width] + bias[c]
+z[c] = w_self[c] * x[c] + w_neighbor[c] * x[(c + 1) mod width]
 ```
 
 Intermediate mesh layers use ELU with alpha 1; the last layer is linear so the
@@ -29,12 +30,12 @@ Each token is normalized across its full channel width with
 ```text
 inverse_rms = 1 / sqrt(mean(x * x) + 1e-5)
 normalized = x * inverse_rms
-out = normalized * gamma
+out = normalized
 ```
 
-Each normalization owns a learned scale `gamma`, initialized to ones, with no
-bias or mean subtraction. The decoder uses **pre-norm**: normalization precedes
-the attention and feed-forward branches, while each residual adds to the
+Normalization has no learned scale, bias, or mean subtraction. The decoder
+uses **pre-norm**: normalization precedes the attention and feed-forward
+branches, while each residual adds to the
 unnormalized branch input. A final RMSNorm precedes the tied vocabulary head.
 
 ```text
@@ -42,10 +43,31 @@ x = x + attention_branch(RMSNorm(x))
 x = x + feed_forward_mesh(RMSNorm(x))
 ```
 
-For upstream gradient `g`, CUDA uses `p = g * gamma` and
-`dx = inverse_rms * (p - normalized * mean(p * normalized))`.
-Scale gradients sum `g * normalized` over token rows. This includes the
-denominator derivative and remains finite for zero or tiny inputs.
+For upstream gradient `g`, CUDA uses
+`dx = inverse_rms * (g - normalized * mean(g * normalized))`.
+This includes the denominator derivative and remains finite for zero or tiny
+inputs. Parameter-free normalization still propagates gradients to its input.
+
+### QK-Norm
+
+Every block applies RMSNorm separately to each projected Q/K head before RoPE,
+following the per-head placement in
+[Hugging Face's Qwen3 attention](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3/modeling_qwen3.py).
+The implementation here uses fixed normalization with epsilon `1e-5`, without
+an affine scale or a learned attention temperature:
+
+```text
+q[h] = q[h] / sqrt(mean(q[h] * q[h]) + 1e-5)
+k[h] = k[h] / sqrt(mean(k[h] * k[h]) + 1e-5)
+q, k = slice_rope(q, k, position)
+scores[h] = q[h] @ k[h].T / sqrt(head_width)
+```
+
+Means are taken over the channels within one head and one token. Q and K use
+their own RMS values; heads and batch items cannot affect one another's
+normalization. V keeps the output of its mesh. The same CUDA forward/backward
+kernels implement full-width residual RMSNorm and per-head QK-Norm, storing one
+inverse RMS per normalized group. Every block always uses QK-Norm.
 
 ### Slice RoPE
 
@@ -89,14 +111,15 @@ value vector. The floor matches
 [PyTorch's F.normalize](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.normalize.html)
 in the paper's algorithm; zero values leave `y[i]` unchanged. XSA adds no
 parameters and always runs in every block. The vocabulary logits use dot
-products with the shared token embedding table plus a learned bias.
+products with the shared token embedding table, with no additive bias.
 
 ```mermaid
 flowchart LR
     T[Token IDs] --> E[Token embeddings]
-    E --> N1[RMSNorm]
+    E --> N1[Fixed RMSNorm]
     N1 --> QKV[Q / K / V meshes]
-    QKV --> P[Slice RoPE on Q/K]
+    QKV --> NQK[Per-head QK-Norm on Q/K]
+    NQK --> P[Slice RoPE on Q/K]
     P --> A[Causal multi-head attention]
     QKV -->|V| A
     A --> X[Per-head XSA projection]
@@ -104,11 +127,11 @@ flowchart LR
     X --> O[Output mesh]
     E --> R1[Residual add]
     O --> R1
-    R1 --> N2[RMSNorm]
+    R1 --> N2[Fixed RMSNorm]
     N2 --> F[Feed-forward mesh]
     R1 --> R2[Residual add]
     F --> R2
-    R2 --> Next[Next block / final RMSNorm]
+    R2 --> Next[Next block / final fixed RMSNorm]
     Next --> H[Tied vocabulary head]
     H --> L[Next-token logits]
 ```
@@ -145,7 +168,9 @@ cargo oxide run --bin mesh-gpt -- --help
 Defaults: 2 blocks, width 32, 4 heads, context 32, attention mesh depth 4,
 feed-forward mesh depth 6, batch size 8, 1000 AdamW steps, learning rate 0.003,
 weight decay 0.01, and seed 7. On the included original English demo corpus,
-the tokenizer has 26 characters and the model has **5242 parameters**.
+the tokenizer has 26 characters and the model has **3648 parameters**:
+832 embedding weights and 2816 mesh edge weights. RMSNorm and QK-Norm add no
+parameters.
 The tokenizer builds a sorted Unicode-character vocabulary from the corpus.
 Prompts must use that vocabulary. Temperature 0 selects greedy decoding;
 positive temperatures sample from the softmax distribution with a reproducible
@@ -159,13 +184,13 @@ windows nor targets cross the boundary. Validation uses fixed windows from seed
 cross-entropy is the mean over steps since the preceding report; step 0 is a
 single initial batch. Perplexity is `exp(mean cross_entropy)` per character.
 
-On an RTX 3050 Laptop GPU, a 1000-step pre-RMSNorm + slice RoPE + XSA run with
-the default configuration produced:
+On an RTX 3050 Laptop GPU, a 1000-step bias-free fixed RMSNorm + QK-Norm +
+slice RoPE + XSA run with the default configuration produced:
 
 ```text
-step      0: train CE=3.53072, validation CE=3.49466, perplexity=32.939
-step   1000: train CE=0.87709, validation CE=1.60870, perplexity=4.996
-Training time: 8.389 s
+step      0: train CE=3.53211, validation CE=3.49710, perplexity=33.020
+step   1000: train CE=1.33697, validation CE=1.71007, perplexity=5.529
+Training time: 7.966 s
 ```
 
 This is a compact model for experimenting with mesh channel mixing. Samples
@@ -207,21 +232,22 @@ Checkpoints contain configuration, the exact tokenizer, and weights. Loading
 for generation preserves predictions; optimizer moments are reset when weights
 are installed. Checkpoint readers validate dimensions before allocating, reject
 invalid characters, nonfinite weights, truncation, and trailing bytes.
-The `MSHGPT04` format identifies the pre-RMSNorm + slice RoPE + XSA architecture.
-Older `MSHGPT01` and `MSHGPT02` checkpoints used learned position embeddings;
-`MSHGPT03` used RoPE with LayerNorm. They are rejected with a retraining message,
-so their weights cannot silently run under a different architecture or parameter
-layout.
+The `MSHGPT06` format identifies bias-free mesh projections, parameter-free
+RMSNorm/QK-Norm, slice RoPE, and XSA. Older `MSHGPT01` and `MSHGPT02` checkpoints
+used learned position embeddings; `MSHGPT03` used RoPE with LayerNorm, and
+`MSHGPT04` still had mesh and vocabulary
+biases; `MSHGPT05` used learned RMSNorm scales without QK-Norm. They are rejected
+with a retraining message, so their weights cannot silently run under a
+different architecture or parameter layout.
 
 ## GPU execution and verification
 
-CUDA performs embedding lookup, RMSNorm, mesh projections, RoPE and its
+CUDA performs embedding lookup, RMSNorm/QK-Norm, mesh projections, RoPE and its
 transpose rotation, attention and its softmax derivative, XSA projection and
 its derivatives, cross-entropy, gradient aggregation, and AdamW. Parameter
-gradients include both uses of the tied token
-embedding table. AdamW decay applies to all parameters, including biases and
-normalization parameters. Host work covers tokenization, choosing minibatches,
-reporting loss, checkpoint I/O, and sampling the next character.
+gradients include both uses of the tied token embedding table. AdamW decay
+applies to embedding and mesh edge weights. Host work covers tokenization,
+choosing minibatches, reporting loss, checkpoint I/O, and sampling the next character.
 
 Each token row owns its feature/cache writes; each parameter owns its gradient
 reduction and update. Reverse attention gathers contributions from later queries
@@ -247,10 +273,13 @@ left for later experiments.
 
 `cargo test --lib --locked` checks configuration, tokenizer/window boundaries,
 checkpoint round-trips and malformed input, strict causality/batch isolation,
-RMSNorm without mean subtraction and its input/scale derivatives at zero and
-tiny inputs, split-half RoPE pairs, norm preservation, relative position
-identity, per-head XSA orthogonality, and finite differences for every parameter
+parameter-free RMSNorm without mean subtraction and its input derivatives at
+zero and tiny inputs, split-half RoPE pairs, norm preservation, relative position
+identity, per-head QK-Norm isolation, per-head XSA orthogonality, and finite
+differences for every parameter
 in a tiny Transformer and both XSA inputs, including zero and tiny values.
+Zero-input checks exercise mesh stacks and vocabulary logits with nonzero
+weights to detect unwanted additive offsets.
 GPU `verify` compares every logit and parameter gradient against f64 autodiff
 at multiple widths, head counts, blocks, single-token sequences, and batch sizes
 (including 129 rows).
@@ -263,6 +292,9 @@ tiny, aligned, and ordinary values.
 It also checks isolated CUDA RoPE forward, inverse, and backward against f64
 autodiff for multiple head widths, positions through 127, sequence resets,
 129-row batch tails, norm preservation, and rejected invalid launch arguments.
-It checks isolated CUDA RMSNorm outputs, input derivatives, and reduced scale
-gradients against f64 autodiff for widths 2, 6, 32, and 64, zero/tiny/constant
-inputs, 129-row batch tails, and rejected invalid launch arguments.
+It checks isolated CUDA full-width RMSNorm and per-head QK-Norm outputs and
+input derivatives against f64 autodiff for widths 2, 4, 6, 12, 32, and 64,
+with head counts 1, 2, 4, and 8,
+zero/tiny/constant inputs, 129-row batch tails, and rejected invalid launch
+arguments, including oversized channel/head combinations and cache length
+mismatches.

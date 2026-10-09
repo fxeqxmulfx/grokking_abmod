@@ -100,7 +100,7 @@ impl ReferenceGpt {
             })
             .collect();
         for block in &self.layout.blocks {
-            let normalized = rmsnorm(&mut tape, &x, self.layout.groups[block.norm1].offset);
+            let normalized = rmsnorm(&mut tape, &x, 1);
             let query = mesh(
                 &mut tape,
                 &normalized,
@@ -119,6 +119,8 @@ impl ReferenceGpt {
                 self.layout.groups[block.value].offset,
                 config.attention_mesh_depth,
             );
+            let query = rmsnorm(&mut tape, &query, config.heads);
+            let key = rmsnorm(&mut tape, &key, config.heads);
             let query = rotary(&mut tape, &query, sequence, config.heads);
             let key = rotary(&mut tape, &key, sequence, config.heads);
             let attended = attention(&mut tape, &query, &key, &value, sequence, config.heads);
@@ -130,7 +132,7 @@ impl ReferenceGpt {
                 config.attention_mesh_depth,
             );
             x = residual(&mut tape, &x, &projected);
-            let normalized = rmsnorm(&mut tape, &x, self.layout.groups[block.norm2].offset);
+            let normalized = rmsnorm(&mut tape, &x, 1);
             let feed_forward = mesh(
                 &mut tape,
                 &normalized,
@@ -139,12 +141,7 @@ impl ReferenceGpt {
             );
             x = residual(&mut tape, &x, &feed_forward);
         }
-        let normalized = rmsnorm(
-            &mut tape,
-            &x,
-            self.layout.groups[self.layout.final_norm].offset,
-        );
-        let bias = self.layout.groups[self.layout.head_bias].offset;
+        let normalized = rmsnorm(&mut tape, &x, 1);
         let logits = normalized
             .iter()
             .map(|row| {
@@ -155,8 +152,7 @@ impl ReferenceGpt {
                             .enumerate()
                             .map(|(channel, &id)| tape.multiply(id, token * width + channel))
                             .collect();
-                        let sum = tape.sum(&products);
-                        tape.add(sum, bias + token)
+                        tape.sum(&products)
                     })
                     .collect()
             })
@@ -264,20 +260,20 @@ impl Tape {
     }
 }
 
-fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], offset: usize) -> Vec<Vec<usize>> {
-    let width = x[0].len();
+fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], heads: usize) -> Vec<Vec<usize>> {
+    let head_width = x[0].len() / heads;
     x.iter()
         .map(|row| {
-            let squares: Vec<_> = row.iter().map(|&id| tape.multiply(id, id)).collect();
-            let sum = tape.sum(&squares);
-            let mean_square = tape.scale(sum, 1.0 / width as f64);
-            let stabilized = tape.shift(mean_square, f64::from(RMSNORM_EPSILON));
-            let inverse = tape.inverse_sqrt(stabilized);
-            row.iter()
-                .enumerate()
-                .map(|(channel, &id)| {
-                    let normalized = tape.multiply(id, inverse);
-                    tape.multiply(normalized, offset + channel)
+            row.chunks_exact(head_width)
+                .flat_map(|head| {
+                    let squares: Vec<_> = head.iter().map(|&id| tape.multiply(id, id)).collect();
+                    let sum = tape.sum(&squares);
+                    let mean_square = tape.scale(sum, 1.0 / head_width as f64);
+                    let stabilized = tape.shift(mean_square, f64::from(RMSNORM_EPSILON));
+                    let inverse = tape.inverse_sqrt(stabilized);
+                    head.iter()
+                        .map(|&id| tape.multiply(id, inverse))
+                        .collect::<Vec<_>>()
                 })
                 .collect()
         })
@@ -286,15 +282,15 @@ fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], offset: usize) -> Vec<Vec<usize>> 
 
 pub(super) fn rmsnorm_reference(
     input: &[f64],
-    weight: &[f64],
     gradient: &[f64],
+    heads: usize,
 ) -> (Vec<f64>, Vec<f64>) {
     let width = input.len();
     let mut tape = Tape {
-        values: input.iter().chain(weight).copied().collect(),
-        edges: vec![[(NONE, 0.0); 2]; 2 * width],
+        values: input.to_vec(),
+        edges: vec![[(NONE, 0.0); 2]; width],
     };
-    let output = rmsnorm(&mut tape, &[(0..width).collect()], width).remove(0);
+    let output = rmsnorm(&mut tape, &[(0..width).collect()], heads).remove(0);
     let values = output.iter().map(|&id| tape.values[id]).collect();
     let weighted: Vec<_> = output
         .iter()
@@ -302,7 +298,7 @@ pub(super) fn rmsnorm_reference(
         .map(|(&id, &g)| tape.scale(id, g))
         .collect();
     let loss = tape.sum(&weighted);
-    (values, tape.backward(loss, 2 * width))
+    (values, tape.backward(loss, width))
 }
 
 fn mesh(tape: &mut Tape, input: &[Vec<usize>], offset: usize, depth: usize) -> Vec<Vec<usize>> {
@@ -314,15 +310,14 @@ fn mesh(tape: &mut Tape, input: &[Vec<usize>], offset: usize, depth: usize) -> V
             .map(|row| {
                 (0..width)
                     .map(|channel| {
-                        let p = offset + layer * 3 * width + 3 * channel;
+                        let p = offset + layer * 2 * width + 2 * channel;
                         let left = tape.multiply(row[channel], p);
                         let right = tape.multiply(row[(channel + 1) % width], p + 1);
                         let sum = tape.add(left, right);
-                        let biased = tape.add(sum, p + 2);
                         if layer + 1 == depth {
-                            biased
+                            sum
                         } else {
-                            tape.elu(biased)
+                            tape.elu(sum)
                         }
                     })
                     .collect()
@@ -522,25 +517,22 @@ mod tests {
 
     #[test]
     fn rmsnorm_preserves_nonzero_means_and_stabilizes_zero_inputs() {
-        let weight = [1.0, -2.0, 0.5, 0.0];
         let upstream = [0.3, -0.7, 0.5, 1.0];
         let epsilon = f64::from(RMSNORM_EPSILON);
-        let (output, _) = rmsnorm_reference(&[2.0; 4], &weight, &upstream);
-        for (&value, w) in output.iter().zip(weight) {
-            assert!((value - 2.0 * w / (4.0 + epsilon).sqrt()).abs() < 1e-12);
+        let (output, _) = rmsnorm_reference(&[2.0; 4], &upstream, 1);
+        for &value in &output {
+            assert!((value - 2.0 / (4.0 + epsilon).sqrt()).abs() < 1e-12);
         }
-        let (output, gradient) = rmsnorm_reference(&[0.0; 4], &weight, &upstream);
+        let (output, gradient) = rmsnorm_reference(&[0.0; 4], &upstream, 1);
         assert_eq!(output, [0.0; 4]);
-        assert_eq!(&gradient[4..], &[0.0; 4]);
-        for (channel, &actual) in gradient[..4].iter().enumerate() {
-            let expected = upstream[channel] * weight[channel] / epsilon.sqrt();
+        for (channel, &actual) in gradient.iter().enumerate() {
+            let expected = upstream[channel] / epsilon.sqrt();
             assert!((actual - expected).abs() < 1e-12 * (1.0 + expected.abs()));
         }
     }
 
     #[test]
-    fn rmsnorm_input_and_scale_gradients_match_finite_differences() {
-        let weight = [1.0, -0.5, 0.0, 2.0];
+    fn rmsnorm_gradients_match_finite_differences_for_full_rows_and_heads() {
         let upstream = [-0.3, 0.2, 0.8, -0.4];
         for input in [
             [0.0; 4],
@@ -549,27 +541,47 @@ mod tests {
             [1.0, -2.0, 3.0, 4.0],
             [2.0; 4],
         ] {
-            let (_, gradient) = rmsnorm_reference(&input, &weight, &upstream);
-            for (parameter, &analytic) in gradient.iter().enumerate() {
-                let mut plus = [input, weight];
-                let mut minus = plus;
-                plus[parameter / 4][parameter % 4] += 1e-7;
-                minus[parameter / 4][parameter % 4] -= 1e-7;
-                let loss = |values: [[f64; 4]; 2]| {
-                    let (output, _) = rmsnorm_reference(&values[0], &values[1], &upstream);
-                    output
-                        .iter()
-                        .zip(upstream)
-                        .map(|(&x, g)| x * g)
-                        .sum::<f64>()
-                };
-                let numerical = (loss(plus) - loss(minus)) / 2e-7;
-                assert!(
-                    (analytic - numerical).abs() < 1e-6 * (1.0 + analytic.abs()),
-                    "RMSNorm parameter={parameter}: {analytic} vs {numerical}"
-                );
+            for heads in [1, 2] {
+                let (_, gradient) = rmsnorm_reference(&input, &upstream, heads);
+                for (channel, &analytic) in gradient.iter().enumerate() {
+                    let mut plus = input;
+                    let mut minus = input;
+                    plus[channel] += 1e-7;
+                    minus[channel] -= 1e-7;
+                    let loss = |values: [f64; 4]| {
+                        let (output, _) = rmsnorm_reference(&values, &upstream, heads);
+                        output
+                            .iter()
+                            .zip(upstream)
+                            .map(|(&x, g)| x * g)
+                            .sum::<f64>()
+                    };
+                    let numerical = (loss(plus) - loss(minus)) / 2e-7;
+                    assert!(
+                        (analytic - numerical).abs() < 1e-6 * (1.0 + analytic.abs()),
+                        "RMSNorm heads={heads} channel={channel}: {analytic} vs {numerical}"
+                    );
+                }
             }
         }
+    }
+
+    #[test]
+    fn qk_norm_normalizes_each_head_independently() {
+        let input = [3.0, 4.0, 5.0, 12.0];
+        let upstream = [0.3, -0.7, 0.5, 1.0];
+        let epsilon = f64::from(RMSNORM_EPSILON);
+        let (output, gradient) = rmsnorm_reference(&input, &upstream, 2);
+        for (head, values) in input.as_chunks::<2>().0.iter().enumerate() {
+            let inverse = 1.0 / (values.iter().map(|x| x * x).sum::<f64>() / 2.0 + epsilon).sqrt();
+            for channel in 0..2 {
+                assert!((output[2 * head + channel] - values[channel] * inverse).abs() < 1e-12);
+            }
+        }
+        let changed = [3.0, 4.0, -50.0, 0.001];
+        let (changed_output, changed_gradient) = rmsnorm_reference(&changed, &upstream, 2);
+        assert_eq!(&output[..2], &changed_output[..2]);
+        assert_eq!(&gradient[..2], &changed_gradient[..2]);
     }
 
     #[test]
@@ -695,6 +707,28 @@ mod tests {
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
         }
+    }
+
+    #[test]
+    fn zero_inputs_do_not_create_mesh_or_head_offsets() {
+        let width = 4;
+        for depth in [1, 3, 16] {
+            let mut tape = Tape::new(&vec![0.5; 2 * width * depth]);
+            let zero = tape.node(0.0, [(NONE, 0.0); 2]);
+            let output = mesh(&mut tape, &[vec![zero; width]], 0, depth);
+            for &id in &output[0] {
+                assert_eq!(tape.values[id], 0.0);
+            }
+        }
+        let config = tiny_config();
+        let mut parameters = vec![0.5; config.parameter_count().unwrap()];
+        parameters[..config.vocab_size * config.width].fill(0.0);
+        let model = ReferenceGpt::from_parameters(config, parameters).unwrap();
+        let inputs = [0, 1, 2, 3, 4, 0];
+        assert_eq!(
+            model.logits(&inputs, 3).unwrap(),
+            vec![vec![0.0; config.vocab_size]; inputs.len()]
+        );
     }
 
     #[test]
