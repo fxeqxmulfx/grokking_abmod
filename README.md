@@ -1,10 +1,28 @@
 # grokking_abmod
 
-A Mesh Neural Net in Rust using [CUDA Oxide from the `experiments` branch](https://github.com/fxeqxmulfx/cuda-rust/tree/experiments).
-The example learns the piecewise function from the **Mesh Neural Nets** section of
+Mesh neural networks and a GPT-style Transformer in Rust using
+[CUDA Oxide from the `experiments` branch](https://github.com/fxeqxmulfx/cuda-rust/tree/experiments).
+The scalar example learns the piecewise function from the **Mesh Neural Nets** section of
 Stephen Wolfram's [What's Really Going On in Machine Learning? Some Minimal Models](https://writings.stephenwolfram.com/2024/08/whats-really-going-on-in-machine-learning-some-minimal-models/).
 Forward propagation, backpropagation, gradient reduction, and Adam updates run on the GPU.
 `cuda-core`, `cuda-device`, and `cuda-host` are pinned to the same commit in `Cargo.lock`.
+
+## Mesh GPT
+
+The `mesh-gpt` binary trains a character-level autoregressive Transformer with
+causal multi-head attention. Q/K/V, attention output, and feed-forward projections
+use two-parent ELU meshes. It includes pre-LayerNorm, residual connections,
+learned positions, tied token embeddings, GPU AdamW, checkpoints, and text sampling.
+
+```bash
+cargo oxide run --bin mesh-gpt -- train
+cargo oxide run --bin mesh-gpt -- generate --prompt "the little robot "
+cargo oxide run --bin mesh-gpt -- verify
+python3 scripts/plot-gpt.py
+```
+
+See [Mesh GPT architecture, options, and verification](docs/mesh-gpt.md).
+The original scalar example remains available with `cargo oxide run`.
 
 ## Model
 

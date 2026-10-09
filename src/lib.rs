@@ -1,5 +1,6 @@
 //! Diamond mesh neural networks with CUDA Oxide training and inference.
 
+pub mod gpt;
 mod gpu;
 mod mesh;
 
