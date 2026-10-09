@@ -215,7 +215,7 @@ existing `--attention-depth` option. RMSNorm and QK-Norm add no parameters.
 For width `W`, block count `L`, attention/embedding depth `A`, and FFN depth `F`,
 the count is `2 * W * (A + L * (4 * A + F))`; it does not grow with the vocabulary.
 The generated vector table still contains `V * W` active values (CUDA buffers
-use fixed-capacity rows of 128 channels), and its mesh is evaluated for all `V`
+use rows sized by the specialization's width capacity), and its mesh is evaluated for all `V`
 tokens at each forward pass.
 The tokenizer builds a sorted Unicode-character vocabulary from the corpus.
 Prompts must use that vocabulary. Temperature 0 selects greedy decoding;
@@ -314,7 +314,14 @@ in the same sequence. Residual and Q/K/V gradients accumulate in distinct
 buffers. Launch contracts validate lengths and scalar bounds. Private execution
 plans establish descriptor relationships and vocabulary IDs are checked before
 launch. Kernels use safe `DisjointSlice` access and no atomics or raw pointers.
-There is one documented `unsafe` call to bind the crate's own embedded bundle.
+GPT module loading is also safe: CUDA Oxide verifies the original mapped
+artifact image and resolves generic kernels by compiled function-item identity.
+Conflicting entries and missing specializations fail before launch.
+Embedding gradients use one scalar output per token/channel pair. Mesh weight
+gradients for batches larger than 128 rows are accumulated in row chunks and
+then reduced per edge, with a direct path for smaller batches. See
+[CUDA profiling and training performance](cuda-performance.md) for measurements
+and the `mesh-gpt-bench` workload.
 
 XSA's backward pass differentiates both occurrences of the normalized self value
 and its normalization denominator. The local self-value derivative is added to
@@ -322,17 +329,39 @@ the attention derivative from all causal queries. Below the norm floor, the
 denominator is constant. The raw attention output is retained for this backward
 pass; the XSA output feeds the output mesh.
 
-Supported limits: width 2..128, 1..8 heads dividing width with even channels per
-head, 1..4 blocks,
-context 1..128, mesh depths 1..16, vocabulary 2..256, and at most 4096 token
-rows per batch. Activations and gradient buffers use fixed-capacity row types;
-the training workspace is reused between batches of the same shape. Inference
-uses the same forward kernels with fresh buffers. Dropout and a KV cache are
-left for later experiments.
+GPU row capacities are Rust const parameters rather than kernel literals:
+
+```rust
+use grokking_abmod::gpt::{GptConfig, SpecializedMeshGpt};
+
+type WideGpt = SpecializedMeshGpt<256, 512, 256, 16>;
+let config = GptConfig {
+    width: 256, vocab_size: 257, context: 129, heads: 16, layers: 3,
+    attention_mesh_depth: 2, ffn_mesh_depth: 2,
+};
+let mut model = WideGpt::new(0, config, 7)?;
+```
+
+The const parameters are maximum width, vocabulary, context, and head count,
+in that order. Active runtime dimensions must fit the specialization; invalid
+sizes are rejected before GPU allocation. Non-power-of-two capacities are
+supported too. Layers and mesh depths use the same compiled kernels and can
+change through `GptConfig`. `GpuMeshGpt` and the supplied CLIs use the default
+`SpecializedMeshGpt<128, 256, 128, 8>` alias. Change that alias or use a custom
+type to compile another capacity without rewriting any kernel.
+
+Configuration ceilings are width 2..4096, vocabulary 2..65536, context 1..4096,
+1..64 heads dividing width with even channels per head, 1..64 blocks, mesh depths
+1..256, and at most 4096 input token rows per batch. Available GPU memory also
+limits practical sizes. Buffers use nested arrays with checked owning casts;
+no unchecked aliases or custom `DeviceCopy` implementations are needed. Training
+reuses a workspace for batches of the same shape; inference uses fresh buffers.
+Checkpoints store active configuration and mesh weights, so their format does
+not depend on the tensor capacities. Dropout and a KV cache remain future work.
 
 `cargo test --lib --locked` checks configuration, tokenizer/window boundaries,
-checkpoint round-trips and malformed input, injective fixed token codes at every
-supported even width including width 2 / vocabulary 256, vocabulary-independent
+checkpoint round-trips and malformed input, injective fixed token codes at every even width up to 128 and representative
+widths up to 4096 / vocabularies up to 65536, vocabulary-independent
 mesh parameter counts, strict causality/batch isolation,
 parameter-free RMSNorm without mean subtraction and its input derivatives at
 zero and tiny inputs, split-half RoPE pairs, norm preservation, relative position
@@ -360,3 +389,8 @@ with head counts 1, 2, 4, and 8,
 zero/tiny/constant inputs, 129-row batch tails, and rejected invalid launch
 arguments, including oversized channel/head combinations and cache length
 mismatches.
+
+CUDA/reference checks additionally cover compact buffers, non-power-of-two
+capacities, width 256 with 16 heads and vocabulary 257, context 129, and three
+blocks. They compare every gradient and AdamW update, dense and answer-only
+losses, and causal prefixes, and reject configurations exceeding each capacity.

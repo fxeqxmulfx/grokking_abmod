@@ -30,6 +30,10 @@ See [Mesh GPT architecture, options, and verification](docs/mesh-gpt.md).
 The modular arithmetic experiment from arXiv:2201.02177v1 is available as
 `cargo oxide run --bin mesh-gpt -- grok`; see [Grokking on Mesh GPT](docs/grokking.md)
 for complete-split evaluation, abstract symbol tokens, and the paper's AdamW settings.
+See [CUDA profiling and measured training performance](docs/cuda-performance.md)
+for the warmed FP32 benchmark, Nsight captures, and CUDA optimizations.
+`SpecializedMeshGpt<W, V, C, H>` compiles tensor capacities from Rust const
+parameters; GPT loading and execution use safe APIs.
 The original scalar example remains available with `cargo oxide run`.
 
 ## Model

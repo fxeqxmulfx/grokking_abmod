@@ -1,6 +1,8 @@
 use crate::{Result, mesh::Random};
 
-use super::{Features, IGNORE_TARGET, MAX_CONTEXT, MAX_HEADS, MAX_ROWS, MAX_VOCAB, MAX_WIDTH};
+use super::{
+    IGNORE_TARGET, MAX_ROWS, MODEL_MAX_CONTEXT, MODEL_MAX_HEADS, MODEL_MAX_VOCAB, MODEL_MAX_WIDTH,
+};
 
 /// Every learned channel mixer is a stack of width-preserving mesh layers.
 /// A neuron reads channels c and (c + 1) mod width from the previous layer.
@@ -38,28 +40,28 @@ impl Default for GptConfig {
 
 impl GptConfig {
     pub fn validate(&self) -> Result<()> {
-        if !(2..=MAX_VOCAB).contains(&self.vocab_size) {
-            return Err("vocab_size must be in 2..256".into());
+        if !(2..=MODEL_MAX_VOCAB).contains(&self.vocab_size) {
+            return Err("vocab_size must be in 2..65536".into());
         }
-        if !(1..=MAX_CONTEXT).contains(&self.context) {
-            return Err("context must be in 1..128".into());
+        if !(1..=MODEL_MAX_CONTEXT).contains(&self.context) {
+            return Err("context must be in 1..4096".into());
         }
-        if !(2..=MAX_WIDTH).contains(&self.width) {
-            return Err("width must be in 2..128".into());
+        if !(2..=MODEL_MAX_WIDTH).contains(&self.width) {
+            return Err("width must be in 2..4096".into());
         }
-        if !(1..=MAX_HEADS).contains(&self.heads) || !self.width.is_multiple_of(self.heads) {
-            return Err("heads must be in 1..8 and divide width".into());
+        if !(1..=MODEL_MAX_HEADS).contains(&self.heads) || !self.width.is_multiple_of(self.heads) {
+            return Err("heads must be in 1..64 and divide width".into());
         }
         if !(self.width / self.heads).is_multiple_of(2) {
             return Err("slice RoPE requires an even number of channels per head".into());
         }
-        if !(1..=4).contains(&self.layers) {
-            return Err("layers must be in 1..4".into());
+        if !(1..=64).contains(&self.layers) {
+            return Err("layers must be in 1..64".into());
         }
-        if !(1..=16).contains(&self.attention_mesh_depth)
-            || !(1..=16).contains(&self.ffn_mesh_depth)
+        if !(1..=256).contains(&self.attention_mesh_depth)
+            || !(1..=256).contains(&self.ffn_mesh_depth)
         {
-            return Err("mesh depths must be in 1..16".into());
+            return Err("mesh depths must be in 1..256".into());
         }
         Ok(())
     }
@@ -285,7 +287,7 @@ impl Layout {
 /// Fixed, injective token codes. Wide codes contain binary digits and bit parities.
 /// At narrow widths, pack disjoint bit groups into signed radix coordinates.
 /// Even width 2 can encode every supported token without collisions or zero rows.
-pub(crate) fn token_codes(config: GptConfig) -> Vec<Features> {
+pub(crate) fn token_codes(config: GptConfig) -> Vec<Vec<f32>> {
     let bits = (usize::BITS - (config.vocab_size - 1).leading_zeros()) as usize;
     let lanes = config.width.min(bits);
     // Keep each bit first to guarantee injectivity, then add every nontrivial
@@ -296,7 +298,7 @@ pub(crate) fn token_codes(config: GptConfig) -> Vec<Features> {
         .collect();
     (0..config.vocab_size)
         .map(|token| {
-            let mut code = [0.0; MAX_WIDTH];
+            let mut code = vec![0.0; config.width];
             for (channel, value) in code[..config.width].iter_mut().enumerate() {
                 if config.width >= bits {
                     *value = if (token & masks[channel % masks.len()])
@@ -325,6 +327,7 @@ pub(crate) fn token_codes(config: GptConfig) -> Vec<Features> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gpt::MAX_WIDTH;
 
     #[test]
     fn optimizer_rejects_invalid_hyperparameters() {
@@ -379,31 +382,36 @@ mod tests {
 
     #[test]
     fn fixed_token_codes_are_distinct_at_wide_and_narrow_widths() {
-        for width in (2..=MAX_WIDTH).step_by(2) {
-            for vocab_size in [2, 3, 5, 26, 129, 255, 256] {
-                let config = GptConfig {
-                    width,
-                    vocab_size,
-                    heads: 1,
-                    ..GptConfig::default()
-                };
-                config.validate().unwrap();
-                let codes = token_codes(config);
-                let mut unique = std::collections::HashSet::new();
-                for code in codes {
-                    assert!(
-                        code[..width]
-                            .iter()
-                            .all(|x| x.is_finite() && x.abs() <= 1.0 && *x != 0.0)
-                    );
-                    assert!(code[width..].iter().all(|&x| x == 0.0));
-                    assert!(
-                        unique.insert(code.map(f32::to_bits)),
-                        "width={width} vocab={vocab_size}"
-                    );
-                }
-                assert_eq!(unique.len(), vocab_size);
+        let dimensions = (2..=MAX_WIDTH)
+            .step_by(2)
+            .flat_map(|width| [2, 3, 5, 26, 129, 255, 256].map(|vocab| (width, vocab)))
+            .chain([
+                (2, MODEL_MAX_VOCAB),
+                (4, 1024),
+                (256, 257),
+                (MODEL_MAX_WIDTH, 257),
+            ]);
+        for (width, vocab_size) in dimensions {
+            let config = GptConfig {
+                width,
+                vocab_size,
+                heads: 1,
+                ..GptConfig::default()
+            };
+            config.validate().unwrap();
+            let mut unique = std::collections::HashSet::new();
+            for code in token_codes(config) {
+                assert_eq!(code.len(), width);
+                assert!(
+                    code.iter()
+                        .all(|x| x.is_finite() && x.abs() <= 1.0 && *x != 0.0)
+                );
+                assert!(
+                    unique.insert(code.iter().copied().map(f32::to_bits).collect::<Vec<_>>()),
+                    "width={width} vocab={vocab_size}"
+                );
             }
+            assert_eq!(unique.len(), vocab_size);
         }
     }
 
@@ -415,7 +423,7 @@ mod tests {
             * (config.attention_mesh_depth
                 + config.layers * (4 * config.attention_mesh_depth + config.ffn_mesh_depth));
         assert_eq!(expected, 3072);
-        for vocab_size in [2, 26, 256] {
+        for vocab_size in [2, 26, 256, MODEL_MAX_VOCAB] {
             let layout = Layout::new(GptConfig {
                 vocab_size,
                 ..config
@@ -459,7 +467,10 @@ mod tests {
                 heads: 8,
                 ..valid
             },
-            GptConfig { layers: 5, ..valid },
+            GptConfig {
+                layers: 65,
+                ..valid
+            },
             GptConfig {
                 ffn_mesh_depth: 0,
                 ..valid

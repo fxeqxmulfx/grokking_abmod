@@ -102,7 +102,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
             --width N             Channels, 2..128 (default: 128)\n\
             --heads N             Heads, 1..8, even channels/head (default: 4)\n\
-            --layers N            Transformer blocks, 1..4 (default: 2)\n\
+            --layers N            Transformer blocks, 1..64 (default: 2)\n\
             --attention-depth N   Embedding/Q/K/V/output mesh depth (default: 4)\n\
             --ffn-depth N         Feed-forward mesh depth (default: 6)\n\
             --seed N              Model, symbol permutation, split, sampling seed (default: 7)\n\

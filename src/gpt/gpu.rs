@@ -7,8 +7,8 @@ use cuda_host::cuda_module;
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    AdamWOptions, Attention, Features, GptConfig, IGNORE_TARGET, MAX_WIDTH, NormCache,
-    RMSNORM_EPSILON, ROPE_BASE, Vocabulary, XSA_EPSILON,
+    AdamWOptions, Attention, Features, GptConfig, IGNORE_TARGET, NormCache, RMSNORM_EPSILON,
+    ROPE_BASE, Vocabulary, XSA_EPSILON,
     config::{Layout, token_codes},
 };
 
@@ -30,14 +30,14 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, _vocab >= 2, _vocab <= 256,
+        width >= 2, width <= W, _vocab >= 2,
         out.len() == tokens.len(), embedding.len() == _vocab))]
-    pub fn gpt_embed(
+    pub fn gpt_embed<const W: usize>(
         width: usize,
         _vocab: usize,
         tokens: &[u32],
-        embedding: &[Features],
-        mut out: DisjointSlice<Features>,
+        embedding: &[Features<W>],
+        mut out: DisjointSlice<Features<W>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -49,15 +49,15 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        heads >= 1, heads <= 8, head_width >= 2, head_width <= 128,
-        heads * head_width <= 128,
+        heads >= 1, heads <= W, head_width >= 2, head_width <= W,
+        heads * head_width <= W,
         out.len() == input.len(), cache.len() == input.len()))]
-    pub fn gpt_rmsnorm(
+    pub fn gpt_rmsnorm<const W: usize>(
         heads: usize,
         head_width: usize,
-        input: &[Features],
-        mut out: DisjointSlice<Features>,
-        mut cache: DisjointSlice<NormCache>,
+        input: &[Features<W>],
+        mut out: DisjointSlice<Features<W>>,
+        mut cache: DisjointSlice<NormCache<W>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -72,10 +72,10 @@ mod kernels {
                     squares += x * x;
                 }
                 let inverse = 1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt();
-                saved[MAX_WIDTH + head] = inverse;
+                saved[1][head] = inverse;
                 for channel in begin..begin + head_width {
-                    saved[channel] = input[row][channel] * inverse;
-                    output[channel] = saved[channel];
+                    saved[0][channel] = input[row][channel] * inverse;
+                    output[channel] = saved[0][channel];
                 }
             }
         }
@@ -84,112 +84,130 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, offset + 2 * width <= state.len(), activated <= 1,
-        out.len() == input.len()))]
-    pub fn gpt_mesh(
+        width >= 2, width <= W, offset + 2 * width <= state.len(), activated <= 1,
+        out.len() == input.len() * W))]
+    pub fn gpt_mesh<const W: usize>(
         width: usize,
         offset: usize,
         activated: usize,
-        input: &[Features],
+        input: &[Features<W>],
         state: &[[f32; 3]],
-        mut out: DisjointSlice<Features>,
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
-            for channel in 0..width {
-                let p = offset + 2 * channel;
-                let value = input[row][channel] * state[p][0]
-                    + input[row][(channel + 1) % width] * state[p + 1][0];
-                output[channel] = if activated == 1 && value < 0.0 {
-                    value.exp() - 1.0
-                } else {
-                    value
-                };
+            if channel >= width {
+                return;
             }
+            let p = offset + 2 * channel;
+            let value = input[row][channel] * state[p][0]
+                + input[row][(channel + 1) % width] * state[p + 1][0];
+            *output = if activated == 1 && value < 0.0 {
+                value.exp() - 1.0
+            } else {
+                value
+            };
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, out.len() == left.len(), left.len() == right.len()))]
-    pub fn gpt_add(
+        width >= 2, width <= W, out.len() == left.len() * W, left.len() == right.len()))]
+    pub fn gpt_add<const W: usize>(
         width: usize,
-        left: &[Features],
-        right: &[Features],
-        mut out: DisjointSlice<Features>,
+        left: &[Features<W>],
+        right: &[Features<W>],
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
-            for channel in 0..width {
-                output[channel] = left[row][channel] + right[row][channel];
+            if channel >= width {
+                return;
             }
+            *output = left[row][channel] + right[row][channel];
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, out.len() == input.len()))]
-    pub fn gpt_copy(width: usize, input: &[Features], mut out: DisjointSlice<Features>) {
+        width >= 2, width <= W, out.len() == input.len() * W))]
+    pub fn gpt_copy<const W: usize>(
+        width: usize,
+        input: &[Features<W>],
+        mut out: DisjointSlice<f32>,
+    ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
-            output[..width].copy_from_slice(&input[row][..width]);
+            if channel >= width {
+                return;
+            }
+            *output = input[row][channel];
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        heads >= 1, heads <= 8, half_width >= 1, half_width <= 64,
-        2 * heads * half_width <= 128, sequence >= 1, sequence <= 128,
-        inverse <= 1, out.len() == input.len()))]
-    pub fn gpt_rope(
+        heads >= 1, heads <= W, half_width >= 1, 2 * half_width <= W,
+        2 * heads * half_width <= W, sequence >= 1, sequence <= C,
+        inverse <= 1, out.len() == input.len() * W))]
+    pub fn gpt_rope<const W: usize, const C: usize>(
         heads: usize,
         half_width: usize,
         sequence: usize,
         inverse: usize,
-        input: &[Features],
-        mut out: DisjointSlice<Features>,
+        input: &[Features<W>],
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
             let position = (row % sequence) as f32;
-            for pair in 0..half_width {
-                let frequency = ROPE_BASE.powf(-(pair as f32) / half_width as f32);
-                let angle = if inverse == 0 { position } else { -position } * frequency;
-                let cosine = angle.cos();
-                let sine = angle.sin();
-                for head in 0..heads {
-                    let left = head * 2 * half_width + pair;
-                    let right = left + half_width;
-                    let a = input[row][left];
-                    let b = input[row][right];
-                    output[left] = a * cosine - b * sine;
-                    output[right] = b * cosine + a * sine;
-                }
+            if channel >= 2 * heads * half_width {
+                return;
             }
+            let head = channel / (2 * half_width);
+            let local = channel % (2 * half_width);
+            let pair = local % half_width;
+            let frequency = ROPE_BASE.powf(-(pair as f32) / half_width as f32);
+            let angle = if inverse == 0 { position } else { -position } * frequency;
+            let cosine = angle.cos();
+            let sine = angle.sin();
+            let left = head * 2 * half_width + pair;
+            let right = left + half_width;
+            let a = input[row][left];
+            let b = input[row][right];
+            *output = if local < half_width {
+                a * cosine - b * sine
+            } else {
+                b * cosine + a * sine
+            };
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, heads >= 1, heads <= 8, sequence >= 1, sequence <= 128,
+        width >= 2, width <= W, heads >= 1, heads <= H, sequence >= 1, sequence <= C,
         out.len() == query.len(), key.len() == query.len(), value.len() == query.len(), probabilities.len() == query.len()))]
-    pub fn gpt_attention(
+    pub fn gpt_attention<const W: usize, const C: usize, const H: usize>(
         width: usize,
         heads: usize,
         sequence: usize,
-        query: &[Features],
-        key: &[Features],
-        value: &[Features],
-        mut out: DisjointSlice<Features>,
-        mut probabilities: DisjointSlice<Attention>,
+        query: &[Features<W>],
+        key: &[Features<W>],
+        value: &[Features<W>],
+        mut out: DisjointSlice<Features<W>>,
+        mut probabilities: DisjointSlice<Attention<C, H>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -209,25 +227,24 @@ mod kernels {
                         score += query[row][channel] * key[first + previous][channel];
                     }
                     score *= scale;
-                    probability[head * 128 + previous] = score;
+                    probability[head][previous] = score;
                     if score > maximum {
                         maximum = score;
                     }
                 }
                 let mut sum = 0.0;
                 for previous in 0..=position {
-                    let p = head * 128 + previous;
-                    probability[p] = (probability[p] - maximum).exp();
-                    sum += probability[p];
+                    let p = previous;
+                    probability[head][p] = (probability[head][p] - maximum).exp();
+                    sum += probability[head][p];
                 }
                 for previous in 0..=position {
-                    probability[head * 128 + previous] /= sum;
+                    probability[head][previous] /= sum;
                 }
                 for channel in begin..begin + head_width {
                     let mut total = 0.0;
                     for previous in 0..=position {
-                        total +=
-                            probability[head * 128 + previous] * value[first + previous][channel];
+                        total += probability[head][previous] * value[first + previous][channel];
                     }
                     output[channel] = total;
                 }
@@ -238,14 +255,14 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, heads >= 1, heads <= 8, heads <= width,
+        width >= 2, width <= W, heads >= 1, heads <= W, heads <= width,
         value.len() == input.len(), out.len() == input.len()))]
-    pub fn gpt_exclusive(
+    pub fn gpt_exclusive<const W: usize>(
         width: usize,
         heads: usize,
-        input: &[Features],
-        value: &[Features],
-        mut out: DisjointSlice<Features>,
+        input: &[Features<W>],
+        value: &[Features<W>],
+        mut out: DisjointSlice<Features<W>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -274,17 +291,17 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, heads >= 1, heads <= 8, heads <= width,
+        width >= 2, width <= W, heads >= 1, heads <= W, heads <= width,
         value.len() == input.len(), gradient.len() == input.len(),
         dy.len() == input.len(), dv.len() == input.len()))]
-    pub fn gpt_exclusive_backward(
+    pub fn gpt_exclusive_backward<const W: usize>(
         width: usize,
         heads: usize,
-        input: &[Features],
-        value: &[Features],
-        gradient: &[Features],
-        mut dy: DisjointSlice<Features>,
-        mut dv: DisjointSlice<Features>,
+        input: &[Features<W>],
+        value: &[Features<W>],
+        gradient: &[Features<W>],
+        mut dy: DisjointSlice<Features<W>>,
+        mut dv: DisjointSlice<Features<W>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -327,40 +344,65 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, vocab >= 2, vocab <= 256,
-        embedding.len() == vocab, out.len() == input.len()))]
-    pub fn gpt_head(
+        width >= 2, width <= W, vocab >= 2, vocab <= V,
+        embedding.len() == vocab, out.len() == width * V))]
+    pub fn gpt_embedding_transpose<const W: usize, const V: usize>(
         width: usize,
         vocab: usize,
-        input: &[Features],
-        embedding: &[Features],
-        mut out: DisjointSlice<Vocabulary>,
+        embedding: &[Features<W>],
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let channel = index.get() / V;
+        let token = index.get() % V;
         if let Some(output) = out.get_mut(index) {
-            for token in 0..vocab {
-                let mut value = 0.0;
-                for channel in 0..width {
-                    value += input[row][channel] * embedding[token][channel];
-                }
-                output[token] = value;
+            if token >= vocab {
+                return;
             }
+            *output = embedding[token][channel];
+        }
+        let _ = width;
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, vocab >= 2, vocab <= V,
+        embedding.len() == width, out.len() == input.len() * V))]
+    pub fn gpt_head<const W: usize, const V: usize>(
+        width: usize,
+        vocab: usize,
+        input: &[Features<W>],
+        embedding: &[Vocabulary<V>],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get() / V;
+        let token = index.get() % V;
+        if let Some(output) = out.get_mut(index) {
+            if token >= vocab {
+                return;
+            }
+            let mut value = 0.0;
+            for channel in 0..width {
+                value += input[row][channel] * embedding[channel][token];
+            }
+            *output = value;
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        vocab >= 2, vocab <= 256, logits.len() >= 1, targets.len() == logits.len(),
+        vocab >= 2, vocab <= V, logits.len() >= 1, targets.len() == logits.len(),
         supervised >= 1, supervised <= logits.len(),
         gradient.len() == logits.len(), loss.len() == logits.len()))]
-    pub fn gpt_cross_entropy(
+    pub fn gpt_cross_entropy<const V: usize>(
         vocab: usize,
         supervised: usize,
-        logits: &[Vocabulary],
+        logits: &[Vocabulary<V>],
         targets: &[u32],
-        mut gradient: DisjointSlice<Vocabulary>,
+        mut gradient: DisjointSlice<Vocabulary<V>>,
         mut loss: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
@@ -399,39 +441,42 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, vocab >= 2, vocab <= 256, embedding.len() == vocab, out.len() == gradient.len()))]
-    pub fn gpt_head_backward(
+        width >= 2, width <= W, vocab >= 2, vocab <= V,
+        embedding.len() == vocab, out.len() == gradient.len() * W))]
+    pub fn gpt_head_backward<const W: usize, const V: usize>(
         width: usize,
         vocab: usize,
-        gradient: &[Vocabulary],
-        embedding: &[Features],
-        mut out: DisjointSlice<Features>,
+        gradient: &[Vocabulary<V>],
+        embedding: &[Features<W>],
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
-            for channel in 0..width {
-                let mut total = 0.0;
-                for token in 0..vocab {
-                    total += gradient[row][token] * embedding[token][channel];
-                }
-                output[channel] = total;
+            if channel >= width {
+                return;
             }
+            let mut total = 0.0;
+            for token in 0..vocab {
+                total += gradient[row][token] * embedding[token][channel];
+            }
+            *output = total;
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        heads >= 1, heads <= 8, head_width >= 2, head_width <= 128,
-        heads * head_width <= 128,
+        heads >= 1, heads <= W, head_width >= 2, head_width <= W,
+        heads * head_width <= W,
         gradient.len() == cache.len(), out.len() == cache.len()))]
-    pub fn gpt_rmsnorm_backward(
+    pub fn gpt_rmsnorm_backward<const W: usize>(
         heads: usize,
         head_width: usize,
-        gradient: &[Features],
-        cache: &[NormCache],
-        mut out: DisjointSlice<Features>,
+        gradient: &[Features<W>],
+        cache: &[NormCache<W>],
+        mut out: DisjointSlice<Features<W>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -440,11 +485,12 @@ mod kernels {
                 let begin = head * head_width;
                 let mut dot = 0.0;
                 for channel in begin..begin + head_width {
-                    dot += gradient[row][channel] * cache[row][channel];
+                    dot += gradient[row][channel] * cache[row][0][channel];
                 }
                 for channel in begin..begin + head_width {
-                    output[channel] = cache[row][MAX_WIDTH + head]
-                        * (gradient[row][channel] - cache[row][channel] * dot / head_width as f32);
+                    output[channel] = cache[row][1][head]
+                        * (gradient[row][channel]
+                            - cache[row][0][channel] * dot / head_width as f32);
                 }
             }
         }
@@ -453,44 +499,46 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, offset + 2 * width <= state.len(), activated <= 1,
-        gradient.len() == activation.len(), out.len() == activation.len()))]
-    pub fn gpt_mesh_backward(
+        width >= 2, width <= W, offset + 2 * width <= state.len(), activated <= 1,
+        gradient.len() == activation.len(), out.len() == activation.len() * W))]
+    pub fn gpt_mesh_backward<const W: usize>(
         width: usize,
         offset: usize,
         activated: usize,
-        gradient: &[Features],
-        activation: &[Features],
+        gradient: &[Features<W>],
+        activation: &[Features<W>],
         state: &[[f32; 3]],
-        mut out: DisjointSlice<Features>,
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
-            for channel in 0..width {
-                let previous = (channel + width - 1) % width;
-                output[channel] = gradient[row][channel]
-                    * slope(activation[row][channel], activated)
-                    * state[offset + 2 * channel][0]
-                    + gradient[row][previous]
-                        * slope(activation[row][previous], activated)
-                        * state[offset + 2 * previous + 1][0];
+            if channel >= width {
+                return;
             }
+            let previous = (channel + width - 1) % width;
+            *output = gradient[row][channel]
+                * slope(activation[row][channel], activated)
+                * state[offset + 2 * channel][0]
+                + gradient[row][previous]
+                    * slope(activation[row][previous], activated)
+                    * state[offset + 2 * previous + 1][0];
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, offset + 2 * width <= out.len(), activated <= 1,
+        width >= 2, width <= W, offset + 2 * width <= out.len(), activated <= 1,
         input.len() == activation.len(), gradient.len() == activation.len()))]
-    pub fn gpt_mesh_gradient(
+    pub fn gpt_mesh_gradient<const W: usize>(
         width: usize,
         offset: usize,
         activated: usize,
-        input: &[Features],
-        activation: &[Features],
-        gradient: &[Features],
+        input: &[Features<W>],
+        activation: &[Features<W>],
+        gradient: &[Features<W>],
         mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
@@ -517,16 +565,79 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, heads >= 1, heads <= 8, sequence >= 1, sequence <= 128,
+        width >= 2, width <= W, activated <= 1, chunks >= 1, chunks <= 128,
+        input.len() <= chunks * 32, input.len() + 32 > chunks * 32,
+        input.len() == activation.len(), gradient.len() == activation.len(),
+        out.len() == chunks * 2 * width))]
+    pub fn gpt_mesh_gradient_partials<const W: usize>(
+        width: usize,
+        activated: usize,
+        chunks: usize,
+        input: &[Features<W>],
+        activation: &[Features<W>],
+        gradient: &[Features<W>],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let parameter = item % (2 * width);
+            let chunk = item / (2 * width);
+            let channel = parameter / 2;
+            let parent = (channel + parameter % 2) % width;
+            let start = chunk * 32;
+            let end = (start + 32).min(gradient.len());
+            let mut total = 0.0;
+            for row in start..end {
+                total += gradient[row][channel]
+                    * slope(activation[row][channel], activated)
+                    * input[row][parent];
+            }
+            *output = total;
+        }
+        let _ = chunks;
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, offset + 2 * width <= out.len(),
+        chunks >= 1, chunks <= 128, partials.len() == chunks * 2 * width))]
+    pub fn gpt_mesh_gradient_reduce<const W: usize>(
+        width: usize,
+        offset: usize,
+        chunks: usize,
+        partials: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let parameter = index.get();
+        if parameter >= offset
+            && parameter < offset + 2 * width
+            && let Some(output) = out.get_mut(index)
+        {
+            let local = parameter - offset;
+            let mut total = 0.0;
+            for chunk in 0..chunks {
+                total += partials[chunk * 2 * width + local];
+            }
+            *output = total;
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, heads >= 1, heads <= H, sequence >= 1, sequence <= C,
         probabilities.len() == gradient.len(), value.len() == gradient.len(), out.len() == gradient.len()))]
-    pub fn gpt_score_backward(
+    pub fn gpt_score_backward<const W: usize, const C: usize, const H: usize>(
         width: usize,
         heads: usize,
         sequence: usize,
-        gradient: &[Features],
-        value: &[Features],
-        probabilities: &[Attention],
-        mut out: DisjointSlice<Attention>,
+        gradient: &[Features<W>],
+        value: &[Features<W>],
+        probabilities: &[Attention<C, H>],
+        mut out: DisjointSlice<Attention<C, H>>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
@@ -542,12 +653,12 @@ mod kernels {
                     for channel in begin..begin + head_width {
                         dot += gradient[row][channel] * value[first + previous][channel];
                     }
-                    output[head * 128 + previous] = dot;
-                    mean += probabilities[row][head * 128 + previous] * dot;
+                    output[head][previous] = dot;
+                    mean += probabilities[row][head][previous] * dot;
                 }
                 for previous in 0..=position {
-                    let p = head * 128 + previous;
-                    output[p] = probabilities[row][p] * (output[p] - mean);
+                    let p = previous;
+                    output[head][p] = probabilities[row][head][p] * (output[head][p] - mean);
                 }
             }
         }
@@ -556,24 +667,25 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, heads >= 1, heads <= 8, sequence >= 1, sequence <= 128,
+        width >= 2, width <= W, heads >= 1, heads <= H, sequence >= 1, sequence <= C,
         key.len() == query.len(), gradient.len() == query.len(), scores.len() == query.len(), probabilities.len() == query.len(),
-        dq.len() == query.len(), dk.len() == query.len(), dv.len() == query.len()))]
-    pub fn gpt_attention_backward(
+        dq.len() == query.len() * W, dk.len() == dq.len(), dv.len() == dq.len()))]
+    pub fn gpt_attention_backward<const W: usize, const C: usize, const H: usize>(
         width: usize,
         heads: usize,
         sequence: usize,
-        query: &[Features],
-        key: &[Features],
-        gradient: &[Features],
-        scores: &[Attention],
-        probabilities: &[Attention],
-        mut dq: DisjointSlice<Features>,
-        mut dk: DisjointSlice<Features>,
-        mut dv: DisjointSlice<Features>,
+        query: &[Features<W>],
+        key: &[Features<W>],
+        gradient: &[Features<W>],
+        scores: &[Attention<C, H>],
+        probabilities: &[Attention<C, H>],
+        mut dq: DisjointSlice<f32>,
+        mut dk: DisjointSlice<f32>,
+        mut dv: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
         if let Some(q_gradient) = dq.get_mut(index)
             && let Some(k_gradient) = dk.get_mut(thread::index_1d())
             && let Some(v_gradient) = dv.get_mut(thread::index_1d())
@@ -582,62 +694,78 @@ mod kernels {
             let first = row - position;
             let head_width = width / heads;
             let scale = 1.0 / (head_width as f32).sqrt();
-            for channel in 0..width {
-                let head = channel / head_width;
-                let mut q_sum = 0.0;
-                let mut k_sum = 0.0;
-                let mut v_sum = 0.0;
-                for previous in 0..=position {
-                    q_sum += scores[row][head * 128 + previous] * key[first + previous][channel];
-                }
-                for future in position..sequence {
-                    k_sum += scores[first + future][head * 128 + position]
-                        * query[first + future][channel];
-                    v_sum += probabilities[first + future][head * 128 + position]
-                        * gradient[first + future][channel];
-                }
-                q_gradient[channel] = q_sum * scale;
-                k_gradient[channel] = k_sum * scale;
-                v_gradient[channel] = v_sum;
+            if channel >= width {
+                return;
             }
+            let head = channel / head_width;
+            let mut q_sum = 0.0;
+            let mut k_sum = 0.0;
+            let mut v_sum = 0.0;
+            for previous in 0..=position {
+                q_sum += scores[row][head][previous] * key[first + previous][channel];
+            }
+            for future in position..sequence {
+                k_sum += scores[first + future][head][position] * query[first + future][channel];
+                v_sum += probabilities[first + future][head][position]
+                    * gradient[first + future][channel];
+            }
+            *q_gradient = q_sum * scale;
+            *k_gradient = k_sum * scale;
+            *v_gradient = v_sum;
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 128, _vocab >= 2, _vocab <= 256,
+        width >= 2, width <= W, _vocab >= 2, _vocab <= V,
         input_gradient.len() == tokens.len(), head_gradient.len() == tokens.len(), final_features.len() == tokens.len(),
-        out.len() == _vocab))]
-    pub fn gpt_embedding_backward(
+        out.len() == _vocab * width))]
+    pub fn gpt_embedding_backward<const W: usize, const V: usize>(
         width: usize,
         _vocab: usize,
         tokens: &[u32],
-        input_gradient: &[Features],
-        head_gradient: &[Vocabulary],
-        final_features: &[Features],
-        mut out: DisjointSlice<Features>,
+        input_gradient: &[Features<W>],
+        head_gradient: &[Vocabulary<V>],
+        final_features: &[Features<W>],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let token = index.get() / width;
+        let channel = index.get() % width;
+        if let Some(output) = out.get_mut(index) {
+            let mut total = 0.0;
+            for row in 0..tokens.len() {
+                if tokens[row] as usize == token {
+                    total += input_gradient[row][channel];
+                }
+                total += head_gradient[row][token] * final_features[row][channel];
+            }
+            *output = total;
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, input.len() == out.len() * width,
+        out.len() >= 2))]
+    pub fn gpt_embedding_gradient_rows<const W: usize>(
+        width: usize,
+        input: &[f32],
+        mut out: DisjointSlice<Features<W>>,
     ) {
         let index = thread::index_1d();
         let token = index.get();
         if let Some(output) = out.get_mut(index) {
-            for channel in 0..width {
-                let mut total = 0.0;
-                for row in 0..tokens.len() {
-                    if tokens[row] as usize == token {
-                        total += input_gradient[row][channel];
-                    }
-                    total += head_gradient[row][token] * final_features[row][channel];
-                }
-                output[channel] = total;
-            }
+            output[..width].copy_from_slice(&input[token * width..(token + 1) * width]);
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (gradient.len() == state.len()))]
-    pub fn gpt_adam(
+    pub fn gpt_adam<const W: usize>(
         learning_rate: f32,
         weight_decay: f32,
         beta1: f32,
@@ -648,6 +776,7 @@ mod kernels {
         gradient: &[f32],
         mut state: DisjointSlice<[f32; 3]>,
     ) {
+        let _ = W;
         let index = thread::index_1d();
         let parameter = index.get();
         if let Some(slot) = state.get_mut(index) {
@@ -802,27 +931,30 @@ struct Parameters {
     gradient: DeviceBuffer<f32>,
 }
 
-struct Workspace {
+struct Workspace<const W: usize, const V: usize, const C: usize, const H: usize> {
     rows: usize,
     sequence: usize,
     supervised: usize,
     tokens: DeviceBuffer<u32>,
     targets: DeviceBuffer<u32>,
-    embeddings: Vec<DeviceBuffer<Features>>,
-    embedding_adjoints: Vec<DeviceBuffer<Features>>,
-    features: Vec<DeviceBuffer<Features>>,
-    adjoints: Vec<DeviceBuffer<Features>>,
-    norms: Vec<DeviceBuffer<NormCache>>,
-    probabilities: Vec<DeviceBuffer<Attention>>,
-    scores: DeviceBuffer<Attention>,
-    scratch: Vec<DeviceBuffer<Features>>,
+    embeddings: Vec<DeviceBuffer<Features<W>>>,
+    head_embedding: DeviceBuffer<Vocabulary<V>>,
+    embedding_adjoints: Vec<DeviceBuffer<Features<W>>>,
+    embedding_gradient: DeviceBuffer<f32>,
+    mesh_gradient_partials: DeviceBuffer<f32>,
+    features: Vec<DeviceBuffer<Features<W>>>,
+    adjoints: Vec<DeviceBuffer<Features<W>>>,
+    norms: Vec<DeviceBuffer<NormCache<W>>>,
+    probabilities: Vec<DeviceBuffer<Attention<C, H>>>,
+    scores: DeviceBuffer<Attention<C, H>>,
+    scratch: Vec<DeviceBuffer<Features<W>>>,
     initialized: Vec<bool>,
-    logits: DeviceBuffer<Vocabulary>,
-    head_gradient: DeviceBuffer<Vocabulary>,
+    logits: DeviceBuffer<Vocabulary<V>>,
+    head_gradient: DeviceBuffer<Vocabulary<V>>,
     loss: DeviceBuffer<f32>,
 }
 
-impl Workspace {
+impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W, V, C, H> {
     fn new(
         stream: &Arc<CudaStream>,
         plan: &Plan,
@@ -846,7 +978,13 @@ impl Workspace {
             tokens: DeviceBuffer::zeroed(stream, rows)?,
             targets: DeviceBuffer::zeroed(stream, rows)?,
             embeddings: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
+            head_embedding: DeviceBuffer::zeroed(stream, config.width)?,
             embedding_adjoints: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
+            embedding_gradient: DeviceBuffer::zeroed(stream, config.vocab_size * config.width)?,
+            mesh_gradient_partials: DeviceBuffer::zeroed(
+                stream,
+                rows.div_ceil(32) * 2 * config.width,
+            )?,
             features: buffers(stream, plan.features, rows)?,
             adjoints: buffers(stream, plan.features, rows)?,
             norms: buffers(stream, plan.norms, rows)?,
@@ -865,30 +1003,43 @@ impl Workspace {
 /// output, and feed-forward projections are two-parent ELU meshes.
 /// A shared mesh maps fixed token codes to both input and output embeddings.
 /// Every learned parameter is a mesh edge. Training operators and AdamW run on CUDA.
-pub struct GpuMeshGpt {
+pub type GpuMeshGpt = SpecializedMeshGpt<128, 256, 128, 8>;
+
+/// Const-generic tensor capacities. Runtime configuration selects active dimensions
+/// within these capacities; layers and mesh depths require no kernel rewriting.
+pub struct SpecializedMeshGpt<const W: usize, const V: usize, const C: usize, const H: usize> {
     config: GptConfig,
     layout: Layout,
     plan: Plan,
     stream: Arc<CudaStream>,
     module: kernels::LoadedModule,
     parameters: Vec<Parameters>,
-    codes: DeviceBuffer<Features>,
-    workspace: Option<Workspace>,
+    codes: DeviceBuffer<Features<W>>,
+    workspace: Option<Workspace<W, V, C, H>>,
     beta1_power: f32,
     beta2_power: f32,
 }
 
-impl GpuMeshGpt {
+impl<const W: usize, const V: usize, const C: usize, const H: usize>
+    SpecializedMeshGpt<W, V, C, H>
+{
     pub fn new(device: usize, config: GptConfig, seed: u64) -> Result<Self> {
+        const {
+            assert!(W >= 2 && V >= 2 && C >= 1 && H >= 1);
+        }
+        config.validate()?;
+        if config.width > W || config.vocab_size > V || config.context > C || config.heads > H {
+            return Err(format!(
+                "model exceeds kernel capacities: width {W}, vocabulary {V}, context {C}, heads {H}"
+            )
+            .into());
+        }
         let layout = Layout::new(config)?;
         let plan = Plan::new(config, &layout);
         let initial = layout.initialize(config, seed);
         let context = CudaContext::new(device)?;
         let stream = context.default_stream();
-        // SAFETY: the package embeds its own combined library artifact. All
-        // GPT entries have unique names, and this constructor accepts no CUDA
-        // artifact supplied by the caller.
-        let module = unsafe { kernels::load(&context)? };
+        let module = kernels::load(&context)?;
         let mut parameters = Vec::new();
         for group in &layout.groups {
             let state: Vec<_> = initial[group.offset..group.offset + group.size]
@@ -900,7 +1051,15 @@ impl GpuMeshGpt {
                 gradient: DeviceBuffer::zeroed(&stream, group.size)?,
             });
         }
-        let codes = DeviceBuffer::from_host(&stream, &token_codes(config))?;
+        let codes: Vec<Features<W>> = token_codes(config)
+            .into_iter()
+            .map(|code| {
+                let mut row = [0.0; W];
+                row[..config.width].copy_from_slice(&code);
+                row
+            })
+            .collect();
+        let codes = DeviceBuffer::from_host(&stream, &codes)?;
         Ok(Self {
             config,
             layout,
@@ -1037,7 +1196,9 @@ impl GpuMeshGpt {
         self.beta1_power *= optimizer.beta1;
         self.beta2_power *= optimizer.beta2;
         for group in &mut self.parameters {
-            let launch = self.module.prepare_gpt_adam(config(group.state.len()))?;
+            let launch = self
+                .module
+                .prepare_gpt_adam::<W>(config(group.state.len()))?;
             self.module.gpt_adam(
                 &self.stream,
                 &launch,
@@ -1118,42 +1279,63 @@ impl GpuMeshGpt {
             .collect()
     }
 
-    fn forward_embeddings(&self, workspace: &mut Workspace) -> Result<()> {
+    fn forward_embeddings(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
         // Generate the entire vocabulary once so the input and head share one
         // differentiable set of vectors. Recompute after every weight change.
         let embedding = self.layout.embedding;
         for layer in 0..c.attention_mesh_depth {
-            let launch = self.module.prepare_gpt_mesh(config(c.vocab_size))?;
             let (before, after) = workspace.embeddings.split_at_mut(layer);
             let input = if layer == 0 {
                 &self.codes
             } else {
                 &before[layer - 1]
             };
-            self.module.gpt_mesh(
-                &self.stream,
-                &launch,
-                c.width,
-                layer * 2 * c.width,
-                usize::from(layer + 1 != c.attention_mesh_depth),
-                input,
-                &self.parameters[embedding].state,
-                &mut after[0],
-            )?;
+            with_array_elements(&self.stream, &mut after[0], |output| {
+                let launch = self.module.prepare_gpt_mesh::<W>(config(output.len()))?;
+                self.module
+                    .gpt_mesh(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        layer * 2 * c.width,
+                        usize::from(layer + 1 != c.attention_mesh_depth),
+                        input,
+                        &self.parameters[embedding].state,
+                        output,
+                    )
+                    .map_err(Into::into)
+            })?;
         }
         Ok(())
     }
 
-    fn forward(&self, workspace: &mut Workspace) -> Result<()> {
+    fn forward(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
         let row_config = config(workspace.rows);
         self.forward_embeddings(workspace)?;
         let embedding_output = c.attention_mesh_depth - 1;
+        // Store tokens contiguously for each channel so neighboring head threads
+        // read adjacent vocabulary values. The tied vectors are still generated once.
+        with_array_elements(&self.stream, &mut workspace.head_embedding, |output| {
+            let launch = self
+                .module
+                .prepare_gpt_embedding_transpose::<W, V>(config(output.len()))?;
+            self.module
+                .gpt_embedding_transpose(
+                    &self.stream,
+                    &launch,
+                    c.width,
+                    c.vocab_size,
+                    &workspace.embeddings[embedding_output],
+                    output,
+                )
+                .map_err(Into::into)
+        })?;
         for op in &self.plan.ops {
             match *op {
                 Op::Embed { out } => {
-                    let launch = self.module.prepare_gpt_embed(row_config)?;
+                    let launch = self.module.prepare_gpt_embed::<W>(row_config)?;
                     self.module.gpt_embed(
                         &self.stream,
                         &launch,
@@ -1170,7 +1352,7 @@ impl GpuMeshGpt {
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_rmsnorm(row_config)?;
+                    let launch = self.module.prepare_gpt_rmsnorm::<W>(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
                     self.module.gpt_rmsnorm(
                         &self.stream,
@@ -1189,44 +1371,56 @@ impl GpuMeshGpt {
                     layer,
                     activated,
                 } => {
-                    let launch = self.module.prepare_gpt_mesh(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
-                    self.module.gpt_mesh(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        layer * 2 * c.width,
-                        activated,
-                        &before[input],
-                        &self.parameters[group].state,
-                        &mut after[0],
-                    )?;
+                    with_array_elements(&self.stream, &mut after[0], |output| {
+                        let launch = self.module.prepare_gpt_mesh::<W>(config(output.len()))?;
+                        self.module
+                            .gpt_mesh(
+                                &self.stream,
+                                &launch,
+                                c.width,
+                                layer * 2 * c.width,
+                                activated,
+                                &before[input],
+                                &self.parameters[group].state,
+                                output,
+                            )
+                            .map_err(Into::into)
+                    })?;
                 }
                 Op::Add { left, right, out } => {
-                    let launch = self.module.prepare_gpt_add(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
-                    self.module.gpt_add(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        &before[left],
-                        &before[right],
-                        &mut after[0],
-                    )?;
+                    with_array_elements(&self.stream, &mut after[0], |output| {
+                        let launch = self.module.prepare_gpt_add::<W>(config(output.len()))?;
+                        self.module
+                            .gpt_add(
+                                &self.stream,
+                                &launch,
+                                c.width,
+                                &before[left],
+                                &before[right],
+                                output,
+                            )
+                            .map_err(Into::into)
+                    })?;
                 }
                 Op::Rotary { input, out } => {
-                    let launch = self.module.prepare_gpt_rope(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
-                    self.module.gpt_rope(
-                        &self.stream,
-                        &launch,
-                        c.heads,
-                        c.width / c.heads / 2,
-                        workspace.sequence,
-                        0,
-                        &before[input],
-                        &mut after[0],
-                    )?;
+                    with_array_elements(&self.stream, &mut after[0], |output| {
+                        let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
+                        self.module
+                            .gpt_rope(
+                                &self.stream,
+                                &launch,
+                                c.heads,
+                                c.width / c.heads / 2,
+                                workspace.sequence,
+                                0,
+                                &before[input],
+                                output,
+                            )
+                            .map_err(Into::into)
+                    })?;
                 }
                 Op::Attention {
                     query,
@@ -1235,7 +1429,7 @@ impl GpuMeshGpt {
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_attention(row_config)?;
+                    let launch = self.module.prepare_gpt_attention::<W, C, H>(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
                     self.module.gpt_attention(
                         &self.stream,
@@ -1251,7 +1445,7 @@ impl GpuMeshGpt {
                     )?;
                 }
                 Op::Exclusive { input, value, out } => {
-                    let launch = self.module.prepare_gpt_exclusive(row_config)?;
+                    let launch = self.module.prepare_gpt_exclusive::<W>(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
                     self.module.gpt_exclusive(
                         &self.stream,
@@ -1265,23 +1459,27 @@ impl GpuMeshGpt {
                 }
             }
         }
-        let launch = self.module.prepare_gpt_head(row_config)?;
-        self.module.gpt_head(
-            &self.stream,
-            &launch,
-            c.width,
-            c.vocab_size,
-            &workspace.features[self.plan.final_features],
-            &workspace.embeddings[embedding_output],
-            &mut workspace.logits,
-        )?;
+        with_array_elements(&self.stream, &mut workspace.logits, |output| {
+            let launch = self.module.prepare_gpt_head::<W, V>(config(output.len()))?;
+            self.module
+                .gpt_head(
+                    &self.stream,
+                    &launch,
+                    c.width,
+                    c.vocab_size,
+                    &workspace.features[self.plan.final_features],
+                    &workspace.head_embedding,
+                    output,
+                )
+                .map_err(Into::into)
+        })?;
         Ok(())
     }
 
-    fn loss(&self, workspace: &mut Workspace) -> Result<f64> {
+    fn loss(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<f64> {
         let launch = self
             .module
-            .prepare_gpt_cross_entropy(config(workspace.rows))?;
+            .prepare_gpt_cross_entropy::<V>(config(workspace.rows))?;
         self.module.gpt_cross_entropy(
             &self.stream,
             &launch,
@@ -1324,20 +1522,26 @@ impl GpuMeshGpt {
         result
     }
 
-    fn backward(&mut self, workspace: &mut Workspace) -> Result<()> {
+    fn backward(&mut self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
         let row_config = config(workspace.rows);
         workspace.initialized.fill(false);
-        let launch = self.module.prepare_gpt_head_backward(row_config)?;
-        self.module.gpt_head_backward(
-            &self.stream,
-            &launch,
-            c.width,
-            c.vocab_size,
-            &workspace.head_gradient,
-            &workspace.embeddings[c.attention_mesh_depth - 1],
-            &mut workspace.scratch[0],
-        )?;
+        with_array_elements(&self.stream, &mut workspace.scratch[0], |output| {
+            let launch = self
+                .module
+                .prepare_gpt_head_backward::<W, V>(config(output.len()))?;
+            self.module
+                .gpt_head_backward(
+                    &self.stream,
+                    &launch,
+                    c.width,
+                    c.vocab_size,
+                    &workspace.head_gradient,
+                    &workspace.embeddings[c.attention_mesh_depth - 1],
+                    output,
+                )
+                .map_err(Into::into)
+        })?;
         self.accumulate_scratch(workspace, self.plan.final_features, 0)?;
 
         for index in (0..self.plan.ops.len()).rev() {
@@ -1349,7 +1553,7 @@ impl GpuMeshGpt {
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_rmsnorm_backward(row_config)?;
+                    let launch = self.module.prepare_gpt_rmsnorm_backward::<W>(row_config)?;
                     self.module.gpt_rmsnorm_backward(
                         &self.stream,
                         &launch,
@@ -1369,32 +1573,68 @@ impl GpuMeshGpt {
                     activated,
                 } => {
                     let parameters = &mut self.parameters[group];
-                    let launch = self
-                        .module
-                        .prepare_gpt_mesh_gradient(config(parameters.gradient.len()))?;
-                    self.module.gpt_mesh_gradient(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        layer * 2 * c.width,
-                        activated,
-                        &workspace.features[input],
-                        &workspace.features[out],
-                        &workspace.adjoints[out],
-                        &mut parameters.gradient,
-                    )?;
-                    let launch = self.module.prepare_gpt_mesh_backward(row_config)?;
-                    self.module.gpt_mesh_backward(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        layer * 2 * c.width,
-                        activated,
-                        &workspace.adjoints[out],
-                        &workspace.features[out],
-                        &parameters.state,
-                        &mut workspace.scratch[0],
-                    )?;
+                    if workspace.rows > 128 {
+                        let chunks = workspace.rows.div_ceil(32);
+                        let launch = self.module.prepare_gpt_mesh_gradient_partials::<W>(
+                            config(workspace.mesh_gradient_partials.len()),
+                        )?;
+                        self.module.gpt_mesh_gradient_partials(
+                            &self.stream,
+                            &launch,
+                            c.width,
+                            activated,
+                            chunks,
+                            &workspace.features[input],
+                            &workspace.features[out],
+                            &workspace.adjoints[out],
+                            &mut workspace.mesh_gradient_partials,
+                        )?;
+                        let launch = self.module.prepare_gpt_mesh_gradient_reduce::<W>(config(
+                            parameters.gradient.len(),
+                        ))?;
+                        self.module.gpt_mesh_gradient_reduce(
+                            &self.stream,
+                            &launch,
+                            c.width,
+                            layer * 2 * c.width,
+                            chunks,
+                            &workspace.mesh_gradient_partials,
+                            &mut parameters.gradient,
+                        )?;
+                    } else {
+                        let launch = self
+                            .module
+                            .prepare_gpt_mesh_gradient::<W>(config(parameters.gradient.len()))?;
+                        self.module.gpt_mesh_gradient(
+                            &self.stream,
+                            &launch,
+                            c.width,
+                            layer * 2 * c.width,
+                            activated,
+                            &workspace.features[input],
+                            &workspace.features[out],
+                            &workspace.adjoints[out],
+                            &mut parameters.gradient,
+                        )?;
+                    }
+                    with_array_elements(&self.stream, &mut workspace.scratch[0], |output| {
+                        let launch = self
+                            .module
+                            .prepare_gpt_mesh_backward::<W>(config(output.len()))?;
+                        self.module
+                            .gpt_mesh_backward(
+                                &self.stream,
+                                &launch,
+                                c.width,
+                                layer * 2 * c.width,
+                                activated,
+                                &workspace.adjoints[out],
+                                &workspace.features[out],
+                                &parameters.state,
+                                output,
+                            )
+                            .map_err(Into::into)
+                    })?;
                     self.accumulate_scratch(workspace, input, 0)?;
                 }
                 Op::Add { left, right, out } => {
@@ -1402,17 +1642,21 @@ impl GpuMeshGpt {
                     self.accumulate_node(workspace, right, out)?;
                 }
                 Op::Rotary { input, out } => {
-                    let launch = self.module.prepare_gpt_rope(row_config)?;
-                    self.module.gpt_rope(
-                        &self.stream,
-                        &launch,
-                        c.heads,
-                        c.width / c.heads / 2,
-                        workspace.sequence,
-                        1,
-                        &workspace.adjoints[out],
-                        &mut workspace.scratch[0],
-                    )?;
+                    with_array_elements(&self.stream, &mut workspace.scratch[0], |output| {
+                        let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
+                        self.module
+                            .gpt_rope(
+                                &self.stream,
+                                &launch,
+                                c.heads,
+                                c.width / c.heads / 2,
+                                workspace.sequence,
+                                1,
+                                &workspace.adjoints[out],
+                                output,
+                            )
+                            .map_err(Into::into)
+                    })?;
                     self.accumulate_scratch(workspace, input, 0)?;
                 }
                 Op::Attention {
@@ -1422,7 +1666,9 @@ impl GpuMeshGpt {
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_score_backward(row_config)?;
+                    let launch = self
+                        .module
+                        .prepare_gpt_score_backward::<W, C, H>(row_config)?;
                     self.module.gpt_score_backward(
                         &self.stream,
                         &launch,
@@ -1434,30 +1680,42 @@ impl GpuMeshGpt {
                         &workspace.probabilities[cache],
                         &mut workspace.scores,
                     )?;
-                    let launch = self.module.prepare_gpt_attention_backward(row_config)?;
                     let (dq, rest) = workspace.scratch.split_at_mut(1);
                     let (dk, rest) = rest.split_at_mut(1);
-                    self.module.gpt_attention_backward(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        c.heads,
-                        workspace.sequence,
-                        &workspace.features[query],
-                        &workspace.features[key],
-                        &workspace.adjoints[out],
-                        &workspace.scores,
-                        &workspace.probabilities[cache],
-                        &mut dq[0],
-                        &mut dk[0],
-                        &mut rest[0],
-                    )?;
+                    with_array_elements(&self.stream, &mut dq[0], |dq| {
+                        with_array_elements(&self.stream, &mut dk[0], |dk| {
+                            with_array_elements(&self.stream, &mut rest[0], |dv| {
+                                let launch = self
+                                    .module
+                                    .prepare_gpt_attention_backward::<W, C, H>(config(dq.len()))?;
+                                self.module
+                                    .gpt_attention_backward(
+                                        &self.stream,
+                                        &launch,
+                                        c.width,
+                                        c.heads,
+                                        workspace.sequence,
+                                        &workspace.features[query],
+                                        &workspace.features[key],
+                                        &workspace.adjoints[out],
+                                        &workspace.scores,
+                                        &workspace.probabilities[cache],
+                                        dq,
+                                        dk,
+                                        dv,
+                                    )
+                                    .map_err(Into::into)
+                            })
+                        })
+                    })?;
                     self.accumulate_scratch(workspace, query, 0)?;
                     self.accumulate_scratch(workspace, key, 1)?;
                     self.accumulate_scratch(workspace, value, 2)?;
                 }
                 Op::Exclusive { input, value, out } => {
-                    let launch = self.module.prepare_gpt_exclusive_backward(row_config)?;
+                    let launch = self
+                        .module
+                        .prepare_gpt_exclusive_backward::<W>(row_config)?;
                     let (dy, rest) = workspace.scratch.split_at_mut(1);
                     self.module.gpt_exclusive_backward(
                         &self.stream,
@@ -1480,7 +1738,7 @@ impl GpuMeshGpt {
         let embedding_output = c.attention_mesh_depth - 1;
         let launch = self
             .module
-            .prepare_gpt_embedding_backward(config(c.vocab_size))?;
+            .prepare_gpt_embedding_backward::<W, V>(config(c.vocab_size * c.width))?;
         self.module.gpt_embedding_backward(
             &self.stream,
             &launch,
@@ -1490,6 +1748,16 @@ impl GpuMeshGpt {
             &workspace.adjoints[0],
             &workspace.head_gradient,
             &workspace.features[self.plan.final_features],
+            &mut workspace.embedding_gradient,
+        )?;
+        let launch = self
+            .module
+            .prepare_gpt_embedding_gradient_rows::<W>(config(c.vocab_size))?;
+        self.module.gpt_embedding_gradient_rows(
+            &self.stream,
+            &launch,
+            c.width,
+            &workspace.embedding_gradient,
             &mut workspace.embedding_adjoints[embedding_output],
         )?;
         // Combine repeated input lookups with the dense head contribution
@@ -1504,7 +1772,7 @@ impl GpuMeshGpt {
             };
             let launch = self
                 .module
-                .prepare_gpt_mesh_gradient(config(group.gradient.len()))?;
+                .prepare_gpt_mesh_gradient::<W>(config(group.gradient.len()))?;
             self.module.gpt_mesh_gradient(
                 &self.stream,
                 &launch,
@@ -1517,21 +1785,25 @@ impl GpuMeshGpt {
                 &mut group.gradient,
             )?;
             if layer > 0 {
-                let launch = self
-                    .module
-                    .prepare_gpt_mesh_backward(config(c.vocab_size))?;
                 let (before, after) = workspace.embedding_adjoints.split_at_mut(layer);
-                self.module.gpt_mesh_backward(
-                    &self.stream,
-                    &launch,
-                    c.width,
-                    layer * 2 * c.width,
-                    activated,
-                    &after[0],
-                    &workspace.embeddings[layer],
-                    &group.state,
-                    &mut before[layer - 1],
-                )?;
+                with_array_elements(&self.stream, &mut before[layer - 1], |output| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_mesh_backward::<W>(config(output.len()))?;
+                    self.module
+                        .gpt_mesh_backward(
+                            &self.stream,
+                            &launch,
+                            c.width,
+                            layer * 2 * c.width,
+                            activated,
+                            &after[0],
+                            &workspace.embeddings[layer],
+                            &group.state,
+                            output,
+                        )
+                        .map_err(Into::into)
+                })?;
             }
         }
         Ok(())
@@ -1539,21 +1811,25 @@ impl GpuMeshGpt {
 
     fn accumulate_scratch(
         &self,
-        workspace: &mut Workspace,
+        workspace: &mut Workspace<W, V, C, H>,
         target: usize,
         source: usize,
     ) -> Result<()> {
         if workspace.initialized[target] {
-            let launch = self.module.prepare_gpt_add(config(workspace.rows))?;
             let (before, after) = workspace.scratch.split_at_mut(3);
-            self.module.gpt_add(
-                &self.stream,
-                &launch,
-                self.config.width,
-                &workspace.adjoints[target],
-                &before[source],
-                &mut after[0],
-            )?;
+            with_array_elements(&self.stream, &mut after[0], |output| {
+                let launch = self.module.prepare_gpt_add::<W>(config(output.len()))?;
+                self.module
+                    .gpt_add(
+                        &self.stream,
+                        &launch,
+                        self.config.width,
+                        &workspace.adjoints[target],
+                        &before[source],
+                        output,
+                    )
+                    .map_err(Into::into)
+            })?;
             std::mem::swap(&mut workspace.adjoints[target], &mut workspace.scratch[3]);
         } else {
             std::mem::swap(
@@ -1567,35 +1843,60 @@ impl GpuMeshGpt {
 
     fn accumulate_node(
         &self,
-        workspace: &mut Workspace,
+        workspace: &mut Workspace<W, V, C, H>,
         target: usize,
         source: usize,
     ) -> Result<()> {
         if workspace.initialized[target] {
-            let launch = self.module.prepare_gpt_add(config(workspace.rows))?;
-            self.module.gpt_add(
-                &self.stream,
-                &launch,
-                self.config.width,
-                &workspace.adjoints[target],
-                &workspace.adjoints[source],
-                &mut workspace.scratch[3],
-            )?;
+            with_array_elements(&self.stream, &mut workspace.scratch[3], |output| {
+                let launch = self.module.prepare_gpt_add::<W>(config(output.len()))?;
+                self.module
+                    .gpt_add(
+                        &self.stream,
+                        &launch,
+                        self.config.width,
+                        &workspace.adjoints[target],
+                        &workspace.adjoints[source],
+                        output,
+                    )
+                    .map_err(Into::into)
+            })?;
             std::mem::swap(&mut workspace.adjoints[target], &mut workspace.scratch[3]);
         } else {
-            let launch = self.module.prepare_gpt_copy(config(workspace.rows))?;
             let (before, after) = workspace.adjoints.split_at_mut(source);
-            self.module.gpt_copy(
-                &self.stream,
-                &launch,
-                self.config.width,
-                &after[0],
-                &mut before[target],
-            )?;
+            with_array_elements(&self.stream, &mut before[target], |output| {
+                let launch = self.module.prepare_gpt_copy::<W>(config(output.len()))?;
+                self.module
+                    .gpt_copy(&self.stream, &launch, self.config.width, &after[0], output)
+                    .map_err(Into::into)
+            })?;
             workspace.initialized[target] = true;
         }
         Ok(())
     }
+}
+
+/// Reuse the same allocation through checked, owning array casts. No aliasing
+/// view, copy, or device allocation is introduced; restore rows even on launch error.
+fn with_array_elements<const N: usize>(
+    stream: &CudaStream,
+    buffer: &mut DeviceBuffer<[f32; N]>,
+    run: impl FnOnce(&mut DeviceBuffer<f32>) -> Result<()>,
+) -> Result<()> {
+    let empty = DeviceBuffer::zeroed(stream, 0)?;
+    let rows = std::mem::replace(buffer, empty);
+    let mut elements = match rows.cast_chunks::<f32>() {
+        Ok(elements) => elements,
+        Err(rows) => {
+            *buffer = rows;
+            return Err("array allocation cannot be grouped into scalar elements".into());
+        }
+    };
+    let result = run(&mut elements);
+    *buffer = elements
+        .cast_chunks::<[f32; N]>()
+        .map_err(|_| "scalar allocation cannot be restored to array rows")?;
+    result
 }
 
 fn config(elements: usize) -> LaunchConfig1D {
@@ -1610,6 +1911,145 @@ mod verification {
     };
 
     impl GpuMeshGpt {
+        /// Checks chunked reductions, row tails, untouched layers, and launch contracts.
+        pub fn verify_mesh_gradient_reduction(device: usize) -> Result<()> {
+            let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
+            for width in [2, 4, 128] {
+                for rows in [1_usize, 31, 32, 33, 127, 128, 129, 257, 2048, 4096] {
+                    let mut input = vec![[0.0; MAX_WIDTH]; rows];
+                    let mut activation = input.clone();
+                    let mut gradient = input.clone();
+                    for row in 0..rows {
+                        for channel in 0..width {
+                            input[row][channel] = ((row + channel * 3) % 19) as f32 * 0.1 - 0.7;
+                            activation[row][channel] =
+                                ((row * 3 + channel) % 7) as f32 * 0.25 - 0.5;
+                            gradient[row][channel] =
+                                (((row + channel * 5) % 17) as f32 * 0.07 - 0.5) / rows as f32;
+                        }
+                    }
+                    let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
+                    let activation_gpu = DeviceBuffer::from_host(&model.stream, &activation)?;
+                    let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
+                    let chunks = rows.div_ceil(32);
+                    let mut partials = DeviceBuffer::zeroed(&model.stream, chunks * 2 * width)?;
+                    let partial_launch = model
+                        .module
+                        .prepare_gpt_mesh_gradient_partials::<128>(config(partials.len()))?;
+                    let offset = 2 * width;
+                    let sentinel = vec![42.0_f32; 6 * width];
+                    for activated in [0, 1] {
+                        let mut serial = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                        let mut reduced = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                        let serial_launch = model
+                            .module
+                            .prepare_gpt_mesh_gradient::<128>(config(serial.len()))?;
+                        model.module.gpt_mesh_gradient(
+                            &model.stream,
+                            &serial_launch,
+                            width,
+                            offset,
+                            activated,
+                            &input_gpu,
+                            &activation_gpu,
+                            &gradient_gpu,
+                            &mut serial,
+                        )?;
+                        model.module.gpt_mesh_gradient_partials(
+                            &model.stream,
+                            &partial_launch,
+                            width,
+                            activated,
+                            chunks,
+                            &input_gpu,
+                            &activation_gpu,
+                            &gradient_gpu,
+                            &mut partials,
+                        )?;
+                        let reduce_launch = model
+                            .module
+                            .prepare_gpt_mesh_gradient_reduce::<128>(config(reduced.len()))?;
+                        model.module.gpt_mesh_gradient_reduce(
+                            &model.stream,
+                            &reduce_launch,
+                            width,
+                            offset,
+                            chunks,
+                            &partials,
+                            &mut reduced,
+                        )?;
+                        let serial = serial.to_host_vec(&model.stream)?;
+                        let reduced = reduced.to_host_vec(&model.stream)?;
+                        for parameter in 0..sentinel.len() {
+                            let expected = if (offset..offset + 2 * width).contains(&parameter) {
+                                let local = parameter - offset;
+                                let channel = local / 2;
+                                let parent = (channel + local % 2) % width;
+                                (0..rows)
+                                    .map(|row| {
+                                        let value = f64::from(activation[row][channel]);
+                                        let slope = if activated == 1 && value < 0.0 {
+                                            value + 1.0
+                                        } else {
+                                            1.0
+                                        };
+                                        f64::from(gradient[row][channel])
+                                            * slope
+                                            * f64::from(input[row][parent])
+                                    })
+                                    .sum::<f64>()
+                            } else {
+                                42.0
+                            };
+                            for actual in [serial[parameter], reduced[parameter]] {
+                                assert!(
+                                    (f64::from(actual) - expected).abs()
+                                        < 3e-5 * (1.0 + expected.abs()),
+                                    "mesh reduction width={width} rows={rows} activated={activated} parameter={parameter}: {actual} vs {expected}"
+                                );
+                            }
+                        }
+                    }
+                    for bad_chunks in [0, 129, chunks + 1] {
+                        assert!(
+                            model
+                                .module
+                                .gpt_mesh_gradient_partials(
+                                    &model.stream,
+                                    &partial_launch,
+                                    width,
+                                    0,
+                                    bad_chunks,
+                                    &input_gpu,
+                                    &activation_gpu,
+                                    &gradient_gpu,
+                                    &mut partials,
+                                )
+                                .is_err()
+                        );
+                    }
+                    let mut too_short = DeviceBuffer::zeroed(&model.stream, partials.len() - 1)?;
+                    assert!(
+                        model
+                            .module
+                            .gpt_mesh_gradient_partials(
+                                &model.stream,
+                                &partial_launch,
+                                width,
+                                0,
+                                chunks,
+                                &input_gpu,
+                                &activation_gpu,
+                                &gradient_gpu,
+                                &mut too_short,
+                            )
+                            .is_err()
+                    );
+                }
+            }
+            Ok(())
+        }
+
         /// Checks parameter-free full-width RMSNorm and per-head QK-Norm against f64 autodiff.
         pub fn verify_rmsnorm(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
@@ -1647,7 +2087,7 @@ mod verification {
                 let mut output_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut cache = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let launch = model.module.prepare_gpt_rmsnorm(config(rows))?;
+                let launch = model.module.prepare_gpt_rmsnorm::<128>(config(rows))?;
                 model.module.gpt_rmsnorm(
                     &model.stream,
                     &launch,
@@ -1657,7 +2097,9 @@ mod verification {
                     &mut output_gpu,
                     &mut cache,
                 )?;
-                let backward = model.module.prepare_gpt_rmsnorm_backward(config(rows))?;
+                let backward = model
+                    .module
+                    .prepare_gpt_rmsnorm_backward::<128>(config(rows))?;
                 model.module.gpt_rmsnorm_backward(
                     &model.stream,
                     &backward,
@@ -1694,7 +2136,7 @@ mod verification {
                 }
                 for (invalid_heads, invalid_width) in [
                     (0, head_width),
-                    (9, head_width),
+                    (MAX_WIDTH + 1, head_width),
                     (heads, 0),
                     (heads, 1),
                     (heads, MAX_WIDTH + 1),
@@ -1781,34 +2223,47 @@ mod verification {
                 let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
                 let mut output_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let mut inverse_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let launch = model.module.prepare_gpt_rope(config(rows))?;
+                let mut inverse_gpu: DeviceBuffer<Features> =
+                    DeviceBuffer::zeroed(&model.stream, rows)?;
+                let launch = model
+                    .module
+                    .prepare_gpt_rope::<128, 128>(config(rows * MAX_WIDTH))?;
                 for sequence in [1, 3, 128] {
                     for (source, target, inverse) in [
                         (&input_gpu, &mut output_gpu, 0),
                         (&gradient_gpu, &mut derivative_gpu, 1),
                     ] {
-                        model.module.gpt_rope(
-                            &model.stream,
-                            &launch,
-                            heads,
-                            half_width,
-                            sequence,
-                            inverse,
-                            source,
-                            target,
-                        )?;
+                        with_array_elements(&model.stream, target, |target| {
+                            model
+                                .module
+                                .gpt_rope(
+                                    &model.stream,
+                                    &launch,
+                                    heads,
+                                    half_width,
+                                    sequence,
+                                    inverse,
+                                    source,
+                                    target,
+                                )
+                                .map_err(Into::into)
+                        })?;
                     }
-                    model.module.gpt_rope(
-                        &model.stream,
-                        &launch,
-                        heads,
-                        half_width,
-                        sequence,
-                        1,
-                        &output_gpu,
-                        &mut inverse_gpu,
-                    )?;
+                    with_array_elements(&model.stream, &mut inverse_gpu, |target| {
+                        model
+                            .module
+                            .gpt_rope(
+                                &model.stream,
+                                &launch,
+                                heads,
+                                half_width,
+                                sequence,
+                                1,
+                                &output_gpu,
+                                target,
+                            )
+                            .map_err(Into::into)
+                    })?;
                     let output = output_gpu.to_host_vec(&model.stream)?;
                     let derivative = derivative_gpu.to_host_vec(&model.stream)?;
                     let inverse = inverse_gpu.to_host_vec(&model.stream)?;
@@ -1866,19 +2321,22 @@ mod verification {
                     (half_width, 3, 2),
                 ] {
                     assert!(
-                        model
-                            .module
-                            .gpt_rope(
-                                &model.stream,
-                                &launch,
-                                heads,
-                                half,
-                                sequence,
-                                inverse,
-                                &input_gpu,
-                                &mut output_gpu,
-                            )
-                            .is_err()
+                        with_array_elements(&model.stream, &mut output_gpu, |target| {
+                            model
+                                .module
+                                .gpt_rope(
+                                    &model.stream,
+                                    &launch,
+                                    heads,
+                                    half,
+                                    sequence,
+                                    inverse,
+                                    &input_gpu,
+                                    target,
+                                )
+                                .map_err(Into::into)
+                        })
+                        .is_err()
                     );
                 }
             }
@@ -1915,7 +2373,7 @@ mod verification {
                 let mut output = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut dy = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut dv = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let launch = model.module.prepare_gpt_exclusive(config(rows))?;
+                let launch = model.module.prepare_gpt_exclusive::<128>(config(rows))?;
                 model.module.gpt_exclusive(
                     &model.stream,
                     &launch,
@@ -1925,7 +2383,9 @@ mod verification {
                     &value_gpu,
                     &mut output,
                 )?;
-                let launch = model.module.prepare_gpt_exclusive_backward(config(rows))?;
+                let launch = model
+                    .module
+                    .prepare_gpt_exclusive_backward::<128>(config(rows))?;
                 model.module.gpt_exclusive_backward(
                     &model.stream,
                     &launch,

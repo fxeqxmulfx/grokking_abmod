@@ -10,7 +10,7 @@ mod text;
 
 pub use checkpoint::Checkpoint;
 pub use config::{AdamWOptions, GptConfig, GptTrainOptions};
-pub use gpu::GpuMeshGpt;
+pub use gpu::{GpuMeshGpt, SpecializedMeshGpt};
 pub use grokking::{
     EQUATION_CONTEXT, Equation, EquationDataset, EquationSampler, ModularOperation,
 };
@@ -25,12 +25,17 @@ pub(crate) const MAX_CONTEXT: usize = 128;
 pub(crate) const MAX_HEADS: usize = 8;
 pub(crate) const MAX_VOCAB: usize = 256;
 pub(crate) const MAX_ROWS: usize = 4_096;
+// Resource limits for validated configurations; kernel capacities are const generics.
+pub(crate) const MODEL_MAX_WIDTH: usize = 4_096;
+pub(crate) const MODEL_MAX_CONTEXT: usize = 4_096;
+pub(crate) const MODEL_MAX_HEADS: usize = 64;
+pub(crate) const MODEL_MAX_VOCAB: usize = 65_536;
 pub(crate) const ROPE_BASE: f32 = 10_000.0;
 pub(crate) const RMSNORM_EPSILON: f32 = 1e-5;
 // Matches F.normalize's default norm floor in the XSA paper's pseudocode.
 pub(crate) const XSA_EPSILON: f32 = 1e-12;
-pub(crate) type Features = [f32; MAX_WIDTH];
-pub(crate) type Attention = [f32; MAX_CONTEXT * MAX_HEADS];
-pub(crate) type Vocabulary = [f32; MAX_VOCAB];
-// RMS-normalized channels followed by up to MAX_HEADS inverse RMS values.
-pub(crate) type NormCache = [f32; MAX_WIDTH + MAX_HEADS];
+pub(crate) type Features<const W: usize = MAX_WIDTH> = [f32; W];
+pub(crate) type Attention<const C: usize = MAX_CONTEXT, const H: usize = MAX_HEADS> = [[f32; C]; H];
+pub(crate) type Vocabulary<const V: usize = MAX_VOCAB> = [f32; V];
+// Normalized channels and inverse RMS values, without generic const expressions.
+pub(crate) type NormCache<const W: usize = MAX_WIDTH> = [[f32; W]; 2];

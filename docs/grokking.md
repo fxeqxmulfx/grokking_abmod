@@ -125,3 +125,9 @@ cross-entropy `7.41967 -> 6.53287` and validation cross-entropy
 both complete splits were evaluated. Answer accuracy remained zero after these
 10 warmup updates, so this establishes a working loss descent rather than
 successful generalization or grokking.
+
+A separate 1000-update smoke run with the default width-128 mod-97 model ended
+at training cross-entropy `4.58679` / accuracy `1.28%` and validation
+cross-entropy `4.59957` / accuracy `0.83%`. These results are near chance and do
+not establish grokking. CUDA optimization preserves the model and training
+protocol; it does not imply successful generalization of this mesh architecture.

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::{Result, mesh::Random};
 
-use super::{GptConfig, MAX_ROWS, MAX_VOCAB};
+use super::{GptConfig, MAX_ROWS, MODEL_MAX_VOCAB};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CharacterTokenizer {
@@ -15,10 +15,10 @@ impl CharacterTokenizer {
     }
 
     pub(crate) fn from_characters(characters: Vec<char>) -> Result<Self> {
-        if !(2..=MAX_VOCAB).contains(&characters.len())
+        if !(2..=MODEL_MAX_VOCAB).contains(&characters.len())
             || characters.iter().copied().collect::<BTreeSet<_>>().len() != characters.len()
         {
-            return Err("tokenizer must contain 2..256 unique characters".into());
+            return Err("tokenizer must contain 2..65536 unique characters".into());
         }
         Ok(Self { characters })
     }
