@@ -1,0 +1,2 @@
+# Built by scripts/setup-cuda-oxide.sh from the commit in Cargo.lock.
+backend = "../target/cuda-oxide-backend/release/librustc_codegen_cuda.so"

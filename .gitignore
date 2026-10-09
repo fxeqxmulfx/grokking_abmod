@@ -1,0 +1,12 @@
+/target
+/*.ptx
+/*.ll
+/*.bc
+/*.ltoir
+/*.cubin
+/*.cubin.tmp
+/*.cubin.identity
+/*.ptx.identity
+/*.cubin.target
+/*.target
+/*.options

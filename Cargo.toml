@@ -1,0 +1,10 @@
+[package]
+name = "grokking_abmod"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Cargo.lock pins all three crates to the same experiments commit.
+cuda-core = { git = "https://github.com/fxeqxmulfx/cuda-rust.git", branch = "experiments" }
+cuda-device = { git = "https://github.com/fxeqxmulfx/cuda-rust.git", branch = "experiments" }
+cuda-host = { git = "https://github.com/fxeqxmulfx/cuda-rust.git", branch = "experiments" }

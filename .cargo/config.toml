@@ -1,0 +1,5 @@
+[env]
+CC = "clang-23"
+CXX = "clang++-23"
+LIBCLANG_PATH = "/usr/lib/llvm-23/lib"
+CUDA_OXIDE_LLC = "/usr/bin/llc-23"
