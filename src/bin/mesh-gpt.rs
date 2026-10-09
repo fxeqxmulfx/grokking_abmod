@@ -1,8 +1,12 @@
+#[path = "../cli.rs"]
+mod cli;
+
+use cli::value;
+
 use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
-    str::FromStr,
     time::Instant,
 };
 
@@ -83,14 +87,6 @@ impl Options {
         }
         Ok(options)
     }
-}
-
-fn value<T: FromStr>(arguments: &mut impl Iterator<Item = String>, flag: &str) -> Result<T> {
-    let text = arguments
-        .next()
-        .ok_or_else(|| format!("missing value for {flag}"))?;
-    text.parse()
-        .map_err(|_| format!("invalid value for {flag}: {text}").into())
 }
 
 fn main() -> Result<()> {

@@ -1,8 +1,11 @@
+mod cli;
+
+use cli::value;
+
 use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
-    str::FromStr,
 };
 
 use grokking_abmod::{
@@ -52,15 +55,6 @@ impl Options {
         }
         Ok(options)
     }
-}
-
-fn value<T: FromStr>(arguments: &mut impl Iterator<Item = String>, flag: &str) -> Result<T> {
-    let value = arguments
-        .next()
-        .ok_or_else(|| format!("missing value for {flag}"))?;
-    value
-        .parse()
-        .map_err(|_| format!("invalid value for {flag}: {value}").into())
 }
 
 fn main() -> Result<()> {

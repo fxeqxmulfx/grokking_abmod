@@ -99,7 +99,7 @@ From the project root:
 ```bash
 # One-time CLI installation from the same revision as Cargo.lock.
 cargo install --git https://github.com/fxeqxmulfx/cuda-rust.git \
-  --rev f8f892962126e06c93e38bb2a0278159300b62fc --locked cargo-oxide
+  --rev 9a9056948298e550de137b0bb303390f4be9185a --locked cargo-oxide
 cargo oxide doctor
 cargo oxide run
 ```

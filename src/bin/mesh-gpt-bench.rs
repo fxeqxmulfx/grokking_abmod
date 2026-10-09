@@ -1,6 +1,11 @@
 //! Repeated, warmed end-to-end training timings for the mod-97 Mesh GPT workload.
 
-use std::{fs::File, io::Write, path::PathBuf, str::FromStr, time::Instant};
+#[path = "../cli.rs"]
+mod cli;
+
+use cli::value;
+
+use std::{fs::File, io::Write, path::PathBuf, time::Instant};
 
 use grokking_abmod::{
     Result,
@@ -9,14 +14,6 @@ use grokking_abmod::{
         ModularOperation,
     },
 };
-
-fn value<T: FromStr>(arguments: &mut impl Iterator<Item = String>, flag: &str) -> Result<T> {
-    arguments
-        .next()
-        .ok_or_else(|| format!("missing value for {flag}"))?
-        .parse()
-        .map_err(|_| format!("invalid value for {flag}").into())
-}
 
 fn main() -> Result<()> {
     let (mut steps, mut warmup, mut trials, mut batch, mut device) = (100, 10, 3, 512, 0);

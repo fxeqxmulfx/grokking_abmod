@@ -181,7 +181,7 @@ nsys stats --report cuda_gpu_kern_sum,cuda_api_sum --format csv \
   target/mesh-gpt-profile/training.nsys-rep
 
 ncu --section SpeedOfLight --section LaunchStats --section Occupancy \
-  --kernel-name 'regex:gpt_embedding_backward_TID_.*' \
+  --kernel-name 'regex:gpt_embedding_gradient_partials_TID_.*' \
   --launch-count 1 --clock-control none \
   --force-overwrite --export target/mesh-gpt-profile/embedding-counters \
   target/release/mesh-gpt-bench --steps 1 --warmup 0 --trials 1 \
@@ -297,3 +297,26 @@ target/native-release/release/mesh-gpt-bench \
   --steps 30 --warmup 10 --trials 3 \
   --output target/mesh-gpt-profile/native-release-run
 ```
+
+## Code simplification
+
+Ordinary functions and closures replace repeated launch checks, buffer casts,
+CLI parsing, and checkpoint decoding. The independent f64 reference shares its
+own repeated operations. A single checked chunked embedding-gradient pipeline
+now handles every batch and width, removing two unused kernels and an allocation.
+No new Rust macros or dependencies are introduced. Rust source decreases from
+7483 to 7137 lines (346 fewer), including 286 fewer lines in the CUDA GPT module.
+
+The same 50-update, ten-warmup, three-trial protocol compares saved binaries:
+
+| Workload | Previous median (ms/update) | Simplified median |
+| --- | ---: | ---: |
+| Width 128, batch 512 | 5.731 | 5.716 |
+| Width 8, two heads, batch 512 | 3.220 | 2.583 |
+| Width 128, batch 1 | 1.048 | 0.965 |
+
+The narrow and single-equation improvements come from the unified embedding
+reduction. Default and single-equation checkpoints are byte-identical to the
+previous binary; the narrow workload differs by at most `3.58e-7` (relative L2
+`6.16e-8`). All CPU tests, strict Clippy, both CUDA verification suites, invalid
+launch checks, and the complete mod-97 epoch pass.
