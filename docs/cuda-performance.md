@@ -39,12 +39,17 @@ allocation and CUDA compilation happen before timing.
 | Transposed embedding table for the head | 9.052 | 8.303 | 8.312 | 8.312 |
 | Parallel RoPE, attention backward, and copies | 8.091 | 7.398 | 7.402 | 7.402 |
 | Final const-generic kernels and safe module loading | 7.507 | 7.253 | 7.256 | 7.256 |
+| Cooperative FP32 RMSNorm and QK-Norm | 6.628 | 6.454 | 6.455 | 6.455 |
 
-The final median is **22.16 times faster** on this workload, and **2.50 times
+The const-generic median is **22.16 times faster** on this workload, and **2.50 times
 faster** than the first chunked implementation. GPU frequencies were
 not locked; these are local measurements rather than a throughput guarantee for
 other shapes or devices. `timings.csv`, `run.txt`, and the first trial's `model.bin`
 make the timing setup and numerical result inspectable.
+
+The cooperative normalization path improves the previous median by **11.0%**.
+A fresh run of the saved previous binary measured `7.794`, `7.319`, and `7.316`
+ms/update, with median `7.319`; the corresponding reduction is **11.8%**.
 
 ## Profile and changes
 
@@ -102,6 +107,16 @@ dependencies and CUDA compiler backend use revision
 [`9a905694`](https://github.com/fxeqxmulfx/cuda-rust/commit/9a9056948298e550de137b0bb303390f4be9185a).
 Generic kernel identity and embedded artifact provenance now also allow safe
 `kernels::load(&context)?` in the GPT constructor.
+
+RMSNorm and QK-Norm now assign one thread per output channel when the capacity
+and active head width are multiples of 32. Each complete warp cooperatively
+reduces squared inputs or the backward dot product. Smaller and unaligned
+shapes use the original serial reduction. The cache stores each channel's
+normalized value beside its inverse RMS so typed disjoint writes remain safe.
+Checked launch contracts reject incomplete head geometry and overflowing
+dimensions; the forward and backward paths retain FP32 arithmetic.
+The new 25-update trace measures normalization forward/backward together at
+`0.539` GPU ms/update, down from `1.706` in the previous capture.
 
 | Final representative kernel | Blocks | Registers/thread | SM throughput (%) | Achieved occupancy (%) |
 | --- | ---: | ---: | ---: | ---: |
@@ -189,3 +204,12 @@ the 96-example tail. Training cross-entropy decreases from `7.419670094` to
 Its maximum parameter difference from the pre-optimization epoch checkpoint is
 `5.96e-8`. This verifies learning and numerical agreement; it does not establish
 grokking. All checks retain the model equations and FP32 precision.
+
+Cooperative normalization verification additionally covers head widths 32, 64,
+and 128, zero and tiny inputs, multiple heads, and invalid launch geometry.
+All CUDA comparisons and 27 CPU tests pass, as does strict Clippy. After the
+40-update benchmark, its maximum parameter difference from the previous FP32
+binary is `1.91e-6` (relative L2 `1.08e-7`). A complete mod-97 epoch again covers
+all 4704 examples; train/validation losses reach `6.532873886`/`6.547292552`,
+with maximum parameter difference `2.32e-7` from the previous epoch checkpoint.
+The small differences reflect the warp reduction's addition order.

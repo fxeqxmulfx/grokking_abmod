@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use cuda_core::{CudaContext, CudaStream, DeviceBuffer, LaunchConfig1D};
-use cuda_device::{DisjointSlice, device, kernel, launch_bounds, launch_contract, thread};
+use cuda_device::{DisjointSlice, device, kernel, launch_bounds, launch_contract, thread, warp};
 use cuda_host::cuda_module;
 
 use crate::{Result, mesh::validate_finite};
@@ -72,12 +72,50 @@ mod kernels {
                     squares += x * x;
                 }
                 let inverse = 1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt();
-                saved[1][head] = inverse;
                 for channel in begin..begin + head_width {
-                    saved[0][channel] = input[row][channel] * inverse;
-                    output[channel] = saved[0][channel];
+                    saved[channel] = [input[row][channel] * inverse, inverse];
+                    output[channel] = saved[channel][0];
                 }
             }
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        _capacity_warps >= 1, W == _capacity_warps * 32, heads >= 1,
+        head_warps >= 1, heads * head_warps <= _capacity_warps,
+        out.len() == input.len() * W, cache.len() == out.len()))]
+    pub fn gpt_rmsnorm_parallel<const W: usize>(
+        _capacity_warps: usize,
+        heads: usize,
+        head_warps: usize,
+        input: &[Features<W>],
+        mut out: DisjointSlice<f32>,
+        mut cache: DisjointSlice<[f32; 2]>,
+    ) {
+        let head_width = head_warps * 32;
+        let index = thread::index_1d();
+        let row = index.get() / W;
+        let channel = index.get() % W;
+        // Row, head, and capacity boundaries align with complete hardware warps.
+        if row >= input.len() || channel >= heads * head_width {
+            return;
+        }
+        let begin = channel / head_width * head_width;
+        let lane = channel % 32;
+        let mut squares = 0.0;
+        for local in (lane..head_width).step_by(32) {
+            let x = input[row][begin + local];
+            squares += x * x;
+        }
+        let squares = warp::reduce_sum_f32(squares);
+        let inverse = 1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt();
+        if let Some(output) = out.get_mut(index)
+            && let Some(saved) = cache.get_mut(thread::index_1d())
+        {
+            *output = input[row][channel] * inverse;
+            *saved = [*output, inverse];
         }
     }
 
@@ -485,14 +523,48 @@ mod kernels {
                 let begin = head * head_width;
                 let mut dot = 0.0;
                 for channel in begin..begin + head_width {
-                    dot += gradient[row][channel] * cache[row][0][channel];
+                    dot += gradient[row][channel] * cache[row][channel][0];
                 }
                 for channel in begin..begin + head_width {
-                    output[channel] = cache[row][1][head]
+                    output[channel] = cache[row][channel][1]
                         * (gradient[row][channel]
-                            - cache[row][0][channel] * dot / head_width as f32);
+                            - cache[row][channel][0] * dot / head_width as f32);
                 }
             }
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        _capacity_warps >= 1, W == _capacity_warps * 32, heads >= 1,
+        head_warps >= 1, heads * head_warps <= _capacity_warps,
+        gradient.len() == cache.len(), out.len() == cache.len() * W))]
+    pub fn gpt_rmsnorm_backward_parallel<const W: usize>(
+        _capacity_warps: usize,
+        heads: usize,
+        head_warps: usize,
+        gradient: &[Features<W>],
+        cache: &[NormCache<W>],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let head_width = head_warps * 32;
+        let index = thread::index_1d();
+        let row = index.get() / W;
+        let channel = index.get() % W;
+        if row >= gradient.len() || channel >= heads * head_width {
+            return;
+        }
+        let begin = channel / head_width * head_width;
+        let lane = channel % 32;
+        let mut dot = 0.0;
+        for local in (lane..head_width).step_by(32) {
+            dot += gradient[row][begin + local] * cache[row][begin + local][0];
+        }
+        let dot = warp::reduce_sum_f32(dot);
+        if let Some(output) = out.get_mut(index) {
+            *output = cache[row][channel][1]
+                * (gradient[row][channel] - cache[row][channel][0] * dot / head_width as f32);
         }
     }
 
@@ -1352,17 +1424,39 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_rmsnorm::<W>(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
-                    self.module.gpt_rmsnorm(
-                        &self.stream,
-                        &launch,
-                        heads,
-                        c.width / heads,
-                        &before[input],
-                        &mut after[0],
-                        &mut workspace.norms[cache],
-                    )?;
+                    if W.is_multiple_of(32) && (c.width / heads).is_multiple_of(32) {
+                        with_array_elements(&self.stream, &mut after[0], |output| {
+                            with_buffer_chunks(&self.stream, &mut workspace.norms[cache], |saved| {
+                                let launch = self
+                                    .module
+                                    .prepare_gpt_rmsnorm_parallel::<W>(config(output.len()))?;
+                                self.module
+                                    .gpt_rmsnorm_parallel(
+                                        &self.stream,
+                                        &launch,
+                                        W / 32,
+                                        heads,
+                                        c.width / heads / 32,
+                                        &before[input],
+                                        output,
+                                        saved,
+                                    )
+                                    .map_err(Into::into)
+                            })
+                        })?;
+                    } else {
+                        let launch = self.module.prepare_gpt_rmsnorm::<W>(row_config)?;
+                        self.module.gpt_rmsnorm(
+                            &self.stream,
+                            &launch,
+                            heads,
+                            c.width / heads,
+                            &before[input],
+                            &mut after[0],
+                            &mut workspace.norms[cache],
+                        )?;
+                    }
                 }
                 Op::Mesh {
                     group,
@@ -1553,16 +1647,36 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_rmsnorm_backward::<W>(row_config)?;
-                    self.module.gpt_rmsnorm_backward(
-                        &self.stream,
-                        &launch,
-                        heads,
-                        c.width / heads,
-                        &workspace.adjoints[out],
-                        &workspace.norms[cache],
-                        &mut workspace.scratch[0],
-                    )?;
+                    if W.is_multiple_of(32) && (c.width / heads).is_multiple_of(32) {
+                        with_array_elements(&self.stream, &mut workspace.scratch[0], |output| {
+                            let launch = self
+                                .module
+                                .prepare_gpt_rmsnorm_backward_parallel::<W>(config(output.len()))?;
+                            self.module
+                                .gpt_rmsnorm_backward_parallel(
+                                    &self.stream,
+                                    &launch,
+                                    W / 32,
+                                    heads,
+                                    c.width / heads / 32,
+                                    &workspace.adjoints[out],
+                                    &workspace.norms[cache],
+                                    output,
+                                )
+                                .map_err(Into::into)
+                        })?;
+                    } else {
+                        let launch = self.module.prepare_gpt_rmsnorm_backward::<W>(row_config)?;
+                        self.module.gpt_rmsnorm_backward(
+                            &self.stream,
+                            &launch,
+                            heads,
+                            c.width / heads,
+                            &workspace.adjoints[out],
+                            &workspace.norms[cache],
+                            &mut workspace.scratch[0],
+                        )?;
+                    }
                     self.accumulate_scratch(workspace, input, 0)?;
                 }
                 Op::Mesh {
@@ -1883,19 +1997,27 @@ fn with_array_elements<const N: usize>(
     buffer: &mut DeviceBuffer<[f32; N]>,
     run: impl FnOnce(&mut DeviceBuffer<f32>) -> Result<()>,
 ) -> Result<()> {
+    with_buffer_chunks(stream, buffer, run)
+}
+
+fn with_buffer_chunks<Row: cuda_core::DeviceCopy, Element: cuda_core::DeviceCopy>(
+    stream: &CudaStream,
+    buffer: &mut DeviceBuffer<Row>,
+    run: impl FnOnce(&mut DeviceBuffer<Element>) -> Result<()>,
+) -> Result<()> {
     let empty = DeviceBuffer::zeroed(stream, 0)?;
     let rows = std::mem::replace(buffer, empty);
-    let mut elements = match rows.cast_chunks::<f32>() {
+    let mut elements = match rows.cast_chunks::<Element>() {
         Ok(elements) => elements,
         Err(rows) => {
             *buffer = rows;
-            return Err("array allocation cannot be grouped into scalar elements".into());
+            return Err("allocation cannot be grouped into the requested elements".into());
         }
     };
     let result = run(&mut elements);
     *buffer = elements
-        .cast_chunks::<[f32; N]>()
-        .map_err(|_| "scalar allocation cannot be restored to array rows")?;
+        .cast_chunks::<Row>()
+        .map_err(|_| "allocation cannot be restored to its original rows")?;
     result
 }
 
@@ -2059,10 +2181,13 @@ mod verification {
                 (4, 2),
                 (6, 1),
                 (12, 2),
+                (32, 1),
                 (32, 4),
                 (64, 1),
                 (64, 8),
                 (128, 1),
+                (128, 2),
+                (128, 4),
                 (128, 8),
             ] {
                 let head_width = width / heads;
@@ -2109,6 +2234,85 @@ mod verification {
                     &cache,
                     &mut derivative_gpu,
                 )?;
+                if head_width.is_multiple_of(32) {
+                    with_array_elements(&model.stream, &mut output_gpu, |output| {
+                        with_buffer_chunks(&model.stream, &mut cache, |saved| {
+                            let launch = model
+                                .module
+                                .prepare_gpt_rmsnorm_parallel::<128>(config(output.len()))?;
+                            model.module.gpt_rmsnorm_parallel(
+                                &model.stream,
+                                &launch,
+                                4,
+                                heads,
+                                head_width / 32,
+                                &input_gpu,
+                                output,
+                                saved,
+                            )?;
+                            for (capacity, count, head_warps) in [
+                                (0, heads, head_width / 32),
+                                (3, heads, head_width / 32),
+                                (4, 0, head_width / 32),
+                                (4, heads, 0),
+                                (4, 5, 1),
+                                (4, 1, usize::MAX),
+                            ] {
+                                assert!(
+                                    model
+                                        .module
+                                        .gpt_rmsnorm_parallel(
+                                            &model.stream,
+                                            &launch,
+                                            capacity,
+                                            count,
+                                            head_warps,
+                                            &input_gpu,
+                                            output,
+                                            saved,
+                                        )
+                                        .is_err()
+                                );
+                            }
+                            Ok(())
+                        })
+                    })?;
+                    with_array_elements(&model.stream, &mut derivative_gpu, |output| {
+                        let launch = model
+                            .module
+                            .prepare_gpt_rmsnorm_backward_parallel::<128>(config(output.len()))?;
+                        model.module.gpt_rmsnorm_backward_parallel(
+                            &model.stream,
+                            &launch,
+                            4,
+                            heads,
+                            head_width / 32,
+                            &gradient_gpu,
+                            &cache,
+                            output,
+                        )?;
+                        for (capacity, count, head_warps) in
+                            [(3, heads, 1), (4, 0, 1), (4, 1, 0), (4, 5, 1)]
+                        {
+                            assert!(
+                                model
+                                    .module
+                                    .gpt_rmsnorm_backward_parallel(
+                                        &model.stream,
+                                        &launch,
+                                        capacity,
+                                        count,
+                                        head_warps,
+                                        &gradient_gpu,
+                                        &cache,
+                                        output,
+                                    )
+                                    .is_err()
+                            );
+                        }
+                        Ok(())
+                    })?;
+                }
                 let output = output_gpu.to_host_vec(&model.stream)?;
                 let derivative = derivative_gpu.to_host_vec(&model.stream)?;
                 let doubles = |x: &[f32]| x.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
