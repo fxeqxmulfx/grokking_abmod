@@ -85,14 +85,21 @@ adjust these paths or override them with `CC`, `CXX`, `LIBCLANG_PATH`, and `CUDA
 From the project root:
 
 ```bash
-./scripts/setup-cuda-oxide.sh
+# One-time CLI installation from the same revision as Cargo.lock.
+cargo install --git https://github.com/fxeqxmulfx/cuda-rust.git \
+  --rev f8f892962126e06c93e38bb2a0278159300b62fc --locked cargo-oxide
 cargo oxide doctor
 cargo oxide run
 ```
 
-The script builds the backend and `cargo-oxide` from the dependency commit in `Cargo.lock`.
-Sources and the backend are stored in `target/`. `cargo-oxide` is installed in
-Cargo's binary directory (usually `~/.cargo/bin`).
+`cargo-oxide` is a Cargo subcommand installed in Cargo's binary directory
+(usually `~/.cargo/bin`). The CUDA library crates are ordinary Git dependencies.
+On the first `cargo oxide build` or `cargo oxide run`, the CLI automatically
+builds the codegen backend from Cargo's dependency checkout at the revision in
+`Cargo.lock`. It caches the backend in `~/.cargo/cuda-oxide/` and rebuilds it when
+the dependency revision or Rust toolchain changes. No project setup script or
+additional checkout is needed. CUDA builds use `cargo oxide build/run` to select
+the CUDA codegen backend for Cargo.
 
 ## Train and inspect
 
@@ -152,13 +159,14 @@ and rejected invalid input. On success, it prints:
 CUDA Mesh Neural Net verification passed
 ```
 
-Rebuild the tools after updating dependencies:
+Update the CUDA library dependencies when needed:
 
 ```bash
 cargo update -p cuda-core -p cuda-device -p cuda-host
-./scripts/setup-cuda-oxide.sh
 ```
 
-Run setup again after deleting `target/` as well.
+The next `cargo oxide` build/run selects the backend for the updated lockfile.
+To upgrade the CLI as well, repeat `cargo install` with the new revision from
+`Cargo.lock`. Deleting this project's `target/` needs no setup step.
 
 The local article archive in `papers/` is excluded from Git by `.gitignore`.
