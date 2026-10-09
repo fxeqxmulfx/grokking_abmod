@@ -1,4 +1,5 @@
-//! A bias-free Transformer with parameter-free RMSNorm, QK-Norm, slice RoPE, and XSA.
+//! A Transformer whose learned parameters are mesh edges, including tied embeddings.
+//! Bias-free, with parameter-free RMSNorm, QK-Norm, slice RoPE, and XSA.
 
 mod checkpoint;
 mod config;

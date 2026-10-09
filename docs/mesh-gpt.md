@@ -1,8 +1,8 @@
 # Mesh GPT
 
 A character-level autoregressive Transformer using CUDA Oxide. The decoder uses
-multi-head causal exclusive self attention (XSA), QK-Norm, slice RoPE, learned token
-embeddings, pre-RMSNorm, residual connections, a final RMSNorm, and a tied
+multi-head causal exclusive self attention (XSA), QK-Norm, slice RoPE, mesh-generated
+token embeddings, pre-RMSNorm, residual connections, a final RMSNorm, and a tied
 vocabulary head. All mesh layers, normalization layers, and the vocabulary head
 are bias-free; every RMSNorm is parameter-free. This follows
 the decoder design described in [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
@@ -21,6 +21,42 @@ Intermediate mesh layers use ELU with alpha 1; the last layer is linear so the
 branch can produce signed Q/K/V vectors and residual updates. This extends the
 two-parent idea of the scalar diamond mesh to vector inputs and outputs.
 Mesh weights are independent across depth, projections, and Transformer blocks.
+The input and vocabulary head share one additional embedding mesh. **Every
+learned parameter is a mesh edge.**
+
+### Mesh token embeddings
+
+Each token ID has a fixed code of `width` channels. For a vocabulary of size `V`,
+`bits = ceil(log2(V))`. When `width >= bits`, the first channels contain the ID's
+binary digits, mapping 0 to -1 and 1 to +1. Remaining channels contain fixed
+parities of combinations of bits. Masks visit the individual bits first, then
+the remaining nonzero masks in ascending order, repeating only after all
+`2^bits - 1` masks have been used. This retains distinct codes and gives wider
+meshes more input patterns than repeated binary digits. No zero mask adds a
+constant input coordinate. At narrower widths, disjoint groups of bits
+are packed into radix digits and mapped to `2 * digit / maximum_digit - 1`.
+The codes remain distinct, finite, and nonzero even at width 2 and vocabulary
+size 256. They depend only on the configured vocabulary size and width, have
+no trainable coefficients, and are created once when the model is initialized.
+
+A bias-free mesh with depth `attention_mesh_depth` transforms these codes into
+learned vectors. It uses the same two-parent topology, intermediate ELU, and
+linear last layer as the other meshes:
+
+```text
+E[token] = embedding_mesh(fixed_code[token])
+x[row] = E[input_token[row]]
+h = decoder_blocks(x)
+logits[row, token] = dot(RMSNorm(h[row]), E[token])
+```
+
+CUDA generates vectors for the entire vocabulary once per forward pass. This
+temporary activation table is shared by input lookup and the vocabulary head;
+it is regenerated after updates and parameter replacement. The head has no
+separate learned matrix. Backward first adds the contributions from repeated
+input IDs and all output logits, then differentiates the embedding mesh once.
+Gradients reach its edge weights from both uses; fixed codes are not optimized.
+The configuration and tokenizer saved in a checkpoint reconstruct the codes.
 
 ### Pre-RMSNorm
 
@@ -86,8 +122,8 @@ out = x * cos + rotated * sin
 ```
 
 The frequencies use the base from [RoFormer](https://arxiv.org/abs/2104.09864).
-Positions start at zero within each sequence in the batch. The embedding table
-contains token embeddings; RoPE supplies position information through Q/K.
+Positions start at zero within each sequence in the batch. The embedding mesh
+encodes token identity; RoPE supplies position information through Q/K.
 The CUDA kernel computes the angles, sine, and cosine. Its backward applies the
 transpose rotation, equivalent to negating the angle. V goes directly to
 attention and XSA. Every block always uses full-head slice RoPE with base 10000.
@@ -111,12 +147,15 @@ value vector. The floor matches
 [PyTorch's F.normalize](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.normalize.html)
 in the paper's algorithm; zero values leave `y[i]` unchanged. XSA adds no
 parameters and always runs in every block. The vocabulary logits use dot
-products with the shared token embedding table, with no additive bias.
+products with the shared mesh-generated token vectors, with no additive bias.
 
 ```mermaid
 flowchart LR
-    T[Token IDs] --> E[Token embeddings]
-    E --> N1[Fixed RMSNorm]
+    C[Fixed token codes] --> EM[Shared embedding mesh]
+    EM --> E[Token vectors]
+    T[Input token IDs] --> Lookup[Lookup]
+    E --> Lookup
+    Lookup --> N1[Fixed RMSNorm]
     N1 --> QKV[Q / K / V meshes]
     QKV --> NQK[Per-head QK-Norm on Q/K]
     NQK --> P[Slice RoPE on Q/K]
@@ -125,7 +164,7 @@ flowchart LR
     A --> X[Per-head XSA projection]
     QKV -->|V| X
     X --> O[Output mesh]
-    E --> R1[Residual add]
+    Lookup --> R1[Residual add]
     O --> R1
     R1 --> N2[Fixed RMSNorm]
     N2 --> F[Feed-forward mesh]
@@ -133,6 +172,7 @@ flowchart LR
     F --> R2
     R2 --> Next[Next block / final fixed RMSNorm]
     Next --> H[Tied vocabulary head]
+    E --> H
     H --> L[Next-token logits]
 ```
 
@@ -168,9 +208,15 @@ cargo oxide run --bin mesh-gpt -- --help
 Defaults: 2 blocks, width 32, 4 heads, context 32, attention mesh depth 4,
 feed-forward mesh depth 6, batch size 8, 1000 AdamW steps, learning rate 0.003,
 weight decay 0.01, and seed 7. On the included original English demo corpus,
-the tokenizer has 26 characters and the model has **3648 parameters**:
-832 embedding weights and 2816 mesh edge weights. RMSNorm and QK-Norm add no
-parameters.
+the tokenizer has 26 characters and the model has **3072 parameters**, all mesh
+edge weights: 256 in the shared embedding mesh and 2816 in the Transformer
+blocks. The embedding mesh uses the attention mesh depth, controlled by the
+existing `--attention-depth` option. RMSNorm and QK-Norm add no parameters.
+For width `W`, block count `L`, attention/embedding depth `A`, and FFN depth `F`,
+the count is `2 * W * (A + L * (4 * A + F))`; it does not grow with the vocabulary.
+The generated vector table still contains `V * W` active values (CUDA buffers
+use fixed-capacity rows of 64 channels), and its mesh is evaluated for all `V`
+tokens at each forward pass.
 The tokenizer builds a sorted Unicode-character vocabulary from the corpus.
 Prompts must use that vocabulary. Temperature 0 selects greedy decoding;
 positive temperatures sample from the softmax distribution with a reproducible
@@ -184,18 +230,22 @@ windows nor targets cross the boundary. Validation uses fixed windows from seed
 cross-entropy is the mean over steps since the preceding report; step 0 is a
 single initial batch. Perplexity is `exp(mean cross_entropy)` per character.
 
-On an RTX 3050 Laptop GPU, a 1000-step bias-free fixed RMSNorm + QK-Norm +
+On an RTX 3050 Laptop GPU, a 1000-step mesh-embedding + fixed RMSNorm + QK-Norm +
 slice RoPE + XSA run with the default configuration produced:
 
 ```text
-step      0: train CE=3.53211, validation CE=3.49710, perplexity=33.020
-step   1000: train CE=1.33697, validation CE=1.71007, perplexity=5.529
-Training time: 7.966 s
+step      0: train CE=3.38668, validation CE=3.37963, perplexity=29.360
+step   1000: train CE=1.70316, validation CE=1.91340, perplexity=6.776
+Training time: 9.550 s
 ```
 
 This is a compact model for experimenting with mesh channel mixing. Samples
 learn recurring words and sentence patterns, with spelling errors at this scale.
 The character-level metric is specific to this corpus and tokenizer.
+The preceding directly learned token-table model had 3648 parameters and reached
+validation CE 1.71007 in its default run. The shared embedding mesh reduces the
+parameter count to 3072 but constrains the vectors that can be learned; this
+single default run has higher validation loss.
 
 ## Files and APIs
 
@@ -232,21 +282,24 @@ Checkpoints contain configuration, the exact tokenizer, and weights. Loading
 for generation preserves predictions; optimizer moments are reset when weights
 are installed. Checkpoint readers validate dimensions before allocating, reject
 invalid characters, nonfinite weights, truncation, and trailing bytes.
-The `MSHGPT06` format identifies bias-free mesh projections, parameter-free
-RMSNorm/QK-Norm, slice RoPE, and XSA. Older `MSHGPT01` and `MSHGPT02` checkpoints
+The `MSHGPT07` format identifies mesh-generated tied token embeddings, bias-free
+mesh projections, parameter-free RMSNorm/QK-Norm, slice RoPE, and XSA.
+Older `MSHGPT01` and `MSHGPT02` checkpoints
 used learned position embeddings; `MSHGPT03` used RoPE with LayerNorm, and
 `MSHGPT04` still had mesh and vocabulary
-biases; `MSHGPT05` used learned RMSNorm scales without QK-Norm. They are rejected
+biases; `MSHGPT05` used learned RMSNorm scales without QK-Norm, and `MSHGPT06`
+used a directly learned token embedding table. They are rejected
 with a retraining message, so their weights cannot silently run under a
 different architecture or parameter layout.
 
 ## GPU execution and verification
 
-CUDA performs embedding lookup, RMSNorm/QK-Norm, mesh projections, RoPE and its
+CUDA performs the embedding mesh, input lookup, RMSNorm/QK-Norm, mesh projections, RoPE and its
 transpose rotation, attention and its softmax derivative, XSA projection and
 its derivatives, cross-entropy, gradient aggregation, and AdamW. Parameter
-gradients include both uses of the tied token embedding table. AdamW decay
-applies to embedding and mesh edge weights. Host work covers tokenization,
+gradients include both uses of the shared embedding mesh. AdamW decay applies
+to every mesh edge weight, including the embedding mesh. Host work covers
+fixed code construction at initialization, tokenization,
 choosing minibatches, reporting loss, checkpoint I/O, and sampling the next character.
 
 Each token row owns its feature/cache writes; each parameter owns its gradient
@@ -272,7 +325,9 @@ uses the same forward kernels with fresh buffers. Dropout and a KV cache are
 left for later experiments.
 
 `cargo test --lib --locked` checks configuration, tokenizer/window boundaries,
-checkpoint round-trips and malformed input, strict causality/batch isolation,
+checkpoint round-trips and malformed input, injective fixed token codes at every
+supported even width including width 2 / vocabulary 256, vocabulary-independent
+mesh parameter counts, strict causality/batch isolation,
 parameter-free RMSNorm without mean subtraction and its input derivatives at
 zero and tiny inputs, split-half RoPE pairs, norm preservation, relative position
 identity, per-head QK-Norm isolation, per-head XSA orthogonality, and finite
@@ -282,7 +337,8 @@ Zero-input checks exercise mesh stacks and vocabulary logits with nonzero
 weights to detect unwanted additive offsets.
 GPU `verify` compares every logit and parameter gradient against f64 autodiff
 at multiple widths, head counts, blocks, single-token sequences, and batch sizes
-(including 129 rows).
+(including 129 input rows and a 129-token vocabulary). The narrow width-2 case
+also exercises packed fixed codes and vocabulary mesh CUDA block tails.
 It checks AdamW updates/reset, rejects malformed input, and trains a task whose
 final-token prediction requires information from an earlier token.
 

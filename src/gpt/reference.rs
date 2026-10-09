@@ -1,6 +1,9 @@
 use crate::{Result, mesh::validate_finite};
 
-use super::{GptConfig, RMSNORM_EPSILON, ROPE_BASE, XSA_EPSILON, config::Layout};
+use super::{
+    GptConfig, RMSNORM_EPSILON, ROPE_BASE, XSA_EPSILON,
+    config::{Layout, token_codes},
+};
 
 const NONE: usize = usize::MAX;
 
@@ -91,13 +94,24 @@ impl ReferenceGpt {
         let config = self.config;
         let width = config.width;
         let mut tape = Tape::new(&self.parameters);
-        let mut x: Vec<Vec<_>> = tokens
+        let codes: Vec<Vec<_>> = token_codes(config)
             .iter()
-            .map(|&token| {
-                (0..width)
-                    .map(|channel| token as usize * width + channel)
+            .map(|row| {
+                row[..width]
+                    .iter()
+                    .map(|&x| tape.constant(f64::from(x)))
                     .collect()
             })
+            .collect();
+        let embeddings = mesh(
+            &mut tape,
+            &codes,
+            self.layout.groups[self.layout.embedding].offset,
+            config.attention_mesh_depth,
+        );
+        let mut x: Vec<Vec<_>> = tokens
+            .iter()
+            .map(|&token| embeddings[token as usize].clone())
             .collect();
         for block in &self.layout.blocks {
             let normalized = rmsnorm(&mut tape, &x, 1);
@@ -150,7 +164,7 @@ impl ReferenceGpt {
                         let products: Vec<_> = row
                             .iter()
                             .enumerate()
-                            .map(|(channel, &id)| tape.multiply(id, token * width + channel))
+                            .map(|(channel, &id)| tape.multiply(id, embeddings[token][channel]))
                             .collect();
                         tape.sum(&products)
                     })
@@ -178,6 +192,9 @@ impl Tape {
         self.values.push(value);
         self.edges.push(edges);
         id
+    }
+    fn constant(&mut self, value: f64) -> usize {
+        self.node(value, [(NONE, 0.0); 2])
     }
     fn add(&mut self, a: usize, b: usize) -> usize {
         self.node(self.values[a] + self.values[b], [(a, 1.0), (b, 1.0)])
@@ -722,7 +739,7 @@ mod tests {
         }
         let config = tiny_config();
         let mut parameters = vec![0.5; config.parameter_count().unwrap()];
-        parameters[..config.vocab_size * config.width].fill(0.0);
+        parameters[..2 * config.width * config.attention_mesh_depth].fill(0.0);
         let model = ReferenceGpt::from_parameters(config, parameters).unwrap();
         let inputs = [0, 1, 2, 3, 4, 0];
         assert_eq!(
@@ -740,8 +757,7 @@ mod tests {
         for (parameter, &analytic) in gradients.iter().enumerate() {
             let mut plus = model.parameters.clone();
             let mut minus = plus.clone();
-            // Token-only embeddings have a smaller initial scale than the
-            // former token + position sums; resolve their local curvature.
+            // Small steps resolve normalization and ELU curvature.
             plus[parameter] += 0.0001;
             minus[parameter] -= 0.0001;
             let step = f64::from(plus[parameter]) - f64::from(minus[parameter]);

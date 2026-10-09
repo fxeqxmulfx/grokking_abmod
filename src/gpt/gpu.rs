@@ -8,7 +8,8 @@ use crate::{Result, mesh::validate_finite};
 
 use super::{
     Attention, Features, GptConfig, GptTrainOptions, NormCache, RMSNORM_EPSILON, ROPE_BASE,
-    Vocabulary, XSA_EPSILON, config::Layout,
+    Vocabulary, XSA_EPSILON,
+    config::{Layout, token_codes},
 };
 
 #[cuda_module]
@@ -30,20 +31,18 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= 64, _vocab >= 2, _vocab <= 256,
-        out.len() == tokens.len(), state.len() == _vocab * width))]
+        out.len() == tokens.len(), embedding.len() == _vocab))]
     pub fn gpt_embed(
         width: usize,
         _vocab: usize,
         tokens: &[u32],
-        state: &[[f32; 3]],
+        embedding: &[Features],
         mut out: DisjointSlice<Features>,
     ) {
         let index = thread::index_1d();
         let row = index.get();
         if let Some(output) = out.get_mut(index) {
-            for channel in 0..width {
-                output[channel] = state[tokens[row] as usize * width + channel][0];
-            }
+            output[..width].copy_from_slice(&embedding[tokens[row] as usize][..width]);
         }
     }
 
@@ -329,12 +328,12 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= 64, vocab >= 2, vocab <= 256,
-        embedding.len() == vocab * width, out.len() == input.len()))]
+        embedding.len() == vocab, out.len() == input.len()))]
     pub fn gpt_head(
         width: usize,
         vocab: usize,
         input: &[Features],
-        embedding: &[[f32; 3]],
+        embedding: &[Features],
         mut out: DisjointSlice<Vocabulary>,
     ) {
         let index = thread::index_1d();
@@ -343,7 +342,7 @@ mod kernels {
             for token in 0..vocab {
                 let mut value = 0.0;
                 for channel in 0..width {
-                    value += input[row][channel] * embedding[token * width + channel][0];
+                    value += input[row][channel] * embedding[token][channel];
                 }
                 output[token] = value;
             }
@@ -393,12 +392,12 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, vocab >= 2, vocab <= 256, embedding.len() == vocab * width, out.len() == gradient.len()))]
+        width >= 2, width <= 64, vocab >= 2, vocab <= 256, embedding.len() == vocab, out.len() == gradient.len()))]
     pub fn gpt_head_backward(
         width: usize,
         vocab: usize,
         gradient: &[Vocabulary],
-        embedding: &[[f32; 3]],
+        embedding: &[Features],
         mut out: DisjointSlice<Features>,
     ) {
         let index = thread::index_1d();
@@ -407,7 +406,7 @@ mod kernels {
             for channel in 0..width {
                 let mut total = 0.0;
                 for token in 0..vocab {
-                    total += gradient[row][token] * embedding[token * width + channel][0];
+                    total += gradient[row][token] * embedding[token][channel];
                 }
                 output[channel] = total;
             }
@@ -602,29 +601,29 @@ mod kernels {
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= 64, _vocab >= 2, _vocab <= 256,
         input_gradient.len() == tokens.len(), head_gradient.len() == tokens.len(), final_features.len() == tokens.len(),
-        out.len() == _vocab * width))]
-    pub fn gpt_embedding_gradient(
+        out.len() == _vocab))]
+    pub fn gpt_embedding_backward(
         width: usize,
         _vocab: usize,
         tokens: &[u32],
         input_gradient: &[Features],
         head_gradient: &[Vocabulary],
         final_features: &[Features],
-        mut out: DisjointSlice<f32>,
+        mut out: DisjointSlice<Features>,
     ) {
         let index = thread::index_1d();
-        let parameter = index.get();
+        let token = index.get();
         if let Some(output) = out.get_mut(index) {
-            let token = parameter / width;
-            let channel = parameter % width;
-            let mut total = 0.0;
-            for row in 0..tokens.len() {
-                if tokens[row] as usize == token {
-                    total += input_gradient[row][channel];
+            for channel in 0..width {
+                let mut total = 0.0;
+                for row in 0..tokens.len() {
+                    if tokens[row] as usize == token {
+                        total += input_gradient[row][channel];
+                    }
+                    total += head_gradient[row][token] * final_features[row][channel];
                 }
-                total += head_gradient[row][token] * final_features[row][channel];
+                output[channel] = total;
             }
-            *output = total;
         }
     }
 
@@ -798,6 +797,8 @@ struct Workspace {
     sequence: usize,
     tokens: DeviceBuffer<u32>,
     targets: DeviceBuffer<u32>,
+    embeddings: Vec<DeviceBuffer<Features>>,
+    embedding_adjoints: Vec<DeviceBuffer<Features>>,
     features: Vec<DeviceBuffer<Features>>,
     adjoints: Vec<DeviceBuffer<Features>>,
     norms: Vec<DeviceBuffer<NormCache>>,
@@ -811,7 +812,13 @@ struct Workspace {
 }
 
 impl Workspace {
-    fn new(stream: &Arc<CudaStream>, plan: &Plan, rows: usize, sequence: usize) -> Result<Self> {
+    fn new(
+        stream: &Arc<CudaStream>,
+        plan: &Plan,
+        config: GptConfig,
+        rows: usize,
+        sequence: usize,
+    ) -> Result<Self> {
         fn buffers<T: cuda_core::DeviceCopy>(
             stream: &Arc<CudaStream>,
             count: usize,
@@ -826,6 +833,8 @@ impl Workspace {
             sequence,
             tokens: DeviceBuffer::zeroed(stream, rows)?,
             targets: DeviceBuffer::zeroed(stream, rows)?,
+            embeddings: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
+            embedding_adjoints: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
             features: buffers(stream, plan.features, rows)?,
             adjoints: buffers(stream, plan.features, rows)?,
             norms: buffers(stream, plan.norms, rows)?,
@@ -842,8 +851,8 @@ impl Workspace {
 
 /// A small GPT decoder with slice RoPE and exclusive self attention (XSA). Q/K/V, attention
 /// output, and feed-forward projections are two-parent ELU meshes.
-/// Embeddings and the tied output head
-/// retain their usual learned tables. Training operators and AdamW run on CUDA.
+/// A shared mesh maps fixed token codes to both input and output embeddings.
+/// Every learned parameter is a mesh edge. Training operators and AdamW run on CUDA.
 pub struct GpuMeshGpt {
     config: GptConfig,
     layout: Layout,
@@ -851,6 +860,7 @@ pub struct GpuMeshGpt {
     stream: Arc<CudaStream>,
     module: kernels::LoadedModule,
     parameters: Vec<Parameters>,
+    codes: DeviceBuffer<Features>,
     workspace: Option<Workspace>,
     beta1_power: f32,
     beta2_power: f32,
@@ -878,6 +888,7 @@ impl GpuMeshGpt {
                 gradient: DeviceBuffer::zeroed(&stream, group.size)?,
             });
         }
+        let codes = DeviceBuffer::from_host(&stream, &token_codes(config))?;
         Ok(Self {
             config,
             layout,
@@ -885,6 +896,7 @@ impl GpuMeshGpt {
             stream,
             module,
             parameters,
+            codes,
             workspace: None,
             beta1_power: 1.0,
             beta2_power: 1.0,
@@ -925,7 +937,13 @@ impl GpuMeshGpt {
     /// Returns logits for every token of a flat batch with equal sequence lengths.
     pub fn logits(&self, tokens: &[u32], sequence: usize) -> Result<Vec<Vec<f32>>> {
         self.config.validate_tokens(tokens, sequence)?;
-        let mut workspace = Workspace::new(&self.stream, &self.plan, tokens.len(), sequence)?;
+        let mut workspace = Workspace::new(
+            &self.stream,
+            &self.plan,
+            self.config,
+            tokens.len(),
+            sequence,
+        )?;
         workspace.tokens.copy_from_host(&self.stream, tokens)?;
         self.forward(&mut workspace)?;
         workspace
@@ -941,7 +959,13 @@ impl GpuMeshGpt {
 
     pub fn cross_entropy(&self, inputs: &[u32], targets: &[u32], sequence: usize) -> Result<f64> {
         self.config.validate_batch(inputs, targets, sequence)?;
-        let mut workspace = Workspace::new(&self.stream, &self.plan, inputs.len(), sequence)?;
+        let mut workspace = Workspace::new(
+            &self.stream,
+            &self.plan,
+            self.config,
+            inputs.len(),
+            sequence,
+        )?;
         workspace.tokens.copy_from_host(&self.stream, inputs)?;
         workspace.targets.copy_from_host(&self.stream, targets)?;
         self.forward(&mut workspace)?;
@@ -1053,6 +1077,29 @@ impl GpuMeshGpt {
     fn forward(&self, workspace: &mut Workspace) -> Result<()> {
         let c = self.config;
         let row_config = config(workspace.rows);
+        // Generate the entire vocabulary once so the input and head share one
+        // differentiable set of vectors. Recompute after every weight change.
+        let embedding = self.layout.embedding;
+        for layer in 0..c.attention_mesh_depth {
+            let launch = self.module.prepare_gpt_mesh(config(c.vocab_size))?;
+            let (before, after) = workspace.embeddings.split_at_mut(layer);
+            let input = if layer == 0 {
+                &self.codes
+            } else {
+                &before[layer - 1]
+            };
+            self.module.gpt_mesh(
+                &self.stream,
+                &launch,
+                c.width,
+                layer * 2 * c.width,
+                usize::from(layer + 1 != c.attention_mesh_depth),
+                input,
+                &self.parameters[embedding].state,
+                &mut after[0],
+            )?;
+        }
+        let embedding_output = c.attention_mesh_depth - 1;
         for op in &self.plan.ops {
             match *op {
                 Op::Embed { out } => {
@@ -1063,7 +1110,7 @@ impl GpuMeshGpt {
                         c.width,
                         c.vocab_size,
                         &workspace.tokens,
-                        &self.parameters[0].state,
+                        &workspace.embeddings[embedding_output],
                         &mut workspace.features[out],
                     )?;
                 }
@@ -1175,7 +1222,7 @@ impl GpuMeshGpt {
             c.width,
             c.vocab_size,
             &workspace.features[self.plan.final_features],
-            &self.parameters[0].state,
+            &workspace.embeddings[embedding_output],
             &mut workspace.logits,
         )?;
         Ok(())
@@ -1205,7 +1252,13 @@ impl GpuMeshGpt {
             Some(workspace) if workspace.rows == inputs.len() && workspace.sequence == sequence => {
                 workspace
             }
-            _ => Workspace::new(&self.stream, &self.plan, inputs.len(), sequence)?,
+            _ => Workspace::new(
+                &self.stream,
+                &self.plan,
+                self.config,
+                inputs.len(),
+                sequence,
+            )?,
         };
         let result = (|| {
             workspace.tokens.copy_from_host(&self.stream, inputs)?;
@@ -1230,7 +1283,7 @@ impl GpuMeshGpt {
             c.width,
             c.vocab_size,
             &workspace.head_gradient,
-            &self.parameters[0].state,
+            &workspace.embeddings[c.attention_mesh_depth - 1],
             &mut workspace.scratch[0],
         )?;
         self.accumulate_scratch(workspace, self.plan.final_features, 0)?;
@@ -1372,11 +1425,11 @@ impl GpuMeshGpt {
                 }
             }
         }
-        let group = &mut self.parameters[0];
+        let embedding_output = c.attention_mesh_depth - 1;
         let launch = self
             .module
-            .prepare_gpt_embedding_gradient(config(group.gradient.len()))?;
-        self.module.gpt_embedding_gradient(
+            .prepare_gpt_embedding_backward(config(c.vocab_size))?;
+        self.module.gpt_embedding_backward(
             &self.stream,
             &launch,
             c.width,
@@ -1385,8 +1438,50 @@ impl GpuMeshGpt {
             &workspace.adjoints[0],
             &workspace.head_gradient,
             &workspace.features[self.plan.final_features],
-            &mut group.gradient,
+            &mut workspace.embedding_adjoints[embedding_output],
         )?;
+        // Combine repeated input lookups with the dense head contribution
+        // before traversing the shared embedding mesh exactly once.
+        let group = &mut self.parameters[self.layout.embedding];
+        for layer in (0..c.attention_mesh_depth).rev() {
+            let activated = usize::from(layer + 1 != c.attention_mesh_depth);
+            let input = if layer == 0 {
+                &self.codes
+            } else {
+                &workspace.embeddings[layer - 1]
+            };
+            let launch = self
+                .module
+                .prepare_gpt_mesh_gradient(config(group.gradient.len()))?;
+            self.module.gpt_mesh_gradient(
+                &self.stream,
+                &launch,
+                c.width,
+                layer * 2 * c.width,
+                activated,
+                input,
+                &workspace.embeddings[layer],
+                &workspace.embedding_adjoints[layer],
+                &mut group.gradient,
+            )?;
+            if layer > 0 {
+                let launch = self
+                    .module
+                    .prepare_gpt_mesh_backward(config(c.vocab_size))?;
+                let (before, after) = workspace.embedding_adjoints.split_at_mut(layer);
+                self.module.gpt_mesh_backward(
+                    &self.stream,
+                    &launch,
+                    c.width,
+                    layer * 2 * c.width,
+                    activated,
+                    &after[0],
+                    &workspace.embeddings[layer],
+                    &group.state,
+                    &mut before[layer - 1],
+                )?;
+            }
+        }
         Ok(())
     }
 

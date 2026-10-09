@@ -94,7 +94,7 @@ fn main() -> Result<()> {
     let options = Options::parse()?;
     if options.help {
         println!(
-            "Mesh GPT: a bias-free Transformer with fixed RMSNorm, QK-Norm, slice RoPE, and XSA\n\
+            "Mesh GPT: all learned weights in meshes, with fixed RMSNorm, QK-Norm, slice RoPE, and XSA\n\
             Usage: cargo oxide run --bin mesh-gpt -- [train|generate|verify] [options]\n\n\
             --dataset PATH        UTF-8 training corpus (default: data/mesh-gpt-demo.txt)\n\
             --output PATH         Artifacts (default: target/mesh-gpt)\n\
@@ -103,7 +103,7 @@ fn main() -> Result<()> {
             --heads N             Heads, 1..8, divides width, even channels/head (default: 4)\n\
             --layers N            Transformer blocks, 1..4 (default: 2)\n\
             --context N           Maximum sequence length, 1..128 (default: 32)\n\
-            --attention-depth N   Q/K/V/output mesh depth, 1..16 (default: 4)\n\
+            --attention-depth N   Embedding/Q/K/V/output mesh depth, 1..16 (default: 4)\n\
             --ffn-depth N         Feed-forward mesh depth, 1..16 (default: 6)\n\
             --steps N             AdamW steps (default: 1000)\n\
             --batch N             Sequences per batch (default: 8, at most 4096 token rows)\n\
@@ -174,7 +174,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
         options.config.parameter_count()?
     );
     println!(
-        "Meshes: Q/K/V/output depth={}, FFN depth={}; two trainable incoming edges per neuron",
+        "Meshes: token embedding/Q/K/V/output depth={}, FFN depth={}; all weights are mesh edges",
         options.config.attention_mesh_depth, options.config.ffn_mesh_depth
     );
     std::fs::create_dir_all(&options.output)?;
@@ -243,7 +243,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "attention=xsa\npositions=slice_rope\nrope_base=10000\nnormalization=pre_rmsnorm\nrmsnorm_epsilon=1e-5\nrmsnorm_affine=false\nqk_norm=per_head_rmsnorm\nbias=false\ndataset={}\nseed={}\nsteps={}\nbatch={}\nwidth={}\nheads={}\nlayers={}\ncontext={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nlearning_rate={}\nweight_decay={}\ntraining_seconds={elapsed:.6}\ninitial_validation_cross_entropy={initial_validation:.9}\nfinal_validation_cross_entropy={final_validation:.9}\n",
+            "attention=xsa\npositions=slice_rope\nrope_base=10000\nnormalization=pre_rmsnorm\nrmsnorm_epsilon=1e-5\nrmsnorm_affine=false\nqk_norm=per_head_rmsnorm\nbias=false\nembeddings=mesh\ntoken_codes=signed_binary_parity_radix\nembedding_depth=attention_mesh_depth\nhead=tied_mesh_embeddings\nall_parameters=mesh_edges\ndataset={}\nseed={}\nsteps={}\nbatch={}\nwidth={}\nheads={}\nlayers={}\ncontext={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nlearning_rate={}\nweight_decay={}\ntraining_seconds={elapsed:.6}\ninitial_validation_cross_entropy={initial_validation:.9}\nfinal_validation_cross_entropy={final_validation:.9}\n",
             options.dataset.display(),
             options.seed,
             options.training.steps,
@@ -303,6 +303,15 @@ fn verify(device: usize) -> Result<()> {
         "PASS isolated XSA: per-head orthogonality, both derivatives, zero/tiny values, batch tails"
     );
     for config in [
+        GptConfig {
+            vocab_size: 129,
+            context: 3,
+            width: 2,
+            heads: 1,
+            layers: 1,
+            attention_mesh_depth: 2,
+            ffn_mesh_depth: 2,
+        },
         GptConfig {
             vocab_size: 5,
             context: 4,
@@ -418,13 +427,13 @@ fn verify(device: usize) -> Result<()> {
             )?;
         }
         let mut zero_embeddings = vec![0.5; config.parameter_count()?];
-        zero_embeddings[..config.vocab_size * config.width].fill(0.0);
+        zero_embeddings[..2 * config.width * config.attention_mesh_depth].fill(0.0);
         model.set_parameters(&zero_embeddings)?;
         if model.logits(&x, 3)?.iter().flatten().any(|&x| x != 0.0) {
             return Err("zero token embeddings produced additive logit offsets".into());
         }
         println!(
-            "PASS fixed RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset, zero-input offsets",
+            "PASS mesh embeddings/RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset, zero-input offsets",
             config.width, config.heads, config.layers
         );
     }

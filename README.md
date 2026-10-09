@@ -13,10 +13,11 @@ The `mesh-gpt` binary trains a character-level autoregressive Transformer with
 causal multi-head exclusive self attention (XSA). Each head removes the attention
 output's component along the current token's value vector before the output
 projection. Q/K/V, attention output, and feed-forward projections
-use two-parent ELU meshes. All RMSNorms are parameter-free, and every projection
-and the vocabulary head is bias-free. It includes pre-RMSNorm, residual connections,
-per-head QK-Norm before slice RoPE, tied token embeddings, GPU AdamW, checkpoints,
-and text sampling.
+use two-parent ELU meshes. A shared embedding mesh maps fixed token codes to the
+vectors used by both input lookup and the output head, so every learned weight
+is a mesh edge. All RMSNorms are parameter-free, and every projection and the
+vocabulary head is bias-free. It includes pre-RMSNorm, residual connections,
+per-head QK-Norm before slice RoPE, GPU AdamW, checkpoints, and text sampling.
 
 ```bash
 cargo oxide run --bin mesh-gpt -- train
