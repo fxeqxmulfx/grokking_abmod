@@ -130,11 +130,11 @@ ranges, preserving full participation in the reduction. The latest trace
 measures this kernel at `0.145` GPU ms/update, down from `0.545` after the
 normalization optimization.
 
-For more than 128 token rows and widths of at least 32, tied-embedding gradients
-use independent chunks of 128 rows. Each partial combines the repeated input
+Tied-embedding gradients use independent chunks of 128 rows for every batch
+and model width. Each partial combines the repeated input
 lookup and dense output-head contributions in FP32. The second kernel reduces
-directly into feature-row storage, avoiding a separate serial conversion. Small
-and narrow workloads retain the direct kernel. The chunk length is a Rust const
+directly into feature-row storage, avoiding a separate serial conversion.
+Small batches use one chunk through the same checked kernels. The chunk length is a Rust const
 parameter, while vocabulary and width remain validated runtime dimensions.
 The latest trace measures partials plus reduction at `0.579` GPU ms/update,
 versus `1.087` for embedding backward plus conversion in the preceding trace.

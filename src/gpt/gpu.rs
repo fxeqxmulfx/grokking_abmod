@@ -797,36 +797,6 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, _vocab >= 2, _vocab <= V,
-        input_gradient.len() == tokens.len(), head_gradient.len() == tokens.len(), final_features.len() == tokens.len(),
-        out.len() == _vocab * width))]
-    pub fn gpt_embedding_backward<const W: usize, const V: usize>(
-        width: usize,
-        _vocab: usize,
-        tokens: &[u32],
-        input_gradient: &[Features<W>],
-        head_gradient: &[Vocabulary<V>],
-        final_features: &[Features<W>],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let token = index.get() / width;
-        let channel = index.get() % width;
-        if let Some(output) = out.get_mut(index) {
-            let mut total = 0.0;
-            for row in 0..tokens.len() {
-                if tokens[row] as usize == token {
-                    total += input_gradient[row][channel];
-                }
-                total += head_gradient[row][token] * final_features[row][channel];
-            }
-            *output = total;
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, vocab >= 2, vocab <= V,
         R >= 1, R <= 4096, chunks >= 1, chunks <= 4096,
         tokens.len() <= chunks * R, tokens.len() + R > chunks * R,
@@ -886,23 +856,6 @@ mod kernels {
                 total += partials[(chunk * vocab + token) * width + channel];
             }
             *output = total;
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, input.len() == out.len() * width,
-        out.len() >= 2))]
-    pub fn gpt_embedding_gradient_rows<const W: usize>(
-        width: usize,
-        input: &[f32],
-        mut out: DisjointSlice<Features<W>>,
-    ) {
-        let index = thread::index_1d();
-        let token = index.get();
-        if let Some(output) = out.get_mut(index) {
-            output[..width].copy_from_slice(&input[token * width..(token + 1) * width]);
         }
     }
 
@@ -1084,7 +1037,6 @@ struct Workspace<const W: usize, const V: usize, const C: usize, const H: usize>
     embeddings: Vec<DeviceBuffer<Features<W>>>,
     head_embedding: DeviceBuffer<Vocabulary<V>>,
     embedding_adjoints: Vec<DeviceBuffer<Features<W>>>,
-    embedding_gradient: DeviceBuffer<f32>,
     embedding_gradient_partials: DeviceBuffer<f32>,
     mesh_gradient_partials: DeviceBuffer<f32>,
     features: Vec<DeviceBuffer<Features<W>>>,
@@ -1125,14 +1077,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             embeddings: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
             head_embedding: DeviceBuffer::zeroed(stream, config.width)?,
             embedding_adjoints: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
-            embedding_gradient: DeviceBuffer::zeroed(stream, config.vocab_size * config.width)?,
             embedding_gradient_partials: DeviceBuffer::zeroed(
                 stream,
-                if use_chunked_embedding(config, rows) {
-                    rows.div_ceil(EMBEDDING_GRADIENT_ROWS) * config.vocab_size * config.width
-                } else {
-                    0
-                },
+                rows.div_ceil(EMBEDDING_GRADIENT_ROWS) * config.vocab_size * config.width,
             )?,
             mesh_gradient_partials: DeviceBuffer::zeroed(
                 stream,
@@ -1931,7 +1878,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             }
         }
         let embedding_output = c.attention_mesh_depth - 1;
-        if use_chunked_embedding(c, workspace.rows) {
+        {
             let chunks = workspace.rows.div_ceil(EMBEDDING_GRADIENT_ROWS);
             let launch = self
                 .module
@@ -1969,31 +1916,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         )
                         .map_err(Into::into)
                 },
-            )?;
-        } else {
-            let launch = self
-                .module
-                .prepare_gpt_embedding_backward::<W, V>(config(c.vocab_size * c.width))?;
-            self.module.gpt_embedding_backward(
-                &self.stream,
-                &launch,
-                c.width,
-                c.vocab_size,
-                &workspace.tokens,
-                &workspace.adjoints[0],
-                &workspace.head_gradient,
-                &workspace.features[self.plan.final_features],
-                &mut workspace.embedding_gradient,
-            )?;
-            let launch = self
-                .module
-                .prepare_gpt_embedding_gradient_rows::<W>(config(c.vocab_size))?;
-            self.module.gpt_embedding_gradient_rows(
-                &self.stream,
-                &launch,
-                c.width,
-                &workspace.embedding_gradient,
-                &mut workspace.embedding_adjoints[embedding_output],
             )?;
         }
         // Combine repeated input lookups with the dense head contribution
@@ -2145,10 +2067,6 @@ fn with_buffer_chunks<Row: cuda_core::DeviceCopy, Element: cuda_core::DeviceCopy
 
 fn config(elements: usize) -> LaunchConfig1D {
     LaunchConfig1D::new((elements as u32).div_ceil(128), 128, 0)
-}
-
-fn use_chunked_embedding(config: GptConfig, rows: usize) -> bool {
-    rows > 128 && config.width >= 32
 }
 
 mod verification {
