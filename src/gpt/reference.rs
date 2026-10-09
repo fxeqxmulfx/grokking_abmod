@@ -1,6 +1,6 @@
 use crate::{Result, mesh::validate_finite};
 
-use super::{GptConfig, config::Layout};
+use super::{GptConfig, RMSNORM_EPSILON, ROPE_BASE, XSA_EPSILON, config::Layout};
 
 const NONE: usize = usize::MAX;
 
@@ -93,20 +93,14 @@ impl ReferenceGpt {
         let mut tape = Tape::new(&self.parameters);
         let mut x: Vec<Vec<_>> = tokens
             .iter()
-            .enumerate()
-            .map(|(row, &token)| {
+            .map(|&token| {
                 (0..width)
-                    .map(|channel| {
-                        tape.add(
-                            token as usize * width + channel,
-                            (config.vocab_size + row % sequence) * width + channel,
-                        )
-                    })
+                    .map(|channel| token as usize * width + channel)
                     .collect()
             })
             .collect();
         for block in &self.layout.blocks {
-            let normalized = norm(&mut tape, &x, self.layout.groups[block.norm1].offset);
+            let normalized = rmsnorm(&mut tape, &x, self.layout.groups[block.norm1].offset);
             let query = mesh(
                 &mut tape,
                 &normalized,
@@ -125,7 +119,10 @@ impl ReferenceGpt {
                 self.layout.groups[block.value].offset,
                 config.attention_mesh_depth,
             );
+            let query = rotary(&mut tape, &query, sequence, config.heads);
+            let key = rotary(&mut tape, &key, sequence, config.heads);
             let attended = attention(&mut tape, &query, &key, &value, sequence, config.heads);
+            let attended = exclusive(&mut tape, &attended, &value, config.heads);
             let projected = mesh(
                 &mut tape,
                 &attended,
@@ -133,7 +130,7 @@ impl ReferenceGpt {
                 config.attention_mesh_depth,
             );
             x = residual(&mut tape, &x, &projected);
-            let normalized = norm(&mut tape, &x, self.layout.groups[block.norm2].offset);
+            let normalized = rmsnorm(&mut tape, &x, self.layout.groups[block.norm2].offset);
             let feed_forward = mesh(
                 &mut tape,
                 &normalized,
@@ -142,7 +139,7 @@ impl ReferenceGpt {
             );
             x = residual(&mut tape, &x, &feed_forward);
         }
-        let normalized = norm(
+        let normalized = rmsnorm(
             &mut tape,
             &x,
             self.layout.groups[self.layout.final_norm].offset,
@@ -228,6 +225,15 @@ impl Tape {
         let v = 1.0 / self.values[a].sqrt();
         self.node(v, [(a, -0.5 * v * v * v), (NONE, 0.0)])
     }
+    fn clamp_min(&mut self, a: usize, minimum: f64) -> usize {
+        self.node(
+            self.values[a].max(minimum),
+            [
+                (a, if self.values[a] >= minimum { 1.0 } else { 0.0 }),
+                (NONE, 0.0),
+            ],
+        )
+    }
     fn elu(&mut self, a: usize) -> usize {
         let x = self.values[a];
         if x >= 0.0 {
@@ -258,29 +264,45 @@ impl Tape {
     }
 }
 
-fn norm(tape: &mut Tape, x: &[Vec<usize>], offset: usize) -> Vec<Vec<usize>> {
+fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], offset: usize) -> Vec<Vec<usize>> {
     let width = x[0].len();
     x.iter()
         .map(|row| {
-            let sum = tape.sum(row);
-            let mean = tape.scale(sum, 1.0 / width as f64);
-            let centered: Vec<_> = row.iter().map(|&id| tape.subtract(id, mean)).collect();
-            let squares: Vec<_> = centered.iter().map(|&id| tape.multiply(id, id)).collect();
+            let squares: Vec<_> = row.iter().map(|&id| tape.multiply(id, id)).collect();
             let sum = tape.sum(&squares);
-            let variance = tape.scale(sum, 1.0 / width as f64);
-            let stabilized = tape.shift(variance, 1e-5);
+            let mean_square = tape.scale(sum, 1.0 / width as f64);
+            let stabilized = tape.shift(mean_square, f64::from(RMSNORM_EPSILON));
             let inverse = tape.inverse_sqrt(stabilized);
-            centered
-                .iter()
+            row.iter()
                 .enumerate()
                 .map(|(channel, &id)| {
                     let normalized = tape.multiply(id, inverse);
-                    let scaled = tape.multiply(normalized, offset + channel);
-                    tape.add(scaled, offset + width + channel)
+                    tape.multiply(normalized, offset + channel)
                 })
                 .collect()
         })
         .collect()
+}
+
+pub(super) fn rmsnorm_reference(
+    input: &[f64],
+    weight: &[f64],
+    gradient: &[f64],
+) -> (Vec<f64>, Vec<f64>) {
+    let width = input.len();
+    let mut tape = Tape {
+        values: input.iter().chain(weight).copied().collect(),
+        edges: vec![[(NONE, 0.0); 2]; 2 * width],
+    };
+    let output = rmsnorm(&mut tape, &[(0..width).collect()], width).remove(0);
+    let values = output.iter().map(|&id| tape.values[id]).collect();
+    let weighted: Vec<_> = output
+        .iter()
+        .zip(gradient)
+        .map(|(&id, &g)| tape.scale(id, g))
+        .collect();
+    let loss = tape.sum(&weighted);
+    (values, tape.backward(loss, 2 * width))
 }
 
 fn mesh(tape: &mut Tape, input: &[Vec<usize>], offset: usize, depth: usize) -> Vec<Vec<usize>> {
@@ -315,6 +337,62 @@ fn residual(tape: &mut Tape, left: &[Vec<usize>], right: &[Vec<usize>]) -> Vec<V
         .zip(right)
         .map(|(a, b)| a.iter().zip(b).map(|(&x, &y)| tape.add(x, y)).collect())
         .collect()
+}
+
+fn rotary_row(tape: &mut Tape, input: &[usize], position: usize, heads: usize) -> Vec<usize> {
+    let head_width = input.len() / heads;
+    let half_width = head_width / 2;
+    let mut output = input.to_vec();
+    for head in 0..heads {
+        for pair in 0..half_width {
+            let angle =
+                position as f64 / f64::from(ROPE_BASE).powf(pair as f64 / half_width as f64);
+            let (sine, cosine) = angle.sin_cos();
+            let left = head * head_width + pair;
+            let right = left + half_width;
+            let a = tape.scale(input[left], cosine);
+            let b = tape.scale(input[right], sine);
+            output[left] = tape.subtract(a, b);
+            let a = tape.scale(input[right], cosine);
+            let b = tape.scale(input[left], sine);
+            output[right] = tape.add(a, b);
+        }
+    }
+    output
+}
+
+fn rotary(tape: &mut Tape, input: &[Vec<usize>], sequence: usize, heads: usize) -> Vec<Vec<usize>> {
+    input
+        .iter()
+        .enumerate()
+        .map(|(row, x)| rotary_row(tape, x, row % sequence, heads))
+        .collect()
+}
+
+pub(super) fn rotary_reference(
+    input: &[f64],
+    gradient: &[f64],
+    position: usize,
+    heads: usize,
+) -> (Vec<f64>, Vec<f64>) {
+    let mut tape = Tape {
+        values: input.to_vec(),
+        edges: vec![[(NONE, 0.0); 2]; input.len()],
+    };
+    let output = rotary_row(
+        &mut tape,
+        &(0..input.len()).collect::<Vec<_>>(),
+        position,
+        heads,
+    );
+    let values = output.iter().map(|&id| tape.values[id]).collect();
+    let weighted: Vec<_> = output
+        .iter()
+        .zip(gradient)
+        .map(|(&id, &g)| tape.scale(id, g))
+        .collect();
+    let loss = tape.sum(&weighted);
+    (values, tape.backward(loss, input.len()))
 }
 
 // A channel is reduced over different key rows, rather than one tensor slice.
@@ -376,9 +454,236 @@ fn attention(
         .collect()
 }
 
+fn exclusive(
+    tape: &mut Tape,
+    input: &[Vec<usize>],
+    value: &[Vec<usize>],
+    heads: usize,
+) -> Vec<Vec<usize>> {
+    let head_width = input[0].len() / heads;
+    input
+        .iter()
+        .zip(value)
+        .map(|(y, v)| {
+            let mut output = Vec::with_capacity(y.len());
+            for (y, v) in y.chunks_exact(head_width).zip(v.chunks_exact(head_width)) {
+                let squares: Vec<_> = v.iter().map(|&id| tape.multiply(id, id)).collect();
+                let squared_norm = tape.sum(&squares);
+                let floored = tape.clamp_min(squared_norm, f64::from(XSA_EPSILON).powi(2));
+                let inverse = tape.inverse_sqrt(floored);
+                let normalized: Vec<_> = v.iter().map(|&id| tape.multiply(id, inverse)).collect();
+                let products: Vec<_> = y
+                    .iter()
+                    .zip(&normalized)
+                    .map(|(&a, &b)| tape.multiply(a, b))
+                    .collect();
+                let projection = tape.sum(&products);
+                output.extend(y.iter().zip(normalized).map(|(&a, b)| {
+                    let removed = tape.multiply(projection, b);
+                    tape.subtract(a, removed)
+                }));
+            }
+            output
+        })
+        .collect()
+}
+
+pub(super) fn exclusive_reference(
+    input: &[f64],
+    value: &[f64],
+    gradient: &[f64],
+    heads: usize,
+) -> (Vec<f64>, Vec<f64>) {
+    let width = input.len();
+    let mut tape = Tape {
+        values: input.iter().chain(value).copied().collect(),
+        edges: vec![[(NONE, 0.0); 2]; 2 * width],
+    };
+    let output = exclusive(
+        &mut tape,
+        &[(0..width).collect()],
+        &[(width..2 * width).collect()],
+        heads,
+    )
+    .remove(0);
+    let values = output.iter().map(|&id| tape.values[id]).collect();
+    let weighted: Vec<_> = output
+        .iter()
+        .zip(gradient)
+        .map(|(&id, &g)| tape.scale(id, g))
+        .collect();
+    let loss = tape.sum(&weighted);
+    (values, tape.backward(loss, 2 * width))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rmsnorm_preserves_nonzero_means_and_stabilizes_zero_inputs() {
+        let weight = [1.0, -2.0, 0.5, 0.0];
+        let upstream = [0.3, -0.7, 0.5, 1.0];
+        let epsilon = f64::from(RMSNORM_EPSILON);
+        let (output, _) = rmsnorm_reference(&[2.0; 4], &weight, &upstream);
+        for (&value, w) in output.iter().zip(weight) {
+            assert!((value - 2.0 * w / (4.0 + epsilon).sqrt()).abs() < 1e-12);
+        }
+        let (output, gradient) = rmsnorm_reference(&[0.0; 4], &weight, &upstream);
+        assert_eq!(output, [0.0; 4]);
+        assert_eq!(&gradient[4..], &[0.0; 4]);
+        for (channel, &actual) in gradient[..4].iter().enumerate() {
+            let expected = upstream[channel] * weight[channel] / epsilon.sqrt();
+            assert!((actual - expected).abs() < 1e-12 * (1.0 + expected.abs()));
+        }
+    }
+
+    #[test]
+    fn rmsnorm_input_and_scale_gradients_match_finite_differences() {
+        let weight = [1.0, -0.5, 0.0, 2.0];
+        let upstream = [-0.3, 0.2, 0.8, -0.4];
+        for input in [
+            [0.0; 4],
+            [1e-7, -2e-7, 3e-7, -4e-7],
+            [0.001, -0.002, 0.003, -0.004],
+            [1.0, -2.0, 3.0, 4.0],
+            [2.0; 4],
+        ] {
+            let (_, gradient) = rmsnorm_reference(&input, &weight, &upstream);
+            for (parameter, &analytic) in gradient.iter().enumerate() {
+                let mut plus = [input, weight];
+                let mut minus = plus;
+                plus[parameter / 4][parameter % 4] += 1e-7;
+                minus[parameter / 4][parameter % 4] -= 1e-7;
+                let loss = |values: [[f64; 4]; 2]| {
+                    let (output, _) = rmsnorm_reference(&values[0], &values[1], &upstream);
+                    output
+                        .iter()
+                        .zip(upstream)
+                        .map(|(&x, g)| x * g)
+                        .sum::<f64>()
+                };
+                let numerical = (loss(plus) - loss(minus)) / 2e-7;
+                assert!(
+                    (analytic - numerical).abs() < 1e-6 * (1.0 + analytic.abs()),
+                    "RMSNorm parameter={parameter}: {analytic} vs {numerical}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn slice_rope_pairs_opposite_halves_and_preserves_norms() {
+        let input = [1.0, 2.0, 3.0, 4.0];
+        let (identity, _) = rotary_reference(&input, &[1.0; 4], 0, 1);
+        assert_eq!(identity, input);
+        let (output, _) = rotary_reference(&input, &[1.0; 4], 1, 1);
+        let expected = [
+            input[0] * 1.0_f64.cos() - input[2] * 1.0_f64.sin(),
+            input[1] * 0.01_f64.cos() - input[3] * 0.01_f64.sin(),
+            input[2] * 1.0_f64.cos() + input[0] * 1.0_f64.sin(),
+            input[3] * 0.01_f64.cos() + input[1] * 0.01_f64.sin(),
+        ];
+        for (&a, b) in output.iter().zip(expected) {
+            assert!((a - b).abs() < 1e-12);
+        }
+        let norm = |x: &[f64]| x.iter().map(|x| x * x).sum::<f64>();
+        assert!((norm(&output) - norm(&input)).abs() < 1e-12);
+        let input = [1.0, 2.0, 3.0, 4.0, -1.0, -2.0, -3.0, -4.0];
+        let (output, _) = rotary_reference(&input, &[1.0; 8], 127, 2);
+        for (x, y) in input
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .zip(output.as_chunks::<4>().0)
+        {
+            assert!((norm(x) - norm(y)).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn slice_rope_gradients_and_relative_position_identity() {
+        let q = [1.0, -0.5, 2.0, 0.7, -1.0, 0.3, 0.1, -0.9];
+        let k = [-0.7, 0.2, 0.5, -1.0, 0.4, 0.8, -0.2, 0.6];
+        let loss = |x: &[f64], position| {
+            let (z, _) = rotary_reference(x, &k, position, 2);
+            z.iter().zip(k).map(|(&z, g)| z * g).sum::<f64>()
+        };
+        for position in [0, 1, 31, 127] {
+            let (_, gradient) = rotary_reference(&q, &k, position, 2);
+            for (channel, &analytic) in gradient.iter().enumerate() {
+                let mut plus = q;
+                let mut minus = q;
+                plus[channel] += 1e-6;
+                minus[channel] -= 1e-6;
+                let numerical = (loss(&plus, position) - loss(&minus, position)) / 2e-6;
+                assert!((analytic - numerical).abs() < 1e-8);
+            }
+        }
+        let dot = |a: &[f64], b: &[f64]| a.iter().zip(b).map(|(&a, &b)| a * b).sum::<f64>();
+        let (a, _) = rotary_reference(&q, &k, 7, 2);
+        let (b, _) = rotary_reference(&k, &q, 11, 2);
+        let (a_shifted, _) = rotary_reference(&q, &k, 57, 2);
+        let (b_shifted, _) = rotary_reference(&k, &q, 61, 2);
+        assert!((dot(&a, &b) - dot(&a_shifted, &b_shifted)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn exclusive_projection_is_per_head_and_removes_self_alignment() {
+        let y = [1.0, 2.0, 3.0, 4.0];
+        let v = [1.0, 0.0, 0.0, 2.0];
+        let (z, _) = exclusive_reference(&y, &v, &[1.0; 4], 2);
+        assert_eq!(z, [0.0, 2.0, 3.0, 0.0]);
+        for (z, v) in z.as_chunks::<2>().0.iter().zip(v.as_chunks::<2>().0) {
+            let dot: f64 = z.iter().zip(v).map(|(&a, &b)| a * b).sum();
+            assert!(dot.abs() < 1e-12);
+        }
+        // A causal sequence's first position attends only to its own value.
+        let (z, _) = exclusive_reference(&v, &v, &[1.0; 4], 2);
+        assert!(z.iter().all(|&x| x.abs() < 1e-12));
+        let (z, gradient) = exclusive_reference(&y, &[0.0; 4], &[1.0; 4], 2);
+        assert_eq!(z, y);
+        assert_eq!(&gradient[..4], &[1.0; 4]);
+        assert_eq!(&gradient[4..], &[0.0; 4]);
+    }
+
+    #[test]
+    fn exclusive_gradients_match_finite_differences_including_norm_floor() {
+        let input = [1.5, -0.25, 0.8, -1.2];
+        let upstream = [0.3, -0.5, 0.7, 0.9];
+        let epsilon = f64::from(XSA_EPSILON);
+        for (value, heads) in [
+            ([2.0, -1.0, 0.3, 0.7], 2),
+            ([0.0; 4], 2),
+            ([0.2 * epsilon, -0.3 * epsilon, 2.0 * epsilon, -epsilon], 2),
+            ([1.0, -2.0, 0.7, 0.8], 4),
+        ] {
+            let (_, gradient) = exclusive_reference(&input, &value, &upstream, heads);
+            for (parameter, &analytic) in gradient.iter().enumerate() {
+                let mut plus = [input, value];
+                let mut minus = plus;
+                let tensor = parameter / 4;
+                let channel = parameter % 4;
+                let step = if tensor == 1 && value[channel].abs() < 1e-10 {
+                    epsilon * 1e-4
+                } else {
+                    1e-6
+                };
+                plus[tensor][channel] += step;
+                minus[tensor][channel] -= step;
+                let loss = |values: [[f64; 4]; 2]| {
+                    let (z, _) = exclusive_reference(&values[0], &values[1], &upstream, heads);
+                    z.iter().zip(upstream).map(|(&z, g)| z * g).sum::<f64>()
+                };
+                let numerical = (loss(plus) - loss(minus)) / (2.0 * step);
+                assert!(
+                    analytic.is_finite()
+                        && (analytic - numerical).abs() < 1e-5 * (1.0 + analytic.abs()),
+                    "heads={heads} parameter={parameter}: {analytic} vs {numerical}"
+                );
+            }
+        }
+    }
 
     pub(crate) fn tiny_config() -> GptConfig {
         GptConfig {
@@ -401,8 +706,10 @@ mod tests {
         for (parameter, &analytic) in gradients.iter().enumerate() {
             let mut plus = model.parameters.clone();
             let mut minus = plus.clone();
-            plus[parameter] += 0.001;
-            minus[parameter] -= 0.001;
+            // Token-only embeddings have a smaller initial scale than the
+            // former token + position sums; resolve their local curvature.
+            plus[parameter] += 0.0001;
+            minus[parameter] -= 0.0001;
             let step = f64::from(plus[parameter]) - f64::from(minus[parameter]);
             let a = ReferenceGpt::from_parameters(model.config, plus)
                 .unwrap()

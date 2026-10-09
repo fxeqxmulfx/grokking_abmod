@@ -94,13 +94,13 @@ fn main() -> Result<()> {
     let options = Options::parse()?;
     if options.help {
         println!(
-            "Mesh GPT: a character-level Transformer with sparse mesh projections\n\
+            "Mesh GPT: a pre-RMSNorm Transformer with mesh projections, slice RoPE, and XSA\n\
             Usage: cargo oxide run --bin mesh-gpt -- [train|generate|verify] [options]\n\n\
             --dataset PATH        UTF-8 training corpus (default: data/mesh-gpt-demo.txt)\n\
             --output PATH         Artifacts (default: target/mesh-gpt)\n\
             --checkpoint PATH     Load for generate; save for train (default: OUTPUT/model.bin)\n\
             --width N             Channels, 2..64 (default: 32)\n\
-            --heads N             Heads, 1..8, divides width (default: 4)\n\
+            --heads N             Heads, 1..8, divides width, even channels/head (default: 4)\n\
             --layers N            Transformer blocks, 1..4 (default: 2)\n\
             --context N           Maximum sequence length, 1..128 (default: 32)\n\
             --attention-depth N   Q/K/V/output mesh depth, 1..16 (default: 4)\n\
@@ -165,7 +165,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
         dataset.batch(true, options.config.context, options.batch, 101)?;
     let mut model = GpuMeshGpt::new(options.device, options.config, options.seed)?;
     println!(
-        "Mesh GPT: blocks={}, width={}, heads={}, context={}, vocabulary={}, parameters={}",
+        "Mesh GPT (pre-RMSNorm, slice RoPE + XSA): blocks={}, width={}, heads={}, context={}, vocabulary={}, parameters={}",
         options.config.layers,
         options.config.width,
         options.config.heads,
@@ -243,7 +243,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "dataset={}\nseed={}\nsteps={}\nbatch={}\nwidth={}\nheads={}\nlayers={}\ncontext={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nlearning_rate={}\nweight_decay={}\ntraining_seconds={elapsed:.6}\ninitial_validation_cross_entropy={initial_validation:.9}\nfinal_validation_cross_entropy={final_validation:.9}\n",
+            "attention=xsa\npositions=slice_rope\nrope_base=10000\nnormalization=pre_rmsnorm\nrmsnorm_epsilon=1e-5\ndataset={}\nseed={}\nsteps={}\nbatch={}\nwidth={}\nheads={}\nlayers={}\ncontext={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nlearning_rate={}\nweight_decay={}\ntraining_seconds={elapsed:.6}\ninitial_validation_cross_entropy={initial_validation:.9}\nfinal_validation_cross_entropy={final_validation:.9}\n",
             options.dataset.display(),
             options.seed,
             options.training.steps,
@@ -290,6 +290,18 @@ fn close(name: &str, expected: f64, actual: f64) -> Result<()> {
 }
 
 fn verify(device: usize) -> Result<()> {
+    GpuMeshGpt::verify_rmsnorm(device)?;
+    println!(
+        "PASS isolated RMSNorm: outputs, input/scale gradients, zero/tiny values, batch tails, contracts"
+    );
+    GpuMeshGpt::verify_rotary_embeddings(device)?;
+    println!(
+        "PASS isolated slice RoPE: split-half pairs, norms, inverse/backward, positions, batch tails, contracts"
+    );
+    GpuMeshGpt::verify_exclusive_attention(device)?;
+    println!(
+        "PASS isolated XSA: per-head orthogonality, both derivatives, zero/tiny values, batch tails"
+    );
     for config in [
         GptConfig {
             vocab_size: 5,
@@ -321,8 +333,7 @@ fn verify(device: usize) -> Result<()> {
     ] {
         let reference = ReferenceGpt::new(config, 7)?;
         let mut model = GpuMeshGpt::new(device, config, 7)?;
-        for batch in [1, 2, 43] {
-            let sequence = config.context.min(3);
+        for (batch, sequence) in [(1, 1), (1, 3), (2, 3), (43, 3)] {
             let x: Vec<_> = (0..batch * sequence)
                 .map(|i| (i % config.vocab_size) as u32)
                 .collect();
@@ -407,7 +418,7 @@ fn verify(device: usize) -> Result<()> {
             )?;
         }
         println!(
-            "PASS width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset",
+            "PASS RMSNorm/RoPE/XSA width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset",
             config.width, config.heads, config.layers
         );
     }

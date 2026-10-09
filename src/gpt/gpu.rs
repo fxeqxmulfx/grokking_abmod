@@ -7,7 +7,8 @@ use cuda_host::cuda_module;
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    Attention, Features, GptConfig, GptTrainOptions, NormCache, Vocabulary, config::Layout,
+    Attention, Features, GptConfig, GptTrainOptions, NormCache, RMSNORM_EPSILON, ROPE_BASE,
+    Vocabulary, XSA_EPSILON, config::Layout,
 };
 
 #[cuda_module]
@@ -28,12 +29,11 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, sequence >= 1, sequence <= 128,
-        out.len() == tokens.len(), state.len() >= width * sequence))]
+        width >= 2, width <= 64, _vocab >= 2, _vocab <= 256,
+        out.len() == tokens.len(), state.len() == _vocab * width))]
     pub fn gpt_embed(
         width: usize,
-        sequence: usize,
-        vocab: usize,
+        _vocab: usize,
         tokens: &[u32],
         state: &[[f32; 3]],
         mut out: DisjointSlice<Features>,
@@ -42,8 +42,7 @@ mod kernels {
         let row = index.get();
         if let Some(output) = out.get_mut(index) {
             for channel in 0..width {
-                output[channel] = state[tokens[row] as usize * width + channel][0]
-                    + state[(vocab + row % sequence) * width + channel][0];
+                output[channel] = state[tokens[row] as usize * width + channel][0];
             }
         }
     }
@@ -51,9 +50,9 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, state.len() == 2 * width,
+        width >= 2, width <= 64, state.len() == width,
         out.len() == input.len(), cache.len() == input.len()))]
-    pub fn gpt_norm(
+    pub fn gpt_rmsnorm(
         width: usize,
         input: &[Features],
         state: &[[f32; 3]],
@@ -65,21 +64,16 @@ mod kernels {
         if let Some(output) = out.get_mut(index)
             && let Some(saved) = cache.get_mut(thread::index_1d())
         {
-            let mut mean = 0.0;
+            let mut squares = 0.0;
             for channel in 0..width {
-                mean += input[row][channel];
+                let x = input[row][channel];
+                squares += x * x;
             }
-            mean /= width as f32;
-            let mut variance = 0.0;
-            for channel in 0..width {
-                let x = input[row][channel] - mean;
-                variance += x * x;
-            }
-            let inverse = 1.0 / (variance / width as f32 + 1e-5).sqrt();
+            let inverse = 1.0 / (squares / width as f32 + RMSNORM_EPSILON).sqrt();
             saved[64] = inverse;
             for channel in 0..width {
-                saved[channel] = (input[row][channel] - mean) * inverse;
-                output[channel] = saved[channel] * state[channel][0] + state[width + channel][0];
+                saved[channel] = input[row][channel] * inverse;
+                output[channel] = saved[channel] * state[channel][0];
             }
         }
     }
@@ -148,6 +142,41 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        heads >= 1, heads <= 8, half_width >= 1, half_width <= 32,
+        2 * heads * half_width <= 64, sequence >= 1, sequence <= 128,
+        inverse <= 1, out.len() == input.len()))]
+    pub fn gpt_rope(
+        heads: usize,
+        half_width: usize,
+        sequence: usize,
+        inverse: usize,
+        input: &[Features],
+        mut out: DisjointSlice<Features>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let position = (row % sequence) as f32;
+            for pair in 0..half_width {
+                let frequency = ROPE_BASE.powf(-(pair as f32) / half_width as f32);
+                let angle = if inverse == 0 { position } else { -position } * frequency;
+                let cosine = angle.cos();
+                let sine = angle.sin();
+                for head in 0..heads {
+                    let left = head * 2 * half_width + pair;
+                    let right = left + half_width;
+                    let a = input[row][left];
+                    let b = input[row][right];
+                    output[left] = a * cosine - b * sine;
+                    output[right] = b * cosine + a * sine;
+                }
+            }
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= 64, heads >= 1, heads <= 8, sequence >= 1, sequence <= 128,
         out.len() == query.len(), key.len() == query.len(), value.len() == query.len(), probabilities.len() == query.len()))]
     pub fn gpt_attention(
@@ -199,6 +228,95 @@ mod kernels {
                             probability[head * 128 + previous] * value[first + previous][channel];
                     }
                     output[channel] = total;
+                }
+            }
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= 64, heads >= 1, heads <= 8, heads <= width,
+        value.len() == input.len(), out.len() == input.len()))]
+    pub fn gpt_exclusive(
+        width: usize,
+        heads: usize,
+        input: &[Features],
+        value: &[Features],
+        mut out: DisjointSlice<Features>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let head_width = width / heads;
+            for head in 0..heads {
+                let begin = head * head_width;
+                let end = begin + head_width;
+                let mut squared_norm = 0.0;
+                for channel in begin..end {
+                    squared_norm += value[row][channel] * value[row][channel];
+                }
+                let inverse = 1.0 / squared_norm.sqrt().max(XSA_EPSILON);
+                let mut projection = 0.0;
+                for channel in begin..end {
+                    projection += input[row][channel] * (value[row][channel] * inverse);
+                }
+                for channel in begin..end {
+                    output[channel] =
+                        input[row][channel] - projection * (value[row][channel] * inverse);
+                }
+            }
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= 64, heads >= 1, heads <= 8, heads <= width,
+        value.len() == input.len(), gradient.len() == input.len(),
+        dy.len() == input.len(), dv.len() == input.len()))]
+    pub fn gpt_exclusive_backward(
+        width: usize,
+        heads: usize,
+        input: &[Features],
+        value: &[Features],
+        gradient: &[Features],
+        mut dy: DisjointSlice<Features>,
+        mut dv: DisjointSlice<Features>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get();
+        if let Some(y_gradient) = dy.get_mut(index)
+            && let Some(v_gradient) = dv.get_mut(thread::index_1d())
+        {
+            let head_width = width / heads;
+            for head in 0..heads {
+                let begin = head * head_width;
+                let end = begin + head_width;
+                let mut squared_norm = 0.0;
+                for channel in begin..end {
+                    squared_norm += value[row][channel] * value[row][channel];
+                }
+                let norm = squared_norm.sqrt();
+                let inverse = 1.0 / norm.max(XSA_EPSILON);
+                let mut projection = 0.0;
+                let mut gradient_projection = 0.0;
+                for channel in begin..end {
+                    let normalized = value[row][channel] * inverse;
+                    projection += input[row][channel] * normalized;
+                    gradient_projection += gradient[row][channel] * normalized;
+                }
+                for channel in begin..end {
+                    let normalized = value[row][channel] * inverse;
+                    y_gradient[channel] = gradient[row][channel] - gradient_projection * normalized;
+                    // Differentiate both uses of normalized V. Above the norm
+                    // floor, also differentiate the normalization denominator.
+                    let mut derivative = -gradient_projection * input[row][channel]
+                        - projection * gradient[row][channel];
+                    if norm >= XSA_EPSILON {
+                        derivative += 2.0 * projection * gradient_projection * normalized;
+                    }
+                    v_gradient[channel] = derivative * inverse;
                 }
             }
         }
@@ -315,9 +433,9 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, state.len() == 2 * width,
+        width >= 2, width <= 64, state.len() == width,
         gradient.len() == cache.len(), out.len() == cache.len()))]
-    pub fn gpt_norm_backward(
+    pub fn gpt_rmsnorm_backward(
         width: usize,
         gradient: &[Features],
         cache: &[NormCache],
@@ -327,17 +445,15 @@ mod kernels {
         let index = thread::index_1d();
         let row = index.get();
         if let Some(output) = out.get_mut(index) {
-            let mut sum = 0.0;
-            let mut centered = 0.0;
+            let mut dot = 0.0;
             for channel in 0..width {
                 let value = gradient[row][channel] * state[channel][0];
-                sum += value;
-                centered += value * cache[row][channel];
+                dot += value * cache[row][channel];
             }
             for channel in 0..width {
                 let value = gradient[row][channel] * state[channel][0];
-                output[channel] = cache[row][64]
-                    * (value - sum / width as f32 - cache[row][channel] * centered / width as f32);
+                output[channel] =
+                    cache[row][64] * (value - cache[row][channel] * dot / width as f32);
             }
         }
     }
@@ -345,25 +461,19 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, gradient.len() == cache.len(), out.len() == 2 * width))]
-    pub fn gpt_norm_gradient(
-        width: usize,
+        _width >= 2, _width <= 64, gradient.len() == cache.len(), out.len() == _width))]
+    pub fn gpt_rmsnorm_gradient(
+        _width: usize,
         gradient: &[Features],
         cache: &[NormCache],
         mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let parameter = index.get();
+        let channel = index.get();
         if let Some(output) = out.get_mut(index) {
-            let channel = parameter % width;
             let mut total = 0.0;
             for row in 0..gradient.len() {
-                total += gradient[row][channel]
-                    * if parameter < width {
-                        cache[row][channel]
-                    } else {
-                        1.0
-                    };
+                total += gradient[row][channel] * cache[row][channel];
             }
             *output = total;
         }
@@ -527,13 +637,12 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= 64, vocab >= 2, vocab <= 256, sequence >= 1, sequence <= 128,
+        width >= 2, width <= 64, _vocab >= 2, _vocab <= 256,
         input_gradient.len() == tokens.len(), head_gradient.len() == tokens.len(), final_features.len() == tokens.len(),
-        out.len() >= (vocab + sequence) * width))]
+        out.len() == _vocab * width))]
     pub fn gpt_embedding_gradient(
         width: usize,
-        vocab: usize,
-        sequence: usize,
+        _vocab: usize,
         tokens: &[u32],
         input_gradient: &[Features],
         head_gradient: &[Vocabulary],
@@ -543,18 +652,14 @@ mod kernels {
         let index = thread::index_1d();
         let parameter = index.get();
         if let Some(output) = out.get_mut(index) {
-            let token_or_position = parameter / width;
+            let token = parameter / width;
             let channel = parameter % width;
             let mut total = 0.0;
             for row in 0..tokens.len() {
-                if token_or_position < vocab {
-                    if tokens[row] as usize == token_or_position {
-                        total += input_gradient[row][channel];
-                    }
-                    total += head_gradient[row][token_or_position] * final_features[row][channel];
-                } else if row % sequence == token_or_position - vocab {
+                if tokens[row] as usize == token {
                     total += input_gradient[row][channel];
                 }
+                total += head_gradient[row][token] * final_features[row][channel];
             }
             *output = total;
         }
@@ -589,7 +694,7 @@ enum Op {
     Embed {
         out: usize,
     },
-    Norm {
+    RmsNorm {
         group: usize,
         input: usize,
         out: usize,
@@ -607,12 +712,21 @@ enum Op {
         right: usize,
         out: usize,
     },
+    Rotary {
+        input: usize,
+        out: usize,
+    },
     Attention {
         query: usize,
         key: usize,
         value: usize,
         out: usize,
         cache: usize,
+    },
+    Exclusive {
+        input: usize,
+        value: usize,
+        out: usize,
     },
 }
 
@@ -635,10 +749,12 @@ impl Plan {
         };
         let mut x = 0;
         for block in &layout.blocks {
-            let normalized = plan.norm(x, block.norm1);
+            let normalized = plan.rmsnorm(x, block.norm1);
             let query = plan.mesh(normalized, block.query, config.attention_mesh_depth);
             let key = plan.mesh(normalized, block.key, config.attention_mesh_depth);
             let value = plan.mesh(normalized, block.value, config.attention_mesh_depth);
+            let query = plan.rope(query);
+            let key = plan.rope(key);
             let out = plan.feature();
             let cache = plan.attentions;
             plan.attentions += 1;
@@ -649,13 +765,19 @@ impl Plan {
                 out,
                 cache,
             });
-            let projected = plan.mesh(out, block.projection, config.attention_mesh_depth);
+            let exclusive = plan.feature();
+            plan.ops.push(Op::Exclusive {
+                input: out,
+                value,
+                out: exclusive,
+            });
+            let projected = plan.mesh(exclusive, block.projection, config.attention_mesh_depth);
             x = plan.add(x, projected);
-            let normalized = plan.norm(x, block.norm2);
+            let normalized = plan.rmsnorm(x, block.norm2);
             let ffn = plan.mesh(normalized, block.ffn, config.ffn_mesh_depth);
             x = plan.add(x, ffn);
         }
-        plan.final_features = plan.norm(x, layout.final_norm);
+        plan.final_features = plan.rmsnorm(x, layout.final_norm);
         plan
     }
     fn feature(&mut self) -> usize {
@@ -663,11 +785,11 @@ impl Plan {
         self.features += 1;
         id
     }
-    fn norm(&mut self, input: usize, group: usize) -> usize {
+    fn rmsnorm(&mut self, input: usize, group: usize) -> usize {
         let out = self.feature();
         let cache = self.norms;
         self.norms += 1;
-        self.ops.push(Op::Norm {
+        self.ops.push(Op::RmsNorm {
             group,
             input,
             out,
@@ -692,6 +814,11 @@ impl Plan {
     fn add(&mut self, left: usize, right: usize) -> usize {
         let out = self.feature();
         self.ops.push(Op::Add { left, right, out });
+        out
+    }
+    fn rope(&mut self, input: usize) -> usize {
+        let out = self.feature();
+        self.ops.push(Op::Rotary { input, out });
         out
     }
 }
@@ -748,8 +875,9 @@ impl Workspace {
     }
 }
 
-/// A small GPT decoder whose Q/K/V, attention output, and feed-forward channel
-/// projections are two-parent ELU meshes. Embeddings and the tied output head
+/// A small GPT decoder with slice RoPE and exclusive self attention (XSA). Q/K/V, attention
+/// output, and feed-forward projections are two-parent ELU meshes.
+/// Embeddings and the tied output head
 /// retain their usual learned tables. Training operators and AdamW run on CUDA.
 pub struct GpuMeshGpt {
     config: GptConfig,
@@ -968,22 +1096,21 @@ impl GpuMeshGpt {
                         &self.stream,
                         &launch,
                         c.width,
-                        workspace.sequence,
                         c.vocab_size,
                         &workspace.tokens,
                         &self.parameters[0].state,
                         &mut workspace.features[out],
                     )?;
                 }
-                Op::Norm {
+                Op::RmsNorm {
                     group,
                     input,
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_norm(row_config)?;
+                    let launch = self.module.prepare_gpt_rmsnorm(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
-                    self.module.gpt_norm(
+                    self.module.gpt_rmsnorm(
                         &self.stream,
                         &launch,
                         c.width,
@@ -1025,6 +1152,20 @@ impl GpuMeshGpt {
                         &mut after[0],
                     )?;
                 }
+                Op::Rotary { input, out } => {
+                    let launch = self.module.prepare_gpt_rope(row_config)?;
+                    let (before, after) = workspace.features.split_at_mut(out);
+                    self.module.gpt_rope(
+                        &self.stream,
+                        &launch,
+                        c.heads,
+                        c.width / c.heads / 2,
+                        workspace.sequence,
+                        0,
+                        &before[input],
+                        &mut after[0],
+                    )?;
+                }
                 Op::Attention {
                     query,
                     key,
@@ -1045,6 +1186,19 @@ impl GpuMeshGpt {
                         &before[value],
                         &mut after[0],
                         &mut workspace.probabilities[cache],
+                    )?;
+                }
+                Op::Exclusive { input, value, out } => {
+                    let launch = self.module.prepare_gpt_exclusive(row_config)?;
+                    let (before, after) = workspace.features.split_at_mut(out);
+                    self.module.gpt_exclusive(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.heads,
+                        &before[input],
+                        &before[value],
+                        &mut after[0],
                     )?;
                 }
             }
@@ -1131,7 +1285,7 @@ impl GpuMeshGpt {
         for index in (0..self.plan.ops.len()).rev() {
             match self.plan.ops[index] {
                 Op::Embed { .. } => {}
-                Op::Norm {
+                Op::RmsNorm {
                     group,
                     input,
                     out,
@@ -1140,8 +1294,8 @@ impl GpuMeshGpt {
                     let parameters = &mut self.parameters[group];
                     let launch = self
                         .module
-                        .prepare_gpt_norm_gradient(config(parameters.gradient.len()))?;
-                    self.module.gpt_norm_gradient(
+                        .prepare_gpt_rmsnorm_gradient(config(parameters.gradient.len()))?;
+                    self.module.gpt_rmsnorm_gradient(
                         &self.stream,
                         &launch,
                         c.width,
@@ -1149,8 +1303,8 @@ impl GpuMeshGpt {
                         &workspace.norms[cache],
                         &mut parameters.gradient,
                     )?;
-                    let launch = self.module.prepare_gpt_norm_backward(row_config)?;
-                    self.module.gpt_norm_backward(
+                    let launch = self.module.prepare_gpt_rmsnorm_backward(row_config)?;
+                    self.module.gpt_rmsnorm_backward(
                         &self.stream,
                         &launch,
                         c.width,
@@ -1201,6 +1355,20 @@ impl GpuMeshGpt {
                     self.accumulate_node(workspace, left, out)?;
                     self.accumulate_node(workspace, right, out)?;
                 }
+                Op::Rotary { input, out } => {
+                    let launch = self.module.prepare_gpt_rope(row_config)?;
+                    self.module.gpt_rope(
+                        &self.stream,
+                        &launch,
+                        c.heads,
+                        c.width / c.heads / 2,
+                        workspace.sequence,
+                        1,
+                        &workspace.adjoints[out],
+                        &mut workspace.scratch[0],
+                    )?;
+                    self.accumulate_scratch(workspace, input, 0)?;
+                }
                 Op::Attention {
                     query,
                     key,
@@ -1242,6 +1410,25 @@ impl GpuMeshGpt {
                     self.accumulate_scratch(workspace, key, 1)?;
                     self.accumulate_scratch(workspace, value, 2)?;
                 }
+                Op::Exclusive { input, value, out } => {
+                    let launch = self.module.prepare_gpt_exclusive_backward(row_config)?;
+                    let (dy, rest) = workspace.scratch.split_at_mut(1);
+                    self.module.gpt_exclusive_backward(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.heads,
+                        &workspace.features[input],
+                        &workspace.features[value],
+                        &workspace.adjoints[out],
+                        &mut dy[0],
+                        &mut rest[0],
+                    )?;
+                    self.accumulate_scratch(workspace, input, 0)?;
+                    // V receives this local contribution and the subsequent
+                    // attention contribution gathered from all causal queries.
+                    self.accumulate_scratch(workspace, value, 1)?;
+                }
             }
         }
         let group = &mut self.parameters[0];
@@ -1253,7 +1440,6 @@ impl GpuMeshGpt {
             &launch,
             c.width,
             c.vocab_size,
-            workspace.sequence,
             &workspace.tokens,
             &workspace.adjoints[0],
             &workspace.head_gradient,
@@ -1326,4 +1512,385 @@ impl GpuMeshGpt {
 
 fn config(elements: usize) -> LaunchConfig1D {
     LaunchConfig1D::new((elements as u32).div_ceil(128), 128, 0)
+}
+
+mod verification {
+    use super::*;
+    use crate::gpt::{
+        MAX_WIDTH,
+        reference::{exclusive_reference, rmsnorm_reference, rotary_reference},
+    };
+
+    impl GpuMeshGpt {
+        /// Checks RMSNorm outputs, input derivatives, and scale gradients against f64 autodiff.
+        pub fn verify_rmsnorm(device: usize) -> Result<()> {
+            let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
+            let rows = 129;
+            for width in [2, 6, 32, 64] {
+                let weight: Vec<_> = (0..width)
+                    .map(|channel| 0.25 * (channel % 9) as f32 - 1.0)
+                    .collect();
+                let state: Vec<_> = weight.iter().map(|&w| [w, 0.0, 0.0]).collect();
+                let mut input = vec![[0.0; MAX_WIDTH]; rows];
+                let mut gradient = input.clone();
+                for row in 0..rows {
+                    for channel in 0..width {
+                        let x = ((row + 3 * channel) % 19) as f32 * 0.2 - 1.7;
+                        input[row][channel] = match row % 5 {
+                            0 => 0.0,
+                            1 => 2.0,
+                            2 => x * 1e-7,
+                            3 => x * RMSNORM_EPSILON.sqrt(),
+                            _ => x,
+                        };
+                        gradient[row][channel] = ((row * 5 + channel) % 13) as f32 * 0.1 - 0.6;
+                    }
+                }
+                let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
+                let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
+                let state_gpu = DeviceBuffer::from_host(&model.stream, &state)?;
+                let mut output_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut cache = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut scale_gradient = DeviceBuffer::zeroed(&model.stream, width)?;
+                let launch = model.module.prepare_gpt_rmsnorm(config(rows))?;
+                model.module.gpt_rmsnorm(
+                    &model.stream,
+                    &launch,
+                    width,
+                    &input_gpu,
+                    &state_gpu,
+                    &mut output_gpu,
+                    &mut cache,
+                )?;
+                let backward = model.module.prepare_gpt_rmsnorm_backward(config(rows))?;
+                model.module.gpt_rmsnorm_backward(
+                    &model.stream,
+                    &backward,
+                    width,
+                    &gradient_gpu,
+                    &cache,
+                    &state_gpu,
+                    &mut derivative_gpu,
+                )?;
+                let reduction = model.module.prepare_gpt_rmsnorm_gradient(config(width))?;
+                model.module.gpt_rmsnorm_gradient(
+                    &model.stream,
+                    &reduction,
+                    width,
+                    &gradient_gpu,
+                    &cache,
+                    &mut scale_gradient,
+                )?;
+                let output = output_gpu.to_host_vec(&model.stream)?;
+                let derivative = derivative_gpu.to_host_vec(&model.stream)?;
+                let scale_gradient = scale_gradient.to_host_vec(&model.stream)?;
+                let doubles = |x: &[f32]| x.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
+                let mut expected_scale_gradient = vec![0.0; width];
+                for row in 0..rows {
+                    let (expected, gradients) = rmsnorm_reference(
+                        &doubles(&input[row][..width]),
+                        &doubles(&weight),
+                        &doubles(&gradient[row][..width]),
+                    );
+                    for channel in 0..width {
+                        for (name, cpu, gpu) in [
+                            ("output", expected[channel], output[row][channel]),
+                            ("backward", gradients[channel], derivative[row][channel]),
+                        ] {
+                            let gpu = f64::from(gpu);
+                            assert!(
+                                gpu.is_finite() && (cpu - gpu).abs() < 4e-5 * (1.0 + cpu.abs()),
+                                "RMSNorm {name} width={width} row={row} channel={channel}: {cpu} vs {gpu}"
+                            );
+                        }
+                        expected_scale_gradient[channel] += gradients[width + channel];
+                        if row % 5 == 0 {
+                            assert_eq!(output[row][channel], 0.0);
+                        }
+                    }
+                }
+                for (channel, (&cpu, gpu)) in expected_scale_gradient
+                    .iter()
+                    .zip(scale_gradient)
+                    .enumerate()
+                {
+                    let gpu = f64::from(gpu);
+                    assert!(
+                        gpu.is_finite() && (cpu - gpu).abs() < 4e-5 * (1.0 + cpu.abs()),
+                        "RMSNorm scale gradient width={width} channel={channel}: {cpu} vs {gpu}"
+                    );
+                }
+                let wrong_state = DeviceBuffer::<[f32; 3]>::zeroed(&model.stream, width + 1)?;
+                let mut wrong_cache = DeviceBuffer::zeroed(&model.stream, rows - 1)?;
+                for (invalid_width, state) in
+                    [(1, &state_gpu), (65, &state_gpu), (width, &wrong_state)]
+                {
+                    assert!(
+                        model
+                            .module
+                            .gpt_rmsnorm(
+                                &model.stream,
+                                &launch,
+                                invalid_width,
+                                &input_gpu,
+                                state,
+                                &mut output_gpu,
+                                &mut cache,
+                            )
+                            .is_err()
+                    );
+                }
+                assert!(
+                    model
+                        .module
+                        .gpt_rmsnorm(
+                            &model.stream,
+                            &launch,
+                            width,
+                            &input_gpu,
+                            &state_gpu,
+                            &mut output_gpu,
+                            &mut wrong_cache,
+                        )
+                        .is_err()
+                );
+            }
+            Ok(())
+        }
+
+        /// Checks slice RoPE, its inverse, and its CUDA backward against f64 autodiff.
+        pub fn verify_rotary_embeddings(device: usize) -> Result<()> {
+            let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
+            let rows = 129;
+            for (width, heads) in [(4, 1), (4, 2), (12, 2), (64, 8)] {
+                let head_width = width / heads;
+                let half_width = head_width / 2;
+                let mut input = vec![[0.0; MAX_WIDTH]; rows];
+                let mut gradient = input.clone();
+                for row in 0..rows {
+                    for channel in 0..width {
+                        input[row][channel] = ((row + 3 * channel) % 19) as f32 * 0.2 - 1.7;
+                        gradient[row][channel] = ((row * 5 + channel) % 13) as f32 * 0.1 - 0.6;
+                    }
+                }
+                let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
+                let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
+                let mut output_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut inverse_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let launch = model.module.prepare_gpt_rope(config(rows))?;
+                for sequence in [1, 3, 128] {
+                    for (source, target, inverse) in [
+                        (&input_gpu, &mut output_gpu, 0),
+                        (&gradient_gpu, &mut derivative_gpu, 1),
+                    ] {
+                        model.module.gpt_rope(
+                            &model.stream,
+                            &launch,
+                            heads,
+                            half_width,
+                            sequence,
+                            inverse,
+                            source,
+                            target,
+                        )?;
+                    }
+                    model.module.gpt_rope(
+                        &model.stream,
+                        &launch,
+                        heads,
+                        half_width,
+                        sequence,
+                        1,
+                        &output_gpu,
+                        &mut inverse_gpu,
+                    )?;
+                    let output = output_gpu.to_host_vec(&model.stream)?;
+                    let derivative = derivative_gpu.to_host_vec(&model.stream)?;
+                    let inverse = inverse_gpu.to_host_vec(&model.stream)?;
+                    for row in 0..rows {
+                        let doubles =
+                            |x: &[f32]| x.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
+                        let (expected, expected_gradient) = rotary_reference(
+                            &doubles(&input[row][..width]),
+                            &doubles(&gradient[row][..width]),
+                            row % sequence,
+                            heads,
+                        );
+                        for channel in 0..width {
+                            for (name, expected, actual) in [
+                                ("output", expected[channel], output[row][channel]),
+                                (
+                                    "backward",
+                                    expected_gradient[channel],
+                                    derivative[row][channel],
+                                ),
+                                (
+                                    "inverse",
+                                    f64::from(input[row][channel]),
+                                    inverse[row][channel],
+                                ),
+                            ] {
+                                let actual = f64::from(actual);
+                                assert!(
+                                    actual.is_finite()
+                                        && (actual - expected).abs()
+                                            < 3e-5 * (1.0 + expected.abs()),
+                                    "RoPE {name} width={width} heads={heads} sequence={sequence} row={row} channel={channel}: {actual} vs {expected}"
+                                );
+                            }
+                            if row % sequence == 0 {
+                                assert_eq!(output[row][channel], input[row][channel]);
+                                assert_eq!(derivative[row][channel], gradient[row][channel]);
+                            }
+                        }
+                        for head in 0..heads {
+                            let begin = head * head_width;
+                            let norm =
+                                |x: &[f32]| x.iter().map(|&x| f64::from(x).powi(2)).sum::<f64>();
+                            let before = norm(&input[row][begin..begin + head_width]);
+                            let after = norm(&output[row][begin..begin + head_width]);
+                            assert!((before - after).abs() < 3e-5 * (1.0 + before));
+                        }
+                    }
+                }
+                for (half, sequence, inverse) in [
+                    (0, 3, 0),
+                    (33, 3, 0),
+                    (half_width, 0, 0),
+                    (half_width, 129, 0),
+                    (half_width, 3, 2),
+                ] {
+                    assert!(
+                        model
+                            .module
+                            .gpt_rope(
+                                &model.stream,
+                                &launch,
+                                heads,
+                                half,
+                                sequence,
+                                inverse,
+                                &input_gpu,
+                                &mut output_gpu,
+                            )
+                            .is_err()
+                    );
+                }
+            }
+            Ok(())
+        }
+
+        /// Checks the isolated CUDA XSA operators against independent f64 autodiff.
+        /// Includes batch tails, one-channel heads, and zero/tiny/ordinary values.
+        pub fn verify_exclusive_attention(device: usize) -> Result<()> {
+            let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
+            let rows = 129;
+            for (width, heads) in [(4, 2), (8, 2), (64, 8), (4, 4)] {
+                let head_width = width / heads;
+                let mut input = vec![[0.0; MAX_WIDTH]; rows];
+                let mut value = input.clone();
+                let mut gradient = input.clone();
+                for row in 0..rows {
+                    for channel in 0..width {
+                        let y = ((row + channel * 3) % 17) as f32 * 0.2 - 1.1;
+                        input[row][channel] = y;
+                        gradient[row][channel] = ((row * 3 + channel) % 11) as f32 * 0.1 - 0.6;
+                        value[row][channel] = match row % 5 {
+                            0 => 0.0,
+                            1 => 0.3 * (channel + 1) as f32,
+                            2 => 0.25 * XSA_EPSILON / (head_width as f32).sqrt(),
+                            3 => 2.0 * XSA_EPSILON / (head_width as f32).sqrt(),
+                            _ => 2.0 * y,
+                        };
+                    }
+                }
+                let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
+                let value_gpu = DeviceBuffer::from_host(&model.stream, &value)?;
+                let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
+                let mut output = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut dy = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let mut dv = DeviceBuffer::zeroed(&model.stream, rows)?;
+                let launch = model.module.prepare_gpt_exclusive(config(rows))?;
+                model.module.gpt_exclusive(
+                    &model.stream,
+                    &launch,
+                    width,
+                    heads,
+                    &input_gpu,
+                    &value_gpu,
+                    &mut output,
+                )?;
+                let launch = model.module.prepare_gpt_exclusive_backward(config(rows))?;
+                model.module.gpt_exclusive_backward(
+                    &model.stream,
+                    &launch,
+                    width,
+                    heads,
+                    &input_gpu,
+                    &value_gpu,
+                    &gradient_gpu,
+                    &mut dy,
+                    &mut dv,
+                )?;
+                let output = output.to_host_vec(&model.stream)?;
+                let dy = dy.to_host_vec(&model.stream)?;
+                let dv = dv.to_host_vec(&model.stream)?;
+                for row in 0..rows {
+                    let doubles =
+                        |values: &[f32]| values.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
+                    let (expected, derivatives) = exclusive_reference(
+                        &doubles(&input[row][..width]),
+                        &doubles(&value[row][..width]),
+                        &doubles(&gradient[row][..width]),
+                        heads,
+                    );
+                    for channel in 0..width {
+                        let begin = channel / head_width * head_width;
+                        let norm = value[row][begin..begin + head_width]
+                            .iter()
+                            .map(|&v| f64::from(v).powi(2))
+                            .sum::<f64>()
+                            .sqrt();
+                        // Scale dV by its normalization denominator: its magnitude
+                        // can be 1e12 for tiny V, including cancellation residuals.
+                        for (name, cpu, gpu, scale) in [
+                            ("output", expected[channel], output[row][channel], 1.0),
+                            ("dY", derivatives[channel], dy[row][channel], 1.0),
+                            (
+                                "dV",
+                                derivatives[width + channel],
+                                dv[row][channel],
+                                norm.max(f64::from(XSA_EPSILON)),
+                            ),
+                        ] {
+                            let gpu = f64::from(gpu);
+                            assert!(
+                                cpu.is_finite()
+                                    && gpu.is_finite()
+                                    && (cpu - gpu).abs() * scale < 3e-5 * (1.0 + cpu.abs() * scale),
+                                "{name} width={width} heads={heads} row={row} channel={channel}: {cpu} vs {gpu}"
+                            );
+                        }
+                        if row % 5 == 0 {
+                            assert_eq!(output[row][channel], input[row][channel]);
+                            assert_eq!(dy[row][channel], gradient[row][channel]);
+                            assert_eq!(dv[row][channel], 0.0);
+                        }
+                    }
+                    for head in 0..heads {
+                        let begin = head * head_width;
+                        let dot = (begin..begin + head_width)
+                            .map(|c| f64::from(output[row][c]) * f64::from(value[row][c]))
+                            .sum::<f64>();
+                        if row % 5 == 1 || row % 5 == 4 {
+                            assert!(dot.abs() < 3e-5, "headwise orthogonality: {dot}");
+                        }
+                    }
+                }
+            }
+            Ok(())
+        }
+    }
 }

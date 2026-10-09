@@ -4,6 +4,9 @@ use super::{MAX_CONTEXT, MAX_HEADS, MAX_ROWS, MAX_VOCAB, MAX_WIDTH};
 
 /// Every learned channel mixer is a stack of width-preserving mesh layers.
 /// A neuron reads channels c and (c + 1) mod width from the previous layer.
+/// Attention always uses per-head exclusive self attention (XSA).
+/// Query/key positions use full-head slice RoPE with split-half channel pairs.
+/// Every block uses pre-RMSNorm, with a final RMSNorm before the vocabulary head.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GptConfig {
     pub vocab_size: usize,
@@ -42,6 +45,9 @@ impl GptConfig {
         }
         if !(1..=MAX_HEADS).contains(&self.heads) || !self.width.is_multiple_of(self.heads) {
             return Err("heads must be in 1..8 and divide width".into());
+        }
+        if !(self.width / self.heads).is_multiple_of(2) {
+            return Err("slice RoPE requires an even number of channels per head".into());
         }
         if !(1..=4).contains(&self.layers) {
             return Err("layers must be in 1..4".into());
@@ -175,12 +181,9 @@ impl Layout {
             final_norm: 0,
             head_bias: 0,
         };
-        layout.push(
-            (config.vocab_size + config.context) * config.width,
-            Kind::Embedding,
-        );
+        layout.push(config.vocab_size * config.width, Kind::Embedding);
         for _ in 0..config.layers {
-            let norm1 = layout.push(2 * config.width, Kind::Norm);
+            let norm1 = layout.push(config.width, Kind::Norm);
             let mut mesh = || {
                 layout.push(
                     3 * config.width * config.attention_mesh_depth,
@@ -191,7 +194,7 @@ impl Layout {
             let key = mesh();
             let value = mesh();
             let projection = mesh();
-            let norm2 = layout.push(2 * config.width, Kind::Norm);
+            let norm2 = layout.push(config.width, Kind::Norm);
             let ffn = layout.push(
                 3 * config.width * config.ffn_mesh_depth,
                 Kind::Mesh(config.ffn_mesh_depth),
@@ -206,7 +209,7 @@ impl Layout {
                 ffn,
             });
         }
-        layout.final_norm = layout.push(2 * config.width, Kind::Norm);
+        layout.final_norm = layout.push(config.width, Kind::Norm);
         layout.head_bias = layout.push(config.vocab_size, Kind::Bias);
         Ok(layout)
     }
@@ -238,7 +241,7 @@ impl Layout {
                         *value = 0.2 * (random.unit() - 0.5);
                     }
                 }
-                Kind::Norm => values[..config.width].fill(1.0),
+                Kind::Norm => values.fill(1.0),
                 Kind::Mesh(depth) => {
                     for layer in 0..depth {
                         for channel in 0..config.width {
@@ -281,6 +284,16 @@ mod tests {
                 ..valid
             },
             GptConfig { heads: 3, ..valid },
+            GptConfig {
+                width: 6,
+                heads: 2,
+                ..valid
+            },
+            GptConfig {
+                width: 8,
+                heads: 8,
+                ..valid
+            },
             GptConfig { layers: 5, ..valid },
             GptConfig {
                 ffn_mesh_depth: 0,

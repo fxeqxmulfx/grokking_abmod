@@ -24,7 +24,7 @@ impl Checkpoint {
         }
         validate_finite(&self.parameters, "checkpoint parameters")?;
         let mut file = File::create(path)?;
-        file.write_all(b"MSHGPT01")?;
+        file.write_all(b"MSHGPT04")?;
         for field in [
             self.config.vocab_size,
             self.config.context,
@@ -53,7 +53,15 @@ impl Checkpoint {
     fn read(reader: &mut impl Read) -> Result<Self> {
         let mut magic = [0_u8; 8];
         reader.read_exact(&mut magic)?;
-        if &magic != b"MSHGPT01" {
+        if &magic == b"MSHGPT01" || &magic == b"MSHGPT02" {
+            return Err(
+                "checkpoint uses learned position embeddings; retrain Mesh GPT with RoPE".into(),
+            );
+        }
+        if &magic == b"MSHGPT03" {
+            return Err("checkpoint uses LayerNorm; retrain Mesh GPT with RMSNorm".into());
+        }
+        if &magic != b"MSHGPT04" {
             return Err("unsupported Mesh GPT checkpoint format".into());
         }
         let mut scalar = || -> Result<usize> {
@@ -132,6 +140,16 @@ mod tests {
         ] {
             assert!(Checkpoint::read(&mut corrupted.as_slice()).is_err());
         }
+        for version in [b"MSHGPT01", b"MSHGPT02"] {
+            let mut legacy = bytes.clone();
+            legacy[..8].copy_from_slice(version);
+            let error = Checkpoint::read(&mut legacy.as_slice()).err().unwrap();
+            assert!(error.to_string().contains("retrain Mesh GPT with RoPE"));
+        }
+        let mut legacy = bytes.clone();
+        legacy[..8].copy_from_slice(b"MSHGPT03");
+        let error = Checkpoint::read(&mut legacy.as_slice()).err().unwrap();
+        assert!(error.to_string().contains("retrain Mesh GPT with RMSNorm"));
         let mut nonfinite = bytes.clone();
         let last = nonfinite.len() - 4;
         nonfinite[last..].copy_from_slice(&f32::NAN.to_le_bytes());
