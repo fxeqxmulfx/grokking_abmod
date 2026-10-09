@@ -23,7 +23,7 @@ cargo oxide run --bin mesh-gpt -- grok \
   --output target/mesh-gpt-grokking-div
 
 # Learning curves and a PCA view of the shared generated vectors.
-python3 scripts/plot-grokking.py target/mesh-gpt-grokking-epoch
+uv run --locked scripts/plot-grokking.py target/mesh-gpt-grokking-epoch
 
 cargo oxide run --bin mesh-gpt -- grok --help
 ```

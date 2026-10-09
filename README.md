@@ -23,7 +23,7 @@ per-head QK-Norm before slice RoPE, GPU AdamW, checkpoints, and text sampling.
 cargo oxide run --bin mesh-gpt -- train
 cargo oxide run --bin mesh-gpt -- generate --prompt "the little robot "
 cargo oxide run --bin mesh-gpt -- verify
-python3 scripts/plot-gpt.py
+uv run --locked scripts/plot-gpt.py
 ```
 
 See [Mesh GPT architecture, options, and verification](docs/mesh-gpt.md).
@@ -125,14 +125,19 @@ cargo oxide run -- --depth 14 --samples 4096 --epochs 10000 --seed 7
 # Inspect all options.
 cargo oxide run -- --help
 
-# Optional plots (requires NumPy and Matplotlib).
-python3 scripts/plot-mesh.py
+# Optional plots (uv installs the locked plotting dependencies).
+uv run --locked scripts/plot-mesh.py
 ```
 
 The default output directory is `target/mesh-net`; change it with `--output PATH`.
 It contains `loss.csv`, `predictions.csv`, `parameters.csv`, `nodes.csv`, and
 `run.txt`. The plot script adds `mesh-training.svg` and `mesh-training.png`.
 Predictions are evaluated on a separate 2001-point grid over `[-3, 3]`.
+
+Python scripts run through `uv` in isolated environments. Each script declares
+NumPy and Matplotlib in PEP 723 metadata; its adjacent `.py.lock` file records
+exact dependency versions, PyPI download locations, and hashes. Use
+`uv lock --script scripts/<name>.py` when intentionally updating those locks.
 
 A run on an RTX 3050 Laptop GPU produced:
 

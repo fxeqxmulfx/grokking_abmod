@@ -198,8 +198,8 @@ cargo oxide run --bin mesh-gpt -- train \
 # Check every CUDA operator against the independent CPU reference.
 cargo oxide run --bin mesh-gpt -- verify
 
-# Plot learning curves; requires NumPy and Matplotlib.
-python3 scripts/plot-gpt.py
+# Plot learning curves with locked uv dependencies.
+uv run --locked scripts/plot-gpt.py
 
 # All dimensions, optimizer, sampling, and output options.
 cargo oxide run --bin mesh-gpt -- --help

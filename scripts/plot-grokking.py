@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --locked --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["matplotlib>=3.10,<4", "numpy>=2,<3"]
+# ///
 """Plot complete-split Mesh GPT grokking curves and generated token vectors."""
 
 import argparse
