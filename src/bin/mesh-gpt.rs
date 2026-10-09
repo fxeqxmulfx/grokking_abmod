@@ -9,10 +9,13 @@ use std::{
 use grokking_abmod::{
     Result,
     gpt::{
-        CharacterTokenizer, Checkpoint, GptConfig, GptTrainOptions, GpuMeshGpt, ReferenceGpt,
-        TextDataset,
+        AdamWOptions, CharacterTokenizer, Checkpoint, GptConfig, GptTrainOptions, GpuMeshGpt,
+        IGNORE_TARGET, ReferenceGpt, TextDataset,
     },
 };
+
+#[path = "mesh-gpt/grokking.rs"]
+mod grokking;
 
 struct Options {
     command: String,
@@ -91,15 +94,19 @@ fn value<T: FromStr>(arguments: &mut impl Iterator<Item = String>, flag: &str) -
 }
 
 fn main() -> Result<()> {
+    if std::env::args().nth(1).as_deref() == Some("grok") {
+        return grokking::run(std::env::args().skip(2));
+    }
     let options = Options::parse()?;
     if options.help {
         println!(
             "Mesh GPT: all learned weights in meshes, with fixed RMSNorm, QK-Norm, slice RoPE, and XSA\n\
-            Usage: cargo oxide run --bin mesh-gpt -- [train|generate|verify] [options]\n\n\
+            Usage: cargo oxide run --bin mesh-gpt -- [train|generate|grok|verify] [options]\n\n\
+            grok --help           Modular arithmetic experiments from arXiv:2201.02177v1\n\
             --dataset PATH        UTF-8 training corpus (default: data/mesh-gpt-demo.txt)\n\
             --output PATH         Artifacts (default: target/mesh-gpt)\n\
             --checkpoint PATH     Load for generate; save for train (default: OUTPUT/model.bin)\n\
-            --width N             Channels, 2..64 (default: 32)\n\
+            --width N             Channels, 2..128 (default: 32)\n\
             --heads N             Heads, 1..8, divides width, even channels/head (default: 4)\n\
             --layers N            Transformer blocks, 1..4 (default: 2)\n\
             --context N           Maximum sequence length, 1..128 (default: 32)\n\
@@ -146,7 +153,9 @@ fn main() -> Result<()> {
             Ok(())
         }
         "train" => train(options, checkpoint),
-        other => Err(format!("unknown command: {other}; use train, generate, or verify").into()),
+        other => {
+            Err(format!("unknown command: {other}; use train, generate, grok, or verify").into())
+        }
     }
 }
 
@@ -339,6 +348,15 @@ fn verify(device: usize) -> Result<()> {
             attention_mesh_depth: 1,
             ffn_mesh_depth: 1,
         },
+        GptConfig {
+            vocab_size: 9,
+            context: 3,
+            width: 128,
+            heads: 4,
+            layers: 2,
+            attention_mesh_depth: 2,
+            ffn_mesh_depth: 2,
+        },
     ] {
         let reference = ReferenceGpt::new(config, 7)?;
         let mut model = GpuMeshGpt::new(device, config, 7)?;
@@ -360,11 +378,27 @@ fn verify(device: usize) -> Result<()> {
                     )?;
                 }
             }
-            let (cpu_loss, cpu_gradients) = reference.loss_and_gradient(&x, &y, sequence)?;
-            let (gpu_loss, gpu_gradients) = model.loss_and_gradient(&x, &y, sequence)?;
-            close("cross-entropy", cpu_loss, gpu_loss)?;
-            for (parameter, (&cpu, &gpu)) in cpu_gradients.iter().zip(&gpu_gradients).enumerate() {
-                close(&format!("gradient parameter={parameter}"), cpu, gpu)?;
+            let answer_only: Vec<_> = y
+                .iter()
+                .enumerate()
+                .map(|(row, &target)| {
+                    if row % sequence + 1 == sequence {
+                        target
+                    } else {
+                        IGNORE_TARGET
+                    }
+                })
+                .collect();
+            for targets in [&y, &answer_only] {
+                let (cpu_loss, cpu_gradients) =
+                    reference.loss_and_gradient(&x, targets, sequence)?;
+                let (gpu_loss, gpu_gradients) = model.loss_and_gradient(&x, targets, sequence)?;
+                close("cross-entropy", cpu_loss, gpu_loss)?;
+                for (parameter, (&cpu, &gpu)) in
+                    cpu_gradients.iter().zip(&gpu_gradients).enumerate()
+                {
+                    close(&format!("gradient parameter={parameter}"), cpu, gpu)?;
+                }
             }
         }
         let prefix = [0, 1];
@@ -385,46 +419,77 @@ fn verify(device: usize) -> Result<()> {
         }
 
         let x = [0, 1, 3, 2, 4, 1];
-        let y = [1, 3, 2, 4, 1, 0];
-        let mut parameters = reference.parameters().to_vec();
-        let mut moments = vec![[0.0_f32; 2]; parameters.len()];
-        let (mut b1, mut b2) = (1.0_f32, 1.0_f32);
-        let mut first_step = Vec::new();
-        for step in 1..=3 {
-            let cpu = ReferenceGpt::from_parameters(config, parameters.clone())?;
-            let (_, gradient) = cpu.loss_and_gradient(&x, &y, 3)?;
-            b1 *= 0.9;
-            b2 *= 0.999;
-            for ((parameter, moment), gradient) in
-                parameters.iter_mut().zip(&mut moments).zip(gradient)
-            {
-                let gradient = gradient as f32;
-                moment[0] = 0.9 * moment[0] + 0.1 * gradient;
-                moment[1] = 0.999 * moment[1] + 0.001 * gradient * gradient;
-                *parameter -= 0.002
-                    * (moment[0] / (1.0 - b1) / ((moment[1] / (1.0 - b2)).sqrt() + 1e-8)
-                        + 0.01 * *parameter);
+        for optimizer in [
+            AdamWOptions {
+                learning_rate: 0.002,
+                weight_decay: 0.01,
+                ..AdamWOptions::default()
+            },
+            AdamWOptions {
+                learning_rate: 0.001,
+                weight_decay: 1.0,
+                beta2: 0.98,
+                ..AdamWOptions::default()
+            },
+        ] {
+            let y = if optimizer.beta2 == 0.98 {
+                [
+                    IGNORE_TARGET,
+                    IGNORE_TARGET,
+                    2,
+                    IGNORE_TARGET,
+                    IGNORE_TARGET,
+                    0,
+                ]
+            } else {
+                [1, 3, 2, 4, 1, 0]
+            };
+            model.set_parameters(reference.parameters())?;
+            let mut parameters = reference.parameters().to_vec();
+            let mut moments = vec![[0.0_f32; 2]; parameters.len()];
+            let (mut b1, mut b2) = (1.0_f32, 1.0_f32);
+            let mut first_step = Vec::new();
+            for step in 1..=3 {
+                let cpu = ReferenceGpt::from_parameters(config, parameters.clone())?;
+                let (_, gradient) = cpu.loss_and_gradient(&x, &y, 3)?;
+                b1 *= optimizer.beta1;
+                b2 *= optimizer.beta2;
+                for ((parameter, moment), gradient) in
+                    parameters.iter_mut().zip(&mut moments).zip(gradient)
+                {
+                    let gradient = gradient as f32;
+                    moment[0] = optimizer.beta1 * moment[0] + (1.0 - optimizer.beta1) * gradient;
+                    moment[1] =
+                        optimizer.beta2 * moment[1] + (1.0 - optimizer.beta2) * gradient * gradient;
+                    *parameter -= optimizer.learning_rate
+                        * (moment[0]
+                            / (1.0 - b1)
+                            / ((moment[1] / (1.0 - b2)).sqrt() + optimizer.epsilon)
+                            + optimizer.weight_decay * *parameter);
+                }
+                if step == 1 {
+                    first_step = parameters.clone();
+                }
+                model.train_batch_with_optimizer(&x, &y, 3, optimizer)?;
+                for (parameter, (&cpu, gpu)) in
+                    parameters.iter().zip(model.parameters()?).enumerate()
+                {
+                    close(
+                        &format!("AdamW step={step} parameter={parameter}"),
+                        f64::from(cpu),
+                        f64::from(gpu),
+                    )?;
+                }
             }
-            if step == 1 {
-                first_step = parameters.clone();
-            }
-            model.train_batch(&x, &y, 3, 0.002, 0.01)?;
-            for (parameter, (&cpu, gpu)) in parameters.iter().zip(model.parameters()?).enumerate() {
+            model.set_parameters(reference.parameters())?;
+            model.train_batch_with_optimizer(&x, &y, 3, optimizer)?;
+            for (parameter, (&cpu, gpu)) in first_step.iter().zip(model.parameters()?).enumerate() {
                 close(
-                    &format!("AdamW step={step} parameter={parameter}"),
+                    &format!("AdamW reset parameter={parameter}"),
                     f64::from(cpu),
                     f64::from(gpu),
                 )?;
             }
-        }
-        model.set_parameters(reference.parameters())?;
-        model.train_batch(&x, &y, 3, 0.002, 0.01)?;
-        for (parameter, (&cpu, gpu)) in first_step.iter().zip(model.parameters()?).enumerate() {
-            close(
-                &format!("AdamW reset parameter={parameter}"),
-                f64::from(cpu),
-                f64::from(gpu),
-            )?;
         }
         let mut zero_embeddings = vec![0.5; config.parameter_count()?];
         zero_embeddings[..2 * config.width * config.attention_mesh_depth].fill(0.0);
@@ -433,7 +498,7 @@ fn verify(device: usize) -> Result<()> {
             return Err("zero token embeddings produced additive logit offsets".into());
         }
         println!(
-            "PASS mesh embeddings/RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, all gradients, causality, batch tails, AdamW/reset, zero-input offsets",
+            "PASS mesh embeddings/RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, dense/masked gradients, causality, batch tails, AdamW beta2=0.999/0.98/reset, zero-input offsets",
             config.width, config.heads, config.layers
         );
     }

@@ -1,6 +1,6 @@
 use crate::{Result, mesh::Random};
 
-use super::{Features, MAX_CONTEXT, MAX_HEADS, MAX_ROWS, MAX_VOCAB, MAX_WIDTH};
+use super::{Features, IGNORE_TARGET, MAX_CONTEXT, MAX_HEADS, MAX_ROWS, MAX_VOCAB, MAX_WIDTH};
 
 /// Every learned channel mixer is a stack of width-preserving mesh layers.
 /// A neuron reads channels c and (c + 1) mod width from the previous layer.
@@ -45,7 +45,7 @@ impl GptConfig {
             return Err("context must be in 1..128".into());
         }
         if !(2..=MAX_WIDTH).contains(&self.width) {
-            return Err("width must be in 2..64".into());
+            return Err("width must be in 2..128".into());
         }
         if !(1..=MAX_HEADS).contains(&self.heads) || !self.width.is_multiple_of(self.heads) {
             return Err("heads must be in 1..8 and divide width".into());
@@ -94,11 +94,63 @@ impl GptConfig {
         inputs: &[u32],
         targets: &[u32],
         sequence: usize,
-    ) -> Result<()> {
+    ) -> Result<usize> {
         self.validate_tokens(inputs, sequence)?;
-        self.validate_tokens(targets, sequence)?;
         if inputs.len() != targets.len() {
             return Err("inputs and targets must have equal lengths".into());
+        }
+        let mut supervised = 0;
+        for &target in targets {
+            if target != IGNORE_TARGET {
+                if target as usize >= self.vocab_size {
+                    return Err("target ID is outside the vocabulary".into());
+                }
+                supervised += 1;
+            }
+        }
+        if supervised == 0 {
+            return Err("batch must contain at least one supervised target".into());
+        }
+        Ok(supervised)
+    }
+}
+
+/// AdamW hyperparameters. Learning rate may change between updates for warmup.
+#[derive(Clone, Copy, Debug)]
+pub struct AdamWOptions {
+    pub learning_rate: f32,
+    pub weight_decay: f32,
+    pub beta1: f32,
+    pub beta2: f32,
+    pub epsilon: f32,
+}
+
+impl Default for AdamWOptions {
+    fn default() -> Self {
+        Self {
+            learning_rate: 0.003,
+            weight_decay: 0.01,
+            beta1: 0.9,
+            beta2: 0.999,
+            epsilon: 1e-8,
+        }
+    }
+}
+
+impl AdamWOptions {
+    pub fn validate(&self) -> Result<()> {
+        if !self.learning_rate.is_finite()
+            || self.learning_rate <= 0.0
+            || !self.weight_decay.is_finite()
+            || self.weight_decay < 0.0
+            || !self.beta1.is_finite()
+            || !(0.0..1.0).contains(&self.beta1)
+            || !self.beta2.is_finite()
+            || !(0.0..1.0).contains(&self.beta2)
+            || !self.epsilon.is_finite()
+            || self.epsilon <= 0.0
+        {
+            return Err("AdamW requires finite positive learning rate/epsilon, nonnegative decay, and betas in [0, 1)".into());
         }
         Ok(())
     }
@@ -275,8 +327,59 @@ mod tests {
     use super::*;
 
     #[test]
+    fn optimizer_rejects_invalid_hyperparameters() {
+        let valid = AdamWOptions::default();
+        for options in [
+            AdamWOptions {
+                beta1: 1.0,
+                ..valid
+            },
+            AdamWOptions {
+                beta2: -0.1,
+                ..valid
+            },
+            AdamWOptions {
+                beta2: f32::NAN,
+                ..valid
+            },
+            AdamWOptions {
+                epsilon: 0.0,
+                ..valid
+            },
+            AdamWOptions {
+                learning_rate: f32::INFINITY,
+                ..valid
+            },
+            AdamWOptions {
+                weight_decay: -1.0,
+                ..valid
+            },
+        ] {
+            assert!(options.validate().is_err());
+        }
+        AdamWOptions {
+            beta1: 0.0,
+            beta2: 0.98,
+            ..valid
+        }
+        .validate()
+        .unwrap();
+        assert!(
+            GptConfig::default()
+                .validate_batch(&[0], &[IGNORE_TARGET], 1)
+                .is_err()
+        );
+        assert_eq!(
+            GptConfig::default()
+                .validate_batch(&[0, 1], &[IGNORE_TARGET, 2], 2)
+                .unwrap(),
+            1
+        );
+    }
+
+    #[test]
     fn fixed_token_codes_are_distinct_at_wide_and_narrow_widths() {
-        for width in (2..=64).step_by(2) {
+        for width in (2..=MAX_WIDTH).step_by(2) {
             for vocab_size in [2, 3, 5, 26, 129, 255, 256] {
                 let config = GptConfig {
                     width,
@@ -372,7 +475,7 @@ mod tests {
         assert!(valid.validate_tokens(&[], 1).is_err());
         assert!(valid.validate_batch(&[0, 1], &[1], 2).is_err());
         let maximum = GptConfig {
-            width: 64,
+            width: MAX_WIDTH,
             heads: 8,
             context: 128,
             vocab_size: 256,

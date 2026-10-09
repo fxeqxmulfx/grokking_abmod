@@ -215,7 +215,7 @@ existing `--attention-depth` option. RMSNorm and QK-Norm add no parameters.
 For width `W`, block count `L`, attention/embedding depth `A`, and FFN depth `F`,
 the count is `2 * W * (A + L * (4 * A + F))`; it does not grow with the vocabulary.
 The generated vector table still contains `V * W` active values (CUDA buffers
-use fixed-capacity rows of 64 channels), and its mesh is evaluated for all `V`
+use fixed-capacity rows of 128 channels), and its mesh is evaluated for all `V`
 tokens at each forward pass.
 The tokenizer builds a sorted Unicode-character vocabulary from the corpus.
 Prompts must use that vocabulary. Temperature 0 selects greedy decoding;
@@ -254,6 +254,7 @@ single default run has higher validation loss.
   the safe `GpuMeshGpt` API.
 - `src/gpt/reference.rs`: separate f64 scalar autodiff for numerical validation.
 - `src/gpt/text.rs`: character tokenizer and split-aware next-token windows.
+- `src/gpt/grokking.rs`: modular operation tables, abstract symbols, and epoch sampling.
 - `src/gpt/checkpoint.rs`: versioned little-endian checkpoint format.
 - `src/bin/mesh-gpt.rs`: training, generation, artifact export, and GPU verification.
 - `data/mesh-gpt-demo.txt`: original small English corpus.
@@ -264,6 +265,11 @@ update; repeated calls retain moments and the optimizer step count.
 `loss_and_gradient` copies diagnostic gradients to the host. `parameters` and
 `set_parameters` export/replace weights; replacement resets AdamW state.
 `generate` decodes greedily or samples at the requested temperature.
+`token_embeddings` exports the shared mesh-generated vectors. For answer-only
+training, targets may contain `IGNORE_TARGET`; the mean loss and gradients count
+only supervised positions. `train_batch_with_optimizer` accepts checked
+`AdamWOptions`, including custom betas and epsilon. See [Grokking on Mesh GPT](grokking.md)
+for the modular arithmetic experiment and its optimizer settings.
 
 ```rust
 use grokking_abmod::gpt::{GptConfig, GpuMeshGpt};
@@ -316,7 +322,7 @@ the attention derivative from all causal queries. Below the norm floor, the
 denominator is constant. The raw attention output is retained for this backward
 pass; the XSA output feeds the output mesh.
 
-Supported limits: width 2..64, 1..8 heads dividing width with even channels per
+Supported limits: width 2..128, 1..8 heads dividing width with even channels per
 head, 1..4 blocks,
 context 1..128, mesh depths 1..16, vocabulary 2..256, and at most 4096 token
 rows per batch. Activations and gradient buffers use fixed-capacity row types;
@@ -349,7 +355,7 @@ It also checks isolated CUDA RoPE forward, inverse, and backward against f64
 autodiff for multiple head widths, positions through 127, sequence resets,
 129-row batch tails, norm preservation, and rejected invalid launch arguments.
 It checks isolated CUDA full-width RMSNorm and per-head QK-Norm outputs and
-input derivatives against f64 autodiff for widths 2, 4, 6, 12, 32, and 64,
+input derivatives against f64 autodiff for widths 2, 4, 6, 12, 32, 64, and 128,
 with head counts 1, 2, 4, and 8,
 zero/tiny/constant inputs, 129-row batch tails, and rejected invalid launch
 arguments, including oversized channel/head combinations and cache length

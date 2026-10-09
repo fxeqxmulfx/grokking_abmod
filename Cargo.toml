@@ -9,3 +9,11 @@ default-run = "grokking_abmod"
 cuda-core = { git = "https://github.com/fxeqxmulfx/cuda-rust.git", branch = "experiments" }
 cuda-device = { git = "https://github.com/fxeqxmulfx/cuda-rust.git", branch = "experiments" }
 cuda-host = { git = "https://github.com/fxeqxmulfx/cuda-rust.git", branch = "experiments" }
+
+[lints.rust]
+warnings = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+undocumented_unsafe_blocks = "deny"

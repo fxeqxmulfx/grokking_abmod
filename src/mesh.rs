@@ -259,12 +259,29 @@ impl Random {
         Self { state: seed }
     }
     pub(crate) fn unit(&mut self) -> f32 {
+        ((self.next_u64() >> 40) as u32) as f32 / 16_777_216.0
+    }
+
+    fn next_u64(&mut self) -> u64 {
         self.state = self.state.wrapping_add(0x9e3779b97f4a7c15);
         let mut bits = self.state;
         bits = (bits ^ (bits >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
         bits = (bits ^ (bits >> 27)).wrapping_mul(0x94d049bb133111eb);
         bits ^= bits >> 31;
-        ((bits >> 40) as u32) as f32 / 16_777_216.0
+        bits
+    }
+
+    /// Uniform integer sampling without float rounding or modulo bias.
+    pub(crate) fn index(&mut self, bound: usize) -> usize {
+        assert!(bound > 0);
+        let bound = bound as u64;
+        let threshold = bound.wrapping_neg() % bound;
+        loop {
+            let bits = self.next_u64();
+            if bits >= threshold {
+                return (bits % bound) as usize;
+            }
+        }
     }
 }
 

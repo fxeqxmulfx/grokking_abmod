@@ -4,16 +4,23 @@
 mod checkpoint;
 mod config;
 mod gpu;
+mod grokking;
 mod reference;
 mod text;
 
 pub use checkpoint::Checkpoint;
-pub use config::{GptConfig, GptTrainOptions};
+pub use config::{AdamWOptions, GptConfig, GptTrainOptions};
 pub use gpu::GpuMeshGpt;
+pub use grokking::{
+    EQUATION_CONTEXT, Equation, EquationDataset, EquationSampler, ModularOperation,
+};
 pub use reference::ReferenceGpt;
 pub use text::{CharacterTokenizer, TextDataset};
 
-pub(crate) const MAX_WIDTH: usize = 64;
+/// Target value that excludes a position from loss and accuracy.
+pub const IGNORE_TARGET: u32 = u32::MAX;
+
+pub(crate) const MAX_WIDTH: usize = 128;
 pub(crate) const MAX_CONTEXT: usize = 128;
 pub(crate) const MAX_HEADS: usize = 8;
 pub(crate) const MAX_VOCAB: usize = 256;

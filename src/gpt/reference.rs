@@ -1,7 +1,7 @@
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    GptConfig, RMSNORM_EPSILON, ROPE_BASE, XSA_EPSILON,
+    GptConfig, IGNORE_TARGET, RMSNORM_EPSILON, ROPE_BASE, XSA_EPSILON,
     config::{Layout, token_codes},
 };
 
@@ -62,10 +62,13 @@ impl ReferenceGpt {
         targets: &[u32],
         sequence: usize,
     ) -> Result<(f64, Vec<f64>)> {
-        self.config.validate_batch(tokens, targets, sequence)?;
+        let supervised = self.config.validate_batch(tokens, targets, sequence)?;
         let (mut tape, logits) = self.forward(tokens, sequence);
         let mut losses = Vec::new();
         for (row, &target) in logits.iter().zip(targets) {
+            if target == IGNORE_TARGET {
+                continue;
+            }
             let maximum = row
                 .iter()
                 .map(|&id| tape.values[id])
@@ -81,7 +84,7 @@ impl ReferenceGpt {
             losses.push(tape.subtract(normalized, row[target as usize]));
         }
         let sum = tape.sum(&losses);
-        let loss_id = tape.scale(sum, 1.0 / tokens.len() as f64);
+        let loss_id = tape.scale(sum, 1.0 / supervised as f64);
         let loss = tape.values[loss_id];
         let gradients = tape.backward(loss_id, self.parameters.len());
         if !loss.is_finite() || gradients.iter().any(|g| !g.is_finite()) {
@@ -752,31 +755,74 @@ mod tests {
     fn all_transformer_gradients_match_finite_differences() {
         let model = ReferenceGpt::new(tiny_config(), 7).unwrap();
         let x = [0, 1, 3, 2, 4, 1];
-        let y = [1, 3, 2, 4, 1, 0];
-        let (_, gradients) = model.loss_and_gradient(&x, &y, 3).unwrap();
-        for (parameter, &analytic) in gradients.iter().enumerate() {
-            let mut plus = model.parameters.clone();
-            let mut minus = plus.clone();
-            // Small steps resolve normalization and ELU curvature.
-            plus[parameter] += 0.0001;
-            minus[parameter] -= 0.0001;
-            let step = f64::from(plus[parameter]) - f64::from(minus[parameter]);
-            let a = ReferenceGpt::from_parameters(model.config, plus)
-                .unwrap()
-                .loss_and_gradient(&x, &y, 3)
-                .unwrap()
-                .0;
-            let b = ReferenceGpt::from_parameters(model.config, minus)
-                .unwrap()
-                .loss_and_gradient(&x, &y, 3)
-                .unwrap()
-                .0;
-            let numerical = (a - b) / step;
-            assert!(
-                (analytic - numerical).abs() < 4e-4 * (1.0 + analytic.abs()),
-                "parameter={parameter}: {analytic} vs {numerical}"
-            );
+        for y in [
+            [1, 3, 2, 4, 1, 0],
+            [
+                IGNORE_TARGET,
+                IGNORE_TARGET,
+                2,
+                IGNORE_TARGET,
+                IGNORE_TARGET,
+                0,
+            ],
+        ] {
+            let (_, gradients) = model.loss_and_gradient(&x, &y, 3).unwrap();
+            for (parameter, &analytic) in gradients.iter().enumerate() {
+                let mut plus = model.parameters.clone();
+                let mut minus = plus.clone();
+                // Small steps resolve normalization and ELU curvature.
+                plus[parameter] += 0.0001;
+                minus[parameter] -= 0.0001;
+                let step = f64::from(plus[parameter]) - f64::from(minus[parameter]);
+                let a = ReferenceGpt::from_parameters(model.config, plus)
+                    .unwrap()
+                    .loss_and_gradient(&x, &y, 3)
+                    .unwrap()
+                    .0;
+                let b = ReferenceGpt::from_parameters(model.config, minus)
+                    .unwrap()
+                    .loss_and_gradient(&x, &y, 3)
+                    .unwrap()
+                    .0;
+                let numerical = (a - b) / step;
+                assert!(
+                    (analytic - numerical).abs() < 4e-4 * (1.0 + analytic.abs()),
+                    "parameter={parameter}: {analytic} vs {numerical}"
+                );
+            }
         }
+    }
+
+    #[test]
+    fn answer_only_loss_and_gradients_average_over_supervised_equations() {
+        let model = ReferenceGpt::new(tiny_config(), 7).unwrap();
+        let inputs = [0, 1, 3, 2, 4, 1];
+        let targets = [
+            IGNORE_TARGET,
+            IGNORE_TARGET,
+            2,
+            IGNORE_TARGET,
+            IGNORE_TARGET,
+            0,
+        ];
+        let (loss, gradient) = model.loss_and_gradient(&inputs, &targets, 3).unwrap();
+        let (first_loss, first_gradient) = model
+            .loss_and_gradient(&inputs[..3], &targets[..3], 3)
+            .unwrap();
+        let (second_loss, second_gradient) = model
+            .loss_and_gradient(&inputs[3..], &targets[3..], 3)
+            .unwrap();
+        assert!((loss - (first_loss + second_loss) / 2.0).abs() < 1e-12);
+        for ((actual, first), second) in gradient.iter().zip(first_gradient).zip(second_gradient) {
+            assert!((actual - (first + second) / 2.0).abs() < 1e-12);
+        }
+        assert!(
+            model
+                .loss_and_gradient(&inputs, &[IGNORE_TARGET; 6], 3)
+                .is_err()
+        );
+        assert!(model.loss_and_gradient(&inputs, &[99; 6], 3).is_err());
+        assert!(model.logits(&[IGNORE_TARGET], 1).is_err());
     }
 
     #[test]

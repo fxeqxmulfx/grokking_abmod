@@ -27,6 +27,9 @@ python3 scripts/plot-gpt.py
 ```
 
 See [Mesh GPT architecture, options, and verification](docs/mesh-gpt.md).
+The modular arithmetic experiment from arXiv:2201.02177v1 is available as
+`cargo oxide run --bin mesh-gpt -- grok`; see [Grokking on Mesh GPT](docs/grokking.md)
+for complete-split evaluation, abstract symbol tokens, and the paper's AdamW settings.
 The original scalar example remains available with `cargo oxide run`.
 
 ## Model
@@ -153,8 +156,12 @@ cargo oxide run -- --verify-only
 
 # Check formatting and lint all targets.
 cargo fmt --check
-cargo clippy --all-targets --locked -- -D warnings
+cargo clippy --all-targets --locked
 ```
+
+`Cargo.toml` denies Rust warnings, unsafe operations inside unsafe functions,
+Clippy's standard `all` lint group, and undocumented unsafe blocks. These checks
+apply to ordinary Cargo/Clippy invocations without an extra `-D warnings` option.
 
 GPU verification covers depths 2, 6, 14, and 32, batch sizes 1, 7, and 129
 (including partial CUDA blocks), optimizer continuation/reset, parameter round-trips,
