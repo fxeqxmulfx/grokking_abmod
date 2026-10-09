@@ -69,16 +69,7 @@ impl ReferenceGpt {
             if target == IGNORE_TARGET {
                 continue;
             }
-            let maximum = row
-                .iter()
-                .map(|&id| tape.values[id])
-                .fold(f64::NEG_INFINITY, f64::max);
-            let mut exponentials = Vec::new();
-            for &logit in row {
-                let shifted = tape.shift(logit, -maximum);
-                exponentials.push(tape.exp(shifted));
-            }
-            let sum = tape.sum(&exponentials);
+            let (maximum, sum, _) = tape.shifted_exponentials(row);
             let log = tape.log(sum);
             let normalized = tape.shift(log, maximum);
             losses.push(tape.subtract(normalized, row[target as usize]));
@@ -96,7 +87,7 @@ impl ReferenceGpt {
     fn forward(&self, tokens: &[u32], sequence: usize) -> (Tape, Vec<Vec<usize>>) {
         let config = self.config;
         let width = config.width;
-        let mut tape = Tape::new(&self.parameters);
+        let mut tape = Tape::new(self.parameters.iter().map(|&p| f64::from(p)));
         let codes: Vec<Vec<_>> = token_codes(config)
             .iter()
             .map(|row| {
@@ -118,24 +109,14 @@ impl ReferenceGpt {
             .collect();
         for block in &self.layout.blocks {
             let normalized = rmsnorm(&mut tape, &x, 1);
-            let query = mesh(
-                &mut tape,
-                &normalized,
-                self.layout.groups[block.query].offset,
-                config.attention_mesh_depth,
-            );
-            let key = mesh(
-                &mut tape,
-                &normalized,
-                self.layout.groups[block.key].offset,
-                config.attention_mesh_depth,
-            );
-            let value = mesh(
-                &mut tape,
-                &normalized,
-                self.layout.groups[block.value].offset,
-                config.attention_mesh_depth,
-            );
+            let [query, key, value] = [block.query, block.key, block.value].map(|group| {
+                mesh(
+                    &mut tape,
+                    &normalized,
+                    self.layout.groups[group].offset,
+                    config.attention_mesh_depth,
+                )
+            });
             let query = rmsnorm(&mut tape, &query, config.heads);
             let key = rmsnorm(&mut tape, &key, config.heads);
             let query = rotary(&mut tape, &query, sequence, config.heads);
@@ -163,14 +144,7 @@ impl ReferenceGpt {
             .iter()
             .map(|row| {
                 (0..config.vocab_size)
-                    .map(|token| {
-                        let products: Vec<_> = row
-                            .iter()
-                            .enumerate()
-                            .map(|(channel, &id)| tape.multiply(id, embeddings[token][channel]))
-                            .collect();
-                        tape.sum(&products)
-                    })
+                    .map(|token| tape.dot(row, &embeddings[token]))
                     .collect()
             })
             .collect();
@@ -184,10 +158,11 @@ struct Tape {
 }
 
 impl Tape {
-    fn new(parameters: &[f32]) -> Self {
+    fn new(values: impl IntoIterator<Item = f64>) -> Self {
+        let values: Vec<_> = values.into_iter().collect();
         Self {
-            values: parameters.iter().map(|&p| f64::from(p)).collect(),
-            edges: vec![[(NONE, 0.0); 2]; parameters.len()],
+            edges: vec![[(NONE, 0.0); 2]; values.len()],
+            values,
         }
     }
     fn node(&mut self, value: f64, edges: [(usize, f64); 2]) -> usize {
@@ -265,6 +240,43 @@ impl Tape {
         }
         total
     }
+    fn dot(&mut self, left: &[usize], right: &[usize]) -> usize {
+        let products: Vec<_> = left
+            .iter()
+            .zip(right)
+            .map(|(&a, &b)| self.multiply(a, b))
+            .collect();
+        self.sum(&products)
+    }
+    fn shifted_exponentials(&mut self, ids: &[usize]) -> (f64, usize, Vec<usize>) {
+        let maximum = ids
+            .iter()
+            .map(|&id| self.values[id])
+            .fold(f64::NEG_INFINITY, f64::max);
+        let exponentials: Vec<_> = ids
+            .iter()
+            .map(|&id| {
+                let shifted = self.shift(id, -maximum);
+                self.exp(shifted)
+            })
+            .collect();
+        (maximum, self.sum(&exponentials), exponentials)
+    }
+    fn output_and_gradient(
+        mut self,
+        output: &[usize],
+        upstream: &[f64],
+        count: usize,
+    ) -> (Vec<f64>, Vec<f64>) {
+        let values = output.iter().map(|&id| self.values[id]).collect();
+        let weighted: Vec<_> = output
+            .iter()
+            .zip(upstream)
+            .map(|(&id, &g)| self.scale(id, g))
+            .collect();
+        let loss = self.sum(&weighted);
+        (values, self.backward(loss, count))
+    }
     fn backward(&self, loss: usize, count: usize) -> Vec<f64> {
         let mut adjoints = vec![0.0; self.values.len()];
         adjoints[loss] = 1.0;
@@ -286,8 +298,7 @@ fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], heads: usize) -> Vec<Vec<usize>> {
         .map(|row| {
             row.chunks_exact(head_width)
                 .flat_map(|head| {
-                    let squares: Vec<_> = head.iter().map(|&id| tape.multiply(id, id)).collect();
-                    let sum = tape.sum(&squares);
+                    let sum = tape.dot(head, head);
                     let mean_square = tape.scale(sum, 1.0 / head_width as f64);
                     let stabilized = tape.shift(mean_square, f64::from(RMSNORM_EPSILON));
                     let inverse = tape.inverse_sqrt(stabilized);
@@ -306,19 +317,9 @@ pub(super) fn rmsnorm_reference(
     heads: usize,
 ) -> (Vec<f64>, Vec<f64>) {
     let width = input.len();
-    let mut tape = Tape {
-        values: input.to_vec(),
-        edges: vec![[(NONE, 0.0); 2]; width],
-    };
+    let mut tape = Tape::new(input.iter().copied());
     let output = rmsnorm(&mut tape, &[(0..width).collect()], heads).remove(0);
-    let values = output.iter().map(|&id| tape.values[id]).collect();
-    let weighted: Vec<_> = output
-        .iter()
-        .zip(gradient)
-        .map(|(&id, &g)| tape.scale(id, g))
-        .collect();
-    let loss = tape.sum(&weighted);
-    (values, tape.backward(loss, width))
+    tape.output_and_gradient(&output, gradient, width)
 }
 
 fn mesh(tape: &mut Tape, input: &[Vec<usize>], offset: usize, depth: usize) -> Vec<Vec<usize>> {
@@ -390,24 +391,14 @@ pub(super) fn rotary_reference(
     position: usize,
     heads: usize,
 ) -> (Vec<f64>, Vec<f64>) {
-    let mut tape = Tape {
-        values: input.to_vec(),
-        edges: vec![[(NONE, 0.0); 2]; input.len()],
-    };
+    let mut tape = Tape::new(input.iter().copied());
     let output = rotary_row(
         &mut tape,
         &(0..input.len()).collect::<Vec<_>>(),
         position,
         heads,
     );
-    let values = output.iter().map(|&id| tape.values[id]).collect();
-    let weighted: Vec<_> = output
-        .iter()
-        .zip(gradient)
-        .map(|(&id, &g)| tape.scale(id, g))
-        .collect();
-    let loss = tape.sum(&weighted);
-    (values, tape.backward(loss, input.len()))
+    tape.output_and_gradient(&output, gradient, input.len())
 }
 
 // A channel is reduced over different key rows, rather than one tensor slice.
@@ -432,25 +423,14 @@ fn attention(
                 let begin = head * head_width;
                 let scores: Vec<_> = (0..=position)
                     .map(|key| {
-                        let products: Vec<_> = (begin..begin + head_width)
-                            .map(|c| tape.multiply(query[c], k[first + key][c]))
-                            .collect();
-                        let sum = tape.sum(&products);
+                        let sum = tape.dot(
+                            &query[begin..begin + head_width],
+                            &k[first + key][begin..begin + head_width],
+                        );
                         tape.scale(sum, 1.0 / (head_width as f64).sqrt())
                     })
                     .collect();
-                let maximum = scores
-                    .iter()
-                    .map(|&id| tape.values[id])
-                    .fold(f64::NEG_INFINITY, f64::max);
-                let exponentials: Vec<_> = scores
-                    .iter()
-                    .map(|&id| {
-                        let shifted = tape.shift(id, -maximum);
-                        tape.exp(shifted)
-                    })
-                    .collect();
-                let sum = tape.sum(&exponentials);
+                let (_, sum, exponentials) = tape.shifted_exponentials(&scores);
                 let probabilities: Vec<_> = exponentials
                     .iter()
                     .map(|&id| tape.divide(id, sum))
@@ -482,17 +462,11 @@ fn exclusive(
         .map(|(y, v)| {
             let mut output = Vec::with_capacity(y.len());
             for (y, v) in y.chunks_exact(head_width).zip(v.chunks_exact(head_width)) {
-                let squares: Vec<_> = v.iter().map(|&id| tape.multiply(id, id)).collect();
-                let squared_norm = tape.sum(&squares);
+                let squared_norm = tape.dot(v, v);
                 let floored = tape.clamp_min(squared_norm, f64::from(XSA_EPSILON).powi(2));
                 let inverse = tape.inverse_sqrt(floored);
                 let normalized: Vec<_> = v.iter().map(|&id| tape.multiply(id, inverse)).collect();
-                let products: Vec<_> = y
-                    .iter()
-                    .zip(&normalized)
-                    .map(|(&a, &b)| tape.multiply(a, b))
-                    .collect();
-                let projection = tape.sum(&products);
+                let projection = tape.dot(y, &normalized);
                 output.extend(y.iter().zip(normalized).map(|(&a, b)| {
                     let removed = tape.multiply(projection, b);
                     tape.subtract(a, removed)
@@ -510,10 +484,7 @@ pub(super) fn exclusive_reference(
     heads: usize,
 ) -> (Vec<f64>, Vec<f64>) {
     let width = input.len();
-    let mut tape = Tape {
-        values: input.iter().chain(value).copied().collect(),
-        edges: vec![[(NONE, 0.0); 2]; 2 * width],
-    };
+    let mut tape = Tape::new(input.iter().chain(value).copied());
     let output = exclusive(
         &mut tape,
         &[(0..width).collect()],
@@ -521,14 +492,7 @@ pub(super) fn exclusive_reference(
         heads,
     )
     .remove(0);
-    let values = output.iter().map(|&id| tape.values[id]).collect();
-    let weighted: Vec<_> = output
-        .iter()
-        .zip(gradient)
-        .map(|(&id, &g)| tape.scale(id, g))
-        .collect();
-    let loss = tape.sum(&weighted);
-    (values, tape.backward(loss, 2 * width))
+    tape.output_and_gradient(&output, gradient, 2 * width)
 }
 
 #[cfg(test)]
@@ -733,7 +697,7 @@ mod tests {
     fn zero_inputs_do_not_create_mesh_or_head_offsets() {
         let width = 4;
         for depth in [1, 3, 16] {
-            let mut tape = Tape::new(&vec![0.5; 2 * width * depth]);
+            let mut tape = Tape::new(std::iter::repeat_n(0.5, 2 * width * depth));
             let zero = tape.node(0.0, [(NONE, 0.0); 2]);
             let output = mesh(&mut tape, &[vec![zero; width]], 0, depth);
             for &id in &output[0] {

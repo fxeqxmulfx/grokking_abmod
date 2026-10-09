@@ -2067,63 +2067,43 @@ mod verification {
                             256,
                             EMBEDDING_GRADIENT_ROWS,
                         >(config(partials.len()))?;
-                    model.module.gpt_embedding_gradient_partials(
-                        &model.stream,
-                        &launch,
-                        width,
-                        vocab,
-                        chunks,
-                        &tokens_gpu,
-                        &input_gpu,
-                        &gradient_gpu,
-                        &features_gpu,
-                        &mut partials,
-                    )?;
+                    let run_partials = |chunks, output: &mut DeviceBuffer<f32>| {
+                        model.module.gpt_embedding_gradient_partials(
+                            &model.stream,
+                            &launch,
+                            width,
+                            vocab,
+                            chunks,
+                            &tokens_gpu,
+                            &input_gpu,
+                            &gradient_gpu,
+                            &features_gpu,
+                            output,
+                        )
+                    };
+                    run_partials(chunks, &mut partials)?;
                     let mut output: DeviceBuffer<Features> =
                         DeviceBuffer::from_host(&model.stream, &vec![[42.0; MAX_WIDTH]; vocab])?;
                     with_buffer_chunks(&model.stream, &mut output, |output| {
                         let reduce = model
                             .module
                             .prepare_gpt_embedding_gradient_reduce::<128>(config(output.len()))?;
-                        model.module.gpt_embedding_gradient_reduce(
-                            &model.stream,
-                            &reduce,
-                            width,
-                            vocab,
-                            chunks,
-                            &partials,
-                            output,
-                        )?;
+                        let run_reduce = |chunks, output: &mut DeviceBuffer<f32>| {
+                            model.module.gpt_embedding_gradient_reduce(
+                                &model.stream,
+                                &reduce,
+                                width,
+                                vocab,
+                                chunks,
+                                &partials,
+                                output,
+                            )
+                        };
+                        run_reduce(chunks, output)?;
                         let mut short = DeviceBuffer::zeroed(&model.stream, output.len() - 1)?;
-                        assert!(
-                            model
-                                .module
-                                .gpt_embedding_gradient_reduce(
-                                    &model.stream,
-                                    &reduce,
-                                    width,
-                                    vocab,
-                                    chunks,
-                                    &partials,
-                                    &mut short,
-                                )
-                                .is_err()
-                        );
+                        assert!(run_reduce(chunks, &mut short).is_err());
                         for count in [0, chunks + 1, usize::MAX] {
-                            assert!(
-                                model
-                                    .module
-                                    .gpt_embedding_gradient_reduce(
-                                        &model.stream,
-                                        &reduce,
-                                        width,
-                                        vocab,
-                                        count,
-                                        &partials,
-                                        output,
-                                    )
-                                    .is_err()
-                            );
+                            assert!(run_reduce(count, output).is_err());
                         }
                         Ok::<_, cuda_core::LaunchContractError>(())
                     })?;
@@ -2152,42 +2132,10 @@ mod verification {
                         assert!(output[token][width..].iter().all(|&value| value == 42.0));
                     }
                     for count in [0, chunks + 1, usize::MAX] {
-                        assert!(
-                            model
-                                .module
-                                .gpt_embedding_gradient_partials(
-                                    &model.stream,
-                                    &launch,
-                                    width,
-                                    vocab,
-                                    count,
-                                    &tokens_gpu,
-                                    &input_gpu,
-                                    &gradient_gpu,
-                                    &features_gpu,
-                                    &mut partials,
-                                )
-                                .is_err()
-                        );
+                        assert!(run_partials(count, &mut partials).is_err());
                     }
                     let mut short = DeviceBuffer::zeroed(&model.stream, partials.len() - 1)?;
-                    assert!(
-                        model
-                            .module
-                            .gpt_embedding_gradient_partials(
-                                &model.stream,
-                                &launch,
-                                width,
-                                vocab,
-                                chunks,
-                                &tokens_gpu,
-                                &input_gpu,
-                                &gradient_gpu,
-                                &features_gpu,
-                                &mut short,
-                            )
-                            .is_err()
-                    );
+                    assert!(run_partials(chunks, &mut short).is_err());
                 }
             }
             Ok(())
@@ -2218,6 +2166,19 @@ mod verification {
                     let partial_launch = model
                         .module
                         .prepare_gpt_mesh_gradient_partials::<128>(config(partials.len()))?;
+                    let run_mesh_partials = |activated, chunks, output: &mut DeviceBuffer<f32>| {
+                        model.module.gpt_mesh_gradient_partials(
+                            &model.stream,
+                            &partial_launch,
+                            width,
+                            activated,
+                            chunks,
+                            &input_gpu,
+                            &activation_gpu,
+                            &gradient_gpu,
+                            output,
+                        )
+                    };
                     let offset = 2 * width;
                     let sentinel = vec![42.0_f32; 6 * width];
                     for activated in [0, 1] {
@@ -2237,17 +2198,7 @@ mod verification {
                             &gradient_gpu,
                             &mut serial,
                         )?;
-                        model.module.gpt_mesh_gradient_partials(
-                            &model.stream,
-                            &partial_launch,
-                            width,
-                            activated,
-                            chunks,
-                            &input_gpu,
-                            &activation_gpu,
-                            &gradient_gpu,
-                            &mut partials,
-                        )?;
+                        run_mesh_partials(activated, chunks, &mut partials)?;
                         let reduce_launch = model
                             .module
                             .prepare_gpt_mesh_gradient_reduce::<128>(config(reduced.len() * 32))?;
@@ -2293,40 +2244,10 @@ mod verification {
                         }
                     }
                     for bad_chunks in [0, 129, chunks + 1] {
-                        assert!(
-                            model
-                                .module
-                                .gpt_mesh_gradient_partials(
-                                    &model.stream,
-                                    &partial_launch,
-                                    width,
-                                    0,
-                                    bad_chunks,
-                                    &input_gpu,
-                                    &activation_gpu,
-                                    &gradient_gpu,
-                                    &mut partials,
-                                )
-                                .is_err()
-                        );
+                        assert!(run_mesh_partials(0, bad_chunks, &mut partials).is_err());
                     }
                     let mut too_short = DeviceBuffer::zeroed(&model.stream, partials.len() - 1)?;
-                    assert!(
-                        model
-                            .module
-                            .gpt_mesh_gradient_partials(
-                                &model.stream,
-                                &partial_launch,
-                                width,
-                                0,
-                                chunks,
-                                &input_gpu,
-                                &activation_gpu,
-                                &gradient_gpu,
-                                &mut too_short,
-                            )
-                            .is_err()
-                    );
+                    assert!(run_mesh_partials(0, chunks, &mut too_short).is_err());
                 }
             }
             Ok(())
@@ -2373,43 +2294,60 @@ mod verification {
                 let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let mut cache = DeviceBuffer::zeroed(&model.stream, rows)?;
                 let launch = model.module.prepare_gpt_rmsnorm::<128>(config(rows))?;
-                model.module.gpt_rmsnorm(
-                    &model.stream,
-                    &launch,
-                    heads,
-                    head_width,
-                    &input_gpu,
-                    &mut output_gpu,
-                    &mut cache,
-                )?;
+                let run_norm =
+                    |heads,
+                     head_width,
+                     output: &mut DeviceBuffer<Features>,
+                     cache: &mut DeviceBuffer<NormCache>| {
+                        model.module.gpt_rmsnorm(
+                            &model.stream,
+                            &launch,
+                            heads,
+                            head_width,
+                            &input_gpu,
+                            output,
+                            cache,
+                        )
+                    };
+                run_norm(heads, head_width, &mut output_gpu, &mut cache)?;
                 let backward = model
                     .module
                     .prepare_gpt_rmsnorm_backward::<128>(config(rows))?;
-                model.module.gpt_rmsnorm_backward(
-                    &model.stream,
-                    &backward,
-                    heads,
-                    head_width,
-                    &gradient_gpu,
-                    &cache,
-                    &mut derivative_gpu,
-                )?;
+                let run_backward =
+                    |heads,
+                     head_width,
+                     cache: &DeviceBuffer<NormCache>,
+                     output: &mut DeviceBuffer<Features>| {
+                        model.module.gpt_rmsnorm_backward(
+                            &model.stream,
+                            &backward,
+                            heads,
+                            head_width,
+                            &gradient_gpu,
+                            cache,
+                            output,
+                        )
+                    };
+                run_backward(heads, head_width, &cache, &mut derivative_gpu)?;
                 if head_width.is_multiple_of(32) {
                     with_buffer_chunks(&model.stream, &mut output_gpu, |output| {
                         with_buffer_chunks(&model.stream, &mut cache, |saved| {
                             let launch = model
                                 .module
                                 .prepare_gpt_rmsnorm_parallel::<128>(config(output.len()))?;
-                            model.module.gpt_rmsnorm_parallel(
-                                &model.stream,
-                                &launch,
-                                4,
-                                heads,
-                                head_width / 32,
-                                &input_gpu,
-                                output,
-                                saved,
-                            )?;
+                            let mut run_parallel_norm = |capacity, heads, head_warps| {
+                                model.module.gpt_rmsnorm_parallel(
+                                    &model.stream,
+                                    &launch,
+                                    capacity,
+                                    heads,
+                                    head_warps,
+                                    &input_gpu,
+                                    output,
+                                    saved,
+                                )
+                            };
+                            run_parallel_norm(4, heads, head_width / 32)?;
                             for (capacity, count, head_warps) in [
                                 (0, heads, head_width / 32),
                                 (3, heads, head_width / 32),
@@ -2418,21 +2356,7 @@ mod verification {
                                 (4, 5, 1),
                                 (4, 1, usize::MAX),
                             ] {
-                                assert!(
-                                    model
-                                        .module
-                                        .gpt_rmsnorm_parallel(
-                                            &model.stream,
-                                            &launch,
-                                            capacity,
-                                            count,
-                                            head_warps,
-                                            &input_gpu,
-                                            output,
-                                            saved,
-                                        )
-                                        .is_err()
-                                );
+                                assert!(run_parallel_norm(capacity, count, head_warps).is_err());
                             }
                             Ok::<_, cuda_core::LaunchContractError>(())
                         })
@@ -2441,34 +2365,23 @@ mod verification {
                         let launch = model
                             .module
                             .prepare_gpt_rmsnorm_backward_parallel::<128>(config(output.len()))?;
-                        model.module.gpt_rmsnorm_backward_parallel(
-                            &model.stream,
-                            &launch,
-                            4,
-                            heads,
-                            head_width / 32,
-                            &gradient_gpu,
-                            &cache,
-                            output,
-                        )?;
+                        let mut run_parallel_backward = |capacity, heads, head_warps| {
+                            model.module.gpt_rmsnorm_backward_parallel(
+                                &model.stream,
+                                &launch,
+                                capacity,
+                                heads,
+                                head_warps,
+                                &gradient_gpu,
+                                &cache,
+                                output,
+                            )
+                        };
+                        run_parallel_backward(4, heads, head_width / 32)?;
                         for (capacity, count, head_warps) in
                             [(3, heads, 1), (4, 0, 1), (4, 1, 0), (4, 5, 1)]
                         {
-                            assert!(
-                                model
-                                    .module
-                                    .gpt_rmsnorm_backward_parallel(
-                                        &model.stream,
-                                        &launch,
-                                        capacity,
-                                        count,
-                                        head_warps,
-                                        &gradient_gpu,
-                                        &cache,
-                                        output,
-                                    )
-                                    .is_err()
-                            );
+                            assert!(run_parallel_backward(capacity, count, head_warps).is_err());
                         }
                         Ok::<_, cuda_core::LaunchContractError>(())
                     })?;
@@ -2507,62 +2420,18 @@ mod verification {
                     (8, MAX_WIDTH / 8 + 1),
                 ] {
                     assert!(
-                        model
-                            .module
-                            .gpt_rmsnorm(
-                                &model.stream,
-                                &launch,
-                                invalid_heads,
-                                invalid_width,
-                                &input_gpu,
-                                &mut output_gpu,
-                                &mut cache,
-                            )
+                        run_norm(invalid_heads, invalid_width, &mut output_gpu, &mut cache)
                             .is_err()
                     );
                     assert!(
-                        model
-                            .module
-                            .gpt_rmsnorm_backward(
-                                &model.stream,
-                                &backward,
-                                invalid_heads,
-                                invalid_width,
-                                &gradient_gpu,
-                                &cache,
-                                &mut derivative_gpu,
-                            )
+                        run_backward(invalid_heads, invalid_width, &cache, &mut derivative_gpu)
                             .is_err()
                     );
                 }
                 let mut wrong_cache = DeviceBuffer::zeroed(&model.stream, rows - 1)?;
+                assert!(run_norm(heads, head_width, &mut output_gpu, &mut wrong_cache).is_err());
                 assert!(
-                    model
-                        .module
-                        .gpt_rmsnorm(
-                            &model.stream,
-                            &launch,
-                            heads,
-                            head_width,
-                            &input_gpu,
-                            &mut output_gpu,
-                            &mut wrong_cache,
-                        )
-                        .is_err()
-                );
-                assert!(
-                    model
-                        .module
-                        .gpt_rmsnorm_backward(
-                            &model.stream,
-                            &backward,
-                            heads,
-                            head_width,
-                            &gradient_gpu,
-                            &wrong_cache,
-                            &mut derivative_gpu,
-                        )
-                        .is_err()
+                    run_backward(heads, head_width, &wrong_cache, &mut derivative_gpu).is_err()
                 );
             }
             Ok(())
@@ -2592,36 +2461,32 @@ mod verification {
                 let launch = model
                     .module
                     .prepare_gpt_rope::<128, 128>(config(rows * MAX_WIDTH))?;
-                for sequence in [1, 3, 128] {
-                    for (source, target, inverse) in [
-                        (&input_gpu, &mut output_gpu, 0),
-                        (&gradient_gpu, &mut derivative_gpu, 1),
-                    ] {
-                        with_buffer_chunks(&model.stream, target, |target| {
-                            model.module.gpt_rope(
-                                &model.stream,
-                                &launch,
-                                heads,
-                                half_width,
-                                sequence,
-                                inverse,
-                                source,
-                                target,
-                            )
-                        })?;
-                    }
-                    with_buffer_chunks(&model.stream, &mut inverse_gpu, |target| {
+                let rotate = |half_width,
+                              sequence,
+                              inverse,
+                              source: &DeviceBuffer<Features>,
+                              target: &mut DeviceBuffer<Features>| {
+                    with_buffer_chunks(&model.stream, target, |target| {
                         model.module.gpt_rope(
                             &model.stream,
                             &launch,
                             heads,
                             half_width,
                             sequence,
-                            1,
-                            &output_gpu,
+                            inverse,
+                            source,
                             target,
                         )
-                    })?;
+                    })
+                };
+                for sequence in [1, 3, 128] {
+                    for (source, target, inverse) in [
+                        (&input_gpu, &mut output_gpu, 0),
+                        (&gradient_gpu, &mut derivative_gpu, 1),
+                    ] {
+                        rotate(half_width, sequence, inverse, source, target)?;
+                    }
+                    rotate(half_width, sequence, 1, &output_gpu, &mut inverse_gpu)?;
                     let output = output_gpu.to_host_vec(&model.stream)?;
                     let derivative = derivative_gpu.to_host_vec(&model.stream)?;
                     let inverse = inverse_gpu.to_host_vec(&model.stream)?;
@@ -2678,21 +2543,7 @@ mod verification {
                     (half_width, 129, 0),
                     (half_width, 3, 2),
                 ] {
-                    assert!(
-                        with_buffer_chunks(&model.stream, &mut output_gpu, |target| {
-                            model.module.gpt_rope(
-                                &model.stream,
-                                &launch,
-                                heads,
-                                half,
-                                sequence,
-                                inverse,
-                                &input_gpu,
-                                target,
-                            )
-                        })
-                        .is_err()
-                    );
+                    assert!(rotate(half, sequence, inverse, &input_gpu, &mut output_gpu).is_err());
                 }
             }
             Ok(())
