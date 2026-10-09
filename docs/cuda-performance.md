@@ -40,6 +40,8 @@ allocation and CUDA compilation happen before timing.
 | Parallel RoPE, attention backward, and copies | 8.091 | 7.398 | 7.402 | 7.402 |
 | Final const-generic kernels and safe module loading | 7.507 | 7.253 | 7.256 | 7.256 |
 | Cooperative FP32 RMSNorm and QK-Norm | 6.628 | 6.454 | 6.455 | 6.455 |
+| Warp mesh-gradient reduction | 6.386 | 6.159 | 6.165 | 6.165 |
+| Chunked FP32 tied-embedding gradients | 6.517 | 5.749 | 5.759 | 5.759 |
 
 The const-generic median is **22.16 times faster** on this workload, and **2.50 times
 faster** than the first chunked implementation. GPU frequencies were
@@ -50,6 +52,9 @@ make the timing setup and numerical result inspectable.
 The cooperative normalization path improves the previous median by **11.0%**.
 A fresh run of the saved previous binary measured `7.794`, `7.319`, and `7.316`
 ms/update, with median `7.319`; the corresponding reduction is **11.8%**.
+The additional gradient reductions bring the median to **5.759 ms/update**,
+**20.6% lower** than the earlier `7.256` ms implementation and **27.91 times
+faster** than the original baseline.
 
 ## Profile and changes
 
@@ -117,6 +122,25 @@ Checked launch contracts reject incomplete head geometry and overflowing
 dimensions; the forward and backward paths retain FP32 arithmetic.
 The new 25-update trace measures normalization forward/backward together at
 `0.539` GPU ms/update, down from `1.706` in the previous capture.
+
+The final mesh-gradient reduction now uses a complete warp per edge. Lanes
+share the chunk sums, and only lane zero can obtain the typed `WarpIndex`
+witness needed to write that edge. Entire warps skip neighboring parameter
+ranges, preserving full participation in the reduction. The latest trace
+measures this kernel at `0.145` GPU ms/update, down from `0.545` after the
+normalization optimization.
+
+For more than 128 token rows and widths of at least 32, tied-embedding gradients
+use independent chunks of 128 rows. Each partial combines the repeated input
+lookup and dense output-head contributions in FP32. The second kernel reduces
+directly into feature-row storage, avoiding a separate serial conversion. Small
+and narrow workloads retain the direct kernel. The chunk length is a Rust const
+parameter, while vocabulary and width remain validated runtime dimensions.
+The latest trace measures partials plus reduction at `0.579` GPU ms/update,
+versus `1.087` for embedding backward plus conversion in the preceding trace.
+The default workload reuses a `0.77 MiB` partial-sum allocation across updates.
+All new writes use typed disjoint ownership and checked launch contracts;
+`src/gpt/gpu.rs` contains no `unsafe` operations.
 
 | Final representative kernel | Blocks | Registers/thread | SM throughput (%) | Achieved occupancy (%) |
 | --- | ---: | ---: | ---: | ---: |
@@ -213,3 +237,13 @@ binary is `1.91e-6` (relative L2 `1.08e-7`). A complete mod-97 epoch again cover
 all 4704 examples; train/validation losses reach `6.532873886`/`6.547292552`,
 with maximum parameter difference `2.32e-7` from the previous epoch checkpoint.
 The small differences reflect the warp reduction's addition order.
+
+The embedding-gradient verifier independently sums both contributions in f64
+at widths 2, 18, 32, and 128, vocabularies 3, 17, and 99, and up to 4096 rows.
+It checks chunk tails, untouched padded channels, malformed chunk counts,
+overflowing dimensions, and short buffers. The complete CUDA suite, 27 CPU tests,
+and strict Clippy pass after both gradient optimizations. The 40-update maximum
+parameter difference from the previous const-generic FP32 binary is `1.43e-6`
+(relative L2 `8.32e-8`). A complete 4704-example epoch reaches train/validation
+losses `6.532873915`/`6.547292586`; its maximum parameter difference from the
+previous epoch checkpoint is `2.44e-7`. All storage and arithmetic remain FP32.
