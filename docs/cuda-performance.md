@@ -603,3 +603,55 @@ the new limit. Independent f64 mesh reductions cover 65535/65536/65537 and
 131071/131072 rows, and tied-embedding sums cover 131072 rows. Chunk-count
 contracts reject counts past 4096. Full CUDA verification, all 29 CPU tests,
 and strict Clippy pass. Artifacts are in `stress-memory-baseline`.
+
+### Tile attention score gradients and reuse the raw attention output
+
+Score backward uses `dot(dY, Y)` for the softmax gradient's weighted mean,
+where `Y` is the retained raw attention output before XSA. This follows
+`sum(P * dot(dY, V)) = dot(dY, sum(P * V))` and removes the serial weighted
+reduction and temporary per-score dot values. Independent warps own checked
+arrays of consecutive causal scores. Owning buffer casts preserve allocation
+and exclusive access; unsupported tile divisibility falls back to smaller
+tiles. There are no client-side unsafe calls or new architecture flags.
+
+The mean is computed inside each tile rather than in a separate statistics
+kernel. The inline variant removes that launch and its unused RMS calculation.
+With 64-score tiles for divisible capacities and smaller checked fallbacks,
+median full-update times are:
+
+| Scenario | Previous score backward (ms) | Inline tiled backward (ms) | Process memory (MiB) |
+| --- | ---: | ---: | ---: |
+| Original | 5.311 | 5.312 | 152 |
+| Context 1024, batch 16 | 374.781 | 332.124 | 1466 |
+| Context 4096, batch 3 | 1141.452 | 1012.213 | 2846 |
+
+All measurements use ten warmup and ten timed updates in three trials.
+These are fixed-shape comparisons, with unchanged allocations. A cached mean
+plus one score per warp was slower: 439.920 ms at context 1024 and 1317.287 ms
+at context 4096. Cached-mean 32-score tiles took 337.922 and 1034.799 ms;
+inline means simplify the implementation and improve both measurements.
+Inline tiles of 32 scores took 332.128 / 1019.943 ms; 128-score tiles took
+333.358 / 1016.591 ms and offered no improvement over 64.
+
+Using the algebraic identity changes FP32 summation order. After 20 updates,
+the relative L2 weight difference from the previous implementation is at most
+`1.59e-5` across all fixed and stress shapes, and below `1.2e-8` in both long
+contexts. Inline and cached means produce identical checkpoints on those
+contexts. Existing f64 gradient and optimizer tolerances are retained.
+The block-count helper divides the warp count before converting to `u32`;
+CPU checks cover representable block counts beyond `u32::MAX` threads and
+reject block-count overflow. Full f64 CUDA verification, strict AdamW checks,
+and context-dependent learning pass with unchanged tolerances.
+
+The context-4096 Nsight Systems capture reduces score backward from 312.236
+to 181.596 GPU ms/update. Forward attention remains 589.683 ms and input
+backward 207.834 ms. Nsight Compute reports 89.86 ms for one score kernel,
+74.12% SM and 19.71% DRAM throughput, and 48 registers/thread. In the deep
+stress workload, mesh-gradient partials take 45.41 us at 80.73% DRAM throughput
+and 26 registers/thread, indicating that avoiding memory traffic is a useful
+next target.
+
+Artifacts are in `shapes-score-tiles`, `stress-score-tiles`, `score-inline-32`,
+`score-inline-64`, `score-inline-128`, `score-pointwise`,
+`score-tiles-comparison.json`, `score-inline-long-trace.nsys-rep`,
+`score-inline-long-counters.ncu-repz`, and `stress-mesh-partials-counters.ncu-repz`.

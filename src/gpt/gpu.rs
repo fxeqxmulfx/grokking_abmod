@@ -727,47 +727,49 @@ mod kernels {
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, heads >= 1, heads <= H, heads <= width,
         sequence >= 1, sequence <= C,
-        probabilities.len() == gradient.len(), value.len() == gradient.len(), out.len() == gradient.len()))]
-    pub fn gpt_score_backward<const W: usize, const C: usize, const H: usize>(
+        probabilities.len() == gradient.len(), value.len() == gradient.len(),
+        TILE >= 1, _tiles >= 1, C == _tiles * TILE,
+        attention.len() == gradient.len(), out.len() * TILE == gradient.len() * H * C))]
+    pub fn gpt_score_backward<const W: usize, const C: usize, const H: usize, const TILE: usize>(
         width: usize,
         heads: usize,
         sequence: usize,
+        _tiles: usize,
         gradient: &[Features<W>],
         value: &[Features<W>],
         probabilities: &[Attention<C, H>],
-        mut out: DisjointSlice<Attention<C, H>, thread::WarpIndex>,
+        attention: &[Features<W>],
+        mut out: DisjointSlice<[f32; TILE], thread::WarpIndex>,
     ) {
         let index = thread::index_1d();
-        let row = index.get() / 32;
+        let item = index.get() / 32 * TILE;
+        let row = item / (H * C);
+        let head = item / C % H;
+        let previous = item % C;
         let lane = index.get() % 32;
-        if row >= gradient.len() {
+        if row >= gradient.len() || head >= heads || previous > row % sequence {
             return;
         }
-        let mut output = warp_output(&mut out);
-        let position = row % sequence;
-        let first = row - position;
         let head_width = width / heads;
-        for head in 0..heads {
-            let begin = head * head_width;
-            let mut mean = 0.0;
-            for previous in 0..=position {
-                let dot = attention_dot(
-                    begin,
-                    head_width,
-                    lane,
-                    &gradient[row],
-                    &value[first + previous],
-                );
-                mean += probabilities[row][head][previous] * dot;
-                if let Some(output) = &mut output {
-                    output[head][previous] = dot;
-                }
-            }
+        // sum(P * dot(dY, V)) = dot(dY, Y), with the raw attention Y.
+        let mean = attention_dot(
+            head * head_width,
+            head_width,
+            lane,
+            &gradient[row],
+            &attention[row],
+        );
+        let mut output = warp_output(&mut out);
+        for local in 0..TILE.min(row % sequence - previous + 1) {
+            let dot = attention_dot(
+                head * head_width,
+                head_width,
+                lane,
+                &gradient[row],
+                &value[row - row % sequence + previous + local],
+            );
             if let Some(output) = &mut output {
-                for previous in 0..=position {
-                    output[head][previous] =
-                        probabilities[row][head][previous] * (output[head][previous] - mean);
-                }
+                output[local] = probabilities[row][head][previous + local] * (dot - mean);
             }
         }
     }
@@ -1082,6 +1084,18 @@ impl Plan {
 mod plan_tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn warp_launch_handles_large_attention_and_rejects_overflow() {
+        let blocks = u32::MAX as usize;
+        assert_eq!(
+            warp_config(blocks * 4).unwrap(),
+            LaunchConfig1D::new(u32::MAX, 128, 0)
+        );
+        assert_eq!(warp_config(5).unwrap(), LaunchConfig1D::new(2, 128, 0));
+        assert!(warp_config(blocks * 4 + 1).is_err());
+        assert!(warp_config(usize::MAX).is_err());
+    }
 
     #[test]
     fn shared_gradient_slots_never_overlap_live_nodes() {
@@ -1866,23 +1880,18 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     query,
                     key,
                     value,
+                    out,
                     cache,
-                    ..
                 } => {
-                    let launch = self
-                        .module
-                        .prepare_gpt_score_backward::<W, C, H>(config(workspace.rows * 32))?;
-                    self.module.gpt_score_backward(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        c.heads,
-                        workspace.sequence,
-                        &workspace.adjoints[gradient_slot],
-                        &workspace.features[value],
-                        &workspace.probabilities[cache],
-                        &mut workspace.scores,
-                    )?;
+                    if C.is_multiple_of(64) {
+                        self.score_backward::<64>(workspace, gradient_slot, value, out, cache)?;
+                    } else if C.is_multiple_of(32) {
+                        self.score_backward::<32>(workspace, gradient_slot, value, out, cache)?;
+                    } else if C.is_multiple_of(4) {
+                        self.score_backward::<4>(workspace, gradient_slot, value, out, cache)?;
+                    } else {
+                        self.score_backward::<1>(workspace, gradient_slot, value, out, cache)?;
+                    }
                     let (dq, rest) = workspace.scratch.split_at_mut(1);
                     let (dk, rest) = rest.split_at_mut(1);
                     with_buffer_chunks(&self.stream, &mut dq[0], |dq| {
@@ -2066,6 +2075,39 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         })
     }
 
+    fn score_backward<const TILE: usize>(
+        &self,
+        workspace: &mut Workspace<W, V, C, H>,
+        gradient_slot: usize,
+        value: usize,
+        attention: usize,
+        cache: usize,
+    ) -> Result<()> {
+        with_buffer_chunks(
+            &self.stream,
+            &mut workspace.scores,
+            |output: &mut DeviceBuffer<[f32; TILE]>| {
+                let launch = self
+                    .module
+                    .prepare_gpt_score_backward::<W, C, H, TILE>(warp_config(output.len())?)?;
+                self.module.gpt_score_backward(
+                    &self.stream,
+                    &launch,
+                    self.config.width,
+                    self.config.heads,
+                    workspace.sequence,
+                    C / TILE,
+                    &workspace.adjoints[gradient_slot],
+                    &workspace.features[value],
+                    &workspace.probabilities[cache],
+                    &workspace.features[attention],
+                    output,
+                )?;
+                Ok::<_, Box<dyn std::error::Error>>(())
+            },
+        )
+    }
+
     fn add_features(
         &self,
         left: &DeviceBuffer<Features<W>>,
@@ -2157,6 +2199,11 @@ fn with_buffer_chunks<
 
 fn config(elements: usize) -> LaunchConfig1D {
     LaunchConfig1D::new((elements as u32).div_ceil(128), 128, 0)
+}
+
+fn warp_config(items: usize) -> Result<LaunchConfig1D> {
+    // Divide before converting: long attention can exceed u32::MAX threads.
+    Ok(LaunchConfig1D::new(items.div_ceil(4).try_into()?, 128, 0))
 }
 
 mod verification {
