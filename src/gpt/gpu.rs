@@ -323,7 +323,7 @@ mod kernels {
         heads >= 1, sequence >= 1, TILE >= 1, _tail < TILE,
         sequence == _bands * TILE + _tail, _sequences >= 1,
         2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
-        scores.len() == _sequences * heads * blocks * TILE, out.len() == scores.len(),
+        out.len() == _sequences * heads * blocks * TILE,
         statistics.len() == _sequences * sequence * heads))]
     pub fn gpt_attention_probabilities<const TILE: usize>(
         heads: usize,
@@ -332,7 +332,6 @@ mod kernels {
         _tail: usize,
         _sequences: usize,
         blocks: usize,
-        scores: &[f32],
         statistics: &[NormStats],
         mut out: DisjointSlice<f32>,
     ) {
@@ -347,59 +346,48 @@ mod kernels {
             }
             let row = group / heads * sequence + position;
             let [maximum, sum] = statistics[row * heads + group % heads];
-            *output = (scores[scalar] - maximum).exp() / sum;
+            *output = (*output - maximum).exp() / sum;
         }
     }
 
     #[inline(always)]
-    fn attention_sum<const W: usize, const TILE: usize, const COLUMN: bool, const PAIR: bool>(
+    fn attention_sum<const W: usize, const TILE: usize, const COLUMN: bool>(
         start: usize,
         end: usize,
         first: usize,
         channel: usize,
         mut offset: usize,
-        coefficients: [&[f32]; 2],
-        values: [&[Features<W>]; 2],
-    ) -> [f32; 2] {
-        let mut sums = [0.0; 2];
+        coefficients: &[f32],
+        values: &[Features<W>],
+    ) -> f32 {
+        let mut sum = 0.0;
         let whole = end - (end - start) % 4;
         for row in (start..whole).step_by(4) {
-            let mut products = [[0.0; 2]; 4];
+            let mut products = [0.0; 4];
             for local in 0..4 {
                 let index = if COLUMN {
                     offset + start
                 } else {
                     offset + row + local
                 };
-                products[local][0] =
-                    coefficients[0][index] * values[0][first + row + local][channel];
-                if PAIR {
-                    products[local][1] =
-                        coefficients[1][index] * values[1][first + row + local][channel];
-                }
+                products[local] = coefficients[index] * values[first + row + local][channel];
                 if COLUMN {
                     offset += ((row + local) / TILE + 1) * TILE;
                 }
             }
             // Issue independent loads before preserving the original addition order.
             for local in 0..4 {
-                sums[0] += products[local][0];
-                if PAIR {
-                    sums[1] += products[local][1];
-                }
+                sum += products[local];
             }
         }
         for row in whole..end {
             let index = if COLUMN { offset + start } else { offset + row };
-            sums[0] += coefficients[0][index] * values[0][first + row][channel];
-            if PAIR {
-                sums[1] += coefficients[1][index] * values[1][first + row][channel];
-            }
+            sum += coefficients[index] * values[first + row][channel];
             if COLUMN {
                 offset += (row / TILE + 1) * TILE;
             }
         }
-        sums
+        sum
     }
 
     #[kernel]
@@ -410,7 +398,7 @@ mod kernels {
         value.len() == _sequences * sequence,
         2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
         probabilities.len() == _sequences * heads * blocks * TILE, out.len() == value.len() * W))]
-    pub fn gpt_attention_context<const W: usize, const TILE: usize>(
+    pub fn gpt_attention_context<const W: usize, const TILE: usize, const COLUMN: bool>(
         width: usize,
         heads: usize,
         sequence: usize,
@@ -432,15 +420,15 @@ mod kernels {
             let position = row % sequence;
             let head = channel / (width / heads);
             let offset = causal_offset(position, row / sequence * heads + head, blocks, TILE);
-            *output = attention_sum::<W, TILE, false, false>(
-                0,
-                position + 1,
+            *output = attention_sum::<W, TILE, COLUMN>(
+                if COLUMN { position } else { 0 },
+                if COLUMN { sequence } else { position + 1 },
                 row - position,
                 channel,
                 offset,
-                [probabilities; 2],
-                [value; 2],
-            )[0];
+                probabilities,
+                value,
+            );
         }
     }
 
@@ -499,8 +487,7 @@ mod kernels {
         _sequences >= 1, gradient.len() == _sequences * sequence,
         2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
         value.len() == gradient.len() * W, statistics.len() == gradient.len() * heads,
-        out.len() * PACK == _sequences * heads * blocks * TILE,
-        probabilities.len() == out.len() * PACK))]
+        out.len() * PACK == _sequences * heads * blocks * TILE))]
     pub fn gpt_attention_scores_serial<
         const W: usize,
         const C: usize,
@@ -518,7 +505,6 @@ mod kernels {
         blocks: usize,
         gradient: &[Features<W>],
         value: &[f32],
-        probabilities: &[f32],
         statistics: &[NormStats],
         mut out: DisjointSlice<[f32; PACK]>,
     ) {
@@ -578,7 +564,7 @@ mod kernels {
             };
             for slot in 0..count {
                 output[slot] = if BACKWARD == 1 {
-                    probabilities[scalar + slot] * (dot[slot] - statistics[row * heads + head][1])
+                    output[slot] * (dot[slot] - statistics[row * heads + head][1])
                 } else {
                     dot[slot] * (1.0 / (head_width as f32).sqrt())
                 };
@@ -963,8 +949,7 @@ mod kernels {
         TILE >= 1, _tail < TILE, sequence == _bands * TILE + _tail,
         _sequences >= 1, gradient.len() == _sequences * sequence,
         2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
-        attention.len() == gradient.len(), out.len() == _sequences * heads * blocks,
-        probabilities.len() == out.len() * TILE))]
+        attention.len() == gradient.len(), out.len() == _sequences * heads * blocks))]
     pub fn gpt_attention_scores<
         const W: usize,
         const C: usize,
@@ -981,7 +966,6 @@ mod kernels {
         blocks: usize,
         gradient: &[Features<W>],
         value: &[Features<W>],
-        probabilities: &[f32],
         attention: &[Features<W>],
         mut out: DisjointSlice<[f32; TILE], thread::WarpIndex>,
     ) {
@@ -1032,7 +1016,7 @@ mod kernels {
             );
             if let Some(output) = &mut output {
                 output[local] = if BACKWARD == 1 {
-                    probabilities[item * TILE + local] * (dot - mean)
+                    output[local] * (dot - mean)
                 } else {
                     dot * scale
                 };
@@ -1047,9 +1031,9 @@ mod kernels {
         TILE >= 1, _tail < TILE, sequence == _bands * TILE + _tail,
         _sequences >= 1, query.len() == _sequences * sequence,
         2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
-        key.len() == query.len(), gradient.len() == query.len(), probabilities.len() == scores.len(),
+        key.len() == query.len(),
         scores.len() == _sequences * heads * blocks * TILE,
-        dq.len() == query.len() * W, dk.len() == dq.len(), dv.len() == dq.len()))]
+        dq.len() == query.len() * W, dk.len() == dq.len()))]
     pub fn gpt_attention_backward<
         const W: usize,
         const C: usize,
@@ -1065,19 +1049,15 @@ mod kernels {
         blocks: usize,
         query: &[Features<W>],
         key: &[Features<W>],
-        gradient: &[Features<W>],
         scores: &[f32],
-        probabilities: &[f32],
         mut dq: DisjointSlice<f32>,
         mut dk: DisjointSlice<f32>,
-        mut dv: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
         let row = index.get() / W;
         let channel = index.get() % W;
         if let Some(q_gradient) = dq.get_mut(index)
             && let Some(k_gradient) = dk.get_mut(thread::index_1d())
-            && let Some(v_gradient) = dv.get_mut(thread::index_1d())
         {
             let position = row % sequence;
             let first = row - position;
@@ -1088,27 +1068,20 @@ mod kernels {
             }
             let head = channel / head_width;
             let q_offset = causal_offset(position, row / sequence * heads + head, blocks, TILE);
-            let [q_sum, _] = attention_sum::<W, TILE, false, false>(
+            let q_sum = attention_sum::<W, TILE, false>(
                 0,
                 position + 1,
                 first,
                 channel,
                 q_offset,
-                [scores; 2],
-                [key; 2],
+                scores,
+                key,
             );
-            let [k_sum, v_sum] = attention_sum::<W, TILE, true, true>(
-                position,
-                sequence,
-                first,
-                channel,
-                q_offset,
-                [scores, probabilities],
-                [query, gradient],
+            let k_sum = attention_sum::<W, TILE, true>(
+                position, sequence, first, channel, q_offset, scores, query,
             );
             *q_gradient = q_sum * scale;
             *k_gradient = k_sum * scale;
-            *v_gradient = v_sum;
         }
     }
 
@@ -1457,7 +1430,6 @@ struct Workspace<const W: usize, const V: usize, const C: usize, const H: usize>
     adjoints: Vec<DeviceBuffer<Features<W>>>,
     norm_statistics: DeviceBuffer<NormStats>,
     probabilities: Vec<DeviceBuffer<f32>>,
-    scores: DeviceBuffer<f32>,
     scratch: Vec<DeviceBuffer<Features<W>>>,
     initialized: Vec<bool>,
     logits: DeviceBuffer<Vocabulary<V>>,
@@ -1507,7 +1479,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             adjoints: buffers(stream, plan.gradient_buffers, rows)?,
             norm_statistics: DeviceBuffer::zeroed(stream, rows * config.heads)?,
             probabilities: buffers(stream, plan.attentions, cells)?,
-            scores: DeviceBuffer::zeroed(stream, cells)?,
             scratch: buffers(stream, 4, rows)?,
             initialized: vec![false; plan.ops.len()],
             logits: DeviceBuffer::zeroed(stream, rows)?,
@@ -1626,7 +1597,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 + w.head_embedding.num_bytes()
                 + w.embedding_gradient_partials.num_bytes()
                 + w.mesh_gradient_partials.num_bytes()
-                + w.scores.num_bytes()
                 + w.logits.num_bytes()
                 + w.head_gradient.num_bytes()
                 + w.loss.num_bytes();
@@ -2407,7 +2377,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |transposed| {
             with_buffer_chunks(
                 &self.stream,
-                &mut workspace.scores,
+                &mut workspace.probabilities[cache],
                 |output: &mut DeviceBuffer<[f32; PACK]>| {
                     let launch = self
                         .module
@@ -2430,7 +2400,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &workspace.features[query]
                         },
                         transposed,
-                        &workspace.probabilities[cache],
                         &workspace.norm_statistics,
                         output,
                     )
@@ -2449,12 +2418,21 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     ) -> Result<()> {
         let [query, key, value, attention] = inputs;
         let c = self.config;
+        if BACKWARD == 1 {
+            // Probabilities are needed only for dV; then their storage can hold dScore.
+            self.attention_context::<TILE, true>(
+                workspace.sequence,
+                &workspace.adjoints[gradient_slot],
+                &workspace.probabilities[cache],
+                &mut workspace.scratch[2],
+            )?;
+        }
         if workspace.sequence >= 32 {
             self.serial_scores::<TILE, BACKWARD, PACK>(workspace, gradient_slot, inputs, cache)?;
         } else {
             with_buffer_chunks(
                 &self.stream,
-                &mut workspace.scores,
+                &mut workspace.probabilities[cache],
                 |output: &mut DeviceBuffer<[f32; TILE]>| {
                     let launch = self
                         .module
@@ -2477,7 +2455,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &workspace.features[query]
                         },
                         &workspace.features[if BACKWARD == 1 { value } else { key }],
-                        &workspace.probabilities[cache],
                         &workspace.features[attention],
                         output,
                     )?;
@@ -2505,7 +2482,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 tail,
                 sequences,
                 blocks,
-                &workspace.scores,
+                &workspace.probabilities[cache],
                 &mut workspace.norm_statistics,
             )?;
             let launch = self
@@ -2522,63 +2499,71 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 tail,
                 sequences,
                 blocks,
-                &workspace.scores,
                 &workspace.norm_statistics,
                 &mut workspace.probabilities[cache],
             )?;
             let (before, after) = workspace.features.split_at_mut(attention);
-            with_buffer_chunks(&self.stream, &mut after[0], |output| {
+            self.attention_context::<TILE, false>(
+                sequence,
+                &before[value],
+                &workspace.probabilities[cache],
+                &mut after[0],
+            )?;
+            return Ok(());
+        }
+        let (dq, rest) = workspace.scratch.split_at_mut(1);
+        with_buffer_chunks(&self.stream, &mut dq[0], |dq| {
+            with_buffer_chunks(&self.stream, &mut rest[0], |dk| {
                 let launch = self
                     .module
-                    .prepare_gpt_attention_context::<W, TILE>(config::<1>(output.len())?)?;
-                self.module.gpt_attention_context(
+                    .prepare_gpt_attention_backward::<W, C, H, TILE>(config::<1>(dq.len())?)?;
+                self.module.gpt_attention_backward(
                     &self.stream,
                     &launch,
                     c.width,
                     c.heads,
-                    sequence,
-                    bands,
-                    tail,
-                    sequences,
-                    blocks,
-                    &before[value],
+                    workspace.sequence,
+                    workspace.sequence / TILE,
+                    workspace.sequence % TILE,
+                    workspace.rows / workspace.sequence,
+                    kernels::causal_blocks(workspace.sequence, TILE),
+                    &workspace.features[query],
+                    &workspace.features[key],
                     &workspace.probabilities[cache],
-                    output,
+                    dq,
+                    dk,
                 )
-            })?;
-            return Ok(());
-        }
-        let (dq, rest) = workspace.scratch.split_at_mut(1);
-        let (dk, rest) = rest.split_at_mut(1);
-        with_buffer_chunks(&self.stream, &mut dq[0], |dq| {
-            with_buffer_chunks(&self.stream, &mut dk[0], |dk| {
-                with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
-                    let launch = self
-                        .module
-                        .prepare_gpt_attention_backward::<W, C, H, TILE>(config::<1>(dq.len())?)?;
-                    self.module.gpt_attention_backward(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        c.heads,
-                        workspace.sequence,
-                        workspace.sequence / TILE,
-                        workspace.sequence % TILE,
-                        workspace.rows / workspace.sequence,
-                        kernels::causal_blocks(workspace.sequence, TILE),
-                        &workspace.features[query],
-                        &workspace.features[key],
-                        &workspace.adjoints[gradient_slot],
-                        &workspace.scores,
-                        &workspace.probabilities[cache],
-                        dq,
-                        dk,
-                        dv,
-                    )
-                })
             })
         })?;
         Ok(())
+    }
+
+    fn attention_context<const TILE: usize, const COLUMN: bool>(
+        &self,
+        sequence: usize,
+        value: &DeviceBuffer<Features<W>>,
+        probabilities: &DeviceBuffer<f32>,
+        output: &mut DeviceBuffer<Features<W>>,
+    ) -> Result<()> {
+        with_buffer_chunks(&self.stream, output, |output| {
+            let launch = self
+                .module
+                .prepare_gpt_attention_context::<W, TILE, COLUMN>(config::<1>(output.len())?)?;
+            self.module.gpt_attention_context(
+                &self.stream,
+                &launch,
+                self.config.width,
+                self.config.heads,
+                sequence,
+                sequence / TILE,
+                sequence % TILE,
+                value.len() / sequence,
+                kernels::causal_blocks(sequence, TILE),
+                value,
+                probabilities,
+                output,
+            )
+        })
     }
 
     fn add_features(
@@ -2745,7 +2730,9 @@ mod verification {
                 .prepare_gpt_attention_probabilities::<64>(config::<1>(probabilities.len())?)?;
             let context_launch = model
                 .module
-                .prepare_gpt_attention_context::<MAX_WIDTH, 64>(config::<1>(output.len())?)?;
+                .prepare_gpt_attention_context::<MAX_WIDTH, 64, false>(config::<1>(
+                    output.len(),
+                )?)?;
             let score_launch = model
                 .module
                 .prepare_gpt_attention_scores_serial::<MAX_WIDTH, 128, 8, 64, 0, 1>(config::<1>(
@@ -2788,7 +2775,6 @@ mod verification {
                         tail,
                         sequences,
                         blocks,
-                        &scores,
                         &statistics,
                         &mut probabilities,
                     ),
@@ -2818,7 +2804,6 @@ mod verification {
                         blocks,
                         &value,
                         &output,
-                        &probabilities,
                         &statistics,
                         &mut serial_scores,
                     ),
@@ -2826,6 +2811,39 @@ mod verification {
                 for result in results {
                     assert_eq!(result.is_ok(), geometry == valid, "geometry={geometry:?}");
                 }
+            }
+            let actual = probabilities.to_host_vec(&model.stream)?;
+            for group in 0..4 {
+                for position in 0..3 {
+                    for local in 0..64 {
+                        let expected = if local <= position {
+                            1.0 / (position + 1) as f32
+                        } else {
+                            0.0
+                        };
+                        assert_eq!(actual[(group * 3 + position) * 64 + local], expected);
+                    }
+                }
+            }
+            for cells in [0, probabilities.len() - 1, probabilities.len() + 1] {
+                let mut invalid = DeviceBuffer::<f32>::zeroed(&model.stream, cells)?;
+                assert!(
+                    model
+                        .module
+                        .gpt_attention_probabilities(
+                            &model.stream,
+                            &probability_launch,
+                            2,
+                            3,
+                            0,
+                            3,
+                            2,
+                            3,
+                            &statistics,
+                            &mut invalid,
+                        )
+                        .is_err()
+                );
             }
             let transpose_launch = model
                 .module

@@ -102,9 +102,10 @@ The contracts validate chunk counts, row extents, scalar-output lengths, and
 parameter offsets. Existing `MSHGPT07` checkpoints use the same model equations
 and parameter layout.
 
-All tensor capacities are Rust const parameters. The final benchmark uses
-`SpecializedMeshGpt<128, 256, 128, 8>` with active dimensions from the workload
-above. Other capacities compile the same kernel definitions; active dimensions,
+All tensor capacities are Rust const parameters. The current benchmark fits
+its original workload with `SpecializedMeshGpt<128, 99, 4, 4>`; the general
+`GpuMeshGpt` alias remains `SpecializedMeshGpt<128, 256, 128, 8>`.
+Other capacities compile the same kernel definitions; active dimensions,
 layer counts, and mesh depths are checked runtime values. See
 [Mesh GPT](mesh-gpt.md#gpu-execution-and-verification) for a wider specialization.
 The CUDA Rust patches are published on `experiments`, and the project's Git
@@ -1149,3 +1150,56 @@ had relative parameter L2 differences below 1.18e-8, and the short-context
 checkpoint was byte-identical. Four-product prefetching remains selected.
 See `attention-sum8`, `sum4-control`, `attention-sum8-comparison.json`, and
 `verify-attention-sum8.txt`.
+
+### Reuse probabilities for scores and their gradients
+
+Attention stores raw forward scores directly in its own probability cache.
+After row statistics are computed, the softmax kernel updates each owned cell
+in place. Backward first computes dV while probabilities remain available,
+then each score thread replaces its own probability with dScore, and a final
+kernel computes dQ/dK. No shared immutable view aliases an output: the kernels
+read their old cell through the same typed disjoint mutable ownership used
+for its replacement. Checked launch contracts still validate all dimensions
+and lengths before launch.
+
+This removes the shared score allocation and 15 lines of runtime Rust. The
+forward output and dV share one ordinary const-generic kernel; the sum helper
+no longer needs paired values or coefficients. New contract checks validate
+in-place uniform softmax, untouched padding, and short/long output buffers.
+All 31 CPU tests, strict Clippy, the complete original-tolerance f64 CUDA
+verifier, gradient/AdamW/learning checks, and the full mod-97 epoch pass.
+Seven fixed-shape checkpoints, the 50-update original checkpoint, and the
+complete epoch remain byte-identical.
+
+The user reported possible concurrent GPU activity during earlier measurements.
+The context-4096 result was independently repeated in old/new/new/old order,
+without concurrent compilation and with external compute-process checks before
+and after every run. Every run uses width 128, four heads, two blocks, context
+4096, batch six, vocabulary 99, ten warmup and ten timed updates in three trials.
+
+| Repeat | ms/update | Process MiB | Owned device bytes |
+| --- | ---: | ---: | ---: |
+| Old A | 767.660 | 3298 | 3378822144 |
+| New A | 793.368 | 2518 | 2560932864 |
+| New B | 796.063 | 2518 | 2560932864 |
+| Old B | 782.946 | 3298 | 3378822144 |
+
+Both independent memory probes confirm **780 MiB saved per process**. The
+owned-buffer difference is exactly **817,889,280 bytes**, matching the deleted
+causal score matrix. All four trained checkpoints are byte-identical. Combined
+six-trial medians are 777.625 / 795.241 ms: the retained memory optimization
+costs 2.3% update time on this workload. Unlocked GPU clocks and temperatures
+were recorded; no external compute processes appeared in the boundary checks.
+These checks cannot exclude a transient workload between the snapshots.
+
+At context 1024 / batch sixteen, owned buffers fall by 136 MiB, and process
+memory falls from 1074 to 938 MiB. Separate capacity measurements fit batch
+seven at context 4096 in 2926 MiB, instead of batch six in 3298 MiB before
+this change. The large-batch workload also fits 20160 sequences in 3030 MiB.
+The runner adopts these larger defaults. Capacity measurements have different
+dimensions and are kept separate from fixed-shape speed comparisons.
+
+Artifacts are in `attention-inplace`, `attention-inplace-comparison.json`,
+`inplace-recheck-{old-a,new-a,new-b,old-b}`, `inplace-recheck-summary.json`,
+`inplace-recheck-activity.json`, `inplace-capacity`, `inplace-baseline-50`,
+`verify-attention-inplace.txt`, and `epoch-attention-inplace`.
