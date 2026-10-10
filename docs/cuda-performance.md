@@ -489,3 +489,30 @@ lines and saved memory, yet increased original/large-batch/deep/combined times
 to 6.187/92.881/96.233/90.673 ms. The two-pass coalesced version replaces it.
 Artifacts are in `shapes-compact-norm`, `shapes-shared-norm`, and
 `shared-norm-comparison.json` under the ignored profile directory.
+
+### Reuse gradients after their final consumer
+
+The execution plan now assigns gradient buffers by backward lifetimes instead
+of allocating one for every graph node. Allocation of an operation's input
+gradients happens while its output gradient remains live; only then may that
+output slot be reused. Residual and XSA contributions keep their slots until
+all uses are processed. Checked `get_disjoint_mut` access handles residual
+copies without depending on the relative order of slot indices.
+
+| Scenario | Shared-norm memory (MiB) | Reused gradients (MiB) | Before (ms/update) | After |
+| --- | ---: | ---: | ---: | ---: |
+| Original | 238 | 178 | 5.380 | 5.396 |
+| Large batch | 2714 | 1738 | 80.466 | 80.637 |
+| Wide model | 2608 | 1510 | 83.095 | 83.132 |
+| Deep model | 2828 | 1554 | 81.686 | 81.758 |
+| Combined | 2838 | 1588 | 76.854 | 76.874 |
+| Long context | 2738 | 2250 | 377.517 | 378.322 |
+
+This saves another 488--1274 MiB in the large scenarios without changing
+arithmetic or kernel definitions. All six 15-update checkpoints remain
+byte-identical. A new CPU property check verifies exclusive ownership of every
+simultaneously live gradient, including residual branches, 64 blocks, and
+mesh depths 256, and checks that allocation matches peak liveness. All 29 CPU
+tests, strict Clippy, full CUDA verification, and the complete mod-97 epoch
+pass. Fixed-shape measurements and comparisons are retained in
+`shapes-gradient-reuse` and `gradient-reuse-comparison.json`.

@@ -316,6 +316,10 @@ in the same sequence. Residual and Q/K/V gradients accumulate in distinct
 buffers. Launch contracts validate lengths and scalar bounds. Private execution
 plans establish descriptor relationships and vocabulary IDs are checked before
 launch. Kernels use safe `DisjointSlice` access and no atomics or raw pointers.
+The execution plan assigns reusable gradient slots by backward lifetimes. A
+node retains its slot through every contribution and its backward operation;
+inputs receive distinct slots before the output's slot becomes available.
+The workspace allocates only the maximum simultaneously live gradients.
 GPT module loading is also safe: CUDA Oxide verifies the original mapped
 artifact image and resolves generic kernels by compiled function-item identity.
 Conflicting entries and missing specializations fail before launch.

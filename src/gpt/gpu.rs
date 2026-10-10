@@ -953,9 +953,30 @@ enum Op {
     },
 }
 
+impl Op {
+    fn edges(self) -> (usize, [Option<usize>; 3]) {
+        match self {
+            Self::Embed { out } => (out, [None; 3]),
+            Self::RmsNorm { input, out, .. }
+            | Self::Mesh { input, out, .. }
+            | Self::Rotary { input, out } => (out, [Some(input), None, None]),
+            Self::Add { left, right, out } => (out, [Some(left), Some(right), None]),
+            Self::Exclusive { input, value, out } => (out, [Some(input), Some(value), None]),
+            Self::Attention {
+                query,
+                key,
+                value,
+                out,
+                ..
+            } => (out, [Some(query), Some(key), Some(value)]),
+        }
+    }
+}
+
 struct Plan {
     ops: Vec<Op>,
-    features: usize,
+    gradient_slots: Vec<usize>,
+    gradient_buffers: usize,
     attentions: usize,
     final_features: usize,
 }
@@ -964,7 +985,8 @@ impl Plan {
     fn new(config: GptConfig, layout: &Layout) -> Self {
         let mut plan = Self {
             ops: vec![Op::Embed { out: 0 }],
-            features: 1,
+            gradient_slots: Vec::new(),
+            gradient_buffers: 0,
             attentions: 0,
             final_features: 0,
         };
@@ -978,7 +1000,7 @@ impl Plan {
             let key = plan.rmsnorm(key, config.heads);
             let query = plan.rope(query);
             let key = plan.rope(key);
-            let out = plan.feature();
+            let out = plan.ops.len();
             let cache = plan.attentions;
             plan.attentions += 1;
             plan.ops.push(Op::Attention {
@@ -988,7 +1010,7 @@ impl Plan {
                 out,
                 cache,
             });
-            let exclusive = plan.feature();
+            let exclusive = plan.ops.len();
             plan.ops.push(Op::Exclusive {
                 input: out,
                 value,
@@ -1001,21 +1023,35 @@ impl Plan {
             x = plan.add(x, ffn);
         }
         plan.final_features = plan.rmsnorm(x, 1);
+        // A node's gradient is live from its first contribution until its op runs.
+        // Keep the output live while allocating all inputs, then reuse its slot.
+        plan.gradient_slots = vec![usize::MAX; plan.ops.len()];
+        plan.gradient_slots[plan.final_features] = 0;
+        plan.gradient_buffers = 1;
+        let mut available = Vec::new();
+        for op in plan.ops.iter().rev().copied() {
+            let (out, inputs) = op.edges();
+            for input in inputs.into_iter().flatten() {
+                if plan.gradient_slots[input] == usize::MAX {
+                    plan.gradient_slots[input] = available.pop().unwrap_or_else(|| {
+                        let slot = plan.gradient_buffers;
+                        plan.gradient_buffers += 1;
+                        slot
+                    });
+                }
+            }
+            available.push(plan.gradient_slots[out]);
+        }
         plan
     }
-    fn feature(&mut self) -> usize {
-        let id = self.features;
-        self.features += 1;
-        id
-    }
     fn rmsnorm(&mut self, input: usize, heads: usize) -> usize {
-        let out = self.feature();
+        let out = self.ops.len();
         self.ops.push(Op::RmsNorm { heads, input, out });
         out
     }
     fn mesh(&mut self, mut input: usize, group: usize, depth: usize) -> usize {
         for layer in 0..depth {
-            let out = self.feature();
+            let out = self.ops.len();
             self.ops.push(Op::Mesh {
                 group,
                 input,
@@ -1028,14 +1064,54 @@ impl Plan {
         input
     }
     fn add(&mut self, left: usize, right: usize) -> usize {
-        let out = self.feature();
+        let out = self.ops.len();
         self.ops.push(Op::Add { left, right, out });
         out
     }
     fn rope(&mut self, input: usize) -> usize {
-        let out = self.feature();
+        let out = self.ops.len();
         self.ops.push(Op::Rotary { input, out });
         out
+    }
+}
+
+#[cfg(test)]
+mod plan_tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn shared_gradient_slots_never_overlap_live_nodes() {
+        for (layers, attention_mesh_depth, ffn_mesh_depth) in
+            [(1, 1, 1), (2, 4, 6), (20, 4, 6), (64, 1, 2), (1, 256, 256)]
+        {
+            let c = GptConfig {
+                layers,
+                attention_mesh_depth,
+                ffn_mesh_depth,
+                ..GptConfig::default()
+            };
+            let plan = Plan::new(c, &Layout::new(c).unwrap());
+            let mut live = HashSet::from([plan.final_features]);
+            let mut peak = 1;
+            for op in plan.ops.iter().rev().copied() {
+                let (out, inputs) = op.edges();
+                assert!(live.contains(&out));
+                live.extend(inputs.into_iter().flatten());
+                let slots: HashSet<_> =
+                    live.iter().map(|&node| plan.gradient_slots[node]).collect();
+                assert_eq!(
+                    live.len(),
+                    slots.len(),
+                    "live gradients must own distinct buffers"
+                );
+                peak = peak.max(live.len());
+                live.remove(&out);
+            }
+            assert!(live.is_empty());
+            assert_eq!(peak, plan.gradient_buffers);
+            assert!(plan.gradient_buffers < plan.ops.len());
+        }
     }
 }
 
@@ -1101,13 +1177,13 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
                 stream,
                 rows.div_ceil(32) * 2 * config.width,
             )?,
-            features: buffers(stream, plan.features, rows)?,
-            adjoints: buffers(stream, plan.features, rows)?,
+            features: buffers(stream, plan.ops.len(), rows)?,
+            adjoints: buffers(stream, plan.gradient_buffers, rows)?,
             norm_statistics: DeviceBuffer::zeroed(stream, rows * config.heads)?,
             probabilities: buffers(stream, plan.attentions, rows)?,
             scores: DeviceBuffer::zeroed(stream, rows)?,
             scratch: buffers(stream, 4, rows)?,
-            initialized: vec![false; plan.features],
+            initialized: vec![false; plan.ops.len()],
             logits: DeviceBuffer::zeroed(stream, rows)?,
             head_gradient: DeviceBuffer::zeroed(stream, rows)?,
             loss: DeviceBuffer::zeroed(stream, rows)?,
@@ -1673,7 +1749,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         self.accumulate_scratch(workspace, self.plan.final_features, 0)?;
 
         for index in (0..self.plan.ops.len()).rev() {
-            match self.plan.ops[index] {
+            let op = self.plan.ops[index];
+            let gradient_slot = self.plan.gradient_slots[op.edges().0];
+            match op {
                 Op::Embed { .. } => {}
                 Op::RmsNorm { heads, input, out } => {
                     self.rmsnorm(
@@ -1682,7 +1760,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         1,
                         [
                             &workspace.features[input],
-                            &workspace.adjoints[out],
+                            &workspace.adjoints[gradient_slot],
                             &workspace.features[out],
                         ],
                         &mut workspace.norm_statistics,
@@ -1711,7 +1789,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             chunks,
                             &workspace.features[input],
                             &workspace.features[out],
-                            &workspace.adjoints[out],
+                            &workspace.adjoints[gradient_slot],
                             &mut workspace.mesh_gradient_partials,
                         )?;
                         let launch = self.module.prepare_gpt_mesh_gradient_reduce::<W>(config(
@@ -1738,7 +1816,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             activated,
                             &workspace.features[input],
                             &workspace.features[out],
-                            &workspace.adjoints[out],
+                            &workspace.adjoints[gradient_slot],
                             &mut parameters.gradient,
                         )?;
                     }
@@ -1752,7 +1830,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             c.width,
                             layer * 2 * c.width,
                             activated,
-                            &workspace.adjoints[out],
+                            &workspace.adjoints[gradient_slot],
                             &workspace.features[out],
                             &parameters.state,
                             output,
@@ -1764,7 +1842,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     self.accumulate_node(workspace, left, out)?;
                     self.accumulate_node(workspace, right, out)?;
                 }
-                Op::Rotary { input, out } => {
+                Op::Rotary { input, .. } => {
                     with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
                         let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
                         self.module.gpt_rope(
@@ -1774,7 +1852,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             c.width / c.heads / 2,
                             workspace.sequence,
                             1,
-                            &workspace.adjoints[out],
+                            &workspace.adjoints[gradient_slot],
                             output,
                         )
                     })?;
@@ -1784,8 +1862,8 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     query,
                     key,
                     value,
-                    out,
                     cache,
+                    ..
                 } => {
                     let launch = self
                         .module
@@ -1796,7 +1874,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         c.width,
                         c.heads,
                         workspace.sequence,
-                        &workspace.adjoints[out],
+                        &workspace.adjoints[gradient_slot],
                         &workspace.features[value],
                         &workspace.probabilities[cache],
                         &mut workspace.scores,
@@ -1817,7 +1895,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                                     workspace.sequence,
                                     &workspace.features[query],
                                     &workspace.features[key],
-                                    &workspace.adjoints[out],
+                                    &workspace.adjoints[gradient_slot],
                                     &workspace.scores,
                                     &workspace.probabilities[cache],
                                     dq,
@@ -1831,7 +1909,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     self.accumulate_scratch(workspace, key, 1)?;
                     self.accumulate_scratch(workspace, value, 2)?;
                 }
-                Op::Exclusive { input, value, out } => {
+                Op::Exclusive { input, value, .. } => {
                     let (dy, rest) = workspace.scratch.split_at_mut(1);
                     with_buffer_chunks(&self.stream, &mut dy[0], |dy| {
                         with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
@@ -1845,7 +1923,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                                 c.heads,
                                 &workspace.features[input],
                                 &workspace.features[value],
-                                &workspace.adjoints[out],
+                                &workspace.adjoints[gradient_slot],
                                 dy,
                                 dv,
                             )
@@ -1872,7 +1950,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             c.vocab_size,
             chunks,
             &workspace.tokens,
-            &workspace.adjoints[0],
+            &workspace.adjoints[self.plan.gradient_slots[0]],
             &workspace.head_gradient,
             &workspace.features[self.plan.final_features],
             &mut workspace.embedding_gradient_partials,
@@ -2009,15 +2087,13 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         target: usize,
         source: usize,
     ) -> Result<()> {
+        let adjoint = &mut workspace.adjoints[self.plan.gradient_slots[target]];
         if workspace.initialized[target] {
             let (before, after) = workspace.scratch.split_at_mut(3);
-            self.add_features(&workspace.adjoints[target], &before[source], &mut after[0])?;
-            std::mem::swap(&mut workspace.adjoints[target], &mut workspace.scratch[3]);
+            self.add_features(adjoint, &before[source], &mut after[0])?;
+            std::mem::swap(adjoint, &mut workspace.scratch[3]);
         } else {
-            std::mem::swap(
-                &mut workspace.adjoints[target],
-                &mut workspace.scratch[source],
-            );
+            std::mem::swap(adjoint, &mut workspace.scratch[source]);
             workspace.initialized[target] = true;
         }
         Ok(())
@@ -2029,19 +2105,18 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         target: usize,
         source: usize,
     ) -> Result<()> {
+        let [output, input] = workspace.adjoints.get_disjoint_mut([
+            self.plan.gradient_slots[target],
+            self.plan.gradient_slots[source],
+        ])?;
         if workspace.initialized[target] {
-            self.add_features(
-                &workspace.adjoints[target],
-                &workspace.adjoints[source],
-                &mut workspace.scratch[3],
-            )?;
-            std::mem::swap(&mut workspace.adjoints[target], &mut workspace.scratch[3]);
+            self.add_features(output, input, &mut workspace.scratch[3])?;
+            std::mem::swap(output, &mut workspace.scratch[3]);
         } else {
-            let (before, after) = workspace.adjoints.split_at_mut(source);
-            with_buffer_chunks(&self.stream, &mut before[target], |output| {
+            with_buffer_chunks(&self.stream, output, |output| {
                 let launch = self.module.prepare_gpt_copy::<W>(config(output.len()))?;
                 self.module
-                    .gpt_copy(&self.stream, &launch, self.config.width, &after[0], output)
+                    .gpt_copy(&self.stream, &launch, self.config.width, input, output)
             })?;
             workspace.initialized[target] = true;
         }
