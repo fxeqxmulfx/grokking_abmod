@@ -18,6 +18,8 @@ vectors used by both input lookup and the output head, so every learned weight
 is a mesh edge. All RMSNorms are parameter-free, and every projection and the
 vocabulary head is bias-free. It includes pre-RMSNorm, residual connections,
 per-head QK-Norm before slice RoPE, GPU AdamW, checkpoints, and text sampling.
+FP32 FA2 attention uses a linear workspace and safe reusable async tiles;
+its CUDA path requires compute capability 8.0 or newer.
 
 ```bash
 cargo oxide run --bin mesh-gpt -- train

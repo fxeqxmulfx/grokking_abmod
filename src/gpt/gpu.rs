@@ -255,7 +255,8 @@ mod kernels {
     }
 
     #[device]
-    fn flash_init<const W: usize, const D: usize, const BACKWARD: bool>(
+    #[inline(always)]
+    fn flash_init<const W: usize, const D: usize, const R: usize, const BACKWARD: bool>(
         heads: usize,
         width: usize,
         sequence: usize,
@@ -281,8 +282,22 @@ mod kernels {
             sum: 0.0,
             delta: 0.0,
         };
-        if state.active {
-            for c in 0..D / 32 {
+        if state.active && D == 32 && R == 32 {
+            let mut column = 0;
+            #[unroll]
+            while column < 32 {
+                if column < width {
+                    state.first[column] = first[begin + column];
+                    if BACKWARD {
+                        state.second[column] = second[begin + column];
+                    }
+                }
+                column += 1;
+            }
+        } else if state.active {
+            let mut c = 0;
+            #[unroll]
+            while c < D / 32 {
                 let column = lane + c * 32;
                 if column < width {
                     state.first[c] = first[begin + column];
@@ -290,12 +305,14 @@ mod kernels {
                         state.second[c] = second[begin + column];
                     }
                 }
+                c += 1;
             }
         }
         state
     }
 
     #[device]
+    #[inline(always)]
     fn flash_dot<const D: usize>(
         state: &FlashState,
         row: usize,
@@ -303,16 +320,39 @@ mod kernels {
         tile: &BlockTile<'_, f32>,
     ) -> f32 {
         let mut sum = 0.0;
-        for c in 0..D / 32 {
+        let mut c = 0;
+        #[unroll]
+        while c < D / 32 {
             let column = state.lane + c * 32;
             if column < state.width {
-                sum += vector[c] * tile.get(row, column).copied().unwrap_or(0.0);
+                sum += vector[c] * tile.load(row, column);
             }
+            c += 1;
         }
         warp::reduce_sum_f32(sum)
     }
 
     #[device]
+    #[inline(always)]
+    fn flash_scalar_dot<const FULL: bool>(
+        state: &FlashState,
+        vector: &[f32; 32],
+        tile: &BlockTile<'_, f32>,
+    ) -> f32 {
+        let mut sum = 0.0;
+        let mut column = 0;
+        #[unroll]
+        while column < 32 {
+            if FULL || column < state.width {
+                sum += vector[column] * tile.load(state.lane, column);
+            }
+            column += 1;
+        }
+        sum
+    }
+
+    #[device]
+    #[inline(always)]
     fn flash_store<const D: usize>(
         state: &FlashState,
         output: &mut DisjointSlice<'_, [f32; 2], thread::StripedWarp<D>>,
@@ -321,7 +361,9 @@ mod kernels {
         if !state.active {
             return;
         }
-        for c in 0..D / 32 {
+        let mut c = 0;
+        #[unroll]
+        while c < D / 32 {
             let column = state.lane + c * 32;
             if column < state.width
                 && let Some(index) = thread::striped_index::<D>(column)
@@ -329,6 +371,7 @@ mod kernels {
             {
                 *value = [state.output[c] * inverse, state.other[c]];
             }
+            c += 1;
         }
     }
 
@@ -336,28 +379,29 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         heads >= 1, head_width >= 1, heads * head_width <= W,
-        D >= 32, D <= 1024, head_width <= D,
+        D >= 32, D <= 1024, head_width <= D, R >= 4, R <= 32,
         sequence >= 1, _tiles >= 1, _tiles * 4 >= sequence, _tiles * 4 < sequence + 4,
         _sequences >= 1, query.len() == _sequences * sequence * W,
         key.len() == query.len(), value.len() == query.len(),
         statistics.len() == _sequences * heads * _tiles * 4,
         out.len() == statistics.len() * D))]
-    #[block_pipeline(rows = 4, iterations = block % _tiles + 1)]
-    pub fn gpt_flash_forward<const W: usize, const D: usize>(
+    #[block_pipeline(rows = R, iterations = (block % _tiles * 4 + 4 + R - 1) / R)]
+    pub fn gpt_flash_forward<const W: usize, const D: usize, const R: usize>(
         heads: usize,
         head_width: usize,
         sequence: usize,
         _tiles: usize,
         _sequences: usize,
         query: &[f32],
-        #[tile_source(columns = D, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
+        #[tile_source(columns = D, layout = xor32, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
         key: &[f32],
-        #[tile_source(columns = D, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
+        #[tile_source(columns = D, layout = xor32, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
         value: &[f32],
         mut statistics: DisjointSlice<NormStats, thread::WarpIndex>,
         mut out: DisjointSlice<[f32; 2], thread::StripedWarp<D>>,
     ) {
-        let init = || flash_init::<W, D, false>(heads, head_width, sequence, _tiles, query, query);
+        let init =
+            || flash_init::<W, D, R, false>(heads, head_width, sequence, _tiles, query, query);
         let step = |state: &mut FlashState,
                     iteration: usize,
                     key: BlockTile<'_, f32>,
@@ -365,44 +409,79 @@ mod kernels {
             if !state.active {
                 return;
             }
+            let rows = R;
             let scale = 1.0 / (head_width as f32).sqrt();
             let mut score = f32::NEG_INFINITY;
-            for row in 0..4 {
-                if iteration * 4 + row <= state.position {
-                    let dot = flash_dot::<D>(state, row, &state.first, &key) * scale;
-                    if state.lane == row {
-                        score = dot;
+            if D == 32 && R == 32 {
+                if iteration * rows + state.lane <= state.position {
+                    score = if head_width == 32 {
+                        flash_scalar_dot::<true>(state, &state.first, &key)
+                    } else {
+                        flash_scalar_dot::<false>(state, &state.first, &key)
+                    } * scale;
+                }
+            } else {
+                let mut row = 0;
+                #[unroll]
+                while row < rows {
+                    if iteration * rows + row <= state.position {
+                        let dot = flash_dot::<D>(state, row, &state.first, &key) * scale;
+                        if state.lane == row {
+                            score = dot;
+                        }
                     }
+                    row += 1;
                 }
             }
-            let maximum = state.maximum.max(warp::reduce_max_f32(score));
+            // Ordered FP32 bits let Ampere reduce the maximum in one instruction.
+            let bits = score.to_bits();
+            let ordered = bits ^ (((bits as i32 >> 31) as u32) | 0x8000_0000);
+            let ordered = warp::redux_sync_max_u32(u32::MAX, ordered);
+            let mask = if ordered & 0x8000_0000 == 0 {
+                u32::MAX
+            } else {
+                0x8000_0000
+            };
+            let maximum = state.maximum.max(f32::from_bits(ordered ^ mask));
             let alpha = warp::shuffle_f32(
                 if state.lane == 0 {
-                    (state.maximum - maximum).exp()
+                    cuda_device::float::ex2_approx_ftz_f32(
+                        (state.maximum - maximum) * core::f32::consts::LOG2_E,
+                    )
                 } else {
                     0.0
                 },
                 0,
             );
-            let mass = if state.lane < 4 {
-                (score - maximum).exp()
+            let mass = if state.lane < rows {
+                cuda_device::float::ex2_approx_ftz_f32(
+                    (score - maximum) * core::f32::consts::LOG2_E,
+                )
             } else {
                 0.0
             };
             state.sum = state.sum * alpha + warp::reduce_sum_f32(mass);
             state.maximum = maximum;
-            for c in 0..D / 32 {
+            let mut c = 0;
+            #[unroll]
+            while c < D / 32 {
                 state.output[c] *= alpha;
+                c += 1;
             }
-            for row in 0..4 {
+            let mut row = 0;
+            #[unroll]
+            while row < rows {
                 let probability = warp::shuffle_f32(mass, row as u32);
-                for c in 0..D / 32 {
+                let mut c = 0;
+                #[unroll]
+                while c < D / 32 {
                     let column = state.lane + c * 32;
                     if column < head_width {
-                        state.output[c] +=
-                            probability * value.get(row, column).copied().unwrap_or(0.0);
+                        state.output[c] += probability * value.load(row, column);
                     }
+                    c += 1;
                 }
+                row += 1;
             }
         };
         let mut finish = |state: FlashState| {
@@ -455,14 +534,14 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         heads >= 1, head_width >= 1, heads * head_width <= W,
-        D >= 32, D <= 1024, head_width <= D,
+        D >= 32, D <= 1024, head_width <= D, R >= 4, R <= 32,
         sequence >= 1, _tiles >= 1, _tiles * 4 >= sequence, _tiles * 4 < sequence + 4,
         _sequences >= 1, query.len() == _sequences * sequence * W,
         key.len() == query.len(), value.len() == query.len(), gradient.len() == query.len(),
         statistics.len() == _sequences * heads * _tiles * 4,
         out.len() == statistics.len() * D))]
-    #[block_pipeline(rows = 4, iterations = block % _tiles + 1)]
-    pub fn gpt_flash_query_gradient<const W: usize, const D: usize>(
+    #[block_pipeline(rows = R, iterations = (block % _tiles * 4 + 4 + R - 1) / R)]
+    pub fn gpt_flash_query_gradient<const W: usize, const D: usize, const R: usize>(
         heads: usize,
         head_width: usize,
         sequence: usize,
@@ -471,15 +550,15 @@ mod kernels {
         query: &[f32],
         gradient: &[f32],
         statistics: &[NormStats],
-        #[tile_source(columns = D, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
+        #[tile_source(columns = D, layout = xor32, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
         key: &[f32],
-        #[tile_source(columns = D, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
+        #[tile_source(columns = D, layout = xor32, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width)]
         value: &[f32],
         mut out: DisjointSlice<[f32; 2], thread::StripedWarp<D>>,
     ) {
         let init = || {
             let mut state =
-                flash_init::<W, D, true>(heads, head_width, sequence, _tiles, query, gradient);
+                flash_init::<W, D, R, true>(heads, head_width, sequence, _tiles, query, gradient);
             if state.active {
                 let stats = statistics
                     [thread::blockIdx_x() as usize * 4 + thread::threadIdx_x() as usize / 32];
@@ -495,33 +574,63 @@ mod kernels {
             if !state.active {
                 return;
             }
+            let rows = R;
             let scale = 1.0 / (head_width as f32).sqrt();
             let mut score = f32::NEG_INFINITY;
             let mut derivative = 0.0;
-            for row in 0..4 {
-                if iteration * 4 + row <= state.position {
-                    let dot = flash_dot::<D>(state, row, &state.first, &key) * scale;
-                    let dp = flash_dot::<D>(state, row, &state.second, &value);
-                    if state.lane == row {
-                        score = dot;
-                        derivative = dp;
+            if D == 32 && R == 32 {
+                if iteration * rows + state.lane <= state.position {
+                    let (dot, dp) = if head_width == 32 {
+                        (
+                            flash_scalar_dot::<true>(state, &state.first, &key),
+                            flash_scalar_dot::<true>(state, &state.second, &value),
+                        )
+                    } else {
+                        (
+                            flash_scalar_dot::<false>(state, &state.first, &key),
+                            flash_scalar_dot::<false>(state, &state.second, &value),
+                        )
+                    };
+                    score = dot * scale;
+                    derivative = dp;
+                }
+            } else {
+                let mut row = 0;
+                #[unroll]
+                while row < rows {
+                    if iteration * rows + row <= state.position {
+                        let dot = flash_dot::<D>(state, row, &state.first, &key) * scale;
+                        let dp = flash_dot::<D>(state, row, &state.second, &value);
+                        if state.lane == row {
+                            score = dot;
+                            derivative = dp;
+                        }
                     }
+                    row += 1;
                 }
             }
-            let ds = if state.lane < 4 {
-                (score - state.maximum).exp() * (derivative - state.delta) * scale
+            let ds = if state.lane < rows {
+                cuda_device::float::ex2_approx_ftz_f32(
+                    (score - state.maximum) * core::f32::consts::LOG2_E,
+                ) * (derivative - state.delta)
+                    * scale
             } else {
                 0.0
             };
-            for row in 0..4 {
+            let mut row = 0;
+            #[unroll]
+            while row < rows {
                 let derivative = warp::shuffle_f32(ds, row as u32);
-                for c in 0..D / 32 {
+                let mut c = 0;
+                #[unroll]
+                while c < D / 32 {
                     let column = state.lane + c * 32;
                     if column < head_width {
-                        state.output[c] +=
-                            derivative * key.get(row, column).copied().unwrap_or(0.0);
+                        state.output[c] += derivative * key.load(row, column);
                     }
+                    c += 1;
                 }
+                row += 1;
             }
         };
         let mut finish = |state: FlashState| {
@@ -533,14 +642,14 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         heads >= 1, head_width >= 1, heads * head_width <= W,
-        D >= 32, D <= 1024, head_width <= D,
+        D >= 32, D <= 1024, head_width <= D, R >= 4, R <= 32,
         sequence >= 1, _tiles >= 1, _tiles * 4 >= sequence, _tiles * 4 < sequence + 4,
         _sequences >= 1, key.len() == _sequences * sequence * W,
         query.len() == key.len(), value.len() == key.len(), gradient.len() == key.len(),
         statistics.len() == _sequences * heads * _tiles * 4 * 2,
         out.len() * 2 == statistics.len() * D))]
-    #[block_pipeline(rows = 4, iterations = _tiles - block % _tiles)]
-    pub fn gpt_flash_key_value_gradient<const W: usize, const D: usize>(
+    #[block_pipeline(rows = R, iterations = (sequence + R - 1) / R - (block % _tiles * 4) / R)]
+    pub fn gpt_flash_key_value_gradient<const W: usize, const D: usize, const R: usize>(
         heads: usize,
         head_width: usize,
         sequence: usize,
@@ -548,15 +657,15 @@ mod kernels {
         _sequences: usize,
         key: &[f32],
         value: &[f32],
-        #[tile_source(columns = D, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width + (block % _tiles) * 4 * W)]
+        #[tile_source(columns = D, layout = xor32, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width + ((block % _tiles * 4) / R) * R * W)]
         query: &[f32],
-        #[tile_source(columns = D, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width + (block % _tiles) * 4 * W)]
+        #[tile_source(columns = D, layout = xor32, stride = W, offset = (block / _tiles / heads) * sequence * W + (block / _tiles % heads) * head_width + ((block % _tiles * 4) / R) * R * W)]
         gradient: &[f32],
-        #[tile_source(columns = 2, stride = 2, offset = (block / _tiles * _tiles + block % _tiles) * 4 * 2)]
+        #[tile_source(columns = 2, stride = 2, offset = (block / _tiles) * _tiles * 4 * 2 + ((block % _tiles * 4) / R) * R * 2)]
         statistics: &[f32],
         mut out: DisjointSlice<[f32; 2], thread::StripedWarp<D>>,
     ) {
-        let init = || flash_init::<W, D, true>(heads, head_width, sequence, _tiles, key, value);
+        let init = || flash_init::<W, D, R, true>(heads, head_width, sequence, _tiles, key, value);
         let step = |state: &mut FlashState,
                     iteration: usize,
                     query: BlockTile<'_, f32>,
@@ -565,40 +674,71 @@ mod kernels {
             if !state.active {
                 return;
             }
+            let rows = R;
             let scale = 1.0 / (head_width as f32).sqrt();
             let mut score = f32::NEG_INFINITY;
             let mut derivative = 0.0;
             let mut lse = 0.0;
             let mut delta = 0.0;
-            for row in 0..4 {
-                let position = (state.position / 4 + iteration) * 4 + row;
+            if D == 32 && R == 32 {
+                let position = (state.position / rows + iteration) * rows + state.lane;
                 if position >= state.position && position < sequence {
-                    let dot = flash_dot::<D>(state, row, &state.first, &query) * scale;
-                    let dp = flash_dot::<D>(state, row, &state.second, &gradient);
-                    if state.lane == row {
-                        score = dot;
-                        derivative = dp;
-                        lse = statistics.get(row, 0).copied().unwrap_or(0.0);
-                        delta = statistics.get(row, 1).copied().unwrap_or(0.0);
+                    let (dot, dp) = if head_width == 32 {
+                        (
+                            flash_scalar_dot::<true>(state, &state.first, &query),
+                            flash_scalar_dot::<true>(state, &state.second, &gradient),
+                        )
+                    } else {
+                        (
+                            flash_scalar_dot::<false>(state, &state.first, &query),
+                            flash_scalar_dot::<false>(state, &state.second, &gradient),
+                        )
+                    };
+                    score = dot * scale;
+                    derivative = dp;
+                    lse = statistics.load(state.lane, 0);
+                    delta = statistics.load(state.lane, 1);
+                }
+            } else {
+                let mut row = 0;
+                #[unroll]
+                while row < rows {
+                    let position = (state.position / rows + iteration) * rows + row;
+                    if position >= state.position && position < sequence {
+                        let dot = flash_dot::<D>(state, row, &state.first, &query) * scale;
+                        let dp = flash_dot::<D>(state, row, &state.second, &gradient);
+                        if state.lane == row {
+                            score = dot;
+                            derivative = dp;
+                            lse = statistics.load(row, 0);
+                            delta = statistics.load(row, 1);
+                        }
                     }
+                    row += 1;
                 }
             }
-            let p = if state.lane < 4 {
-                (score - lse).exp()
+            let p = if state.lane < rows {
+                cuda_device::float::ex2_approx_ftz_f32((score - lse) * core::f32::consts::LOG2_E)
             } else {
                 0.0
             };
             let ds = p * (derivative - delta) * scale;
-            for row in 0..4 {
+            let mut row = 0;
+            #[unroll]
+            while row < rows {
                 let p = warp::shuffle_f32(p, row as u32);
                 let ds = warp::shuffle_f32(ds, row as u32);
-                for c in 0..D / 32 {
+                let mut c = 0;
+                #[unroll]
+                while c < D / 32 {
                     let column = state.lane + c * 32;
                     if column < head_width {
-                        state.output[c] += ds * query.get(row, column).copied().unwrap_or(0.0);
-                        state.other[c] += p * gradient.get(row, column).copied().unwrap_or(0.0);
+                        state.output[c] += ds * query.load(row, column);
+                        state.other[c] += p * gradient.load(row, column);
                     }
+                    c += 1;
                 }
+                row += 1;
             }
         };
         let mut finish = |state: FlashState| {
@@ -1420,6 +1560,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             )
             .into());
         }
+        if config.width / config.heads > 1024 {
+            return Err("FP32 fused attention requires a head width at most 1024".into());
+        }
         let layout = Layout::new(config)?;
         let plan = Plan::new(config, &layout);
         let initial = layout.initialize(config, seed);
@@ -2222,18 +2365,36 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         inputs: [usize; 4],
         cache: usize,
     ) -> Result<()> {
-        match flash_columns(self.config.width / self.config.heads) {
-            32 => self.flash_attention::<32, BACKWARD>(workspace, gradient_slot, inputs, cache),
-            64 => self.flash_attention::<64, BACKWARD>(workspace, gradient_slot, inputs, cache),
-            128 => self.flash_attention::<128, BACKWARD>(workspace, gradient_slot, inputs, cache),
-            256 => self.flash_attention::<256, BACKWARD>(workspace, gradient_slot, inputs, cache),
-            512 => self.flash_attention::<512, BACKWARD>(workspace, gradient_slot, inputs, cache),
-            1024 => self.flash_attention::<1024, BACKWARD>(workspace, gradient_slot, inputs, cache),
+        match (
+            flash_columns(self.config.width / self.config.heads),
+            C >= 32,
+        ) {
+            (32, true) => {
+                self.flash_attention::<32, 32, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
+            (32, false) => {
+                self.flash_attention::<32, 4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
+            (64, _) => {
+                self.flash_attention::<64, 4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
+            (128, _) => {
+                self.flash_attention::<128, 4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
+            (256, _) => {
+                self.flash_attention::<256, 4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
+            (512, _) => {
+                self.flash_attention::<512, 4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
+            (1024, _) => {
+                self.flash_attention::<1024, 4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            }
             _ => Err("FP32 fused attention requires a head width at most 1024".into()),
         }
     }
 
-    fn flash_attention<const D: usize, const BACKWARD: usize>(
+    fn flash_attention<const D: usize, const R: usize, const BACKWARD: usize>(
         &self,
         workspace: &mut Workspace<W, V, C, H>,
         gradient_slot: usize,
@@ -2247,7 +2408,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         let tiles = sequence.div_ceil(4);
         let slots = workspace.attention_statistics[cache].len();
         let blocks = u32::try_from(slots / 4)?;
-        let launch_config = LaunchConfig1D::new(blocks, 128, (2 * 4 * 2 * D * 4) as u32);
+        let launch_config = LaunchConfig1D::new(blocks, 128, (2 * R * 2 * D * 4) as u32);
         let query = workspace.features[query]
             .as_chunks::<f32>()
             .ok_or("invalid query view")?;
@@ -2260,7 +2421,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         if BACKWARD == 0 {
             let launch = self
                 .module
-                .prepare_gpt_flash_forward::<W, D>(launch_config)?;
+                .prepare_gpt_flash_forward::<W, D, R>(launch_config)?;
             self.module.gpt_flash_forward(
                 &self.stream,
                 &launch,
@@ -2301,7 +2462,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             .ok_or("invalid gradient view")?;
         let launch = self
             .module
-            .prepare_gpt_flash_query_gradient::<W, D>(launch_config)?;
+            .prepare_gpt_flash_query_gradient::<W, D, R>(launch_config)?;
         self.module.gpt_flash_query_gradient(
             &self.stream,
             &launch,
@@ -2322,10 +2483,10 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             &workspace.attention_output,
             &mut workspace.scratch[0],
         )?;
-        let launch_config = LaunchConfig1D::new(blocks, 128, (2 * 4 * (2 * D + 2) * 4) as u32);
+        let launch_config = LaunchConfig1D::new(blocks, 128, (2 * R * (2 * D + 2) * 4) as u32);
         let launch = self
             .module
-            .prepare_gpt_flash_key_value_gradient::<W, D>(launch_config)?;
+            .prepare_gpt_flash_key_value_gradient::<W, D, R>(launch_config)?;
         let statistics = workspace.attention_statistics[cache]
             .as_chunks::<f32>()
             .ok_or("invalid attention statistics view")?;
@@ -2601,7 +2762,7 @@ mod verification {
             let config = LaunchConfig1D::new((slots / 4) as u32, 128, 2048);
             let launch = model
                 .module
-                .prepare_gpt_flash_forward::<MAX_WIDTH, 32>(config)?;
+                .prepare_gpt_flash_forward::<MAX_WIDTH, 32, 4>(config)?;
             let valid = [2, 16, sequence, tiles, 2];
             for geometry in [
                 valid,
@@ -2637,7 +2798,7 @@ mod verification {
                 assert!(
                     model
                         .module
-                        .prepare_gpt_flash_forward::<MAX_WIDTH, 32>(LaunchConfig1D::new(
+                        .prepare_gpt_flash_forward::<MAX_WIDTH, 32, 4>(LaunchConfig1D::new(
                             (slots / 4) as u32,
                             128,
                             bytes

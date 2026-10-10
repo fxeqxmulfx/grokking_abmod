@@ -1474,7 +1474,7 @@ normalization `O / l`. Some output-rescaling expressions in the local FA2 v1
 source display an inverse diagonal factor; implement the recurrence above
 and test increasing row maxima rather than copying that typesetting error.
 
-The current context-only shared experiment does not have that reuse: each
+The earlier context-only shared experiment did not have that reuse: each
 thread reads its own value channels. Staging these values adds global loads,
 shared stores, shared loads, and a barrier. A useful tiled implementation must
 share K/V across multiple query rows and fuse scores, softmax, and context.
@@ -1495,6 +1495,10 @@ The SDK already supplies checked buffer views, typed launch contracts,
 async-copy/MMA/TMA/TMEM instructions. It also has `ManagedBarrier` and
 `TmemGuard` typestate wrappers; these still require unsafe initialization or
 allocation and do not establish a complete tile pipeline's guarantees.
+
+The following table records the gaps at the time of this audit. The first three
+Ampere abstractions are implemented in the next section; matrix fragments and
+the Blackwell resource scopes remain future work.
 
 | Priority | Missing safe abstraction | Required guarantees |
 | --- | --- | --- |
@@ -1519,3 +1523,60 @@ ragged context lengths, causal tails, and a complete training epoch. A later
 asynchronous implementation should additionally have compile-failure tests
 for invalid tile lifetimes and participation, GPU race/memory checks, and
 measurements on hardware that actually supports its instructions.
+
+## Fused FP32 attention and safe reusable tiles
+
+The FA2 algorithm now replaces the materialized causal scores and probabilities.
+Four warps own four query rows and reuse K/V tiles. Forward keeps an unnormalized
+online-softmax accumulator and stores logsumexp. Backward recomputes probabilities;
+separate query and key/value partitions produce all derivatives without atomics.
+The existing XSA projection and its backward pass still follow ordinary attention.
+All attention arithmetic and learned weights remain FP32.
+
+CUDA Rust `experiments` now includes the required library support through
+[`c80ea119`](https://github.com/fxeqxmulfx/cuda-rust/commit/c80ea11928503a7fc4aefca5456837d862c76857).
+`#[block_pipeline]` owns two shared-memory slots, checked async
+copies, publication, and reuse barriers. Its callbacks cannot retain tile borrows
+between iterations. Barrier 15 is reserved for the schedule, independently of
+safe user barriers on slot 0. Typed launchers derive the exact shared allocation,
+alignment, and minimum compute capability. `StripedWarp<N>` gives each lane
+scoped ownership of its output channels, including partial physical warps.
+The ordinary device helper uses global views and contains no shared schedule.
+
+For 32-channel heads and contexts of at least 32 tokens, each lane computes a
+score for one of 32 key rows. Query channels stay in registers and the tiles use
+an XOR layout to avoid shared-memory bank conflicts. Other head widths and short
+contexts use four-row tiles. Shapes remain const parameters and dispatch follows
+the actual sequence length. Bounds-checked tile value loads avoid materializing
+shared-memory references; matching sources reuse copy-index arithmetic while
+retaining independent bounds checks and disjoint shared storage. The scheduler
+combines reader completion and publication in one reuse barrier. Ordered FP32
+bits use Ampere's integer warp maximum, and native FP32 exponentials retain the
+unchanged numerical tolerances. No client-side `unsafe` is required.
+
+The new path exposed a loader bug: a merged binary can contain PTX 7.1 and 7.3,
+and preserving only the first version loses the later instruction requirements.
+The merger now retains the highest ISA version, tested in both bundle orders.
+An architecture-detection regression also incorrectly classified integer warp
+reductions beside unrelated FP32 operations as Blackwell floating reductions.
+Instruction-scoped detection now accepts the Ampere integer operations and still
+rejects real Blackwell floating reductions on `sm_86`.
+
+Validation includes 275 GPU tile cases, nine partial-warp cases, compile-failure
+tests for escaping tile references/views and shadowed element types, and NVIDIA
+Compute Sanitizer racecheck and memcheck with zero reported errors. These cases
+cover different source lengths, dense/XOR layouts, constant-expression rows,
+64-row tiles, ragged tails, and zero iterations with unevaluable source offsets.
+Isolated attention on
+35 shapes matches independent f64 autodiff for outputs and dQ/dK/dV, with a
+maximum scaled error of `2.918e-6` against an unchanged `4e-5` limit. Full-model
+GPU checks cover RMSNorm, QK-Norm, slice RoPE, XSA, masked gradients, causal
+tails, optimizer updates, widths through 1024, and context-dependent learning.
+One full modular-arithmetic epoch (4704 training equations, ten updates) reduces
+train CE from 7.41967 to 6.53287 and validation CE from 7.43258 to 6.54729.
+
+The attention workspace consists of one `[logsumexp, delta]` pair per padded
+query/head/layer and one reusable packed gradient/output buffer. Its size is
+linear in token rows. A small context can use more auxiliary memory because
+the packed buffer stores two gradient components and pads channels to a warp.
+Large-context savings and end-to-end timing must therefore be measured by shape.
