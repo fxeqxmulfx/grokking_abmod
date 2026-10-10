@@ -1111,8 +1111,12 @@ mod kernels {
             let channel = parameter % width;
             let start = item / (vocab * width) * R;
             let end = (start + R).min(tokens.len());
+            let tokens = &tokens[start..end];
+            let input_gradient = &input_gradient[start..end];
+            let head_gradient = &head_gradient[start..end];
+            let final_features = &final_features[start..end];
             let mut total = 0.0;
-            for row in start..end {
+            for row in 0..tokens.len() {
                 if tokens[row] as usize == token {
                     total += input_gradient[row][channel];
                 }

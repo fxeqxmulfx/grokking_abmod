@@ -1236,3 +1236,94 @@ context learning, the full modular-addition epoch, 31 CPU tests, and Clippy.
 Artifacts are in `embedding128-control`, `embedding256`,
 `embedding256-comparison.json`, `embedding{128,256}-baseline-50`,
 `verify-embedding-256.txt`, and `epoch-embedding256`.
+
+### Closing profile of the retained FP32 implementation
+
+Six sequential Nsight Systems traces capture the original workload and the
+five current stress shapes, using two warmup and three timed updates each.
+These saved-binary traces represent `6ccfed3`, before changing embedding
+chunks from 128 to 256 rows. Percentages describe GPU kernel time within a
+profiled run; they are separate from unprofiled end-to-end timings.
+
+| Workload | Mesh parameter gradients | Mesh input gradients | Mesh forward | Embedding partials |
+| --- | ---: | ---: | ---: | ---: |
+| Original | 19.5% | 14.8% | 13.5% | 10.4% |
+| Batch 20160 | 18.0% | 17.8% | 13.4% | 11.5% |
+| Width 1024, batch 2688 | 18.3% | 18.3% | 13.7% | 8.0% |
+| Width 256, 49 blocks | 23.8% | 20.5% | 17.0% | Below the eight largest kernels |
+| Width 512, batch 2816 | 20.7% | 20.4% | 15.3% | 5.2% |
+
+At context 4096 / batch seven, attention dominates instead: dQ/dK takes
+30.2%, dV 16.6%, score gradients 13.7%, forward scores 12.4%, and forward
+context 12.4%. Softmax and row statistics account for another 7.3%.
+
+Selected Nsight Compute captures identify the remaining limits:
+
+| Kernel and shape | DRAM throughput | L2 throughput | Achieved occupancy | Registers/thread |
+| --- | ---: | ---: | ---: | ---: |
+| Wide mesh forward | 91.51% | 25.50% | 85.96% | 22 |
+| Wide mesh input gradient | 96.10% | 26.82% | 89.05% | 24 |
+| Wide mesh parameter gradient | 97.08% | 26.24% | 99.38% | 28 |
+| Wide embedding partials, 128 rows | 5.24% | 36.73% | 99.26% | 28 |
+| Long-context dQ/dK | 52.62% | 83.87% | 96.17% | 40 |
+| Long-context forward score | 10.98% | 75.54% | 93.33% | 32 |
+
+All six captures report zero local and shared memory spilling. Wide mesh
+kernels approach DRAM bandwidth limits, while long attention stresses cached
+accesses. Embedding partials remain dominated by instruction work: the
+128-row version executes 1,226,601,600 warp instructions at 78.46% compute
+throughput. A separate 256-row capture executes 1,210,767,936 instructions,
+uses 28 registers with 99.42% occupancy, and has no spills. Its DRAM throughput
+is 4.53% and compute throughput is 77.47%.
+
+These are individual kernel utilization figures, not a claim that complete
+training reaches a particular percentage of the GPU's overall capabilities.
+GPU clocks are unlocked; the long-attention counter captures use lower SM
+frequencies than the wide mesh captures, so their profiled durations are not
+used for latency comparisons. Artifacts are in `final-traces`,
+`final-traces/dominant-kernels.json`, `final-counters`, and
+`embedding256-counters.ncu-repz`.
+
+### Hoist embedding row bounds with checked slices
+
+The embedding-partial kernel takes checked slices of tokens, input gradients,
+head gradients, and final features once per 256-row chunk. Its inner loop
+indexes these local rows, keeping the original FP32 accumulation order and
+the same allocation sizes. This adds four safe slice bindings and no new
+kernel, specialization branch, macro, or unsafe operation.
+
+| Fixed workload | Before ms/update | Slices ms/update | Process MiB |
+| --- | ---: | ---: | ---: |
+| Original, 50 timed updates | 4.865 | 4.874 | 148 |
+| Batch 20160 | 164.847 | 162.672 | 3014 |
+| Width 1024, batch 2688 | 173.637 | 172.337 | 3096 |
+| Width 256, 49 blocks | 176.927 | 175.880 | 3054 |
+| Width 512, batch 2816 | 162.452 | 161.035 | 2986 |
+| Context 4096, batch 7 | 924.294 | 915.691 | 2920 |
+
+Stress comparisons use ten warmup and ten timed updates in three trials,
+without concurrent compilation. The original workload uses fifty timed
+updates; its 0.2% difference is within timing variation. Owned buffer sizes
+and all six twenty-update checkpoints remain byte-identical.
+The longer original-workload checkpoint is also byte-identical.
+The full independent f64 verifier passes at unchanged tolerances, including
+chunk tails, invalid launch contracts, all gradients, FP32 AdamW, and
+context-dependent learning.
+
+A fresh old/new repeat measures 165.200 / 163.485 ms at batch 20160 and
+173.992 / 173.021 ms for width 1024 / batch 2688: 1.0% and 0.6% improvements,
+respectively, with identical configurations, buffers, and trained checkpoints.
+All 31 CPU tests, formatting, strict Clippy, and the full mod-97 training
+epoch pass. Epoch train CE falls from 7.41967 to 6.53287, validation CE from
+7.43258 to 6.54729; its checkpoint is byte-identical to the preceding version.
+
+The wide embedding counter capture reduces executed warp instructions from
+1,210,767,936 to 940,375,296, a 22.3% reduction. Registers fall from 28 to 26,
+achieved occupancy is 99.52%, and local/shared spilling remains zero.
+Counter-run durations are separate from end-to-end timings. Artifacts are in
+`embedding-slices`, `embedding-slices-comparison.json`,
+`embedding-slices-baseline-50`, `embedding-slices-counters.ncu-repz`, and
+`verify-embedding-slices.txt`; repeated comparisons are in
+`embedding-slices-control-repeat` and `embedding-slices-repeat`, and the
+epoch is in `epoch-embedding-slices`. Optimization is paused at the user's
+request after this validated slice change.
