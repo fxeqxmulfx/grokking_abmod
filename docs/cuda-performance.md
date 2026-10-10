@@ -1580,3 +1580,74 @@ query/head/layer and one reusable packed gradient/output buffer. Its size is
 linear in token rows. A small context can use more auxiliary memory because
 the packed buffer stores two gradient components and pads channels to a warp.
 Large-context savings and end-to-end timing must therefore be measured by shape.
+
+### Published-build measurements
+
+The final build uses project commit `4f70e76` and CUDA Rust `c80ea119`, loaded
+from the Git dependency with its matching automatically rebuilt backend. It
+passes 29 CPU tests, strict Clippy, formatting, the full GPU verifier, and the
+complete epoch above. The saved control is project `107f4b9` with CUDA Rust
+`99674beb`. All arithmetic, model dimensions, initialization, batches, and
+optimizer settings match between the controls and fused runs.
+
+Each comparison runs control/fused/fused/control sequentially, with three
+trials per run, three warmup updates, and six timed updates per trial. The
+table reports the median of all six trials per implementation and owned
+device buffers after training. No CPU builds or profilers run during timing.
+Telemetry samples GPU utilization, memory, clocks, temperature, and power;
+compute-process monitoring found no other compute application. Clocks are
+unlocked: the two long-context control medians were 893.983 and 914.384 ms,
+and fused medians were 850.631 and 854.507 ms.
+
+| Shape: batch / width / layers / context | Control ms/update | Fused ms/update | Time change | Control MiB | Fused MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Long context: 7 / 128 / 2 / 4096 | 904.316 | 852.933 | -5.68% | 2843.819 | 1053.569 |
+| Large batch: 20160 / 128 / 2 / 4 | 164.360 | 196.193 | +19.37% | 2888.120 | 2961.948 |
+| Wide model: 2688 / 1024 / 2 / 4 | 173.644 | 203.221 | +17.03% | 3016.119 | 3099.463 |
+| Mixed: 2816 / 512 / 4 / 4 | 161.834 | 178.530 | +10.32% | 2906.984 | 2949.609 |
+
+Long-context training saves **1790.25 MiB (62.95%)** and is 5.68% faster in
+this comparison. Training losses agree within `1.4e-7` across the paired
+shapes. Short contexts currently cost more time and 42.625–83.344 MiB of extra
+temporary storage. These regressions exceed the previously accepted 5% memory
+tradeoff and provide no memory saving on those shapes. All shapes retain the
+single fused attention implementation.
+
+A separate capacity measurement uses batch 20, width 128, two blocks, and
+context 4096: **3008.952 MiB** of owned buffers, **2476.938 ms/update** across
+six trials, and about 3090 MiB peak process memory. This trains 81920 token rows
+per update. The old allocation would require about 8125 MiB, beyond this GPU's
+capacity, so this row has no paired timing claim.
+
+```bash
+cargo oxide build --arch sm_86 -- --release --locked --bin mesh-gpt --bin mesh-gpt-bench
+target/release/mesh-gpt verify
+target/release/mesh-gpt grok --steps 10 --batch 512 --report-every 10 \
+  --output target/flash-epoch
+target/release/mesh-gpt-bench --batch 7 --context 4096 \
+  --warmup 3 --steps 6 --trials 3 --output target/flash-long
+target/release/mesh-gpt-bench --batch 20 --context 4096 \
+  --warmup 3 --steps 6 --trials 3 --output target/flash-capacity
+```
+
+After timing, a one-update Nsight Systems trace attributes 128.508 ms per
+forward kernel, 125.189 ms to query gradients, and 155.518 ms to key/value
+gradients, each launched twice for the two blocks. These are profiled kernel
+durations, separate from the wall-clock medians. Attention accounts for 93.2%
+of GPU kernel time.
+
+The isolated forward capture reports **5,859,979,776 executed instructions**,
+130 registers per thread, no local/shared spilling requests, and zero measured
+shared-load bank conflicts. The preceding safe-value-load prototype executed
+7,923,274,240 instructions on this same shape: the final changes reduce that
+count by **26.04%**. It is a SIMT FP32 implementation with two active warps per
+scheduler in this capture; it does not establish 80% GPU utilization or use
+Tensor Core operations.
+
+The complete replacement leaves `src/gpt/gpu.rs` 32 lines shorter than the
+pre-FA2 version, including the new independent attention checks. Benchmark
+artifacts are `target/cuda-sdk-work/flash-bench-final/`,
+`flash-final-comparison.json`, `flash-final-counters.ncu-repz`, and
+`flash-final-trace.nsys-rep`. Published-build validation logs use the
+`flash-final-published-` prefix; SDK tile race/memory logs use
+`pipeline-group-`.
