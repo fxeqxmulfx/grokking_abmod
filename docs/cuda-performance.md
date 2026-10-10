@@ -1072,3 +1072,24 @@ Both checkpoints are byte-identical, and original f64, gradient, AdamW,
 learning, and launch-contract checks pass. The change adds two Rust lines.
 See `score-query-slice`, `score-query-slice-comparison.json`, and
 `verify-score-query-slice.txt`.
+
+### Share score addressing between two independent products
+
+Each long-context score thread owns a checked pair of neighboring FP32
+outputs. It reuses the query and channel address across two independent
+accumulators, retaining the addition order of each original dot product.
+Ordinary const-generic dispatch pairs 64-cell tiles with two-cell ownership;
+Rust compile-time assertions exclude invalid tile/packet combinations.
+Other tiles use one-cell ownership, and short contexts retain warp scores.
+
+| Scenario | One score ms/update | Two scores ms/update | Process MiB |
+| --- | ---: | ---: | ---: |
+| Context 1024, batch 16 | 161.650 | 144.218 | 1074 |
+| Context 4096, batch 6 | 853.802 | 760.033 | 3302 |
+
+Both medians use ten warmup and ten timed updates in three trials, with no
+concurrent compilation. Device bytes remain identical, and both checkpoints
+are byte-identical. Full f64, gradient, FP32 AdamW, learning, contract, and
+CPU/Clippy checks pass with unchanged tolerances. No flags, allocations,
+unsafe code, or new macros were introduced. Artifacts are in `score-pair`,
+`score-pair-comparison.json`, and `verify-score-pair.txt`.

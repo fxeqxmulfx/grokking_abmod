@@ -466,22 +466,27 @@ mod kernels {
     }
 
     #[inline(always)]
-    fn serial_score_dot<const W: usize, const H: usize, const FULL: bool>(
+    fn serial_score_dot<const W: usize, const H: usize, const FULL: bool, const PACK: usize>(
         begin: usize,
         head_width: usize,
         key: usize,
         rows: usize,
+        count: usize,
         query: &Features<W>,
         transposed: &[f32],
-    ) -> f32 {
+    ) -> [f32; PACK] {
         let length = if FULL { W / H } else { head_width };
         let query = &query[begin..begin + length];
-        let mut total = 0.0;
+        let mut totals = [0.0; PACK];
         for local in 0..length {
             let channel = begin + local;
-            total += query[local] * transposed[channel * rows + key];
+            for slot in 0..PACK {
+                if slot < count {
+                    totals[slot] += query[local] * transposed[channel * rows + key + slot];
+                }
+            }
         }
-        total
+        totals
     }
 
     #[kernel]
@@ -489,17 +494,20 @@ mod kernels {
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, heads >= 1, heads <= H, heads <= width,
         sequence >= 1, sequence <= C, BACKWARD <= 1,
+        PACK >= 1, PACK <= 2,
         TILE >= 1, _tail < TILE, sequence == _bands * TILE + _tail,
         _sequences >= 1, gradient.len() == _sequences * sequence,
         2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
         value.len() == gradient.len() * W, statistics.len() == gradient.len() * heads,
-        out.len() == _sequences * heads * blocks * TILE, probabilities.len() == out.len()))]
+        out.len() * PACK == _sequences * heads * blocks * TILE,
+        probabilities.len() == out.len() * PACK))]
     pub fn gpt_attention_scores_serial<
         const W: usize,
         const C: usize,
         const H: usize,
         const TILE: usize,
         const BACKWARD: usize,
+        const PACK: usize,
     >(
         width: usize,
         heads: usize,
@@ -512,13 +520,17 @@ mod kernels {
         value: &[f32],
         probabilities: &[f32],
         statistics: &[NormStats],
-        mut out: DisjointSlice<f32>,
+        mut out: DisjointSlice<[f32; PACK]>,
     ) {
+        const {
+            assert!(PACK == 1 || PACK == 2 && TILE.is_multiple_of(64));
+        }
         let index = thread::index_1d();
-        let scalar = index.get();
+        let packet = index.get();
+        let scalar = packet * PACK;
         if let Some(output) = out.get_mut(index) {
             let mut coordinates = [0; 5];
-            if !TILE.is_multiple_of(32) || scalar.is_multiple_of(32) {
+            if !TILE.is_multiple_of(32 * PACK) || packet.is_multiple_of(32) {
                 let item = scalar / TILE;
                 let group = item / blocks;
                 let (position, previous) = causal_position(item % blocks, TILE);
@@ -530,7 +542,7 @@ mod kernels {
                     width / heads,
                 ];
             }
-            if TILE.is_multiple_of(32) {
+            if TILE.is_multiple_of(32 * PACK) {
                 // The checked output length keeps every participating warp complete.
                 for local in 0..5 {
                     coordinates[local] = warp::shuffle_u64(coordinates[local] as u64, 0) as usize;
@@ -542,30 +554,35 @@ mod kernels {
                 return;
             }
             let row = first + position;
+            let count = PACK.min(position - previous + 1);
             let dot = if width == W && heads == H {
-                serial_score_dot::<W, H, true>(
+                serial_score_dot::<W, H, true, PACK>(
                     head * head_width,
                     head_width,
                     first + previous,
                     gradient.len(),
+                    count,
                     &gradient[row],
                     value,
                 )
             } else {
-                serial_score_dot::<W, H, false>(
+                serial_score_dot::<W, H, false, PACK>(
                     head * head_width,
                     head_width,
                     first + previous,
                     gradient.len(),
+                    count,
                     &gradient[row],
                     value,
                 )
             };
-            *output = if BACKWARD == 1 {
-                probabilities[scalar] * (dot - statistics[row * heads + head][1])
-            } else {
-                dot * (1.0 / (head_width as f32).sqrt())
-            };
+            for slot in 0..count {
+                output[slot] = if BACKWARD == 1 {
+                    probabilities[scalar + slot] * (dot[slot] - statistics[row * heads + head][1])
+                } else {
+                    dot[slot] * (1.0 / (head_width as f32).sqrt())
+                };
+            }
         }
     }
 
@@ -2338,17 +2355,17 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         cache: usize,
     ) -> Result<()> {
         if C.is_multiple_of(64) {
-            self.attention_tile::<64, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            self.attention_tile::<64, BACKWARD, 2>(workspace, gradient_slot, inputs, cache)
         } else if C.is_multiple_of(32) {
-            self.attention_tile::<32, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            self.attention_tile::<32, BACKWARD, 1>(workspace, gradient_slot, inputs, cache)
         } else if C.is_multiple_of(4) {
-            self.attention_tile::<4, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            self.attention_tile::<4, BACKWARD, 1>(workspace, gradient_slot, inputs, cache)
         } else {
-            self.attention_tile::<1, BACKWARD>(workspace, gradient_slot, inputs, cache)
+            self.attention_tile::<1, BACKWARD, 1>(workspace, gradient_slot, inputs, cache)
         }
     }
 
-    fn serial_scores<const TILE: usize, const BACKWARD: usize>(
+    fn serial_scores<const TILE: usize, const BACKWARD: usize, const PACK: usize>(
         &self,
         workspace: &mut Workspace<W, V, C, H>,
         gradient_slot: usize,
@@ -2388,36 +2405,42 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             )
         })?;
         with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |transposed| {
-            let launch = self
-                .module
-                .prepare_gpt_attention_scores_serial::<W, C, H, TILE, BACKWARD>(config::<1>(
-                    workspace.scores.len(),
-                )?)?;
-            self.module.gpt_attention_scores_serial(
+            with_buffer_chunks(
                 &self.stream,
-                &launch,
-                c.width,
-                c.heads,
-                workspace.sequence,
-                workspace.sequence / TILE,
-                workspace.sequence % TILE,
-                workspace.rows / workspace.sequence,
-                kernels::causal_blocks(workspace.sequence, TILE),
-                if BACKWARD == 1 {
-                    &workspace.adjoints[gradient_slot]
-                } else {
-                    &workspace.features[query]
-                },
-                transposed,
-                &workspace.probabilities[cache],
-                &workspace.norm_statistics,
                 &mut workspace.scores,
+                |output: &mut DeviceBuffer<[f32; PACK]>| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_attention_scores_serial::<W, C, H, TILE, BACKWARD, PACK>(
+                            config::<1>(output.len())?,
+                        )?;
+                    self.module.gpt_attention_scores_serial(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.heads,
+                        workspace.sequence,
+                        workspace.sequence / TILE,
+                        workspace.sequence % TILE,
+                        workspace.rows / workspace.sequence,
+                        kernels::causal_blocks(workspace.sequence, TILE),
+                        if BACKWARD == 1 {
+                            &workspace.adjoints[gradient_slot]
+                        } else {
+                            &workspace.features[query]
+                        },
+                        transposed,
+                        &workspace.probabilities[cache],
+                        &workspace.norm_statistics,
+                        output,
+                    )
+                },
             )
         })?;
         Ok(())
     }
 
-    fn attention_tile<const TILE: usize, const BACKWARD: usize>(
+    fn attention_tile<const TILE: usize, const BACKWARD: usize, const PACK: usize>(
         &self,
         workspace: &mut Workspace<W, V, C, H>,
         gradient_slot: usize,
@@ -2427,7 +2450,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         let [query, key, value, attention] = inputs;
         let c = self.config;
         if workspace.sequence >= 32 {
-            self.serial_scores::<TILE, BACKWARD>(workspace, gradient_slot, inputs, cache)?;
+            self.serial_scores::<TILE, BACKWARD, PACK>(workspace, gradient_slot, inputs, cache)?;
         } else {
             with_buffer_chunks(
                 &self.stream,
@@ -2725,7 +2748,7 @@ mod verification {
                 .prepare_gpt_attention_context::<MAX_WIDTH, 64>(config::<1>(output.len())?)?;
             let score_launch = model
                 .module
-                .prepare_gpt_attention_scores_serial::<MAX_WIDTH, 128, 8, 64, 0>(config::<1>(
+                .prepare_gpt_attention_scores_serial::<MAX_WIDTH, 128, 8, 64, 0, 1>(config::<1>(
                     scores.len(),
                 )?)?;
             let mut serial_scores = DeviceBuffer::zeroed(&model.stream, scores.len())?;
