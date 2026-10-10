@@ -357,3 +357,49 @@ reproducible profiling workload, not an evaluation of language-model quality.
 CPU boundary checks and independent f64 CUDA sums cover the new 65536-row
 limit, a 65535-row tail, and the transition past 4096 rows. Invalid counts,
 overflowing dimensions, and short buffers remain rejected before launch.
+
+### Cooperative XSA
+
+The first expanded measurements use five warmup updates and ten timed updates
+in each of three trials. Memory comes from separate probes. Equations repeat
+only in the large-batch workload; the other short-context batches fit the split.
+
+| Scenario | Width / blocks / batch / context | Process memory (MiB) | Before (ms/update) | Cooperative XSA |
+| --- | --- | ---: | ---: | ---: |
+| Original | 128 / 2 / 512 / 4 | 256 | 5.731 | 5.488 |
+| Large batch | 128 / 2 / 8192 / 4 | 3002 | 148.798 | 111.254 |
+| Wide model | 1024 / 2 / 1152 / 4 | 2932 | 131.836 | 108.554 |
+| Deep model | 256 / 20 / 512 / 4 | 3152 | 93.636 | 88.006 |
+| Combined | 512 / 4 / 1200 / 4 | 3178 | 116.978 | 89.032 |
+| Long context | 128 / 2 / 16 / 1024 | 2882 | 1158.725 | 1142.346 |
+
+XSA now owns scalar outputs per channel. Complete aligned warps reduce head
+norms and projections; other shapes perform serial head reductions. Both
+directions share one ordinary device function. Row/head alignment and bounds
+are checked before any full-warp collective, including the unaligned fallback.
+The change adds no workspace allocation and keeps FP32 and the XSA norm floor.
+
+In the large-batch trace, XSA forward/backward together decrease from `39.584`
+to `1.684` GPU ms/update. An isolated backward capture decreases from `12.49`
+ms to `467.97` microseconds, with SM throughput `0.68% -> 60.96%` and DRAM
+throughput `48.71% -> 93.39%`. The bandwidth number describes this kernel.
+The long-context trace instead attributes 56.4% to attention forward and 33.0%
+to score backward, making those the next targets.
+
+The XSA verifier covers serial and cooperative heads, widths through 128,
+head widths 32/64/96/128, zero/tiny values, padding, malformed geometry, and
+short outputs. Full-model f64 checks now include width 1024 with 256-channel
+heads. Losses and gradients retain the `5e-4 * (1 + abs(reference))` tolerance.
+Optimizer checks compare scalar CPU FP32 AdamW with the exact GPU gradients it
+consumes, at the tighter `1e-6 * (1 + abs(reference))` tolerance; gradients are
+also checked against f64 at the actual weights before each update. Both the
+original and cooperative width-1024 kernels showed amplified tiny-gradient
+rounding when the previous test compared AdamW updates driven by separate f64
+and f32 gradients. The new check isolates gradient accuracy from optimizer
+accuracy without relaxing either requirement.
+
+After 15 updates, maximum parameter differences from the saved original range
+from `6.56e-7` to `1.80e-3`; the widest model's relative L2 difference is
+`6.07e-5`. Default and large-batch differences stay below `2.99e-6`. All 28 CPU
+tests, strict Clippy, full CUDA verification, and the complete mod-97 epoch
+pass. Profiles and comparisons are retained under `target/mesh-gpt-profile/`.

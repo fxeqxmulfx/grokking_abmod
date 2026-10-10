@@ -292,92 +292,121 @@ mod kernels {
         }
     }
 
+    #[device]
+    fn exclusive_terms<const W: usize, const BACKWARD: bool>(
+        width: usize,
+        heads: usize,
+        channel: usize,
+        input: &Features<W>,
+        value: &Features<W>,
+        gradient: &Features<W>,
+    ) -> (f32, f32, f32, f32) {
+        let head_width = width / heads;
+        let begin = channel / head_width * head_width;
+        // These conditions align row/head boundaries and active lanes with
+        // complete warps. Other shapes perform the same serial head reduction.
+        let parallel = W.is_multiple_of(32) && head_width.is_multiple_of(32);
+        let (first, stride) = if parallel { (channel % 32, 32) } else { (0, 1) };
+        let mut squares = 0.0;
+        for local in (first..head_width).step_by(stride) {
+            let v = value[begin + local];
+            squares += v * v;
+        }
+        if parallel {
+            squares = warp::reduce_sum_f32(squares);
+        }
+        let norm = squares.sqrt();
+        let inverse = 1.0 / norm.max(XSA_EPSILON);
+        let (mut projection, mut gradient_projection) = (0.0, 0.0);
+        for local in (first..head_width).step_by(stride) {
+            let c = begin + local;
+            let normalized = value[c] * inverse;
+            projection += input[c] * normalized;
+            if BACKWARD {
+                gradient_projection += gradient[c] * normalized;
+            }
+        }
+        if parallel {
+            projection = warp::reduce_sum_f32(projection);
+            if BACKWARD {
+                gradient_projection = warp::reduce_sum_f32(gradient_projection);
+            }
+        }
+        (norm, inverse, projection, gradient_projection)
+    }
+
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, heads >= 1, heads <= W, heads <= width,
-        value.len() == input.len(), out.len() == input.len()))]
+        width >= 2, width <= W, heads >= 1, heads <= width,
+        value.len() == input.len(), out.len() == input.len() * W))]
     pub fn gpt_exclusive<const W: usize>(
         width: usize,
         heads: usize,
         input: &[Features<W>],
         value: &[Features<W>],
-        mut out: DisjointSlice<Features<W>>,
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
+        if row >= input.len() || channel >= width / heads * heads {
+            return;
+        }
+        let (_, inverse, projection, _) = exclusive_terms::<W, false>(
+            width,
+            heads,
+            channel,
+            &input[row],
+            &value[row],
+            &input[row],
+        );
         if let Some(output) = out.get_mut(index) {
-            let head_width = width / heads;
-            for head in 0..heads {
-                let begin = head * head_width;
-                let end = begin + head_width;
-                let mut squared_norm = 0.0;
-                for channel in begin..end {
-                    squared_norm += value[row][channel] * value[row][channel];
-                }
-                let inverse = 1.0 / squared_norm.sqrt().max(XSA_EPSILON);
-                let mut projection = 0.0;
-                for channel in begin..end {
-                    projection += input[row][channel] * (value[row][channel] * inverse);
-                }
-                for channel in begin..end {
-                    output[channel] =
-                        input[row][channel] - projection * (value[row][channel] * inverse);
-                }
-            }
+            *output = input[row][channel] - projection * (value[row][channel] * inverse);
         }
     }
 
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, heads >= 1, heads <= W, heads <= width,
+        width >= 2, width <= W, heads >= 1, heads <= width,
         value.len() == input.len(), gradient.len() == input.len(),
-        dy.len() == input.len(), dv.len() == input.len()))]
+        dy.len() == input.len() * W, dv.len() == dy.len()))]
     pub fn gpt_exclusive_backward<const W: usize>(
         width: usize,
         heads: usize,
         input: &[Features<W>],
         value: &[Features<W>],
         gradient: &[Features<W>],
-        mut dy: DisjointSlice<Features<W>>,
-        mut dv: DisjointSlice<Features<W>>,
+        mut dy: DisjointSlice<f32>,
+        mut dv: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
+        let row = index.get() / W;
+        let channel = index.get() % W;
+        if row >= input.len() || channel >= width / heads * heads {
+            return;
+        }
+        let (norm, inverse, projection, gradient_projection) = exclusive_terms::<W, true>(
+            width,
+            heads,
+            channel,
+            &input[row],
+            &value[row],
+            &gradient[row],
+        );
         if let Some(y_gradient) = dy.get_mut(index)
             && let Some(v_gradient) = dv.get_mut(thread::index_1d())
         {
-            let head_width = width / heads;
-            for head in 0..heads {
-                let begin = head * head_width;
-                let end = begin + head_width;
-                let mut squared_norm = 0.0;
-                for channel in begin..end {
-                    squared_norm += value[row][channel] * value[row][channel];
-                }
-                let norm = squared_norm.sqrt();
-                let inverse = 1.0 / norm.max(XSA_EPSILON);
-                let mut projection = 0.0;
-                let mut gradient_projection = 0.0;
-                for channel in begin..end {
-                    let normalized = value[row][channel] * inverse;
-                    projection += input[row][channel] * normalized;
-                    gradient_projection += gradient[row][channel] * normalized;
-                }
-                for channel in begin..end {
-                    let normalized = value[row][channel] * inverse;
-                    y_gradient[channel] = gradient[row][channel] - gradient_projection * normalized;
-                    // Differentiate both uses of normalized V. Above the norm
-                    // floor, also differentiate the normalization denominator.
-                    let mut derivative = -gradient_projection * input[row][channel]
-                        - projection * gradient[row][channel];
-                    if norm >= XSA_EPSILON {
-                        derivative += 2.0 * projection * gradient_projection * normalized;
-                    }
-                    v_gradient[channel] = derivative * inverse;
-                }
+            let normalized = value[row][channel] * inverse;
+            *y_gradient = gradient[row][channel] - gradient_projection * normalized;
+            // Differentiate both uses of normalized V and its norm above the floor.
+            let mut derivative =
+                -gradient_projection * input[row][channel] - projection * gradient[row][channel];
+            if norm >= XSA_EPSILON {
+                derivative += 2.0 * projection * gradient_projection * normalized;
             }
+            *v_gradient = derivative * inverse;
         }
     }
 
@@ -1583,17 +1612,21 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     )?;
                 }
                 Op::Exclusive { input, value, out } => {
-                    let launch = self.module.prepare_gpt_exclusive::<W>(row_config)?;
                     let (before, after) = workspace.features.split_at_mut(out);
-                    self.module.gpt_exclusive(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        c.heads,
-                        &before[input],
-                        &before[value],
-                        &mut after[0],
-                    )?;
+                    with_buffer_chunks(&self.stream, &mut after[0], |output| {
+                        let launch = self
+                            .module
+                            .prepare_gpt_exclusive::<W>(config(output.len()))?;
+                        self.module.gpt_exclusive(
+                            &self.stream,
+                            &launch,
+                            c.width,
+                            c.heads,
+                            &before[input],
+                            &before[value],
+                            output,
+                        )
+                    })?;
                 }
             }
         }
@@ -1859,21 +1892,25 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     self.accumulate_scratch(workspace, value, 2)?;
                 }
                 Op::Exclusive { input, value, out } => {
-                    let launch = self
-                        .module
-                        .prepare_gpt_exclusive_backward::<W>(row_config)?;
                     let (dy, rest) = workspace.scratch.split_at_mut(1);
-                    self.module.gpt_exclusive_backward(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        c.heads,
-                        &workspace.features[input],
-                        &workspace.features[value],
-                        &workspace.adjoints[out],
-                        &mut dy[0],
-                        &mut rest[0],
-                    )?;
+                    with_buffer_chunks(&self.stream, &mut dy[0], |dy| {
+                        with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
+                            let launch = self
+                                .module
+                                .prepare_gpt_exclusive_backward::<W>(config(dy.len()))?;
+                            self.module.gpt_exclusive_backward(
+                                &self.stream,
+                                &launch,
+                                c.width,
+                                c.heads,
+                                &workspace.features[input],
+                                &workspace.features[value],
+                                &workspace.adjoints[out],
+                                dy,
+                                dv,
+                            )
+                        })
+                    })?;
                     self.accumulate_scratch(workspace, input, 0)?;
                     // V receives this local contribution and the subsequent
                     // attention contribution gathered from all causal queries.
@@ -2609,7 +2646,17 @@ mod verification {
         pub fn verify_exclusive_attention(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             let rows = 129;
-            for (width, heads) in [(4, 2), (8, 2), (64, 8), (4, 4), (128, 4)] {
+            for (width, heads) in [
+                (4, 2),
+                (8, 2),
+                (64, 8),
+                (4, 4),
+                (64, 2),
+                (96, 1),
+                (128, 4),
+                (128, 2),
+                (128, 1),
+            ] {
                 let head_width = width / heads;
                 let mut input = vec![[0.0; MAX_WIDTH]; rows];
                 let mut value = input.clone();
@@ -2631,37 +2678,63 @@ mod verification {
                 let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
                 let value_gpu = DeviceBuffer::from_host(&model.stream, &value)?;
                 let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
-                let mut output = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let mut dy = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let mut dv = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let launch = model.module.prepare_gpt_exclusive::<128>(config(rows))?;
-                model.module.gpt_exclusive(
-                    &model.stream,
-                    &launch,
-                    width,
-                    heads,
-                    &input_gpu,
-                    &value_gpu,
-                    &mut output,
-                )?;
-                let launch = model
-                    .module
-                    .prepare_gpt_exclusive_backward::<128>(config(rows))?;
-                model.module.gpt_exclusive_backward(
-                    &model.stream,
-                    &launch,
-                    width,
-                    heads,
-                    &input_gpu,
-                    &value_gpu,
-                    &gradient_gpu,
-                    &mut dy,
-                    &mut dv,
-                )?;
+                let sentinel = vec![[42.0_f32; MAX_WIDTH]; rows];
+                let mut output = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                let mut dy = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                let mut dv = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                with_buffer_chunks(&model.stream, &mut output, |output| {
+                    let launch = model
+                        .module
+                        .prepare_gpt_exclusive::<128>(config(output.len()))?;
+                    let run = |width, heads, output: &mut DeviceBuffer<f32>| {
+                        model.module.gpt_exclusive(
+                            &model.stream,
+                            &launch,
+                            width,
+                            heads,
+                            &input_gpu,
+                            &value_gpu,
+                            output,
+                        )
+                    };
+                    run(width, heads, output)?;
+                    for (width, heads) in [
+                        (0, heads),
+                        (MAX_WIDTH + 1, heads),
+                        (width, 0),
+                        (width, usize::MAX),
+                    ] {
+                        assert!(run(width, heads, output).is_err());
+                    }
+                    let mut short = DeviceBuffer::zeroed(&model.stream, output.len() - 1)?;
+                    assert!(run(width, heads, &mut short).is_err());
+                    Ok::<_, Box<dyn std::error::Error>>(())
+                })?;
+                with_buffer_chunks(&model.stream, &mut dy, |dy| {
+                    with_buffer_chunks(&model.stream, &mut dv, |dv| {
+                        let launch = model
+                            .module
+                            .prepare_gpt_exclusive_backward::<128>(config(dy.len()))?;
+                        model.module.gpt_exclusive_backward(
+                            &model.stream,
+                            &launch,
+                            width,
+                            heads,
+                            &input_gpu,
+                            &value_gpu,
+                            &gradient_gpu,
+                            dy,
+                            dv,
+                        )
+                    })
+                })?;
                 let output = output.to_host_vec(&model.stream)?;
                 let dy = dy.to_host_vec(&model.stream)?;
                 let dv = dv.to_host_vec(&model.stream)?;
                 for row in 0..rows {
+                    for padded in [&output, &dy, &dv] {
+                        assert!(padded[row][width..].iter().all(|&v| v == 42.0));
+                    }
                     let doubles =
                         |values: &[f32]| values.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
                     let (expected, derivatives) = exclusive_reference(

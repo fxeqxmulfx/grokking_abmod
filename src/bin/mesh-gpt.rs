@@ -284,10 +284,10 @@ fn report(writer: &mut impl Write, step: usize, train: f64, validation: f64) -> 
     Ok(())
 }
 
-fn close(name: &str, expected: f64, actual: f64) -> Result<()> {
+fn close(name: &str, expected: f64, actual: f64, tolerance: f64) -> Result<()> {
     if !expected.is_finite()
         || !actual.is_finite()
-        || (expected - actual).abs() > 5e-4 * (1.0 + expected.abs())
+        || (expected - actual).abs() > tolerance * (1.0 + expected.abs())
     {
         return Err(format!("{name}: expected {expected:.9}, got {actual:.9}").into());
     }
@@ -316,6 +316,7 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
                     &format!("logit row={row} token={token}"),
                     f64::from(cpu),
                     f64::from(gpu),
+                    5e-4,
                 )?;
             }
         }
@@ -333,9 +334,9 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
         for targets in [&y, &answer_only] {
             let (cpu_loss, cpu_gradients) = reference.loss_and_gradient(&x, targets, sequence)?;
             let (gpu_loss, gpu_gradients) = model.loss_and_gradient(&x, targets, sequence)?;
-            close("cross-entropy", cpu_loss, gpu_loss)?;
+            close("cross-entropy", cpu_loss, gpu_loss, 5e-4)?;
             for (parameter, (&cpu, &gpu)) in cpu_gradients.iter().zip(&gpu_gradients).enumerate() {
-                close(&format!("gradient parameter={parameter}"), cpu, gpu)?;
+                close(&format!("gradient parameter={parameter}"), cpu, gpu, 5e-4)?;
             }
         }
     }
@@ -388,8 +389,20 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
         let (mut b1, mut b2) = (1.0_f32, 1.0_f32);
         let mut first_step = Vec::new();
         for step in 1..=3 {
+            parameters = model.parameters()?;
             let cpu = ReferenceGpt::from_parameters(config, parameters.clone())?;
-            let (_, gradient) = cpu.loss_and_gradient(&x, &y, 3)?;
+            let (_, expected) = cpu.loss_and_gradient(&x, &y, 3)?;
+            let (_, gradient) = model.loss_and_gradient(&x, &y, 3)?;
+            for (parameter, (&cpu, &gpu)) in expected.iter().zip(&gradient).enumerate() {
+                close(
+                    &format!("AdamW input gradient parameter={parameter}"),
+                    cpu,
+                    gpu,
+                    5e-4,
+                )?;
+            }
+            // Check the optimizer with its actual FP32 inputs. AdamW can amplify
+            // tiny reduction differences when gradients are near epsilon.
             b1 *= optimizer.beta1;
             b2 *= optimizer.beta2;
             for ((parameter, moment), gradient) in
@@ -414,6 +427,7 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
                     &format!("AdamW step={step} parameter={parameter}"),
                     f64::from(cpu),
                     f64::from(gpu),
+                    1e-6,
                 )?;
             }
         }
@@ -424,6 +438,7 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
                 &format!("AdamW reset parameter={parameter}"),
                 f64::from(cpu),
                 f64::from(gpu),
+                1e-6,
             )?;
         }
     }
@@ -584,6 +599,19 @@ fn verify(device: usize) -> Result<()> {
             ffn_mesh_depth: 1,
         },
         &[(1, 129)],
+    )?;
+    verify_model::<1024, 256, 128, 8>(
+        device,
+        GptConfig {
+            vocab_size: 7,
+            context: 3,
+            width: 1024,
+            heads: 4,
+            layers: 2,
+            attention_mesh_depth: 2,
+            ffn_mesh_depth: 2,
+        },
+        &[(1, 1), (1, 3), (2, 3)],
     )?;
     // The identical final input token needs different predictions depending on
     // the first token. A token-local model cannot solve both examples.
