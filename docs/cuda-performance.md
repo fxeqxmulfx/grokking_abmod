@@ -799,3 +799,51 @@ To select the first input-backward launch with Nsight Compute, skip the matching
 forward calls: `attention_depth + blocks * (4 * attention_depth + ffn_depth)`.
 This is 48 calls for the original benchmark. `--launch-skip 4` still selects
 its first decoder forward projection.
+
+### Parallel attention forward and compact probabilities
+
+Attention forward now computes tiled Q/K scores, cooperative row statistics,
+scalar probabilities, and coalesced output channels in separate checked kernels.
+Forward and backward scores share one const-generic definition. Probability
+caches use the same causal tiles as score gradients, including only active
+heads and complete input sequences. Softmax reuses the existing normalization
+scratch; it does not allocate another per-layer cache.
+
+The following comparisons keep every workload dimension unchanged. Both sides
+use ten warmup and ten timed updates in three trials, with independent memory
+probes. The context-4096 comparison uses batch four on both sides.
+
+| Scenario | Previous ms/update | Parallel ms/update | Previous MiB | Parallel MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Original | 5.114 | 4.992 | 148 | 148 |
+| Large batch, 8192 | 71.167 | 68.856 | 1264 | 1264 |
+| Wide, 1024 | 78.555 | 76.383 | 1380 | 1380 |
+| Deep, 20 blocks | 79.180 | 76.394 | 1306 | 1306 |
+| Combined | 73.538 | 71.217 | 1406 | 1406 |
+| Context 1024, batch 16 | 341.522 | 232.654 | 1314 | 1074 |
+| Context 4096, batch 4 | 1372.437 | 870.066 | 3234 | 2226 |
+
+Long-context updates take 31.9% / 36.6% less time while saving 240 / 1008 MiB
+of process memory. At context 4096 each probability cache shrinks from 1024
+to 520 MiB. FP32 storage, model equations, parameter layout, and checkpoint
+format remain unchanged. Parallel softmax changes FP32 summation order:
+after twenty updates, relative L2 parameter differences are at most
+`1.01e-5` across these workloads. The complete epoch differs by `1.68e-8`.
+All original f64 logits/gradient and FP32 AdamW tolerances pass unchanged,
+and the context learning check still reaches CE `0.00145`.
+
+The verifier also checks that all three new forward stages reject invalid
+bands, tails, sequence counts, tensor lengths, and overflowing arithmetic.
+All 31 CPU tests and strict Clippy pass. No unsafe client operations, flags,
+or macros were added. These additional kernels increase source size; the
+shared forward/backward score implementation limits duplication.
+
+The new context-4096 trace attributes 32.8% of kernel time to input backward,
+44.8% to the two score passes, 14.1% to output assembly, and 4.4% to softmax.
+Nsight Compute measures one forward score launch at 86.30 ms, 94.96% achieved
+occupancy, and 91.04% L1/TEX throughput, with only 3.37% DRAM throughput.
+That identifies cached memory access and score-loop work as the next targets;
+it does not establish 91% utilization for the complete model.
+Artifacts are in `parallel-attention`, `parallel-attention-comparison.json`,
+`verify-parallel-attention-contracts.txt`, `epoch-parallel-attention`,
+`parallel-long-trace.nsys-rep`, and `parallel-score-counters.ncu-repz`.

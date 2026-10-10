@@ -479,6 +479,10 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
 }
 
 fn verify(device: usize) -> Result<()> {
+    GpuMeshGpt::verify_attention_contracts(device)?;
+    println!(
+        "PASS causal attention contracts: bands, tails, complete sequences, lengths, overflow"
+    );
     GpuMeshGpt::verify_embedding_gradient_reduction(device)?;
     println!(
         "PASS isolated tied-embedding gradients: f64 sums, input/head contributions, chunk tails, up to 131072 rows, untouched padding, contracts"
