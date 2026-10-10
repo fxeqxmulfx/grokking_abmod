@@ -20,7 +20,14 @@ SCENARIOS = {
     "deep": ["--width", "256", "--layers", "20", "--batch", "512"],
     "mixed": ["--width", "512", "--layers", "4", "--batch", "1200"],
     "long-context": ["--context", "1024", "--batch", "16"],
+    "stress-large-batch": ["--batch", "19200"],
+    "stress-wide": ["--width", "1024", "--batch", "2560"],
+    "stress-deep": ["--width", "256", "--layers", "46", "--batch", "512"],
+    "stress-mixed": ["--width", "512", "--layers", "4", "--batch", "2688"],
+    "stress-long-context": ["--context", "4096", "--batch", "3"],
 }
+
+DEFAULT_SCENARIOS = ["baseline", *(name for name in SCENARIOS if name.startswith("stress-"))]
 
 
 def main():
@@ -36,7 +43,7 @@ def main():
     with (args.output / "summary.csv").open("w") as summary:
         writer = csv.writer(summary)
         writer.writerow(["scenario", "median_ms", "peak_process_mib", "allocated_device_bytes"])
-        for name in args.scenario or SCENARIOS:
+        for name in args.scenario or DEFAULT_SCENARIOS:
             directory = args.output / name
             directory.mkdir(parents=True, exist_ok=True)
             command = [str(args.binary), *SCENARIOS[name], "--steps", str(args.steps),

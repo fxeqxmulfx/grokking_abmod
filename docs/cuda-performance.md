@@ -340,9 +340,9 @@ select matching const-generic capacities at context up to 128. Widths through
 128 additionally support context capacities 1024 and 4096. All specializations
 use vocabulary capacity 128 for the fixed 99-symbol dataset, head capacity four
 or eight, and context capacity four for sequences through four tokens. Batch validation permits
-at most 65536 token rows; mesh-gradient contracts cover all 2048 row chunks.
+at most 131072 token rows; mesh-gradient contracts cover all 4096 row chunks.
 
-Run the original workload and five scenarios near 3 GiB of GPU memory:
+Run the original workload and five current stress scenarios near 3 GiB of GPU memory:
 
 ```bash
 cargo oxide build --arch sm_86 -- --release --locked \
@@ -573,3 +573,33 @@ verification and strict Clippy pass. Width eight measures 1.882 ms/update and
 batch one 0.720. Memory stays unchanged. Artifacts are in
 `shapes-coalesced-lookup*`, `lookup-paired-*`, and
 `coalesced-lookup-comparison.json`.
+
+### Use freed capacity for larger stress workloads
+
+The runner now defaults to the `stress-*` scenarios below, keeping the original
+fixed scenarios available through `--scenario large-batch`, `--scenario wide`,
+and the other original names. Timings across differently sized scenarios are
+not before/after speed comparisons. The new shapes demonstrate usable capacity
+freed by cache, gradient-lifetime, and tensor-capacity changes.
+
+| Scenario | Width / blocks / batch / context | Process memory (MiB) | ms/update |
+| --- | --- | ---: | ---: |
+| Original | 128 / 2 / 512 / 4 | 152 | 5.311 |
+| Large batch | 128 / 2 / 19200 / 4 | 3056 | 169.681 |
+| Wide model | 1024 / 2 / 2560 / 4 | 3128 | 177.530 |
+| Deep model | 256 / 46 / 512 / 4 | 3058 | 185.449 |
+| Combined | 512 / 4 / 2688 / 4 | 3170 | 166.188 |
+| Long context | 128 / 2 / 3 / 4096 | 2846 | 1141.452 |
+
+Measurements use ten warmup and ten timed updates in three trials, with
+separate process-memory probes. Batch sizes increase by 2.34x, 2.22x, and
+2.24x in the large-batch, wide, and combined cases; the deep case grows from
+20 to 46 blocks, and the long context grows from 1024 to 4096 tokens. These
+shapes retain all FP32 state and complete sequences, with the same mesh depths.
+
+To keep a pure large-batch scenario near 3 GiB after memory reductions, the
+validated row limit increases from 65536 to 131072. CPU boundary tests follow
+the new limit. Independent f64 mesh reductions cover 65535/65536/65537 and
+131071/131072 rows, and tied-embedding sums cover 131072 rows. Chunk-count
+contracts reject counts past 4096. Full CUDA verification, all 29 CPU tests,
+and strict Clippy pass. Artifacts are in `stress-memory-baseline`.

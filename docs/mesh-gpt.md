@@ -360,7 +360,7 @@ smaller capacities avoid reserving unused feature channels and attention slots.
 
 Configuration ceilings are width 2..4096, vocabulary 2..65536, context 1..4096,
 1..64 heads dividing width with even channels per head, 1..64 blocks, mesh depths
-1..256, and at most 65536 input token rows per batch. Available GPU memory also
+1..256, and at most 131072 input token rows per batch. Available GPU memory also
 limits practical sizes. Buffers use nested arrays with checked owning casts;
 no unchecked aliases or custom `DeviceCopy` implementations are needed. Training
 reuses a workspace for batches of the same shape; inference uses fresh buffers.

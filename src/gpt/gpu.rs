@@ -659,7 +659,7 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, activated <= 1, chunks >= 1, chunks <= 2048,
+        width >= 2, width <= W, activated <= 1, chunks >= 1, chunks <= 4096,
         input.len() <= chunks * 32, input.len() + 32 > chunks * 32,
         input.len() == activation.len(), gradient.len() == activation.len(),
         out.len() == chunks * 2 * width))]
@@ -696,7 +696,7 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, offset + 2 * width <= out.len(),
-        chunks >= 1, chunks <= 2048, partials.len() == chunks * 2 * width))]
+        chunks >= 1, chunks <= 4096, partials.len() == chunks * 2 * width))]
     pub fn gpt_mesh_gradient_reduce<const W: usize>(
         width: usize,
         offset: usize,
@@ -2297,6 +2297,9 @@ mod verification {
                     4096,
                     4097,
                     65535,
+                    65536,
+                    65537,
+                    super::super::MAX_ROWS - 1,
                     super::super::MAX_ROWS,
                 ] {
                     let mut input = vec![[0.0; MAX_WIDTH]; rows];
@@ -2396,7 +2399,7 @@ mod verification {
                             }
                         }
                     }
-                    for bad_chunks in [0, 2049, chunks + 1, usize::MAX] {
+                    for bad_chunks in [0, 4097, chunks + 1, usize::MAX] {
                         assert!(run_mesh_partials(0, bad_chunks, &mut partials).is_err());
                     }
                     let mut too_short = DeviceBuffer::zeroed(&model.stream, partials.len() - 1)?;

@@ -481,11 +481,11 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
 fn verify(device: usize) -> Result<()> {
     GpuMeshGpt::verify_embedding_gradient_reduction(device)?;
     println!(
-        "PASS isolated tied-embedding gradients: f64 sums, input/head contributions, chunk tails, up to 65536 rows, untouched padding, contracts"
+        "PASS isolated tied-embedding gradients: f64 sums, input/head contributions, chunk tails, up to 131072 rows, untouched padding, contracts"
     );
     GpuMeshGpt::verify_mesh_gradient_reduction(device)?;
     println!(
-        "PASS isolated mesh gradient reductions: f64 sums, chunk boundaries/tails, up to 65536 rows, untouched layers, contracts"
+        "PASS isolated mesh gradient reductions: f64 sums, chunk boundaries/tails, up to 131072 rows, untouched layers, contracts"
     );
     GpuMeshGpt::verify_rmsnorm(device)?;
     println!(
