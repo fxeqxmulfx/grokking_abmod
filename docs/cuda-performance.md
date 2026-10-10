@@ -546,3 +546,30 @@ paired runs (ten warmup, 50 timed updates, three trials, repeated twice) measure
 0.736 ms versus 0.729; its extra normalization launch is still a useful target.
 Measurements and exact comparisons are retained in `shapes-compact-capacities`,
 `capacities-paired-*`, and `compact-capacities-comparison.json`.
+
+### Coalesce token-vector lookup
+
+Embedding lookup now gives each output channel a scalar owner. Neighboring
+threads load neighboring embedding channels and write neighboring feature
+channels, replacing a thread's serial whole-row copy. The owning cast restores
+the original row buffer after launch; no workspace allocation or arithmetic is
+added, and `_vocab` keeps its contract-only name.
+
+| Scenario | Before (ms/update) | Coalesced lookup |
+| --- | ---: | ---: |
+| Original | 5.389 | 5.255 |
+| Large batch | 80.316 | 73.052 |
+| Wide model | 83.198 | 80.426 |
+| Deep model | 81.665 | 81.473 |
+| Combined | 76.883 | 75.547 |
+| Long context | 376.533 | 374.781 |
+
+Both stages use ten warmup updates and three trials. The original row uses
+50 timed updates to avoid the observed short-run clock warmup; the large rows
+use ten. Large-batch update time decreases by 9.0%. Its Nsight Systems trace
+measures lookup at 0.146 GPU ms/update versus 8.292 in the initial expanded
+trace. All six 20-update checkpoints are byte-identical, and full f64 CUDA
+verification and strict Clippy pass. Width eight measures 1.882 ms/update and
+batch one 0.720. Memory stays unchanged. Artifacts are in
+`shapes-coalesced-lookup*`, `lookup-paired-*`, and
+`coalesced-lookup-comparison.json`.

@@ -33,18 +33,21 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, _vocab >= 2,
-        out.len() == tokens.len(), embedding.len() == _vocab))]
+        out.len() == tokens.len() * W, embedding.len() == _vocab))]
     pub fn gpt_embed<const W: usize>(
         width: usize,
         _vocab: usize,
         tokens: &[u32],
         embedding: &[Features<W>],
-        mut out: DisjointSlice<Features<W>>,
+        mut out: DisjointSlice<f32>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
-        if let Some(output) = out.get_mut(index) {
-            output[..width].copy_from_slice(&embedding[tokens[row] as usize][..width]);
+        let row = index.get() / W;
+        let channel = index.get() % W;
+        if let Some(output) = out.get_mut(index)
+            && channel < width
+        {
+            *output = embedding[tokens[row] as usize][channel];
         }
     }
 
@@ -1540,7 +1543,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
 
     fn forward(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
-        let row_config = config(workspace.rows);
         self.forward_embeddings(workspace)?;
         let embedding_output = c.attention_mesh_depth - 1;
         // Store tokens contiguously for each channel so neighboring head threads
@@ -1561,16 +1563,18 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         for op in &self.plan.ops {
             match *op {
                 Op::Embed { out } => {
-                    let launch = self.module.prepare_gpt_embed::<W>(row_config)?;
-                    self.module.gpt_embed(
-                        &self.stream,
-                        &launch,
-                        c.width,
-                        c.vocab_size,
-                        &workspace.tokens,
-                        &workspace.embeddings[embedding_output],
-                        &mut workspace.features[out],
-                    )?;
+                    with_buffer_chunks(&self.stream, &mut workspace.features[out], |output| {
+                        let launch = self.module.prepare_gpt_embed::<W>(config(output.len()))?;
+                        self.module.gpt_embed(
+                            &self.stream,
+                            &launch,
+                            c.width,
+                            c.vocab_size,
+                            &workspace.tokens,
+                            &workspace.embeddings[embedding_output],
+                            output,
+                        )
+                    })?;
                 }
                 Op::RmsNorm { heads, input, out } => {
                     let (before, after) = workspace.features.split_at_mut(out);
