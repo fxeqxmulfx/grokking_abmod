@@ -942,3 +942,43 @@ CPU checks cover counts above `u32::MAX`, the largest representable scalar
 and warp grids, and overflow. Full GPU verification passes; the 50-update
 original median is 4.937 ms and its checkpoint is byte-identical. See
 `verify-checked-grid.txt` and `checked-grid-baseline`.
+
+### Coalesced long-context score products
+
+For sequences of at least 32 tokens, each scalar score thread now reads
+neighboring keys from a channel-major transpose. It computes the head dot
+product in FP32 without warp reductions. The transpose reuses an existing
+scratch buffer through checked owning reshapes; it adds no device allocation.
+Backward row means use the existing cooperative statistics kernel. Short
+sequences retain the previous warp score implementation.
+
+| Scenario | Warp scores ms/update | Transposed scores ms/update | Process MiB |
+| --- | ---: | ---: | ---: |
+| Original | 4.989 | 4.940 | 148 |
+| Context 1024, batch 16 | 210.493 | 176.511 | 1074 |
+| Context 4096, batch 4 | 781.898 | 621.140 | 2226 |
+
+All dimensions remain fixed. Ten warmup and ten timed updates in three trials
+measure 16.1% / 20.6% less long-context time with identical device memory.
+Serial accumulation changes rounding: relative L2 parameter differences after
+twenty updates are `1.30e-8` / `1.45e-8`. Original f64 logits, gradients, FP32
+AdamW, and learning tolerances pass unchanged.
+
+At context 4096 and batch six, the near-3-GiB stress median falls from
+1184.599 to 942.542 ms at the same 3302 MiB. Large-batch / wide / deep /
+combined stress medians are 165.921 / 175.758 / 176.268 / 162.792 ms,
+within 1% of their preceding results. Their checkpoints and the complete
+epoch remain byte-identical because short sequences use the same score path.
+The verifier checks serial-score geometry and transpose widths, empty input,
+and mismatched lengths in addition to the existing forward contracts.
+
+Nsight Compute measures one forward score launch at 56.04 ms, 83.27% compute
+throughput, 34.40% L1/TEX throughput, and 93.13% achieved occupancy. The
+preceding warp score used 91.04% L1/TEX throughput. These unlocked-clock
+counters explain the kernel bottleneck; they are separate from the wall-clock
+table. The new context-4096 trace attributes 35.6% of kernel time to input
+backward, 42.6% to score passes, 9.7% to output assembly, and 5.9% to softmax.
+The faster path adds code, with a shared forward/backward definition and
+checked geometry. Artifacts are in `transposed-score`, `transposed-stress`,
+`transposed-score-comparison.json`, `verify-transposed-score.txt`,
+`transposed-long-trace.nsys-rep`, and `transposed-score-counters.ncu-repz`.

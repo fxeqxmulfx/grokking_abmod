@@ -444,6 +444,115 @@ mod kernels {
         }
     }
 
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, input.len() >= 1, out.len() == input.len() * W))]
+    pub fn gpt_feature_transpose<const W: usize>(
+        width: usize,
+        input: &[Features<W>],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let channel = index.get() / input.len();
+        let row = index.get() % input.len();
+        if let Some(output) = out.get_mut(index) {
+            *output = if channel < width {
+                input[row][channel]
+            } else {
+                0.0
+            };
+        }
+    }
+
+    #[inline(always)]
+    fn serial_score_dot<const W: usize, const H: usize, const FULL: bool>(
+        begin: usize,
+        head_width: usize,
+        key: usize,
+        rows: usize,
+        query: &Features<W>,
+        transposed: &[f32],
+    ) -> f32 {
+        let mut total = 0.0;
+        for local in 0..if FULL { W / H } else { head_width } {
+            let channel = begin + local;
+            total += query[channel] * transposed[channel * rows + key];
+        }
+        total
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, heads >= 1, heads <= H, heads <= width,
+        sequence >= 1, sequence <= C, BACKWARD <= 1,
+        TILE >= 1, _tail < TILE, sequence == _bands * TILE + _tail,
+        _sequences >= 1, gradient.len() == _sequences * sequence,
+        2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
+        value.len() == gradient.len() * W, statistics.len() == gradient.len() * heads,
+        out.len() == _sequences * heads * blocks * TILE, probabilities.len() == out.len()))]
+    pub fn gpt_attention_scores_serial<
+        const W: usize,
+        const C: usize,
+        const H: usize,
+        const TILE: usize,
+        const BACKWARD: usize,
+    >(
+        width: usize,
+        heads: usize,
+        sequence: usize,
+        _bands: usize,
+        _tail: usize,
+        _sequences: usize,
+        blocks: usize,
+        gradient: &[Features<W>],
+        value: &[f32],
+        probabilities: &[f32],
+        statistics: &[NormStats],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let scalar = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let item = scalar / TILE;
+            let group = item / blocks;
+            let (position, previous) = causal_position(item % blocks, TILE);
+            let previous = previous + scalar % TILE;
+            if previous > position {
+                return;
+            }
+            let first = group / heads * sequence;
+            let row = first + position;
+            let head = group % heads;
+            let head_width = width / heads;
+            let dot = if width == W && heads == H {
+                serial_score_dot::<W, H, true>(
+                    head * head_width,
+                    head_width,
+                    first + previous,
+                    gradient.len(),
+                    &gradient[row],
+                    value,
+                )
+            } else {
+                serial_score_dot::<W, H, false>(
+                    head * head_width,
+                    head_width,
+                    first + previous,
+                    gradient.len(),
+                    &gradient[row],
+                    value,
+                )
+            };
+            *output = if BACKWARD == 1 {
+                probabilities[scalar] * (dot - statistics[row * heads + head][1])
+            } else {
+                dot * (1.0 / (head_width as f32).sqrt())
+            };
+        }
+    }
+
     #[device]
     fn exclusive_terms<const W: usize, const BACKWARD: bool>(
         width: usize,
@@ -2198,6 +2307,75 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         }
     }
 
+    fn serial_scores<const TILE: usize, const BACKWARD: usize>(
+        &self,
+        workspace: &mut Workspace<W, V, C, H>,
+        gradient_slot: usize,
+        inputs: [usize; 4],
+        cache: usize,
+    ) -> Result<()> {
+        let [query, key, value, attention] = inputs;
+        let c = self.config;
+        if BACKWARD == 1 {
+            let launch = self
+                .module
+                .prepare_gpt_rmsnorm_statistics::<W>(config::<32>(
+                    workspace.norm_statistics.len(),
+                )?)?;
+            self.module.gpt_rmsnorm_statistics(
+                &self.stream,
+                &launch,
+                c.heads,
+                c.width / c.heads,
+                1,
+                &workspace.adjoints[gradient_slot],
+                &workspace.adjoints[gradient_slot],
+                &workspace.features[attention],
+                &mut workspace.norm_statistics,
+            )?;
+        }
+        with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
+            let launch = self
+                .module
+                .prepare_gpt_feature_transpose::<W>(config::<1>(output.len())?)?;
+            self.module.gpt_feature_transpose(
+                &self.stream,
+                &launch,
+                c.width,
+                &workspace.features[if BACKWARD == 1 { value } else { key }],
+                output,
+            )
+        })?;
+        with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |transposed| {
+            let launch = self
+                .module
+                .prepare_gpt_attention_scores_serial::<W, C, H, TILE, BACKWARD>(config::<1>(
+                    workspace.scores.len(),
+                )?)?;
+            self.module.gpt_attention_scores_serial(
+                &self.stream,
+                &launch,
+                c.width,
+                c.heads,
+                workspace.sequence,
+                workspace.sequence / TILE,
+                workspace.sequence % TILE,
+                workspace.rows / workspace.sequence,
+                kernels::causal_blocks(workspace.sequence, TILE),
+                if BACKWARD == 1 {
+                    &workspace.adjoints[gradient_slot]
+                } else {
+                    &workspace.features[query]
+                },
+                transposed,
+                &workspace.probabilities[cache],
+                &workspace.norm_statistics,
+                &mut workspace.scores,
+            )
+        })?;
+        Ok(())
+    }
+
     fn attention_tile<const TILE: usize, const BACKWARD: usize>(
         &self,
         workspace: &mut Workspace<W, V, C, H>,
@@ -2207,38 +2385,42 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     ) -> Result<()> {
         let [query, key, value, attention] = inputs;
         let c = self.config;
-        with_buffer_chunks(
-            &self.stream,
-            &mut workspace.scores,
-            |output: &mut DeviceBuffer<[f32; TILE]>| {
-                let launch = self
-                    .module
-                    .prepare_gpt_attention_scores::<W, C, H, TILE, BACKWARD>(config::<32>(
-                        output.len(),
-                    )?)?;
-                self.module.gpt_attention_scores(
-                    &self.stream,
-                    &launch,
-                    self.config.width,
-                    self.config.heads,
-                    workspace.sequence,
-                    workspace.sequence / TILE,
-                    workspace.sequence % TILE,
-                    workspace.rows / workspace.sequence,
-                    kernels::causal_blocks(workspace.sequence, TILE),
-                    if BACKWARD == 1 {
-                        &workspace.adjoints[gradient_slot]
-                    } else {
-                        &workspace.features[query]
-                    },
-                    &workspace.features[if BACKWARD == 1 { value } else { key }],
-                    &workspace.probabilities[cache],
-                    &workspace.features[attention],
-                    output,
-                )?;
-                Ok::<_, Box<dyn std::error::Error>>(())
-            },
-        )?;
+        if workspace.sequence >= 32 {
+            self.serial_scores::<TILE, BACKWARD>(workspace, gradient_slot, inputs, cache)?;
+        } else {
+            with_buffer_chunks(
+                &self.stream,
+                &mut workspace.scores,
+                |output: &mut DeviceBuffer<[f32; TILE]>| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_attention_scores::<W, C, H, TILE, BACKWARD>(config::<32>(
+                            output.len(),
+                        )?)?;
+                    self.module.gpt_attention_scores(
+                        &self.stream,
+                        &launch,
+                        self.config.width,
+                        self.config.heads,
+                        workspace.sequence,
+                        workspace.sequence / TILE,
+                        workspace.sequence % TILE,
+                        workspace.rows / workspace.sequence,
+                        kernels::causal_blocks(workspace.sequence, TILE),
+                        if BACKWARD == 1 {
+                            &workspace.adjoints[gradient_slot]
+                        } else {
+                            &workspace.features[query]
+                        },
+                        &workspace.features[if BACKWARD == 1 { value } else { key }],
+                        &workspace.probabilities[cache],
+                        &workspace.features[attention],
+                        output,
+                    )?;
+                    Ok::<_, Box<dyn std::error::Error>>(())
+                },
+            )?;
+        }
         if BACKWARD == 0 {
             let sequence = workspace.sequence;
             let bands = sequence / TILE;
@@ -2500,6 +2682,12 @@ mod verification {
             let context_launch = model
                 .module
                 .prepare_gpt_attention_context::<MAX_WIDTH, 64>(config::<1>(output.len())?)?;
+            let score_launch = model
+                .module
+                .prepare_gpt_attention_scores_serial::<MAX_WIDTH, 128, 8, 64, 0>(config::<1>(
+                    scores.len(),
+                )?)?;
+            let mut serial_scores = DeviceBuffer::zeroed(&model.stream, scores.len())?;
             let valid = [2, 3, 0, 3, 2, 3];
             for geometry in [
                 valid,
@@ -2554,10 +2742,59 @@ mod verification {
                         &probabilities,
                         &mut output,
                     ),
+                    model.module.gpt_attention_scores_serial(
+                        &model.stream,
+                        &score_launch,
+                        8,
+                        heads,
+                        sequence,
+                        bands,
+                        tail,
+                        sequences,
+                        blocks,
+                        &value,
+                        &output,
+                        &probabilities,
+                        &statistics,
+                        &mut serial_scores,
+                    ),
                 ];
                 for result in results {
                     assert_eq!(result.is_ok(), geometry == valid, "geometry={geometry:?}");
                 }
+            }
+            let transpose_launch = model
+                .module
+                .prepare_gpt_feature_transpose::<MAX_WIDTH>(config::<1>(output.len())?)?;
+            for width in [0, 1, 8, MAX_WIDTH, MAX_WIDTH + 1, usize::MAX] {
+                assert_eq!(
+                    model
+                        .module
+                        .gpt_feature_transpose(
+                            &model.stream,
+                            &transpose_launch,
+                            width,
+                            &value,
+                            &mut output,
+                        )
+                        .is_ok(),
+                    (2..=MAX_WIDTH).contains(&width)
+                );
+            }
+            for rows in [0, 5, 7] {
+                let invalid = DeviceBuffer::<Features>::zeroed(&model.stream, rows)?;
+                assert!(
+                    model
+                        .module
+                        .gpt_feature_transpose(
+                            &model.stream,
+                            &transpose_launch,
+                            8,
+                            &invalid,
+                            &mut output,
+                        )
+                        .is_err()
+                );
             }
             model.stream.synchronize()?;
             Ok(())
