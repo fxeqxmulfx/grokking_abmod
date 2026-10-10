@@ -694,3 +694,69 @@ learning pass. The unfused large decoder mesh itself reaches 91.31% DRAM
 throughput in Nsight Compute, reinforcing the value of reducing full-buffer
 passes. Artifacts are in `fused-residual`, `fused-residual-comparison.json`,
 `verify-fused-residual.txt`, and `stress-decoder-mesh-counters.ncu-repz`.
+
+### Attention recomputation experiment
+
+Recomputing score derivatives inside aligned-warp Q/K/V backward removes the
+score matrix entirely. The experimental kernel passes f64 derivatives,
+strict AdamW checks, and learning, including long sequences with head widths
+32/64 and padded channel capacities. It needs a small cached `dot(dY, Y)`
+per head and recomputes `dot(dY, V)` in both Q and K accumulation loops.
+
+| Scenario | Retained scores ms/update | Recomputed ms/update | Retained MiB | Recomputed MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Context 1024, batch 16 | 333.846 | 445.346 | 1434 | 1178 |
+| Context 4096, batch 3 | 1020.830 | 1356.446 | 2822 | 2054 |
+
+The 256/768 MiB memory reduction is substantial, but update time increases
+about 33%. This implementation is retained as an experiment while compact
+causal score storage is investigated as a way to avoid redundant dot products.
+It does not replace the default kernels. Sources, binaries, f64 verification,
+and measurements remain in `gpu-recomputed-scores.rs`,
+`mesh-gpt-bench-recomputed-scores`, `verify-recomputed-scores.txt`, and
+`recomputed-scores` under the ignored profiling directory.
+
+### Store only causal score tiles
+
+The retained score-gradient buffer is now a flat FP32 slice. A query at
+position `p` reserves `ceil((p + 1) / tile)` tiles rather than a full context
+row. Complete bands contain `tile` rows; a final partial band reserves only
+its actual rows. The producer maps each owned warp tile to its causal query
+and key interval. Both CPU allocation and CUDA indexing use the same layout
+functions. Integer corrections make the floating square-root estimate exact
+at band boundaries, and launch contracts validate bands, tails, sequence
+counts, score lengths, and outputs with checked arithmetic.
+
+Both backward kernels use the same compile-time tile through a shared launch
+helper. Q reads consecutive score cells. K advances by each future row's
+compile-time rounded length, without an inner-loop band-transition branch.
+Removing that branch is material: an earlier packed layout took 1095.158 ms
+at context 4096, compared with 1027.658 ms for the simpler loop. Interleaving
+heads within each tile was also tested and was slower on long contexts
+(346.545 / 1067.281 ms at contexts 1024 / 4096), so head-major storage remains.
+
+| Scenario | Full scores ms/update | Compact scores ms/update | Full MiB | Compact MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Context 1024, batch 16 | 333.846 | 339.736 | 1434 | 1314 |
+| Context 4096, batch 3 | 1020.830 | 1027.658 | 2822 | 2444 |
+
+The score allocation itself shrinks from 256 to 136 MiB and from 768 to
+390 MiB. Timing increases 1.8% / 0.7% in these trials while saving 120 / 378
+MiB of actual process memory. The earlier loop used 40 registers/thread at
+99.4% achieved occupancy, but Nsight Compute found long-scoreboard stalls
+and only 5.88% DRAM throughput. Removing inner-loop control flow improved
+timing despite the already high occupancy. A 50-update paired baseline
+comparison measured 5.149 vs 5.100 ms; the initial short 5.383 ms measurement
+was not reproduced with the longer run.
+
+CPU coverage checks every causal tile through context 4096 at tile sizes
+1/4/32/64, including band tails and inverse coordinates. Full f64 verification
+adds sequences 33/129 with head widths 32/64 and padded feature capacities.
+All 31 CPU tests and strict Clippy pass. Nineteen saved checkpoints across
+the layout experiments are byte-identical to the preceding full-score
+implementation. No new kernels, unsafe client code, flags, or macros are
+required. The additional layout and contract code replaces dense index math;
+attention backward launch code is shared through ordinary const generics.
+Artifacts are in `packed-scores`, `packed-const`, `packed-no-branch`,
+`packed-interleaved`, `packed-paired-*`, `packed-scores-comparison.json`,
+and `packed-backward-counters.ncu-repz`.

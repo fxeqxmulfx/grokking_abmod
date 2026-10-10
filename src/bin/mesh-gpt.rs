@@ -613,6 +613,21 @@ fn verify(device: usize) -> Result<()> {
         },
         &[(1, 1), (1, 3), (2, 3)],
     )?;
+    for (width, heads) in [(32, 1), (64, 2), (64, 1)] {
+        verify_model::<64, 8, 256, 2>(
+            device,
+            GptConfig {
+                vocab_size: 5,
+                context: 129,
+                width,
+                heads,
+                layers: 1,
+                attention_mesh_depth: 1,
+                ffn_mesh_depth: 1,
+            },
+            &[(1, 33), (1, 129), (2, 33)],
+        )?;
+    }
     // The identical final input token needs different predictions depending on
     // the first token. A token-local model cannot solve both examples.
     let config = GptConfig {

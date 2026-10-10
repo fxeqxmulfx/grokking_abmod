@@ -29,6 +29,40 @@ mod kernels {
         }
     }
 
+    #[device]
+    pub fn causal_blocks(sequence: usize, tile: usize) -> usize {
+        let bands = sequence / tile;
+        tile * bands * (bands + 1) / 2 + sequence % tile * (bands + 1)
+    }
+
+    #[device]
+    pub(super) fn causal_position(block: usize, tile: usize) -> (usize, usize) {
+        if block < tile {
+            return (block, 0);
+        }
+        let mut band = ((2.0 * block as f32 / tile as f32 + 0.25).sqrt() - 0.5) as usize;
+        // Correct either rounding direction before deriving integer coordinates.
+        while tile * band * (band + 1) / 2 > block {
+            band -= 1;
+        }
+        while tile * (band + 1) * (band + 2) / 2 <= block {
+            band += 1;
+        }
+        let local = block - tile * band * (band + 1) / 2;
+        (band * tile + local / (band + 1), local % (band + 1) * tile)
+    }
+
+    #[device]
+    pub(super) fn causal_offset(
+        position: usize,
+        group: usize,
+        blocks: usize,
+        tile: usize,
+    ) -> usize {
+        let band = position / tile;
+        (group * blocks + tile * band * (band + 1) / 2 + position % tile * (band + 1)) * tile
+    }
+
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
@@ -716,13 +750,18 @@ mod kernels {
         width >= 2, width <= W, heads >= 1, heads <= H, heads <= width,
         sequence >= 1, sequence <= C,
         probabilities.len() == gradient.len(), value.len() == gradient.len(),
-        TILE >= 1, _tiles >= 1, C == _tiles * TILE,
-        attention.len() == gradient.len(), out.len() * TILE == gradient.len() * H * C))]
+        TILE >= 1, _tail < TILE, sequence == _bands * TILE + _tail,
+        _sequences >= 1, gradient.len() == _sequences * sequence,
+        2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
+        attention.len() == gradient.len(), out.len() == _sequences * heads * blocks))]
     pub fn gpt_score_backward<const W: usize, const C: usize, const H: usize, const TILE: usize>(
         width: usize,
         heads: usize,
         sequence: usize,
-        _tiles: usize,
+        _bands: usize,
+        _tail: usize,
+        _sequences: usize,
+        blocks: usize,
         gradient: &[Features<W>],
         value: &[Features<W>],
         probabilities: &[Attention<C, H>],
@@ -730,14 +769,23 @@ mod kernels {
         mut out: DisjointSlice<[f32; TILE], thread::WarpIndex>,
     ) {
         let index = thread::index_1d();
-        let item = index.get() / 32 * TILE;
-        let row = item / (H * C);
-        let head = item / C % H;
-        let previous = item % C;
+        let item = index.get() / 32;
         let lane = index.get() % 32;
-        if row >= gradient.len() || head >= heads || previous > row % sequence {
+        if item >= out.len() {
             return;
         }
+        let (group, block) = if sequence == C {
+            let full_blocks = causal_blocks(C, TILE);
+            (item / full_blocks, item % full_blocks)
+        } else {
+            (item / blocks, item % blocks)
+        };
+        let (position, previous) = causal_position(block, TILE);
+        let (row, head) = if heads == H {
+            (group / H * sequence + position, group % H)
+        } else {
+            (group / heads * sequence + position, group % heads)
+        };
         let head_width = width / heads;
         // sum(P * dot(dY, V)) = dot(dY, Y), with the raw attention Y.
         let mean = attention_dot(
@@ -765,17 +813,30 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, heads >= 1, heads <= H, sequence >= 1, sequence <= C,
-        key.len() == query.len(), gradient.len() == query.len(), scores.len() == query.len(), probabilities.len() == query.len(),
+        width >= 2, width <= W, heads >= 1, heads <= H, heads <= width, sequence >= 1, sequence <= C,
+        TILE >= 1, _tail < TILE, sequence == _bands * TILE + _tail,
+        _sequences >= 1, query.len() == _sequences * sequence,
+        2 * blocks == TILE * _bands * (_bands + 1) + 2 * _tail * (_bands + 1),
+        key.len() == query.len(), gradient.len() == query.len(), probabilities.len() == query.len(),
+        scores.len() == _sequences * heads * blocks * TILE,
         dq.len() == query.len() * W, dk.len() == dq.len(), dv.len() == dq.len()))]
-    pub fn gpt_attention_backward<const W: usize, const C: usize, const H: usize>(
+    pub fn gpt_attention_backward<
+        const W: usize,
+        const C: usize,
+        const H: usize,
+        const TILE: usize,
+    >(
         width: usize,
         heads: usize,
         sequence: usize,
+        _bands: usize,
+        _tail: usize,
+        _sequences: usize,
+        blocks: usize,
         query: &[Features<W>],
         key: &[Features<W>],
         gradient: &[Features<W>],
-        scores: &[Attention<C, H>],
+        scores: &[f32],
         probabilities: &[Attention<C, H>],
         mut dq: DisjointSlice<f32>,
         mut dk: DisjointSlice<f32>,
@@ -796,16 +857,19 @@ mod kernels {
                 return;
             }
             let head = channel / head_width;
+            let q_offset = causal_offset(position, row / sequence * heads + head, blocks, TILE);
+            let mut k_offset = q_offset;
             let mut q_sum = 0.0;
             let mut k_sum = 0.0;
             let mut v_sum = 0.0;
             for previous in 0..=position {
-                q_sum += scores[row][head][previous] * key[first + previous][channel];
+                q_sum += scores[q_offset + previous] * key[first + previous][channel];
             }
             for future in position..sequence {
-                k_sum += scores[first + future][head][position] * query[first + future][channel];
+                k_sum += scores[k_offset + position] * query[first + future][channel];
                 v_sum += probabilities[first + future][head][position]
                     * gradient[first + future][channel];
+                k_offset += (future / TILE + 1) * TILE;
             }
             *q_gradient = q_sum * scale;
             *k_gradient = k_sum * scale;
@@ -1080,6 +1144,33 @@ mod plan_tests {
     use std::collections::HashSet;
 
     #[test]
+    fn causal_tiles_cover_every_past_token_once() {
+        for tile in [1, 4, 32, 64] {
+            for sequence in [1, 3, 4, 7, 32, 63, 64, 65, 127, 128, 129, 1024, 4095, 4096] {
+                let blocks = kernels::causal_blocks(sequence, tile);
+                let mut counts = vec![0; sequence];
+                for block in 0..blocks {
+                    let (position, previous) = kernels::causal_position(block, tile);
+                    assert!(position < sequence && previous <= position);
+                    assert!(previous.is_multiple_of(tile));
+                    assert_eq!(
+                        kernels::causal_offset(position, 0, blocks, tile) + previous,
+                        block * tile
+                    );
+                    counts[position] += 1;
+                }
+                for (position, count) in counts.into_iter().enumerate() {
+                    assert_eq!(count, position / tile + 1);
+                }
+                assert_eq!(
+                    kernels::causal_offset(0, 2, blocks, tile),
+                    2 * blocks * tile
+                );
+            }
+        }
+    }
+
+    #[test]
     fn warp_launch_handles_large_attention_and_rejects_overflow() {
         let blocks = u32::MAX as usize;
         assert_eq!(
@@ -1146,7 +1237,7 @@ struct Workspace<const W: usize, const V: usize, const C: usize, const H: usize>
     adjoints: Vec<DeviceBuffer<Features<W>>>,
     norm_statistics: DeviceBuffer<NormStats>,
     probabilities: Vec<DeviceBuffer<Attention<C, H>>>,
-    scores: DeviceBuffer<Attention<C, H>>,
+    scores: DeviceBuffer<f32>,
     scratch: Vec<DeviceBuffer<Features<W>>>,
     initialized: Vec<bool>,
     logits: DeviceBuffer<Vocabulary<V>>,
@@ -1192,7 +1283,13 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             adjoints: buffers(stream, plan.gradient_buffers, rows)?,
             norm_statistics: DeviceBuffer::zeroed(stream, rows * config.heads)?,
             probabilities: buffers(stream, plan.attentions, rows)?,
-            scores: DeviceBuffer::zeroed(stream, rows)?,
+            scores: DeviceBuffer::zeroed(
+                stream,
+                rows / sequence
+                    * config.heads
+                    * kernels::causal_blocks(sequence, score_tile(C))
+                    * score_tile(C),
+            )?,
             scratch: buffers(stream, 4, rows)?,
             initialized: vec![false; plan.ops.len()],
             logits: DeviceBuffer::zeroed(stream, rows)?,
@@ -1880,40 +1977,34 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     cache,
                 } => {
                     if C.is_multiple_of(64) {
-                        self.score_backward::<64>(workspace, gradient_slot, value, out, cache)?;
+                        self.attention_backward::<64>(
+                            workspace,
+                            gradient_slot,
+                            [query, key, value, out],
+                            cache,
+                        )?;
                     } else if C.is_multiple_of(32) {
-                        self.score_backward::<32>(workspace, gradient_slot, value, out, cache)?;
+                        self.attention_backward::<32>(
+                            workspace,
+                            gradient_slot,
+                            [query, key, value, out],
+                            cache,
+                        )?;
                     } else if C.is_multiple_of(4) {
-                        self.score_backward::<4>(workspace, gradient_slot, value, out, cache)?;
+                        self.attention_backward::<4>(
+                            workspace,
+                            gradient_slot,
+                            [query, key, value, out],
+                            cache,
+                        )?;
                     } else {
-                        self.score_backward::<1>(workspace, gradient_slot, value, out, cache)?;
+                        self.attention_backward::<1>(
+                            workspace,
+                            gradient_slot,
+                            [query, key, value, out],
+                            cache,
+                        )?;
                     }
-                    let (dq, rest) = workspace.scratch.split_at_mut(1);
-                    let (dk, rest) = rest.split_at_mut(1);
-                    with_buffer_chunks(&self.stream, &mut dq[0], |dq| {
-                        with_buffer_chunks(&self.stream, &mut dk[0], |dk| {
-                            with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
-                                let launch = self
-                                    .module
-                                    .prepare_gpt_attention_backward::<W, C, H>(config(dq.len()))?;
-                                self.module.gpt_attention_backward(
-                                    &self.stream,
-                                    &launch,
-                                    c.width,
-                                    c.heads,
-                                    workspace.sequence,
-                                    &workspace.features[query],
-                                    &workspace.features[key],
-                                    &workspace.adjoints[gradient_slot],
-                                    &workspace.scores,
-                                    &workspace.probabilities[cache],
-                                    dq,
-                                    dk,
-                                    dv,
-                                )
-                            })
-                        })
-                    })?;
                     self.accumulate_scratch(workspace, query, 0)?;
                     self.accumulate_scratch(workspace, key, 1)?;
                     self.accumulate_scratch(workspace, value, 2)?;
@@ -2071,14 +2162,15 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         })
     }
 
-    fn score_backward<const TILE: usize>(
+    fn attention_backward<const TILE: usize>(
         &self,
         workspace: &mut Workspace<W, V, C, H>,
         gradient_slot: usize,
-        value: usize,
-        attention: usize,
+        inputs: [usize; 4],
         cache: usize,
     ) -> Result<()> {
+        let [query, key, value, attention] = inputs;
+        let c = self.config;
         with_buffer_chunks(
             &self.stream,
             &mut workspace.scores,
@@ -2092,7 +2184,10 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     self.config.width,
                     self.config.heads,
                     workspace.sequence,
-                    C / TILE,
+                    workspace.sequence / TILE,
+                    workspace.sequence % TILE,
+                    workspace.rows / workspace.sequence,
+                    kernels::causal_blocks(workspace.sequence, TILE),
                     &workspace.adjoints[gradient_slot],
                     &workspace.features[value],
                     &workspace.probabilities[cache],
@@ -2101,7 +2196,38 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 )?;
                 Ok::<_, Box<dyn std::error::Error>>(())
             },
-        )
+        )?;
+        let (dq, rest) = workspace.scratch.split_at_mut(1);
+        let (dk, rest) = rest.split_at_mut(1);
+        with_buffer_chunks(&self.stream, &mut dq[0], |dq| {
+            with_buffer_chunks(&self.stream, &mut dk[0], |dk| {
+                with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_attention_backward::<W, C, H, TILE>(config(dq.len()))?;
+                    self.module.gpt_attention_backward(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.heads,
+                        workspace.sequence,
+                        workspace.sequence / TILE,
+                        workspace.sequence % TILE,
+                        workspace.rows / workspace.sequence,
+                        kernels::causal_blocks(workspace.sequence, TILE),
+                        &workspace.features[query],
+                        &workspace.features[key],
+                        &workspace.adjoints[gradient_slot],
+                        &workspace.scores,
+                        &workspace.probabilities[cache],
+                        dq,
+                        dk,
+                        dv,
+                    )
+                })
+            })
+        })?;
+        Ok(())
     }
 
     fn add_features(
@@ -2196,6 +2322,18 @@ fn config(elements: usize) -> LaunchConfig1D {
 fn warp_config(items: usize) -> Result<LaunchConfig1D> {
     // Divide before converting: long attention can exceed u32::MAX threads.
     Ok(LaunchConfig1D::new(items.div_ceil(4).try_into()?, 128, 0))
+}
+
+fn score_tile(capacity: usize) -> usize {
+    if capacity.is_multiple_of(64) {
+        64
+    } else if capacity.is_multiple_of(32) {
+        32
+    } else if capacity.is_multiple_of(4) {
+        4
+    } else {
+        1
+    }
 }
 
 mod verification {
