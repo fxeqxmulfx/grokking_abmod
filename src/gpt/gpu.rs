@@ -127,15 +127,17 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, offset + 2 * width <= state.len(),
-        activated + add_residual <= 1, residual.len() == input.len(),
+        BACKWARD <= 1, BACKWARD * add_residual == 0,
+        activated + add_residual <= 1, residual.len() == input.len(), activation.len() == input.len(),
         out.len() == input.len() * W))]
-    pub fn gpt_mesh<const W: usize>(
+    pub fn gpt_mesh<const W: usize, const BACKWARD: usize>(
         width: usize,
         offset: usize,
         activated: usize,
         add_residual: usize,
         input: &[Features<W>],
         residual: &[Features<W>],
+        activation: &[Features<W>],
         state: &[[f32; 3]],
         mut out: DisjointSlice<f32>,
     ) {
@@ -144,6 +146,16 @@ mod kernels {
         let channel = index.get() % W;
         if let Some(output) = out.get_mut(index) {
             if channel >= width {
+                return;
+            }
+            if BACKWARD == 1 {
+                let previous = (channel + width - 1) % width;
+                *output = input[row][channel]
+                    * slope(activation[row][channel], activated)
+                    * state[offset + 2 * channel][0]
+                    + input[row][previous]
+                        * slope(activation[row][previous], activated)
+                        * state[offset + 2 * previous + 1][0];
                 return;
             }
             let p = offset + 2 * channel;
@@ -615,37 +627,6 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, offset + 2 * width <= state.len(), activated <= 1,
-        gradient.len() == activation.len(), out.len() == activation.len() * W))]
-    pub fn gpt_mesh_backward<const W: usize>(
-        width: usize,
-        offset: usize,
-        activated: usize,
-        gradient: &[Features<W>],
-        activation: &[Features<W>],
-        state: &[[f32; 3]],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let row = index.get() / W;
-        let channel = index.get() % W;
-        if let Some(output) = out.get_mut(index) {
-            if channel >= width {
-                return;
-            }
-            let previous = (channel + width - 1) % width;
-            *output = gradient[row][channel]
-                * slope(activation[row][channel], activated)
-                * state[offset + 2 * channel][0]
-                + gradient[row][previous]
-                    * slope(activation[row][previous], activated)
-                    * state[offset + 2 * previous + 1][0];
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, offset + 2 * width <= out.len(), activated <= 1,
         input.len() == activation.len(), gradient.len() == activation.len()))]
     pub fn gpt_mesh_gradient<const W: usize>(
@@ -972,61 +953,45 @@ mod kernels {
 
 #[derive(Clone, Copy)]
 enum Op {
-    Embed {
-        out: usize,
-    },
+    Embed,
     RmsNorm {
         heads: usize,
         input: usize,
-        out: usize,
     },
     Mesh {
         group: usize,
         input: usize,
-        out: usize,
         layer: usize,
         activated: usize,
         residual: Option<usize>,
     },
     Rotary {
         input: usize,
-        out: usize,
     },
     Attention {
         query: usize,
         key: usize,
         value: usize,
-        out: usize,
         cache: usize,
     },
     Exclusive {
         input: usize,
         value: usize,
-        out: usize,
     },
 }
 
 impl Op {
-    fn edges(self) -> (usize, [Option<usize>; 3]) {
+    fn inputs(self) -> [Option<usize>; 3] {
         match self {
-            Self::Embed { out } => (out, [None; 3]),
-            Self::RmsNorm { input, out, .. } | Self::Rotary { input, out } => {
-                (out, [Some(input), None, None])
-            }
+            Self::Embed => [None; 3],
+            Self::RmsNorm { input, .. } | Self::Rotary { input } => [Some(input), None, None],
             Self::Mesh {
-                input,
-                out,
-                residual,
-                ..
-            } => (out, [Some(input), residual, None]),
-            Self::Exclusive { input, value, out } => (out, [Some(input), Some(value), None]),
+                input, residual, ..
+            } => [Some(input), residual, None],
+            Self::Exclusive { input, value } => [Some(input), Some(value), None],
             Self::Attention {
-                query,
-                key,
-                value,
-                out,
-                ..
-            } => (out, [Some(query), Some(key), Some(value)]),
+                query, key, value, ..
+            } => [Some(query), Some(key), Some(value)],
         }
     }
 }
@@ -1042,7 +1007,7 @@ struct Plan {
 impl Plan {
     fn new(config: GptConfig, layout: &Layout) -> Self {
         let mut plan = Self {
-            ops: vec![Op::Embed { out: 0 }],
+            ops: vec![Op::Embed],
             gradient_slots: Vec::new(),
             gradient_buffers: 0,
             attentions: 0,
@@ -1058,22 +1023,15 @@ impl Plan {
             let key = plan.rmsnorm(key, config.heads);
             let query = plan.rope(query);
             let key = plan.rope(key);
-            let out = plan.ops.len();
             let cache = plan.attentions;
             plan.attentions += 1;
-            plan.ops.push(Op::Attention {
+            let out = plan.push(Op::Attention {
                 query,
                 key,
                 value,
-                out,
                 cache,
             });
-            let exclusive = plan.ops.len();
-            plan.ops.push(Op::Exclusive {
-                input: out,
-                value,
-                out: exclusive,
-            });
+            let exclusive = plan.push(Op::Exclusive { input: out, value });
             x = plan.mesh(
                 exclusive,
                 block.projection,
@@ -1090,8 +1048,8 @@ impl Plan {
         plan.gradient_slots[plan.final_features] = 0;
         plan.gradient_buffers = 1;
         let mut available = Vec::new();
-        for op in plan.ops.iter().rev().copied() {
-            let (out, inputs) = op.edges();
+        for (out, op) in plan.ops.iter().copied().enumerate().rev() {
+            let inputs = op.inputs();
             for input in inputs.into_iter().flatten() {
                 if plan.gradient_slots[input] == usize::MAX {
                     plan.gradient_slots[input] = available.pop().unwrap_or_else(|| {
@@ -1105,10 +1063,13 @@ impl Plan {
         }
         plan
     }
-    fn rmsnorm(&mut self, input: usize, heads: usize) -> usize {
+    fn push(&mut self, op: Op) -> usize {
         let out = self.ops.len();
-        self.ops.push(Op::RmsNorm { heads, input, out });
+        self.ops.push(op);
         out
+    }
+    fn rmsnorm(&mut self, input: usize, heads: usize) -> usize {
+        self.push(Op::RmsNorm { heads, input })
     }
     fn mesh(
         &mut self,
@@ -1118,23 +1079,18 @@ impl Plan {
         residual: Option<usize>,
     ) -> usize {
         for layer in 0..depth {
-            let out = self.ops.len();
-            self.ops.push(Op::Mesh {
+            input = self.push(Op::Mesh {
                 group,
                 input,
-                out,
                 layer,
                 activated: usize::from(layer + 1 != depth),
                 residual: if layer + 1 == depth { residual } else { None },
             });
-            input = out;
         }
         input
     }
     fn rope(&mut self, input: usize) -> usize {
-        let out = self.ops.len();
-        self.ops.push(Op::Rotary { input, out });
-        out
+        self.push(Op::Rotary { input })
     }
 }
 
@@ -1196,8 +1152,8 @@ mod plan_tests {
             let plan = Plan::new(c, &Layout::new(c).unwrap());
             let mut live = HashSet::from([plan.final_features]);
             let mut peak = 1;
-            for op in plan.ops.iter().rev().copied() {
-                let (out, inputs) = op.edges();
+            for (out, op) in plan.ops.iter().copied().enumerate().rev() {
+                let inputs = op.inputs();
                 assert!(live.contains(&out));
                 live.extend(inputs.into_iter().flatten());
                 let slots: HashSet<_> =
@@ -1630,7 +1586,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &before[layer - 1]
             };
             with_buffer_chunks(&self.stream, &mut after[0], |output| {
-                let launch = self.module.prepare_gpt_mesh::<W>(config(output.len()))?;
+                let launch = self.module.prepare_gpt_mesh::<W, 0>(config(output.len()))?;
                 self.module.gpt_mesh(
                     &self.stream,
                     &launch,
@@ -1638,6 +1594,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     layer * 2 * c.width,
                     usize::from(layer + 1 != c.attention_mesh_depth),
                     0,
+                    input,
                     input,
                     input,
                     &self.parameters[embedding].state,
@@ -1667,9 +1624,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 output,
             )
         })?;
-        for op in &self.plan.ops {
+        for (out, op) in self.plan.ops.iter().enumerate() {
             match *op {
-                Op::Embed { out } => {
+                Op::Embed => {
                     with_buffer_chunks(&self.stream, &mut workspace.features[out], |output| {
                         let launch = self.module.prepare_gpt_embed::<W>(config(output.len()))?;
                         self.module.gpt_embed(
@@ -1683,7 +1640,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         )
                     })?;
                 }
-                Op::RmsNorm { heads, input, out } => {
+                Op::RmsNorm { heads, input } => {
                     let (before, after) = workspace.features.split_at_mut(out);
                     self.rmsnorm(
                         heads,
@@ -1697,14 +1654,13 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 Op::Mesh {
                     group,
                     input,
-                    out,
                     layer,
                     activated,
                     residual,
                 } => {
                     let (before, after) = workspace.features.split_at_mut(out);
                     with_buffer_chunks(&self.stream, &mut after[0], |output| {
-                        let launch = self.module.prepare_gpt_mesh::<W>(config(output.len()))?;
+                        let launch = self.module.prepare_gpt_mesh::<W, 0>(config(output.len()))?;
                         self.module.gpt_mesh(
                             &self.stream,
                             &launch,
@@ -1714,12 +1670,13 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             usize::from(residual.is_some()),
                             &before[input],
                             &before[residual.unwrap_or(input)],
+                            &before[input],
                             &self.parameters[group].state,
                             output,
                         )
                     })?;
                 }
-                Op::Rotary { input, out } => {
+                Op::Rotary { input } => {
                     let (before, after) = workspace.features.split_at_mut(out);
                     with_buffer_chunks(&self.stream, &mut after[0], |output| {
                         let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
@@ -1739,7 +1696,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     query,
                     key,
                     value,
-                    out,
                     cache,
                 } => {
                     let launch = self
@@ -1759,7 +1715,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         &mut workspace.probabilities[cache],
                     )?;
                 }
-                Op::Exclusive { input, value, out } => {
+                Op::Exclusive { input, value } => {
                     let (before, after) = workspace.features.split_at_mut(out);
                     with_buffer_chunks(&self.stream, &mut after[0], |output| {
                         let launch = self
@@ -1858,12 +1814,12 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         })?;
         self.accumulate_scratch(workspace, self.plan.final_features, 0)?;
 
-        for index in (0..self.plan.ops.len()).rev() {
-            let op = self.plan.ops[index];
-            let gradient_slot = self.plan.gradient_slots[op.edges().0];
+        for out in (0..self.plan.ops.len()).rev() {
+            let op = self.plan.ops[out];
+            let gradient_slot = self.plan.gradient_slots[out];
             match op {
-                Op::Embed { .. } => {}
-                Op::RmsNorm { heads, input, out } => {
+                Op::Embed => {}
+                Op::RmsNorm { heads, input } => {
                     self.rmsnorm(
                         heads,
                         c.width / heads,
@@ -1881,7 +1837,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 Op::Mesh {
                     group,
                     input,
-                    out,
                     layer,
                     activated,
                     residual,
@@ -1932,16 +1887,16 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         )?;
                     }
                     with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
-                        let launch = self
-                            .module
-                            .prepare_gpt_mesh_backward::<W>(config(output.len()))?;
-                        self.module.gpt_mesh_backward(
+                        let launch = self.module.prepare_gpt_mesh::<W, 1>(config(output.len()))?;
+                        self.module.gpt_mesh(
                             &self.stream,
                             &launch,
                             c.width,
                             layer * 2 * c.width,
                             activated,
+                            0,
                             &workspace.adjoints[gradient_slot],
+                            &workspace.features[out],
                             &workspace.features[out],
                             &parameters.state,
                             output,
@@ -1953,7 +1908,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         self.consume_node(workspace, residual, out)?;
                     }
                 }
-                Op::Rotary { input, .. } => {
+                Op::Rotary { input } => {
                     with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
                         let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
                         self.module.gpt_rope(
@@ -1973,7 +1928,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     query,
                     key,
                     value,
-                    out,
                     cache,
                 } => {
                     if C.is_multiple_of(64) {
@@ -2009,7 +1963,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     self.accumulate_scratch(workspace, key, 1)?;
                     self.accumulate_scratch(workspace, value, 2)?;
                 }
-                Op::Exclusive { input, value, .. } => {
+                Op::Exclusive { input, value } => {
                     let (dy, rest) = workspace.scratch.split_at_mut(1);
                     with_buffer_chunks(&self.stream, &mut dy[0], |dy| {
                         with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
@@ -2100,16 +2054,16 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             if layer > 0 {
                 let (before, after) = workspace.embedding_adjoints.split_at_mut(layer);
                 with_buffer_chunks(&self.stream, &mut before[layer - 1], |output| {
-                    let launch = self
-                        .module
-                        .prepare_gpt_mesh_backward::<W>(config(output.len()))?;
-                    self.module.gpt_mesh_backward(
+                    let launch = self.module.prepare_gpt_mesh::<W, 1>(config(output.len()))?;
+                    self.module.gpt_mesh(
                         &self.stream,
                         &launch,
                         c.width,
                         layer * 2 * c.width,
                         activated,
+                        0,
                         &after[0],
+                        &workspace.embeddings[layer],
                         &workspace.embeddings[layer],
                         &group.state,
                         output,

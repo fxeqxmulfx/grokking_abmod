@@ -576,7 +576,7 @@ batch one 0.720. Memory stays unchanged. Artifacts are in
 
 ### Use freed capacity for larger stress workloads
 
-The runner now defaults to the `stress-*` scenarios below, keeping the original
+The first enlarged workload set used the `stress-*` scenarios below, keeping the original
 fixed scenarios available through `--scenario large-batch`, `--scenario wide`,
 and the other original names. Timings across differently sized scenarios are
 not before/after speed comparisons. The new shapes demonstrate usable capacity
@@ -760,3 +760,42 @@ attention backward launch code is shared through ordinary const generics.
 Artifacts are in `packed-scores`, `packed-const`, `packed-no-branch`,
 `packed-interleaved`, `packed-paired-*`, `packed-scores-comparison.json`,
 and `packed-backward-counters.ncu-repz`.
+
+### Fill the saved capacity and simplify the graph
+
+The current runner defaults increase the workloads again after residual
+fusion and causal score packing. Earlier tables remain fixed-size comparisons;
+the following table demonstrates added capacity rather than speedup:
+
+| Scenario | Width / blocks / batch / context | Process MiB | ms/update |
+| --- | --- | ---: | ---: |
+| Original | 128 / 2 / 512 / 4 | 148 | 5.145 |
+| Large batch | 128 / 2 / 20000 / 4 | 3052 | 172.624 |
+| Wide | 1024 / 2 / 2688 / 4 | 3112 | 181.799 |
+| Deep | 256 / 49 / 512 / 4 | 3054 | 191.340 |
+| Combined | 512 / 4 / 2816 / 4 | 2996 | 169.271 |
+| Long context | 128 / 2 / 4 / 4096 | 3234 | 1372.437 |
+
+Measurements use ten warmup and ten timed updates in three trials, and
+independent memory probes. The previous stress set used batch 19200 / 2560 /
+2688, 46 blocks, and batch 3 at context 4096. Score packing permits a third
+more complete long sequences within roughly 3 GiB while retaining FP32 state.
+Artifacts are in `stress-packed-capacity`.
+
+The plan no longer stores each output ID in its operation: the ID is already
+the operation's index. One ordinary `push` function handles node insertion,
+and input lists still drive checked gradient liveness. Mesh forward and input
+backward share a const-generic kernel definition with distinct compiled
+specializations. The combined simplification removes 46 Rust lines without
+new macros or allocations. Full f64 verification, all 31 CPU tests, strict
+Clippy, and the complete epoch pass. Six fixed-workload checkpoints and the
+epoch are byte-identical. Original / large / wide / deep / combined / long
+medians are 5.114 / 71.167 / 78.555 / 79.180 / 73.538 / 341.522 ms,
+with the same memory as the preceding implementation. Artifacts are in
+`shared-mesh`, `shared-mesh-comparison.json`, and `verify-shared-mesh.txt`.
+
+The mesh entry prefix is now `gpt_mesh_TID_` for both compiled specializations.
+To select the first input-backward launch with Nsight Compute, skip the matching
+forward calls: `attention_depth + blocks * (4 * attention_depth + ffn_depth)`.
+This is 48 calls for the original benchmark. `--launch-skip 4` still selects
+its first decoder forward projection.
