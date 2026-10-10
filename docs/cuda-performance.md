@@ -320,3 +320,40 @@ reduction. Default and single-equation checkpoints are byte-identical to the
 previous binary; the narrow workload differs by at most `3.58e-7` (relative L2
 `6.16e-8`). All CPU tests, strict Clippy, both CUDA verification suites, invalid
 launch checks, and the complete mod-97 epoch pass.
+
+## Large-memory and long-context workloads
+
+The benchmark accepts `--width`, `--heads`, `--layers`, `--attention-depth`,
+`--ffn-depth`, `--context`, and `--batch`. Widths through 128, 256, 512, and 1024
+select matching const-generic capacities at context up to 128. Widths through
+128 additionally support context capacities 1024 and 4096. All specializations
+use vocabulary capacity 256 and head capacity eight. Batch validation permits
+at most 65536 token rows; mesh-gradient contracts cover all 2048 row chunks.
+
+Run the original workload and five scenarios near 3 GiB of GPU memory:
+
+```bash
+cargo oxide build --arch sm_86 -- --release --locked \
+  --bin mesh-gpt --bin mesh-gpt-bench
+uv run --locked scripts/bench-cuda.py \
+  --steps 20 --warmup 5 --trials 3 \
+  --output target/mesh-gpt-profile/shapes
+```
+
+The runner measures per-process memory with `nvidia-smi` in a separate probe,
+then times training without telemetry or profiler activity. `summary.csv`
+records the median time, sampled peak process memory, and bytes owned by device
+buffers. The process measurement also includes allocator, context, and module
+overhead. Each directory retains timings, metadata, memory samples, logs, and
+the first trial's checkpoint. Allocator rounding can make the same logical
+allocation use different physical memory at different batch sizes.
+
+At context four, inputs are mod-97 equations with answer-only loss. Batches
+larger than the training split repeat its indices cyclically. Other contexts
+use complete cyclic symbol sequences with dense next-token targets; both
+attention and its backward pass process the entire sequence. This is a
+reproducible profiling workload, not an evaluation of language-model quality.
+
+CPU boundary checks and independent f64 CUDA sums cover the new 65536-row
+limit, a 65535-row tail, and the transition past 4096 rows. Invalid counts,
+overflowing dimensions, and short buffers remain rejected before launch.

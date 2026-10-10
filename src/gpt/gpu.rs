@@ -639,7 +639,7 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, activated <= 1, chunks >= 1, chunks <= 128,
+        width >= 2, width <= W, activated <= 1, chunks >= 1, chunks <= 2048,
         input.len() <= chunks * 32, input.len() + 32 > chunks * 32,
         input.len() == activation.len(), gradient.len() == activation.len(),
         out.len() == chunks * 2 * width))]
@@ -676,7 +676,7 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         width >= 2, width <= W, offset + 2 * width <= out.len(),
-        chunks >= 1, chunks <= 128, partials.len() == chunks * 2 * width))]
+        chunks >= 1, chunks <= 2048, partials.len() == chunks * 2 * width))]
     pub fn gpt_mesh_gradient_reduce<const W: usize>(
         width: usize,
         offset: usize,
@@ -1176,6 +1176,44 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
 
     pub fn config(&self) -> GptConfig {
         self.config
+    }
+
+    /// Bytes owned by device buffers, excluding CUDA context and module overhead.
+    pub fn allocated_device_bytes(&self) -> usize {
+        let mut bytes = self.codes.num_bytes()
+            + self
+                .parameters
+                .iter()
+                .map(|p| p.state.num_bytes() + p.gradient.num_bytes())
+                .sum::<usize>();
+        if let Some(w) = &self.workspace {
+            bytes += [
+                &w.embeddings,
+                &w.embedding_adjoints,
+                &w.features,
+                &w.adjoints,
+                &w.scratch,
+            ]
+            .into_iter()
+            .flatten()
+            .map(DeviceBuffer::num_bytes)
+            .sum::<usize>()
+                + w.norms.iter().map(DeviceBuffer::num_bytes).sum::<usize>()
+                + w.probabilities
+                    .iter()
+                    .map(DeviceBuffer::num_bytes)
+                    .sum::<usize>()
+                + w.tokens.num_bytes()
+                + w.targets.num_bytes()
+                + w.head_embedding.num_bytes()
+                + w.embedding_gradient_partials.num_bytes()
+                + w.mesh_gradient_partials.num_bytes()
+                + w.scores.num_bytes()
+                + w.logits.num_bytes()
+                + w.head_gradient.num_bytes()
+                + w.loss.num_bytes();
+        }
+        bytes
     }
 
     pub fn parameters(&self) -> Result<Vec<f32>> {
@@ -2036,8 +2074,11 @@ mod verification {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             for (width, vocab) in [(2, 3), (18, 17), (32, 17), (128, 99)] {
                 for rows in [
-                    1_usize, 31, 32, 33, 63, 64, 65, 127, 128, 129, 257, 2048, 4096,
-                ] {
+                    1_usize, 31, 32, 33, 63, 64, 65, 127, 128, 129, 257, 2048, 4096, 4097,
+                ]
+                .into_iter()
+                .chain((width == 2).then_some(super::super::MAX_ROWS))
+                {
                     let tokens: Vec<_> = (0..rows).map(|row| (row % vocab) as u32).collect();
                     let mut input = vec![[0.0; MAX_WIDTH]; rows];
                     let mut features = input.clone();
@@ -2145,7 +2186,21 @@ mod verification {
         pub fn verify_mesh_gradient_reduction(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             for width in [2, 4, 128] {
-                for rows in [1_usize, 31, 32, 33, 127, 128, 129, 257, 2048, 4096] {
+                for rows in [
+                    1_usize,
+                    31,
+                    32,
+                    33,
+                    127,
+                    128,
+                    129,
+                    257,
+                    2048,
+                    4096,
+                    4097,
+                    65535,
+                    super::super::MAX_ROWS,
+                ] {
                     let mut input = vec![[0.0; MAX_WIDTH]; rows];
                     let mut activation = input.clone();
                     let mut gradient = input.clone();
@@ -2243,7 +2298,7 @@ mod verification {
                             }
                         }
                     }
-                    for bad_chunks in [0, 129, chunks + 1] {
+                    for bad_chunks in [0, 2049, chunks + 1, usize::MAX] {
                         assert!(run_mesh_partials(0, bad_chunks, &mut partials).is_err());
                     }
                     let mut too_short = DeviceBuffer::zeroed(&model.stream, partials.len() - 1)?;

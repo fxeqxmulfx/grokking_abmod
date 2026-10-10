@@ -224,7 +224,11 @@ impl EquationDataset {
     /// Indices refer exclusively to the requested split.
     pub fn batch(&self, validation: bool, indices: &[usize]) -> Result<(Vec<u32>, Vec<u32>)> {
         if indices.is_empty() || indices.len() > MAX_ROWS / EQUATION_CONTEXT {
-            return Err("equation batches need 1..1024 examples".into());
+            return Err(format!(
+                "equation batches need 1..{} examples",
+                MAX_ROWS / EQUATION_CONTEXT
+            )
+            .into());
         }
         let mut inputs = Vec::with_capacity(indices.len() * EQUATION_CONTEXT);
         let mut targets = Vec::with_capacity(inputs.capacity());
@@ -418,7 +422,19 @@ mod tests {
         let dataset = EquationDataset::new(7, ModularOperation::Add, 0.5, 7).unwrap();
         assert!(dataset.batch(false, &[]).is_err());
         assert!(dataset.batch(false, &[usize::MAX]).is_err());
-        assert!(dataset.batch(false, &vec![0; 1025]).is_err());
+        assert_eq!(
+            dataset
+                .batch(false, &vec![0; MAX_ROWS / EQUATION_CONTEXT])
+                .unwrap()
+                .0
+                .len(),
+            MAX_ROWS
+        );
+        assert!(
+            dataset
+                .batch(false, &vec![0; MAX_ROWS / EQUATION_CONTEXT + 1])
+                .is_err()
+        );
         assert!(dataset.symbol_label(9).is_err());
     }
 }

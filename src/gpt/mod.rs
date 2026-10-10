@@ -24,7 +24,8 @@ pub(crate) const MAX_WIDTH: usize = 128;
 pub(crate) const MAX_CONTEXT: usize = 128;
 pub(crate) const MAX_HEADS: usize = 8;
 pub(crate) const MAX_VOCAB: usize = 256;
-pub(crate) const MAX_ROWS: usize = 4_096;
+/// Maximum number of token positions in a validated training or inference batch.
+pub const MAX_ROWS: usize = 65_536;
 // Resource limits for validated configurations; kernel capacities are const generics.
 pub(crate) const MODEL_MAX_WIDTH: usize = 4_096;
 pub(crate) const MODEL_MAX_CONTEXT: usize = 4_096;

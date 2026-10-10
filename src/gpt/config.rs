@@ -77,10 +77,9 @@ impl GptConfig {
             || !tokens.len().is_multiple_of(sequence)
             || tokens.len() > MAX_ROWS
         {
-            return Err(
-                "tokens must form a nonempty batch of equal sequences within context and 4096 rows"
-                    .into(),
-            );
+            return Err(format!(
+                "tokens must form a nonempty batch of equal sequences within context and {MAX_ROWS} rows"
+            ).into());
         }
         if tokens
             .iter()
@@ -328,6 +327,17 @@ pub(crate) fn token_codes(config: GptConfig) -> Vec<Vec<f32>> {
 mod tests {
     use super::*;
     use crate::gpt::MAX_WIDTH;
+
+    #[test]
+    fn batch_row_limit_accepts_large_batches_and_rejects_overflow() {
+        let config = GptConfig::default();
+        config
+            .validate_tokens(&vec![0; MAX_ROWS], config.context)
+            .unwrap();
+        config.validate_tokens(&vec![0; MAX_ROWS - 1], 1).unwrap();
+        assert!(config.validate_tokens(&vec![0; MAX_ROWS + 1], 1).is_err());
+        assert!(config.validate_tokens(&[0], usize::MAX).is_err());
+    }
 
     #[test]
     fn optimizer_rejects_invalid_hyperparameters() {
