@@ -655,3 +655,42 @@ Artifacts are in `shapes-score-tiles`, `stress-score-tiles`, `score-inline-32`,
 `score-inline-64`, `score-inline-128`, `score-pointwise`,
 `score-tiles-comparison.json`, `score-inline-long-trace.nsys-rep`,
 `score-inline-long-counters.ncu-repz`, and `stress-mesh-partials-counters.ncu-repz`.
+
+### Fuse linear mesh projections with residual addition
+
+Each decoder block's final attention and FFN projections write the residual
+sum directly. Their backward slope is one, so the removed standalone linear
+output is unnecessary for derivatives. Removing two graph nodes per block
+saves their retained feature buffers. Once a linear projection has finished
+backward, its gradient buffer transfers to the skip input through checked
+disjoint borrows and ownership swaps. This also removes the copy kernel and
+standalone add operations from the graph. The Rust change removes eight lines
+overall while retaining ordinary functions and the same parameters.
+
+| Fixed scenario | Before ms/update | After ms/update | Before MiB | After MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Original | 5.259 | 5.087 | 152 | 148 |
+| Large batch | 73.110 | 70.840 | 1328 | 1264 |
+| Wide | 81.087 | 78.468 | 1452 | 1380 |
+| Deep | 81.836 | 78.795 | 1386 | 1306 |
+| Combined | 76.079 | 73.354 | 1486 | 1406 |
+| Context 1024 | 332.124 | 333.846 | 1466 | 1434 |
+
+| Expanded stress scenario | Before ms/update | After ms/update | Before MiB | After MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Large batch | 171.062 | 165.949 | 3056 | 2904 |
+| Wide | 179.659 | 173.893 | 3128 | 2968 |
+| Deep | 186.298 | 179.668 | 3058 | 2874 |
+| Combined | 167.514 | 161.706 | 3170 | 2994 |
+| Context 4096 | 1012.213 | 1020.830 | 2846 | 2822 |
+
+Both sets use ten warmup and ten timed updates in three trials. Short-context
+updates improve by about 3–4%. Long-context updates are 0.5–0.9% slower in
+these runs while saving 24–32 MiB; the memory reduction is independently useful.
+All eleven 20-update checkpoints and the complete modular-addition epoch are
+byte-identical to the preceding implementation. All 30 CPU tests, strict
+Clippy, f64 CUDA derivatives, strict AdamW validation, and context-dependent
+learning pass. The unfused large decoder mesh itself reaches 91.31% DRAM
+throughput in Nsight Compute, reinforcing the value of reducing full-buffer
+passes. Artifacts are in `fused-residual`, `fused-residual-comparison.json`,
+`verify-fused-residual.txt`, and `stress-decoder-mesh-counters.ncu-repz`.
