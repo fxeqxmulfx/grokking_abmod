@@ -474,10 +474,12 @@ mod kernels {
         query: &Features<W>,
         transposed: &[f32],
     ) -> f32 {
+        let length = if FULL { W / H } else { head_width };
+        let query = &query[begin..begin + length];
         let mut total = 0.0;
-        for local in 0..if FULL { W / H } else { head_width } {
+        for local in 0..length {
             let channel = begin + local;
-            total += query[channel] * transposed[channel * rows + key];
+            total += query[local] * transposed[channel * rows + key];
         }
         total
     }

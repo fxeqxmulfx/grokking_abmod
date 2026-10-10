@@ -1051,3 +1051,24 @@ invalid-dimension, length, zero/tiny-value, and neighboring-channel checks pass.
 Artifacts are in `rmsnorm-fused`, `rmsnorm-fused-comparison.json`,
 `rmsnorm-baseline-*`, `verify-rmsnorm-fused.txt`, `epoch-rmsnorm-fused`,
 and `rmsnorm-batch-trace.nsys-rep`.
+
+The large-batch trace has 90 normalization applications and no separate
+normalization-statistics launches, instead of 90 of each over five updates.
+Combined normalization kernel time falls from 103.543 to 80.817 ms (22%),
+and now accounts for 9.8% of GPU kernel time. This does not change the shared
+statistics buffer required by attention.
+
+### Check the query head once
+
+The serial score helper takes one safe slice of the active query head before
+its channel loop. The slice length is the same compile-time or runtime head
+width used by the original loop, preserving every product and its addition
+order. This moves the query bounds check outside the loop without unchecked
+access or a new capacity restriction.
+
+Context 1024 / batch sixteen measures 161.650 ms at 1074 MiB. Context 4096 /
+batch six falls from 883.977 to 853.802 ms (3.4%), at the same 3302 MiB.
+Both checkpoints are byte-identical, and original f64, gradient, AdamW,
+learning, and launch-contract checks pass. The change adds two Rust lines.
+See `score-query-slice`, `score-query-slice-comparison.json`, and
+`verify-score-query-slice.txt`.
