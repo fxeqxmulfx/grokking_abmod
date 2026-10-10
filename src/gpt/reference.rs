@@ -449,6 +449,27 @@ fn attention(
         .collect()
 }
 
+pub(super) fn attention_reference(
+    inputs: [&[f64]; 3],
+    upstream: &[f64],
+    width: usize,
+    heads: usize,
+    sequence: usize,
+) -> (Vec<f64>, Vec<f64>) {
+    let count = inputs[0].len();
+    let mut tape = Tape::new(inputs.into_iter().flatten().copied());
+    let ids = [0, 1, 2].map(|tensor| {
+        (0..count / width)
+            .map(|row| (tensor * count + row * width..tensor * count + (row + 1) * width).collect())
+            .collect::<Vec<Vec<_>>>()
+    });
+    let output = attention(&mut tape, &ids[0], &ids[1], &ids[2], sequence, heads)
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    tape.output_and_gradient(&output, upstream, 3 * count)
+}
+
 fn exclusive(
     tape: &mut Tape,
     input: &[Vec<usize>],

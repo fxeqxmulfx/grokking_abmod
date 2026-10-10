@@ -119,7 +119,7 @@ dependencies = [
 [[package]]
 name = "cuda-artifact-finalizer"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "libnvvm-sys",
  "nvjitlink-sys",
@@ -131,7 +131,7 @@ dependencies = [
 [[package]]
 name = "cuda-bindings"
 version = "0.4.0"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "bindgen",
  "libloading 0.9.0",
@@ -144,7 +144,7 @@ dependencies = [
 [[package]]
 name = "cuda-core"
 version = "0.4.0"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "anyhow",
  "cuda-bindings",
@@ -156,7 +156,7 @@ dependencies = [
 [[package]]
 name = "cuda-core-derive"
 version = "0.4.0"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -166,7 +166,7 @@ dependencies = [
 [[package]]
 name = "cuda-device"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "cuda-macros",
 ]
@@ -174,7 +174,7 @@ dependencies = [
 [[package]]
 name = "cuda-host"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "cuda-artifact-finalizer",
  "cuda-core",
@@ -190,7 +190,7 @@ dependencies = [
 [[package]]
 name = "cuda-macros"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -201,7 +201,7 @@ dependencies = [
 [[package]]
 name = "cuda-target-spec"
 version = "0.1.0"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 
 [[package]]
 name = "digest"
@@ -315,7 +315,7 @@ dependencies = [
 [[package]]
 name = "libnvvm-sys"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "cuda-target-spec",
  "libloading 0.9.0",
@@ -353,7 +353,7 @@ dependencies = [
 [[package]]
 name = "nvjitlink-sys"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 dependencies = [
  "libloading 0.9.0",
  "thiserror",
@@ -402,7 +402,7 @@ dependencies = [
 [[package]]
 name = "ptx-parse"
 version = "0.1.0"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 
 [[package]]
 name = "quote"
@@ -445,7 +445,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 [[package]]
 name = "reserved-oxide-symbols"
 version = "0.2.1"
-source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#99674beb3b4b241f223b3379bf268c2c51f9035f"
+source = "git+https://github.com/fxeqxmulfx/cuda-rust.git?branch=experiments#f6702b7cd45de7818ed991f046a0eba145f4ddb2"
 
 [[package]]
 name = "rustc-hash"
