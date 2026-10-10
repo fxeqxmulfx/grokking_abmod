@@ -931,3 +931,14 @@ Artifacts are in `paired-mesh-before-short`, `paired-mesh-before`,
 and `verify-paired-mesh-simple.txt`. Both gradient specializations now use
 the `gpt_mesh_gradient_TID_` prefix; the first decoder gradient is the
 32-row partial specialization for these shapes.
+
+### Checked grid arithmetic
+
+Scalar and warp launches share one const-generic helper. It divides the item
+count before converting to `u32`, so large scalar tensors no longer truncate
+their grid silently. Counts beyond the representable grid return a launch
+error; normal device and kernel limits remain enforced by CUDA Rust.
+CPU checks cover counts above `u32::MAX`, the largest representable scalar
+and warp grids, and overflow. Full GPU verification passes; the 50-update
+original median is 4.937 ms and its checkpoint is byte-identical. See
+`verify-checked-grid.txt` and `checked-grid-baseline`.

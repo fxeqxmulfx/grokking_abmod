@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use cuda_core::{CudaContext, CudaStream, DeviceBuffer, LaunchConfig1D};
+use cuda_core::{
+    CudaContext, CudaStream, DeviceBuffer, LaunchConfig1D, LaunchContractError, LaunchDimension,
+};
 use cuda_device::{DisjointSlice, device, kernel, launch_bounds, launch_contract, thread, warp};
 use cuda_host::cuda_module;
 
@@ -1215,15 +1217,25 @@ mod plan_tests {
     }
 
     #[test]
-    fn warp_launch_handles_large_attention_and_rejects_overflow() {
+    fn launch_geometry_handles_large_buffers_and_rejects_overflow() {
         let blocks = u32::MAX as usize;
         assert_eq!(
-            warp_config(blocks * 4).unwrap(),
+            config::<32>(blocks * 4).unwrap(),
             LaunchConfig1D::new(u32::MAX, 128, 0)
         );
-        assert_eq!(warp_config(5).unwrap(), LaunchConfig1D::new(2, 128, 0));
-        assert!(warp_config(blocks * 4 + 1).is_err());
-        assert!(warp_config(usize::MAX).is_err());
+        assert_eq!(config::<32>(5).unwrap(), LaunchConfig1D::new(2, 128, 0));
+        assert!(config::<32>(blocks * 4 + 1).is_err());
+        assert!(config::<32>(usize::MAX).is_err());
+        assert_eq!(
+            config::<1>(u32::MAX as usize + 1).unwrap(),
+            LaunchConfig1D::new(33_554_432, 128, 0)
+        );
+        assert_eq!(
+            config::<1>(blocks * 128).unwrap(),
+            LaunchConfig1D::new(u32::MAX, 128, 0)
+        );
+        assert!(config::<1>(blocks * 128 + 1).is_err());
+        assert!(config::<1>(usize::MAX).is_err());
     }
 
     #[test]
@@ -1578,7 +1590,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         for group in &mut self.parameters {
             let launch = self
                 .module
-                .prepare_gpt_adam::<W>(config(group.state.len()))?;
+                .prepare_gpt_adam::<W>(config::<1>(group.state.len())?)?;
             self.module.gpt_adam(
                 &self.stream,
                 &launch,
@@ -1672,7 +1684,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &before[layer - 1]
             };
             with_buffer_chunks(&self.stream, &mut after[0], |output| {
-                let launch = self.module.prepare_gpt_mesh::<W, 0>(config(output.len()))?;
+                let launch = self
+                    .module
+                    .prepare_gpt_mesh::<W, 0>(config::<1>(output.len())?)?;
                 self.module.gpt_mesh(
                     &self.stream,
                     &launch,
@@ -1700,7 +1714,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         with_buffer_chunks(&self.stream, &mut workspace.head_embedding, |output| {
             let launch = self
                 .module
-                .prepare_gpt_embedding_transpose::<W, V>(config(output.len()))?;
+                .prepare_gpt_embedding_transpose::<W, V>(config::<1>(output.len())?)?;
             self.module.gpt_embedding_transpose(
                 &self.stream,
                 &launch,
@@ -1714,7 +1728,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             match *op {
                 Op::Embed => {
                     with_buffer_chunks(&self.stream, &mut workspace.features[out], |output| {
-                        let launch = self.module.prepare_gpt_embed::<W>(config(output.len()))?;
+                        let launch = self
+                            .module
+                            .prepare_gpt_embed::<W>(config::<1>(output.len())?)?;
                         self.module.gpt_embed(
                             &self.stream,
                             &launch,
@@ -1746,7 +1762,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 } => {
                     let (before, after) = workspace.features.split_at_mut(out);
                     with_buffer_chunks(&self.stream, &mut after[0], |output| {
-                        let launch = self.module.prepare_gpt_mesh::<W, 0>(config(output.len()))?;
+                        let launch = self
+                            .module
+                            .prepare_gpt_mesh::<W, 0>(config::<1>(output.len())?)?;
                         self.module.gpt_mesh(
                             &self.stream,
                             &launch,
@@ -1765,7 +1783,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 Op::Rotary { input } => {
                     let (before, after) = workspace.features.split_at_mut(out);
                     with_buffer_chunks(&self.stream, &mut after[0], |output| {
-                        let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
+                        let launch = self
+                            .module
+                            .prepare_gpt_rope::<W, C>(config::<1>(output.len())?)?;
                         self.module.gpt_rope(
                             &self.stream,
                             &launch,
@@ -1791,7 +1811,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     with_buffer_chunks(&self.stream, &mut after[0], |output| {
                         let launch = self
                             .module
-                            .prepare_gpt_exclusive::<W>(config(output.len()))?;
+                            .prepare_gpt_exclusive::<W>(config::<1>(output.len())?)?;
                         self.module.gpt_exclusive(
                             &self.stream,
                             &launch,
@@ -1806,7 +1826,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             }
         }
         with_buffer_chunks(&self.stream, &mut workspace.logits, |output| {
-            let launch = self.module.prepare_gpt_head::<W, V>(config(output.len()))?;
+            let launch = self
+                .module
+                .prepare_gpt_head::<W, V>(config::<1>(output.len())?)?;
             self.module.gpt_head(
                 &self.stream,
                 &launch,
@@ -1823,7 +1845,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     fn loss(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<f64> {
         let launch = self
             .module
-            .prepare_gpt_cross_entropy::<V>(config(workspace.rows))?;
+            .prepare_gpt_cross_entropy::<V>(config::<1>(workspace.rows)?)?;
         self.module.gpt_cross_entropy(
             &self.stream,
             &launch,
@@ -1872,7 +1894,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
             let launch = self
                 .module
-                .prepare_gpt_head_backward::<W, V>(config(output.len()))?;
+                .prepare_gpt_head_backward::<W, V>(config::<1>(output.len())?)?;
             self.module.gpt_head_backward(
                 &self.stream,
                 &launch,
@@ -1926,9 +1948,11 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             ],
                             &mut workspace.mesh_gradient_partials,
                         )?;
-                        let launch = self.module.prepare_gpt_mesh_gradient_reduce::<W>(config(
-                            parameters.gradient.len() * 32,
-                        ))?;
+                        let launch =
+                            self.module
+                                .prepare_gpt_mesh_gradient_reduce::<W>(config::<1>(
+                                    parameters.gradient.len() * 32,
+                                )?)?;
                         self.module.gpt_mesh_gradient_reduce(
                             &self.stream,
                             &launch,
@@ -1952,7 +1976,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         )?;
                     }
                     with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
-                        let launch = self.module.prepare_gpt_mesh::<W, 1>(config(output.len()))?;
+                        let launch = self
+                            .module
+                            .prepare_gpt_mesh::<W, 1>(config::<1>(output.len())?)?;
                         self.module.gpt_mesh(
                             &self.stream,
                             &launch,
@@ -1975,7 +2001,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 }
                 Op::Rotary { input } => {
                     with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
-                        let launch = self.module.prepare_gpt_rope::<W, C>(config(output.len()))?;
+                        let launch = self
+                            .module
+                            .prepare_gpt_rope::<W, C>(config::<1>(output.len())?)?;
                         self.module.gpt_rope(
                             &self.stream,
                             &launch,
@@ -2006,7 +2034,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
                             let launch = self
                                 .module
-                                .prepare_gpt_exclusive_backward::<W>(config(dy.len()))?;
+                                .prepare_gpt_exclusive_backward::<W>(config::<1>(dy.len())?)?;
                             self.module.gpt_exclusive_backward(
                                 &self.stream,
                                 &launch,
@@ -2031,9 +2059,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         let chunks = workspace.rows.div_ceil(EMBEDDING_GRADIENT_ROWS);
         let launch = self
             .module
-            .prepare_gpt_embedding_gradient_partials::<W, V, EMBEDDING_GRADIENT_ROWS>(config(
-                workspace.embedding_gradient_partials.len(),
-            ))?;
+            .prepare_gpt_embedding_gradient_partials::<W, V, EMBEDDING_GRADIENT_ROWS>(
+                config::<1>(workspace.embedding_gradient_partials.len())?,
+            )?;
         self.module.gpt_embedding_gradient_partials(
             &self.stream,
             &launch,
@@ -2052,7 +2080,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             |output| {
                 let launch = self
                     .module
-                    .prepare_gpt_embedding_gradient_reduce::<W>(config(output.len()))?;
+                    .prepare_gpt_embedding_gradient_reduce::<W>(config::<1>(output.len())?)?;
                 self.module.gpt_embedding_gradient_reduce(
                     &self.stream,
                     &launch,
@@ -2088,7 +2116,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             if layer > 0 {
                 let (before, after) = workspace.embedding_adjoints.split_at_mut(layer);
                 with_buffer_chunks(&self.stream, &mut before[layer - 1], |output| {
-                    let launch = self.module.prepare_gpt_mesh::<W, 1>(config(output.len()))?;
+                    let launch = self
+                        .module
+                        .prepare_gpt_mesh::<W, 1>(config::<1>(output.len())?)?;
                     self.module.gpt_mesh(
                         &self.stream,
                         &launch,
@@ -2120,7 +2150,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         let [input, gradient, normalized] = inputs;
         let launch = self
             .module
-            .prepare_gpt_rmsnorm_statistics::<W>(config(input.len() * heads * 32))?;
+            .prepare_gpt_rmsnorm_statistics::<W>(config::<1>(input.len() * heads * 32)?)?;
         self.module.gpt_rmsnorm_statistics(
             &self.stream,
             &launch,
@@ -2135,7 +2165,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         with_buffer_chunks(&self.stream, output, |output| {
             let launch = self
                 .module
-                .prepare_gpt_rmsnorm_apply::<W>(config(output.len()))?;
+                .prepare_gpt_rmsnorm_apply::<W>(config::<1>(output.len())?)?;
             self.module.gpt_rmsnorm_apply(
                 &self.stream,
                 &launch,
@@ -2183,7 +2213,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             |output: &mut DeviceBuffer<[f32; TILE]>| {
                 let launch = self
                     .module
-                    .prepare_gpt_attention_scores::<W, C, H, TILE, BACKWARD>(warp_config(
+                    .prepare_gpt_attention_scores::<W, C, H, TILE, BACKWARD>(config::<32>(
                         output.len(),
                     )?)?;
                 self.module.gpt_attention_scores(
@@ -2217,7 +2247,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             let blocks = kernels::causal_blocks(sequence, TILE);
             let launch = self
                 .module
-                .prepare_gpt_attention_statistics::<TILE>(warp_config(
+                .prepare_gpt_attention_statistics::<TILE>(config::<32>(
                     workspace.norm_statistics.len(),
                 )?)?;
             self.module.gpt_attention_statistics(
@@ -2234,9 +2264,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             )?;
             let launch = self
                 .module
-                .prepare_gpt_attention_probabilities::<TILE>(config(
+                .prepare_gpt_attention_probabilities::<TILE>(config::<1>(
                     workspace.probabilities[cache].len(),
-                ))?;
+                )?)?;
             self.module.gpt_attention_probabilities(
                 &self.stream,
                 &launch,
@@ -2254,7 +2284,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             with_buffer_chunks(&self.stream, &mut after[0], |output| {
                 let launch = self
                     .module
-                    .prepare_gpt_attention_context::<W, TILE>(config(output.len()))?;
+                    .prepare_gpt_attention_context::<W, TILE>(config::<1>(output.len())?)?;
                 self.module.gpt_attention_context(
                     &self.stream,
                     &launch,
@@ -2279,7 +2309,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
                     let launch = self
                         .module
-                        .prepare_gpt_attention_backward::<W, C, H, TILE>(config(dq.len()))?;
+                        .prepare_gpt_attention_backward::<W, C, H, TILE>(config::<1>(dq.len())?)?;
                     self.module.gpt_attention_backward(
                         &self.stream,
                         &launch,
@@ -2312,7 +2342,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         output: &mut DeviceBuffer<Features<W>>,
     ) -> Result<()> {
         with_buffer_chunks(&self.stream, output, |output| {
-            let launch = self.module.prepare_gpt_add::<W>(config(output.len()))?;
+            let launch = self
+                .module
+                .prepare_gpt_add::<W>(config::<1>(output.len())?)?;
             self.module.gpt_add(
                 &self.stream,
                 &launch,
@@ -2399,7 +2431,7 @@ fn mesh_gradient<const W: usize, const ROWS: usize>(
 ) -> Result<()> {
     let [width, offset, chunks, activated] = geometry;
     with_buffer_chunks(stream, output, |output: &mut DeviceBuffer<[f32; 2]>| {
-        let launch = module.prepare_gpt_mesh_gradient::<W, ROWS>(config(output.len()))?;
+        let launch = module.prepare_gpt_mesh_gradient::<W, ROWS>(config::<1>(output.len())?)?;
         module.gpt_mesh_gradient(
             stream,
             &launch,
@@ -2415,13 +2447,20 @@ fn mesh_gradient<const W: usize, const ROWS: usize>(
     })
 }
 
-fn config(elements: usize) -> LaunchConfig1D {
-    LaunchConfig1D::new((elements as u32).div_ceil(128), 128, 0)
-}
-
-fn warp_config(items: usize) -> Result<LaunchConfig1D> {
-    // Divide before converting: long attention can exceed u32::MAX threads.
-    Ok(LaunchConfig1D::new(items.div_ceil(4).try_into()?, 128, 0))
+fn config<const LANES: usize>(
+    items: usize,
+) -> std::result::Result<LaunchConfig1D, LaunchContractError> {
+    const {
+        assert!(LANES == 1 || LANES == 32);
+    }
+    // Divide before converting: legal tensors can exceed u32::MAX elements.
+    let blocks = items.div_ceil(128 / LANES).try_into().map_err(|_| {
+        LaunchContractError::DimensionProductOverflow {
+            kernel: "Mesh GPT launch",
+            dimension: LaunchDimension::Grid,
+        }
+    })?;
+    Ok(LaunchConfig1D::new(blocks, 128, 0))
 }
 
 fn score_tile(capacity: usize) -> usize {
@@ -2454,13 +2493,13 @@ mod verification {
             let mut output = DeviceBuffer::<f32>::zeroed(&model.stream, 6 * MAX_WIDTH)?;
             let stats_launch = model
                 .module
-                .prepare_gpt_attention_statistics::<64>(warp_config(statistics.len())?)?;
+                .prepare_gpt_attention_statistics::<64>(config::<32>(statistics.len())?)?;
             let probability_launch = model
                 .module
-                .prepare_gpt_attention_probabilities::<64>(config(probabilities.len()))?;
+                .prepare_gpt_attention_probabilities::<64>(config::<1>(probabilities.len())?)?;
             let context_launch = model
                 .module
-                .prepare_gpt_attention_context::<MAX_WIDTH, 64>(config(output.len()))?;
+                .prepare_gpt_attention_context::<MAX_WIDTH, 64>(config::<1>(output.len())?)?;
             let valid = [2, 3, 0, 3, 2, 3];
             for geometry in [
                 valid,
@@ -2562,7 +2601,7 @@ mod verification {
                             128,
                             256,
                             EMBEDDING_GRADIENT_ROWS,
-                        >(config(partials.len()))?;
+                        >(config::<1>(partials.len())?)?;
                     let run_partials = |chunks, output: &mut DeviceBuffer<f32>| {
                         model.module.gpt_embedding_gradient_partials(
                             &model.stream,
@@ -2581,9 +2620,12 @@ mod verification {
                     let mut output: DeviceBuffer<Features> =
                         DeviceBuffer::from_host(&model.stream, &vec![[42.0; MAX_WIDTH]; vocab])?;
                     with_buffer_chunks(&model.stream, &mut output, |output| {
-                        let reduce = model
-                            .module
-                            .prepare_gpt_embedding_gradient_reduce::<128>(config(output.len()))?;
+                        let reduce =
+                            model
+                                .module
+                                .prepare_gpt_embedding_gradient_reduce::<128>(config::<1>(
+                                    output.len(),
+                                )?)?;
                         let run_reduce = |chunks, output: &mut DeviceBuffer<f32>| {
                             model.module.gpt_embedding_gradient_reduce(
                                 &model.stream,
@@ -2701,9 +2743,12 @@ mod verification {
                             &mut serial,
                         )?;
                         run_mesh_partials(activated, chunks, &mut partials)?;
-                        let reduce_launch = model
-                            .module
-                            .prepare_gpt_mesh_gradient_reduce::<128>(config(reduced.len() * 32))?;
+                        let reduce_launch =
+                            model
+                                .module
+                                .prepare_gpt_mesh_gradient_reduce::<128>(config::<1>(
+                                    reduced.len() * 32,
+                                )?)?;
                         model.module.gpt_mesh_gradient_reduce(
                             &model.stream,
                             &reduce_launch,
@@ -2957,7 +3002,7 @@ mod verification {
                     DeviceBuffer::zeroed(&model.stream, rows)?;
                 let launch = model
                     .module
-                    .prepare_gpt_rope::<128, 128>(config(rows * MAX_WIDTH))?;
+                    .prepare_gpt_rope::<128, 128>(config::<1>(rows * MAX_WIDTH)?)?;
                 let rotate = |half_width,
                               sequence,
                               inverse,
@@ -3090,7 +3135,7 @@ mod verification {
                 with_buffer_chunks(&model.stream, &mut output, |output| {
                     let launch = model
                         .module
-                        .prepare_gpt_exclusive::<128>(config(output.len()))?;
+                        .prepare_gpt_exclusive::<128>(config::<1>(output.len())?)?;
                     let run = |width, heads, output: &mut DeviceBuffer<f32>| {
                         model.module.gpt_exclusive(
                             &model.stream,
@@ -3119,7 +3164,7 @@ mod verification {
                     with_buffer_chunks(&model.stream, &mut dv, |dv| {
                         let launch = model
                             .module
-                            .prepare_gpt_exclusive_backward::<128>(config(dy.len()))?;
+                            .prepare_gpt_exclusive_backward::<128>(config::<1>(dy.len())?)?;
                         model.module.gpt_exclusive_backward(
                             &model.stream,
                             &launch,
