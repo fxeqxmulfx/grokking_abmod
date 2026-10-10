@@ -7,6 +7,12 @@ driver 615.71.09, CUDA 13.4, Nsight Systems 2026.3.2, and Nsight Compute 2026.3.
 Weights, activations, gradients, reductions, and AdamW remain FP32. The kernels
 do not use BF16, TF32, or Tensor Core matrix operations.
 
+Verified GPU memory savings are independently valuable. The accepted tradeoff
+is around 1% slower updates, and up to about 5% when the measured memory saving
+is meaningful. Compare identical workload dimensions, report both memory and
+time, and keep larger workloads enabled by the saving as separate capacity
+measurements. Numerical and safety validation remains required.
+
 ## Reproducible training workload
 
 `mesh-gpt-bench` measures the actual safe training API with answer-only loss,
