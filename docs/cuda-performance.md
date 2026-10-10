@@ -1139,3 +1139,13 @@ An independent capacity run fits batch 20128 in 3036 MiB, measuring
 retain batch 20000 for speed comparisons. Artifacts are in `vocab-fit`,
 `vocab-fit-comparison.json`, `vocab-fit-capacity`, `vocab-fit-baseline-50`,
 `verify-vocab-fit.txt`, and `epoch-vocab-fit`.
+
+An eight-product prefetch variant of the attention sum was rejected. At the
+same shapes it measured 239.964 ms for context 1024 / batch sixteen, versus
+145.328 ms for a fresh saved-binary control, and 1336.886 ms for context 4096 /
+batch six, versus 770.401 ms. Memory did not fall. Full numerical verification
+passed at the original tolerances; twenty-update long-context checkpoints
+had relative parameter L2 differences below 1.18e-8, and the short-context
+checkpoint was byte-identical. Four-product prefetching remains selected.
+See `attention-sum8`, `sum4-control`, `attention-sum8-comparison.json`, and
+`verify-attention-sum8.txt`.
