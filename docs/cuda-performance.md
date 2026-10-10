@@ -763,7 +763,7 @@ and `packed-backward-counters.ncu-repz`.
 
 ### Fill the saved capacity and simplify the graph
 
-The current runner defaults increase the workloads again after residual
+The runner defaults were increased again after residual
 fusion and causal score packing. Earlier tables remain fixed-size comparisons;
 the following table demonstrates added capacity rather than speedup:
 
@@ -892,3 +892,42 @@ in 3302 MiB, versus four in 3234 MiB before probability packing. This is a
 50% increase in long-sequence batch capacity near 3 GiB. Its 1320.903 ms
 measurement uses the preceding single-load pipeline and is not a fixed-size
 speed comparison. See `parallel-capacity` for all dimensions and buffers.
+
+### Share both mesh-edge gradients
+
+One checked const-generic kernel now handles direct and 32-row partial mesh
+gradients. Each thread owns a pair of FP32 edge gradients and computes their
+common activation derivative once. A shared host helper performs the owning
+buffer reshape and launch. Direct sums, chunk boundaries, reduction order,
+parameter ordering, and total GPU memory remain unchanged.
+
+The simpler implementation uses two direct input reads. A warp-shuffle
+prototype did not improve the large-batch, wide, or combined scenarios;
+removing it also removes warp-participation and alignment conditions. The
+retained source is 13 Rust lines shorter, including expanded checks for
+unaligned parameter offsets, odd and short output lengths, invalid activation
+mode, and overflowing offsets. These checks compare both edges with f64 and
+verify untouched neighboring weights.
+
+The runner now uses batch six for its long-context stress case. All stress
+comparisons below keep these new dimensions fixed on both sides:
+
+| Scenario | Width / blocks / batch / context | Previous ms/update | Paired ms/update | Process MiB |
+| --- | --- | ---: | ---: | ---: |
+| Large batch | 128 / 2 / 20000 / 4 | 167.368 | 166.416 | 3052 |
+| Wide | 1024 / 2 / 2688 / 4 | 177.322 | 176.215 | 3112 |
+| Deep | 256 / 49 / 512 / 4 | 184.719 | 176.652 | 3054 |
+| Combined | 512 / 4 / 2816 / 4 | 164.005 | 163.028 | 2996 |
+| Long context | 128 / 2 / 6 / 4096 | 1184.004 | 1184.599 | 3302 |
+
+The deep model improves 4.4%; the remaining stress results change by less
+than 1%. A separate 50-update paired original benchmark measures
+4.976 / 4.926 ms, rather than the colder short-run result. GPU timing runs
+are sequential and exclude compilation. All six stress checkpoints, the
+complete epoch, and the longer original checkpoint are byte-identical.
+Full f64/AdamW/learning verification, 31 CPU tests, and strict Clippy pass.
+Artifacts are in `paired-mesh-before-short`, `paired-mesh-before`,
+`paired-mesh-simple`, `paired-mesh-comparison.json`, `paired-baseline-*`,
+and `verify-paired-mesh-simple.txt`. Both gradient specializations now use
+the `gpt_mesh_gradient_TID_` prefix; the first decoder gradient is the
+32-row partial specialization for these shapes.

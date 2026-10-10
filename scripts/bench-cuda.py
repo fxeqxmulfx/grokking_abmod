@@ -24,7 +24,7 @@ SCENARIOS = {
     "stress-wide": ["--width", "1024", "--batch", "2688"],
     "stress-deep": ["--width", "256", "--layers", "49", "--batch", "512"],
     "stress-mixed": ["--width", "512", "--layers", "4", "--batch", "2816"],
-    "stress-long-context": ["--context", "4096", "--batch", "4"],
+    "stress-long-context": ["--context", "4096", "--batch", "6"],
 }
 
 DEFAULT_SCENARIOS = ["baseline", *(name for name in SCENARIOS if name.startswith("stress-"))]

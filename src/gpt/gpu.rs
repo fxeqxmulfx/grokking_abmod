@@ -7,8 +7,8 @@ use cuda_host::cuda_module;
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    AdamWOptions, Features, GptConfig, IGNORE_TARGET, NormStats, RMSNORM_EPSILON, ROPE_BASE,
-    Vocabulary, XSA_EPSILON,
+    AdamWOptions, Features, GptConfig, IGNORE_TARGET, MAX_ROWS, NormStats, RMSNORM_EPSILON,
+    ROPE_BASE, Vocabulary, XSA_EPSILON,
     config::{Layout, token_codes},
 };
 
@@ -721,72 +721,41 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, offset + 2 * width <= out.len(), activated <= 1,
+        width >= 2, width <= W, activated <= 1, ROWS >= 1, ROWS <= 131072,
+        chunks >= 1, chunks <= 4096, offset + chunks * width <= out.len(),
+        input.len() <= chunks * ROWS, input.len() + ROWS > chunks * ROWS,
         input.len() == activation.len(), gradient.len() == activation.len()))]
-    pub fn gpt_mesh_gradient<const W: usize>(
+    pub fn gpt_mesh_gradient<const W: usize, const ROWS: usize>(
         width: usize,
         offset: usize,
-        activated: usize,
-        input: &[Features<W>],
-        activation: &[Features<W>],
-        gradient: &[Features<W>],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let parameter = index.get();
-        if parameter >= offset
-            && parameter < offset + 2 * width
-            && let Some(output) = out.get_mut(index)
-        {
-            let channel = (parameter - offset) / 2;
-            let edge = (parameter - offset) % 2;
-            let mut total = 0.0;
-            for row in 0..gradient.len() {
-                let x = if edge == 0 {
-                    input[row][channel]
-                } else {
-                    input[row][(channel + 1) % width]
-                };
-                total += gradient[row][channel] * slope(activation[row][channel], activated) * x;
-            }
-            *output = total;
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, activated <= 1, chunks >= 1, chunks <= 4096,
-        input.len() <= chunks * 32, input.len() + 32 > chunks * 32,
-        input.len() == activation.len(), gradient.len() == activation.len(),
-        out.len() == chunks * 2 * width))]
-    pub fn gpt_mesh_gradient_partials<const W: usize>(
-        width: usize,
         activated: usize,
         chunks: usize,
         input: &[Features<W>],
         activation: &[Features<W>],
         gradient: &[Features<W>],
-        mut out: DisjointSlice<f32>,
+        mut out: DisjointSlice<[f32; 2]>,
     ) {
         let index = thread::index_1d();
         let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let parameter = item % (2 * width);
-            let chunk = item / (2 * width);
-            let channel = parameter / 2;
-            let parent = (channel + parameter % 2) % width;
-            let start = chunk * 32;
-            let end = (start + 32).min(gradient.len());
-            let mut total = 0.0;
-            for row in start..end {
-                total += gradient[row][channel]
-                    * slope(activation[row][channel], activated)
-                    * input[row][parent];
-            }
-            *output = total;
+        if item < offset || item >= offset + chunks * width {
+            return;
         }
-        let _ = chunks;
+        if let Some(output) = out.get_mut(index) {
+            let local = item - offset;
+            let channel = local % width;
+            let parent = (channel + 1) % width;
+            let start = local / width * ROWS;
+            let end = (start + ROWS).min(gradient.len());
+            let mut totals = [0.0; 2];
+            for row in start..end {
+                let left = input[row][channel];
+                let right = input[row][parent];
+                let delta = gradient[row][channel] * slope(activation[row][channel], activated);
+                totals[0] += delta * left;
+                totals[1] += delta * right;
+            }
+            *output = totals;
+        }
     }
 
     #[kernel]
@@ -1946,18 +1915,15 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     let parameters = &mut self.parameters[group];
                     if workspace.rows > 128 {
                         let chunks = workspace.rows.div_ceil(32);
-                        let launch = self.module.prepare_gpt_mesh_gradient_partials::<W>(
-                            config(workspace.mesh_gradient_partials.len()),
-                        )?;
-                        self.module.gpt_mesh_gradient_partials(
+                        mesh_gradient::<W, 32>(
+                            &self.module,
                             &self.stream,
-                            &launch,
-                            c.width,
-                            activated,
-                            chunks,
-                            &workspace.features[input],
-                            &workspace.features[out],
-                            &workspace.adjoints[gradient_slot],
+                            [c.width, 0, chunks, activated],
+                            [
+                                &workspace.features[input],
+                                &workspace.features[out],
+                                &workspace.adjoints[gradient_slot],
+                            ],
                             &mut workspace.mesh_gradient_partials,
                         )?;
                         let launch = self.module.prepare_gpt_mesh_gradient_reduce::<W>(config(
@@ -1973,18 +1939,15 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &mut parameters.gradient,
                         )?;
                     } else {
-                        let launch = self
-                            .module
-                            .prepare_gpt_mesh_gradient::<W>(config(parameters.gradient.len()))?;
-                        self.module.gpt_mesh_gradient(
+                        mesh_gradient::<W, MAX_ROWS>(
+                            &self.module,
                             &self.stream,
-                            &launch,
-                            c.width,
-                            layer * 2 * c.width,
-                            activated,
-                            &workspace.features[input],
-                            &workspace.features[out],
-                            &workspace.adjoints[gradient_slot],
+                            [c.width, layer * c.width, 1, activated],
+                            [
+                                &workspace.features[input],
+                                &workspace.features[out],
+                                &workspace.adjoints[gradient_slot],
+                            ],
                             &mut parameters.gradient,
                         )?;
                     }
@@ -2111,18 +2074,15 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             } else {
                 &workspace.embeddings[layer - 1]
             };
-            let launch = self
-                .module
-                .prepare_gpt_mesh_gradient::<W>(config(group.gradient.len()))?;
-            self.module.gpt_mesh_gradient(
+            mesh_gradient::<W, MAX_ROWS>(
+                &self.module,
                 &self.stream,
-                &launch,
-                c.width,
-                layer * 2 * c.width,
-                activated,
-                input,
-                &workspace.embeddings[layer],
-                &workspace.embedding_adjoints[layer],
+                [c.width, layer * c.width, 1, activated],
+                [
+                    input,
+                    &workspace.embeddings[layer],
+                    &workspace.embedding_adjoints[layer],
+                ],
                 &mut group.gradient,
             )?;
             if layer > 0 {
@@ -2430,6 +2390,31 @@ fn with_buffer_chunks<
     result
 }
 
+fn mesh_gradient<const W: usize, const ROWS: usize>(
+    module: &kernels::LoadedModule,
+    stream: &Arc<CudaStream>,
+    geometry: [usize; 4],
+    features: [&DeviceBuffer<Features<W>>; 3],
+    output: &mut DeviceBuffer<f32>,
+) -> Result<()> {
+    let [width, offset, chunks, activated] = geometry;
+    with_buffer_chunks(stream, output, |output: &mut DeviceBuffer<[f32; 2]>| {
+        let launch = module.prepare_gpt_mesh_gradient::<W, ROWS>(config(output.len()))?;
+        module.gpt_mesh_gradient(
+            stream,
+            &launch,
+            width,
+            offset,
+            activated,
+            chunks,
+            features[0],
+            features[1],
+            features[2],
+            output,
+        )
+    })
+}
+
 fn config(elements: usize) -> LaunchConfig1D {
     LaunchConfig1D::new((elements as u32).div_ceil(128), 128, 0)
 }
@@ -2655,7 +2640,7 @@ mod verification {
         /// Checks chunked reductions, row tails, untouched layers, and launch contracts.
         pub fn verify_mesh_gradient_reduction(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
-            for width in [2, 4, 128] {
+            for width in [2, 4, 32, 128] {
                 for rows in [
                     1_usize,
                     31,
@@ -2691,39 +2676,28 @@ mod verification {
                     let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
                     let chunks = rows.div_ceil(32);
                     let mut partials = DeviceBuffer::zeroed(&model.stream, chunks * 2 * width)?;
-                    let partial_launch = model
-                        .module
-                        .prepare_gpt_mesh_gradient_partials::<128>(config(partials.len()))?;
                     let run_mesh_partials = |activated, chunks, output: &mut DeviceBuffer<f32>| {
-                        model.module.gpt_mesh_gradient_partials(
+                        mesh_gradient::<128, 32>(
+                            &model.module,
                             &model.stream,
-                            &partial_launch,
-                            width,
-                            activated,
-                            chunks,
-                            &input_gpu,
-                            &activation_gpu,
-                            &gradient_gpu,
+                            [width, 0, chunks, activated],
+                            [&input_gpu, &activation_gpu, &gradient_gpu],
                             output,
                         )
                     };
-                    let offset = 2 * width;
                     let sentinel = vec![42.0_f32; 6 * width];
-                    for activated in [0, 1] {
+                    for (activated, offset) in [(0, 2 * width), (1, 2 * width)]
+                        .into_iter()
+                        .chain((rows == 1).then_some((0, 2)))
+                        .chain((rows == 1).then_some((1, 2)))
+                    {
                         let mut serial = DeviceBuffer::from_host(&model.stream, &sentinel)?;
                         let mut reduced = DeviceBuffer::from_host(&model.stream, &sentinel)?;
-                        let serial_launch = model
-                            .module
-                            .prepare_gpt_mesh_gradient::<128>(config(serial.len()))?;
-                        model.module.gpt_mesh_gradient(
+                        mesh_gradient::<128, MAX_ROWS>(
+                            &model.module,
                             &model.stream,
-                            &serial_launch,
-                            width,
-                            offset,
-                            activated,
-                            &input_gpu,
-                            &activation_gpu,
-                            &gradient_gpu,
+                            [width, offset / 2, 1, activated],
+                            [&input_gpu, &activation_gpu, &gradient_gpu],
                             &mut serial,
                         )?;
                         run_mesh_partials(activated, chunks, &mut partials)?;
@@ -2774,8 +2748,21 @@ mod verification {
                     for bad_chunks in [0, 4097, chunks + 1, usize::MAX] {
                         assert!(run_mesh_partials(0, bad_chunks, &mut partials).is_err());
                     }
-                    let mut too_short = DeviceBuffer::zeroed(&model.stream, partials.len() - 1)?;
-                    assert!(run_mesh_partials(0, chunks, &mut too_short).is_err());
+                    for length in [partials.len() - 1, partials.len() - 2] {
+                        let mut too_short = DeviceBuffer::zeroed(&model.stream, length)?;
+                        assert!(run_mesh_partials(0, chunks, &mut too_short).is_err());
+                    }
+                    assert!(run_mesh_partials(2, chunks, &mut partials).is_err());
+                    assert!(
+                        mesh_gradient::<128, 32>(
+                            &model.module,
+                            &model.stream,
+                            [width, usize::MAX, chunks, 0],
+                            [&input_gpu, &activation_gpu, &gradient_gpu],
+                            &mut partials,
+                        )
+                        .is_err()
+                    );
                 }
             }
             Ok(())
