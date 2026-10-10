@@ -116,7 +116,7 @@ layer counts, and mesh depths are checked runtime values. See
 [Mesh GPT](mesh-gpt.md#gpu-execution-and-verification) for a wider specialization.
 The CUDA Rust patches are published on `experiments`, and the project's Git
 dependencies and CUDA compiler backend use revision
-[`760d4aa3`](https://github.com/fxeqxmulfx/cuda-rust/commit/760d4aa372362781aa11706359329ce01e0d5877).
+[`99674beb`](https://github.com/fxeqxmulfx/cuda-rust/commit/99674beb3b4b241f223b3379bf268c2c51f9035f).
 Generic kernel identity and embedded artifact provenance now also allow safe
 `kernels::load(&context)?` in the GPT constructor.
 
@@ -1409,6 +1409,45 @@ tile reuse experiments. Artifacts under `target/cuda-sdk-work` include
 `attention-comparison.json`, `attention-recheck-telemetry.csv`, both counter
 reports, `gpu-shared-attention.rs`, and the shared-tile sanitizer logs.
 
+### Optimizing the shared implementation
+
+A follow-up in CUDA Rust revision
+[`99674beb`](https://github.com/fxeqxmulfx/cuda-rust/commit/99674beb3b4b241f223b3379bf268c2c51f9035f)
+removes unnecessary work in the SDK prologue: initialize only
+the exposed slice extent and use a constant copy stride when the checked
+launch contract fixes the one-dimensional block size. Empty tiles still
+reach the unconditional barrier; unused storage is never exposed. The macro
+suite passes 127 tests with and without async support, its launch-contract
+compile-failure suite passes, and all 77 GPU layouts pass racecheck and
+memcheck again.
+
+The corresponding attention experiment also uses its checked four-token
+context as a compile-time constant in the source offset and kernel body,
+removing runtime integer division. Together these changes reduce executed
+warp instructions from 108,783,056 to 78,382,080 (27.9%) and registers from
+34 to 25, with no spills. The global-memory control executes 72,898,560
+instructions. These counts describe the first forward context kernel at
+batch 20160, not the complete training update.
+
+Sequential optimized/control/control/optimized runs, each with three trials,
+30 timed updates, and 10 warmup updates, yield 164.619 / 163.285 ms per update
+(0.82% overhead). Owned buffers remain 2888.1 MiB, and every large-batch
+checkpoint is byte-identical. GPU telemetry and compute-process monitoring
+are recorded, with no concurrent builds or profiler activity during timing.
+The full GPU f64 verifier and complete mod-97 epoch also pass with an
+identical checkpoint. The SDK optimization is retained; this attention
+dispatch remains an ignored experiment because it adds client code without
+saving memory or improving training speed. Artifacts include
+`attention-optimized-comparison.json`, `attention-optimized-counters.ncu-repz`,
+`attention-optimized-telemetry.csv`, and `gpu-shared-optimized.rs`.
+
+The project pins the published SDK revision in `Cargo.lock`. A normal Cargo
+Oxide build automatically rebuilds the backend from that same Git revision,
+without local path patches. All 31 CPU tests, strict Clippy, formatting, the
+full GPU verifier, and the complete mod-97 epoch pass after the refresh. The
+published-build epoch checkpoint is byte-identical to the preceding version.
+Its logs are `verify-sdk-published-final.txt` and `epoch-sdk-published-final`.
+
 ## FlashAttention papers and remaining safe API requirements
 
 The downloaded sources are
@@ -1421,6 +1460,19 @@ the accumulated output once, and retain row logsumexp for backward
 recomputation. This removes global quadratic attention intermediates.
 Its split-Q work partition assigns different query rows to warps that reuse
 K/V, avoiding a cross-warp reduction of partial outputs.
+
+For the retained long-context shape (batch seven, context 4096, four heads,
+two layers, score tile 64), the two probability caches alone occupy 1820 MiB.
+Two FP32 row-logsumexp buffers would occupy 0.875 MiB. These are allocation
+size calculations, not measured savings from a completed fused implementation;
+its tiles, scratch storage, and scheduling still need to be designed and tested.
+
+For an unnormalized accumulator, the online recurrence is
+`alpha = exp(m_old - m_new)`, `l_new = alpha * l_old + sum(P)`, and
+`O_new = alpha * O_old + P * V`, with `P = exp(S - m_new)` and final
+normalization `O / l`. Some output-rescaling expressions in the local FA2 v1
+source display an inverse diagonal factor; implement the recurrence above
+and test increasing row maxima rather than copying that typesetting error.
 
 The current context-only shared experiment does not have that reuse: each
 thread reads its own value channels. Staging these values adds global loads,
