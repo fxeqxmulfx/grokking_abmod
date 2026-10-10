@@ -1016,3 +1016,38 @@ are in `score-warp-coordinates`, `score-warp-coordinates-comparison.json`,
 `verify-score-warp-coordinates.txt`, `score-position-table`,
 `verify-score-position-table.txt`, `warp-coordinate-long-trace.nsys-rep`,
 and `warp-coordinate-score-counters.ncu-repz`.
+
+The retained score launch executes 4.519 billion warp instructions with no
+local or shared spilling, 92.87% achieved occupancy, and 82.29% ALU throughput.
+ALU here refers to integer and logic work, rather than FP32 arithmetic alone.
+The context-4096 trace now attributes 38.7% to input backward, 38.0% to scores,
+10.4% to output assembly, and 6.3% to softmax. Counters use unlocked clocks
+and remain distinct from warmed wall-clock update timings.
+
+### Fuse aligned RMSNorm statistics and application
+
+Aligned heads of 32, 64, or 128 channels compute their inverse RMS and backward
+dot inside the scalar output kernel. Row and active-head boundaries preserve
+complete warps; a shared ordinary const-generic predicate selects the same path
+on host and device. Other dimensions retain the two-pass implementation.
+The checked kernel receives the original source and validates every input
+length. It uses no new buffer, shared memory, unsafe operation, or flag.
+
+| Scenario | Previous ms/update | Fused ms/update | Process MiB |
+| --- | ---: | ---: | ---: |
+| Original, 50 timed updates | 4.949 | 4.843 | 148 |
+| Large batch, 20000 | 165.921 | 161.750 | 3052 |
+| Wide, 1024 / batch 2688 | 175.758 | 176.304 | 3112 |
+| Deep, 49 blocks | 176.268 | 174.685 | 3054 |
+| Combined, 512 / batch 2816 | 162.792 | 162.370 | 2996 |
+| Context 4096, batch 6 | 878.920 | 883.977 | 3302 |
+
+The original and large-batch workloads improve 2.1% / 2.5%; remaining changes
+are within 1%. GPU bytes remain unchanged. The shorter original measurement
+had two cold trials, so the table uses separate paired 50-update trials.
+All six stress checkpoints, the complete epoch, and the longer original
+checkpoint are byte-identical. Original f64, gradient, FP32 AdamW, learning,
+invalid-dimension, length, zero/tiny-value, and neighboring-channel checks pass.
+Artifacts are in `rmsnorm-fused`, `rmsnorm-fused-comparison.json`,
+`rmsnorm-baseline-*`, `verify-rmsnorm-fused.txt`, `epoch-rmsnorm-fused`,
+and `rmsnorm-batch-trace.nsys-rep`.

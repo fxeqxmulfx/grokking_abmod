@@ -809,17 +809,23 @@ mod kernels {
         }
     }
 
+    #[inline(always)]
+    pub(super) fn fused_norm<const W: usize>(head_width: usize) -> bool {
+        W.is_multiple_of(32) && head_width.is_multiple_of(32) && head_width <= 128
+    }
+
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         heads >= 1, heads <= W, head_width >= 2, head_width <= W,
         heads * head_width <= W, backward <= 1,
-        normalized.len() == input.len(), statistics.len() >= input.len() * heads,
-        out.len() == input.len() * W))]
+        source.len() == input.len(), normalized.len() == input.len(),
+        statistics.len() >= input.len() * heads, out.len() == input.len() * W))]
     pub fn gpt_rmsnorm_apply<const W: usize>(
         heads: usize,
         head_width: usize,
         backward: usize,
+        source: &[Features<W>],
         input: &[Features<W>],
         normalized: &[Features<W>],
         statistics: &[NormStats],
@@ -832,7 +838,23 @@ mod kernels {
             if channel >= heads * head_width {
                 return;
             }
-            let [inverse, dot] = statistics[row * heads + channel / head_width];
+            let [inverse, dot] = if fused_norm::<W>(head_width) {
+                // Row and active-head boundaries preserve complete participating warps.
+                let begin = channel / head_width * head_width;
+                let lane = channel % 32;
+                let squares = attention_dot(begin, head_width, lane, &source[row], &source[row]);
+                let dot = if backward == 1 {
+                    attention_dot(begin, head_width, lane, &input[row], &normalized[row])
+                } else {
+                    0.0
+                };
+                [
+                    1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt(),
+                    dot,
+                ]
+            } else {
+                statistics[row * heads + channel / head_width]
+            };
             let value = input[row][channel];
             *output = inverse
                 * if backward == 1 {
@@ -2271,20 +2293,22 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         output: &mut DeviceBuffer<Features<W>>,
     ) -> Result<()> {
         let [input, gradient, normalized] = inputs;
-        let launch = self
-            .module
-            .prepare_gpt_rmsnorm_statistics::<W>(config::<1>(input.len() * heads * 32)?)?;
-        self.module.gpt_rmsnorm_statistics(
-            &self.stream,
-            &launch,
-            heads,
-            head_width,
-            backward,
-            input,
-            gradient,
-            normalized,
-            statistics,
-        )?;
+        if !kernels::fused_norm::<W>(head_width) {
+            let launch = self
+                .module
+                .prepare_gpt_rmsnorm_statistics::<W>(config::<32>(input.len() * heads)?)?;
+            self.module.gpt_rmsnorm_statistics(
+                &self.stream,
+                &launch,
+                heads,
+                head_width,
+                backward,
+                input,
+                gradient,
+                normalized,
+                statistics,
+            )?;
+        }
         with_buffer_chunks(&self.stream, output, |output| {
             let launch = self
                 .module
@@ -2295,6 +2319,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 heads,
                 head_width,
                 backward,
+                input,
                 if backward == 1 { gradient } else { input },
                 normalized,
                 statistics,
