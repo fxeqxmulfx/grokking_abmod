@@ -982,3 +982,37 @@ The faster path adds code, with a shared forward/backward definition and
 checked geometry. Artifacts are in `transposed-score`, `transposed-stress`,
 `transposed-score-comparison.json`, `verify-transposed-score.txt`,
 `transposed-long-trace.nsys-rep`, and `transposed-score-counters.ncu-repz`.
+
+Explicit `f32::mul_add` was also tested and rejected: the generated PTX already
+contracts these products into FP32 `fma.rn.f32`. The candidate measured
+176.946 / 941.886 ms for context 1024 / context 4096 batch six, with identical
+checkpoints and unchanged verification tolerances. See `score-fma`,
+`score-fma-comparison.json`, and `verify-score-fma.txt`.
+
+### Share causal geometry within complete warps
+
+For tiles divisible by 32, lane zero computes the sequence start, head,
+position, key-tile start, and head width. Five 64-bit shuffles share these
+coordinates before any causal-padding threads return. Checked tile geometry
+and output lengths guarantee complete participating warps. Other tiles keep
+independent geometry, with no index truncation or additional device buffers.
+
+| Scenario | Independent coordinates ms/update | Shared coordinates ms/update | Process MiB |
+| --- | ---: | ---: | ---: |
+| Context 1024, batch 16 | 176.511 | 166.880 | 1074 |
+| Context 4096, batch 6 | 942.542 | 878.920 | 3302 |
+
+Identical dimensions, ten warmup and ten timed updates in three trials show
+5.5% / 6.7% less time. Both checkpoints remain byte-identical. Full f64,
+gradient, AdamW, learning, and contract checks pass with unchanged tolerances.
+All 31 CPU tests and strict Clippy pass. The implementation adds 14 Rust lines
+without unsafe code, macros, or flags.
+
+A precomputed coordinate table was rejected. It measured 170.835 / 904.170 ms,
+used 1,064,960 extra owned bytes at context 4096, and required more code.
+It passed the full verifier, including invalid lengths and damaged coordinate
+sentinels, but was slower than sharing geometry without a table. Artifacts
+are in `score-warp-coordinates`, `score-warp-coordinates-comparison.json`,
+`verify-score-warp-coordinates.txt`, `score-position-table`,
+`verify-score-position-table.txt`, `warp-coordinate-long-trace.nsys-rep`,
+and `warp-coordinate-score-counters.ncu-repz`.

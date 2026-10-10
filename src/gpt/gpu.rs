@@ -515,17 +515,31 @@ mod kernels {
         let index = thread::index_1d();
         let scalar = index.get();
         if let Some(output) = out.get_mut(index) {
-            let item = scalar / TILE;
-            let group = item / blocks;
-            let (position, previous) = causal_position(item % blocks, TILE);
+            let mut coordinates = [0; 5];
+            if !TILE.is_multiple_of(32) || scalar.is_multiple_of(32) {
+                let item = scalar / TILE;
+                let group = item / blocks;
+                let (position, previous) = causal_position(item % blocks, TILE);
+                coordinates = [
+                    group / heads * sequence,
+                    group % heads,
+                    position,
+                    previous,
+                    width / heads,
+                ];
+            }
+            if TILE.is_multiple_of(32) {
+                // The checked output length keeps every participating warp complete.
+                for local in 0..5 {
+                    coordinates[local] = warp::shuffle_u64(coordinates[local] as u64, 0) as usize;
+                }
+            }
+            let [first, head, position, previous, head_width] = coordinates;
             let previous = previous + scalar % TILE;
             if previous > position {
                 return;
             }
-            let first = group / heads * sequence;
             let row = first + position;
-            let head = group % heads;
-            let head_width = width / heads;
             let dot = if width == W && heads == H {
                 serial_score_dot::<W, H, true>(
                     head * head_width,
