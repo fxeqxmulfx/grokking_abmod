@@ -9,11 +9,13 @@ use grokking_abmod::{
     Result,
     gpt::{
         AdamWOptions, Checkpoint, EQUATION_CONTEXT, EquationDataset, EquationSampler, GptConfig,
-        GpuMeshGpt, ModularOperation,
+        ModularOperation, SpecializedMeshGpt,
     },
 };
 
 use super::value;
+
+type GrokModel = SpecializedMeshGpt<128, 256, EQUATION_CONTEXT, 8>;
 
 struct Options {
     config: GptConfig,
@@ -130,7 +132,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
     sampler.sample(batch)?;
     // Start from the seed again after validating the requested minibatch size.
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
-    let mut model = GpuMeshGpt::new(options.device, options.config, options.seed)?;
+    let mut model = GrokModel::new(options.device, options.config, options.seed)?;
     std::fs::create_dir_all(&options.output)?;
     write_dataset(&options.output, &dataset)?;
     std::fs::write(
@@ -269,7 +271,7 @@ fn row_metrics(row: &[f32], target: usize) -> (f64, usize) {
     (sum.ln() + maximum - f64::from(row[target]), prediction)
 }
 
-fn evaluate(model: &GpuMeshGpt, dataset: &EquationDataset, validation: bool) -> Result<Metrics> {
+fn evaluate(model: &GrokModel, dataset: &EquationDataset, validation: bool) -> Result<Metrics> {
     let count = dataset.split(validation).len();
     let (mut loss, mut correct) = (0.0, 0);
     for start in (0..count).step_by(512) {
@@ -296,7 +298,7 @@ fn evaluate(model: &GpuMeshGpt, dataset: &EquationDataset, validation: bool) -> 
 #[allow(clippy::too_many_arguments)]
 fn record(
     history: &mut impl Write,
-    model: &GpuMeshGpt,
+    model: &GrokModel,
     dataset: &EquationDataset,
     directory: &Path,
     step: usize,
@@ -374,7 +376,7 @@ fn write_dataset(directory: &Path, dataset: &EquationDataset) -> Result<()> {
     Ok(())
 }
 
-fn write_embeddings(directory: &Path, model: &GpuMeshGpt, dataset: &EquationDataset) -> Result<()> {
+fn write_embeddings(directory: &Path, model: &GrokModel, dataset: &EquationDataset) -> Result<()> {
     let mut file = BufWriter::new(File::create(directory.join("embeddings.csv"))?);
     write!(file, "token_id,symbol")?;
     for channel in 0..model.config().width {
@@ -392,11 +394,7 @@ fn write_embeddings(directory: &Path, model: &GpuMeshGpt, dataset: &EquationData
     Ok(())
 }
 
-fn write_predictions(
-    directory: &Path,
-    model: &GpuMeshGpt,
-    dataset: &EquationDataset,
-) -> Result<()> {
+fn write_predictions(directory: &Path, model: &GrokModel, dataset: &EquationDataset) -> Result<()> {
     let mut file = BufWriter::new(File::create(directory.join("predictions.csv"))?);
     writeln!(file, "split,a,b,answer,prediction,correct,cross_entropy")?;
     for validation in [false, true] {

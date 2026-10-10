@@ -91,18 +91,35 @@ fn main() -> Result<()> {
         )
         .into());
     }
-    match (options.config.width, options.config.context, options.config.heads) {
-        (..=128, ..=128, ..=8) => benchmark::<128, 128>(options),
-        (..=256, ..=128, ..=8) => benchmark::<256, 128>(options),
-        (..=512, ..=128, ..=8) => benchmark::<512, 128>(options),
-        (..=1024, ..=128, ..=8) => benchmark::<1024, 128>(options),
-        (..=128, ..=1024, ..=8) => benchmark::<128, 1024>(options),
-        (..=128, ..=4096, ..=8) => benchmark::<128, 4096>(options),
-        _ => Err("benchmark supports width <=1024 at context <=128, or width <=128 at context <=4096, with <=8 heads".into()),
+    match (options.config.width, options.config.heads) {
+        (..=32, ..=8) => context::<32>(options),
+        (..=128, ..=8) => context::<128>(options),
+        (..=256, ..=8) => context::<256>(options),
+        (..=512, ..=8) => context::<512>(options),
+        (..=1024, ..=8) => context::<1024>(options),
+        _ => Err("benchmark requires width <=1024 and <=8 heads".into()),
+    }
+}
+
+fn context<const W: usize>(options: Options) -> Result<()> {
+    match options.config.context {
+        ..=4 => benchmark::<W, 4>(options),
+        5..=128 => benchmark::<W, 128>(options),
+        129..=1024 if W <= 128 => benchmark::<W, 1024>(options),
+        1025..=4096 if W <= 128 => benchmark::<W, 4096>(options),
+        _ => Err("benchmark context must be <=128, or <=4096 with width <=128".into()),
     }
 }
 
 fn benchmark<const W: usize, const C: usize>(options: Options) -> Result<()> {
+    if options.config.heads <= 4 {
+        benchmark_shape::<W, C, 4>(options)
+    } else {
+        benchmark_shape::<W, C, 8>(options)
+    }
+}
+
+fn benchmark_shape<const W: usize, const C: usize, const H: usize>(options: Options) -> Result<()> {
     let Options {
         mut config,
         steps,
@@ -137,7 +154,7 @@ fn benchmark<const W: usize, const C: usize>(options: Options) -> Result<()> {
         beta2: 0.98,
         ..AdamWOptions::default()
     };
-    let mut model = SpecializedMeshGpt::<W, 256, C, 8>::new(device, config, 7)?;
+    let mut model = SpecializedMeshGpt::<W, 128, C, H>::new(device, config, 7)?;
     let initial = model.parameters()?;
     std::fs::create_dir_all(&directory)?;
     let mut file = File::create(directory.join("timings.csv"))?;
@@ -149,7 +166,7 @@ fn benchmark<const W: usize, const C: usize>(options: Options) -> Result<()> {
         directory.join("run.txt"),
         format!(
             "precision=fp32\nmodel_type={}\nworkload={}\nseed=7\nwidth={}\nheads={}\nlayers={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nvocabulary={}\ncontext={}\nbatch={}\nsteps={}\nwarmup={}\ntrials={}\nlearning_rate=0.001\nweight_decay=1\nbetas=0.9,0.98\ntiming=end_to_end_wall_clock\nfinal_parameter_download=included\nvalidation_and_artifact_io=excluded\n",
-            std::any::type_name::<SpecializedMeshGpt<W, 256, C, 8>>(),
+            std::any::type_name::<SpecializedMeshGpt<W, 128, C, H>>(),
             workload,
             config.width,
             config.heads,

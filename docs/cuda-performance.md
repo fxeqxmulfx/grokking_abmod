@@ -335,10 +335,11 @@ content; run Python through uv and commit validated progress frequently.
 ## Large-memory and long-context workloads
 
 The benchmark accepts `--width`, `--heads`, `--layers`, `--attention-depth`,
-`--ffn-depth`, `--context`, and `--batch`. Widths through 128, 256, 512, and 1024
+`--ffn-depth`, `--context`, and `--batch`. Widths through 32, 128, 256, 512, and 1024
 select matching const-generic capacities at context up to 128. Widths through
 128 additionally support context capacities 1024 and 4096. All specializations
-use vocabulary capacity 256 and head capacity eight. Batch validation permits
+use vocabulary capacity 128 for the fixed 99-symbol dataset, head capacity four
+or eight, and context capacity four for sequences through four tokens. Batch validation permits
 at most 65536 token rows; mesh-gradient contracts cover all 2048 row chunks.
 
 Run the original workload and five scenarios near 3 GiB of GPU memory:
@@ -516,3 +517,32 @@ mesh depths 256, and checks that allocation matches peak liveness. All 29 CPU
 tests, strict Clippy, full CUDA verification, and the complete mod-97 epoch
 pass. Fixed-shape measurements and comparisons are retained in
 `shapes-gradient-reuse` and `gradient-reuse-comparison.json`.
+
+### Fit tensor capacities to the workload
+
+The benchmark selects smaller const-generic capacities for vocabulary,
+short contexts, small widths, and head counts. Its fixed 99-symbol dataset fits
+vocabulary capacity 128; context-four workloads no longer reserve 128 positions
+per attention row. Long-context workloads with four heads no longer reserve
+eight. The grokking CLI uses context capacity four while retaining support for
+up to 256 symbols and eight heads. These are existing model specializations,
+with the same kernels, active dimensions, and checkpoint format.
+
+| Scenario | Reused-gradient memory (MiB) | Fitted capacities (MiB) |
+| --- | ---: | ---: |
+| Original | 178 | 152 |
+| Large batch | 1738 | 1328 |
+| Wide model | 1510 | 1452 |
+| Deep model | 1554 | 1386 |
+| Combined | 1588 | 1486 |
+| Long context | 2250 | 1466 |
+
+All six 15-update checkpoints and the complete mod-97 epoch checkpoint remain
+byte-identical. Large-scenario update times stay within 0.4% of the preceding
+stage. The original scenario's first short-warmup run measured 5.853 ms; longer
+paired runs (ten warmup, 50 timed updates, three trials, repeated twice) measured
+5.386/5.384 before and 5.381/5.386 after. Width eight additionally moves from
+2.639 to 1.909 ms/update while owned buffers fall to 21.4 MiB. Batch one remains
+0.736 ms versus 0.729; its extra normalization launch is still a useful target.
+Measurements and exact comparisons are retained in `shapes-compact-capacities`,
+`capacities-paired-*`, and `compact-capacities-comparison.json`.

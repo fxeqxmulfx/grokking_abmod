@@ -352,9 +352,11 @@ The const parameters are maximum width, vocabulary, context, and head count,
 in that order. Active runtime dimensions must fit the specialization; invalid
 sizes are rejected before GPU allocation. Non-power-of-two capacities are
 supported too. Layers and mesh depths use the same compiled kernels and can
-change through `GptConfig`. `GpuMeshGpt` and the supplied CLIs use the default
-`SpecializedMeshGpt<128, 256, 128, 8>` alias. Change that alias or use a custom
-type to compile another capacity without rewriting any kernel.
+change through `GptConfig`. `GpuMeshGpt` uses the default
+`SpecializedMeshGpt<128, 256, 128, 8>` alias. The grokking CLI uses context
+capacity four, and the benchmark selects capacities for its actual workload.
+Use a custom type to compile another capacity without rewriting any kernel;
+smaller capacities avoid reserving unused feature channels and attention slots.
 
 Configuration ceilings are width 2..4096, vocabulary 2..65536, context 1..4096,
 1..64 heads dividing width with even channels per head, 1..64 blocks, mesh depths
