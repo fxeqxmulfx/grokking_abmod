@@ -15,6 +15,8 @@ use grokking_abmod::{
     },
 };
 
+const PRIME: usize = 97;
+
 struct Options {
     config: GptConfig,
     steps: usize,
@@ -129,7 +131,7 @@ fn benchmark_shape<const W: usize, const C: usize, const H: usize>(options: Opti
         device,
         directory,
     } = options;
-    let dataset = EquationDataset::new(97, ModularOperation::Add, 0.5, 7)?;
+    let dataset = EquationDataset::new(PRIME, ModularOperation::Add, 0.5, 7)?;
     let (inputs, targets, workload) = if config.context == EQUATION_CONTEXT {
         let indices: Vec<_> = (0..batch).map(|i| i % dataset.split(false).len()).collect();
         let (inputs, targets) = dataset.batch(false, &indices)?;
@@ -154,7 +156,7 @@ fn benchmark_shape<const W: usize, const C: usize, const H: usize>(options: Opti
         beta2: 0.98,
         ..AdamWOptions::default()
     };
-    let mut model = SpecializedMeshGpt::<W, 128, C, H>::new(device, config, 7)?;
+    let mut model = SpecializedMeshGpt::<W, { PRIME + 2 }, C, H>::new(device, config, 7)?;
     let initial = model.parameters()?;
     std::fs::create_dir_all(&directory)?;
     let mut file = File::create(directory.join("timings.csv"))?;
@@ -166,7 +168,7 @@ fn benchmark_shape<const W: usize, const C: usize, const H: usize>(options: Opti
         directory.join("run.txt"),
         format!(
             "precision=fp32\nmodel_type={}\nworkload={}\nseed=7\nwidth={}\nheads={}\nlayers={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nvocabulary={}\ncontext={}\nbatch={}\nsteps={}\nwarmup={}\ntrials={}\nlearning_rate=0.001\nweight_decay=1\nbetas=0.9,0.98\ntiming=end_to_end_wall_clock\nfinal_parameter_download=included\nvalidation_and_artifact_io=excluded\n",
-            std::any::type_name::<SpecializedMeshGpt<W, 128, C, H>>(),
+            std::any::type_name_of_val(&model),
             workload,
             config.width,
             config.heads,

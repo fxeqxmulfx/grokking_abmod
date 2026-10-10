@@ -617,6 +617,19 @@ fn verify(device: usize) -> Result<()> {
         },
         &[(1, 1), (1, 3), (2, 3)],
     )?;
+    verify_model::<32, 99, 4, 4>(
+        device,
+        GptConfig {
+            vocab_size: 99,
+            context: 4,
+            width: 32,
+            heads: 4,
+            layers: 1,
+            attention_mesh_depth: 1,
+            ffn_mesh_depth: 1,
+        },
+        &[(1, 1), (1, 4), (2, 4)],
+    )?;
     for (width, heads) in [(32, 1), (64, 2), (64, 1)] {
         verify_model::<64, 8, 256, 2>(
             device,

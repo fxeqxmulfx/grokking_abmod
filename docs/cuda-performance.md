@@ -1093,3 +1093,49 @@ are byte-identical. Full f64, gradient, FP32 AdamW, learning, contract, and
 CPU/Clippy checks pass with unchanged tolerances. No flags, allocations,
 unsafe code, or new macros were introduced. Artifacts are in `score-pair`,
 `score-pair-comparison.json`, and `verify-score-pair.txt`.
+
+The paired score counter run has no local/shared spills, 93.34% achieved
+occupancy, and 2.539 billion executed warp instructions. ALU throughput is
+53.6%, while load/store throughput reaches 78.7%; the bottleneck has shifted
+toward cached memory access. These unlocked-clock instruction counters are
+separate from the latency measurements and include the preceding query-slice
+change. See `paired-score-counters.ncu-repz`.
+
+Larger score packets reached a plateau. Four scores measured
+144.397 / 759.979 ms; eight regressed to 162.257 / 857.130 ms at the same
+dimensions and memory. Both passed the full verifier, including partial
+16-lane / 8-lane groups at context 33 and 129, and produced byte-identical
+checkpoints. The allocation-free pair is retained; subgroup masks and larger
+packet branches were removed. See `score-quad`, `score-eight`, their
+`*-comparison.json` files, and `verify-score-quad.txt` / `verify-score-eight.txt`.
+
+### Fit the benchmark vocabulary exactly
+
+The benchmark now derives its compile-time vocabulary capacity from its
+fixed prime: 97 residues plus two reserved symbols, rather than 128 slots.
+Logits, their gradients, and the output transpose contain no vocabulary
+padding. Model metadata comes from the actual model value, avoiding a second
+hardcoded type. General Mesh GPT const-generic capacities remain available.
+
+| Scenario | Padded ms/update | Fitted ms/update | Process MiB | Owned bytes saved |
+| --- | ---: | ---: | ---: | ---: |
+| Original, 50 timed updates | 4.843 | 4.807 | 148 | 489984 |
+| Large batch, 20000 | 161.750 | 161.849 | 3036 | 18574848 |
+| Wide, 1024 / batch 2688 | 176.304 | 171.640 | 3112 | 2613248 |
+| Deep, 49 blocks | 174.685 | 174.670 | 3054 | 504832 |
+| Combined, 512 / batch 2816 | 162.370 | 160.517 | 2996 | 2672640 |
+| Context 4096, batch 6 | 760.033 | 770.401 | 3298 | 5716480 |
+
+Dimensions remain fixed. The large-batch memory probe falls from 3052 to
+3036 MiB, saving 17.7 MiB of owned buffers. Wide updates improve 2.6%.
+Long-context time increases 1.4% while saving 5.5 MiB; this explicit tradeoff
+is retained for the smaller exact-capacity buffers. All six stress checkpoints
+and the full epoch are byte-identical. The verifier adds an independent f64
+model with all 99 tokens active, checking odd row strides, dense/masked
+gradients, causality, and FP32 AdamW without changing any tolerance.
+
+An independent capacity run fits batch 20128 in 3036 MiB, measuring
+163.025 ms/update. The runner adopts this larger default; preceding tables
+retain batch 20000 for speed comparisons. Artifacts are in `vocab-fit`,
+`vocab-fit-comparison.json`, `vocab-fit-capacity`, `vocab-fit-baseline-50`,
+`verify-vocab-fit.txt`, and `epoch-vocab-fit`.

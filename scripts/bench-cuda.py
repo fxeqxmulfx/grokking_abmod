@@ -20,7 +20,7 @@ SCENARIOS = {
     "deep": ["--width", "256", "--layers", "20", "--batch", "512"],
     "mixed": ["--width", "512", "--layers", "4", "--batch", "1200"],
     "long-context": ["--context", "1024", "--batch", "16"],
-    "stress-large-batch": ["--batch", "20000"],
+    "stress-large-batch": ["--batch", "20128"],
     "stress-wide": ["--width", "1024", "--batch", "2688"],
     "stress-deep": ["--width", "256", "--layers", "49", "--batch", "512"],
     "stress-mixed": ["--width", "512", "--layers", "4", "--batch", "2816"],
