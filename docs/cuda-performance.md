@@ -847,3 +847,48 @@ it does not establish 91% utilization for the complete model.
 Artifacts are in `parallel-attention`, `parallel-attention-comparison.json`,
 `verify-parallel-attention-contracts.txt`, `epoch-parallel-attention`,
 `parallel-long-trace.nsys-rep`, and `parallel-score-counters.ncu-repz`.
+
+### Overlap independent attention loads
+
+A shared, always-inlined Rust helper loads four products before adding them
+in the original order. The same helper handles attention output, Q gradients,
+and the paired K/V gradients. Causal column offsets still advance without
+an inner-loop band-transition branch. It uses ordinary const generics and
+index loops, with no new macros or unsafe code.
+
+| Scenario | Single-load ms/update | Four-load ms/update | Process MiB |
+| --- | ---: | ---: | ---: |
+| Original | 4.992 | 4.989 | 148 |
+| Large batch, 8192 | 68.856 | 68.783 | 1264 |
+| Wide, 1024 | 76.383 | 76.394 | 1380 |
+| Deep, 20 blocks | 76.394 | 76.275 | 1306 |
+| Combined | 71.217 | 71.132 | 1406 |
+| Context 1024, batch 16 | 232.654 | 210.493 | 1074 |
+| Context 4096, batch 4 | 870.066 | 781.898 | 2226 |
+
+Long-context time falls another 9.5% / 10.1% at identical sizes and memory.
+All seven benchmark checkpoints and a complete epoch are byte-identical to
+the previous attention pipeline. Full f64/AdamW/learning verification,
+31 CPU tests, formatting, and strict Clippy pass.
+
+Nsight Compute measures one context-4096 backward launch at 106.74 ms versus
+140.61 ms, with scoreboard wait falling from 14.6 to 8.2 cycles. Registers
+increase from 34 to 48, achieved occupancy falls from 99.34% to 81.42%,
+and L2 throughput reaches 89.04%. These unlocked-clock counters describe
+the bottleneck; the table uses separate warmed wall-clock measurements.
+
+Two alternatives were rejected. Explicitly caching a Q/dY lane value did not
+improve timing (234.219 / 880.427 ms for the two contexts) and produced identical
+checkpoints. An initial four-product helper using a moved array iterator and
+a separate device function regressed to 420.146 / 1921.361 ms. Generated PTX
+showed local-memory traffic. The retained ordinary inline function and index
+loops eliminate helper calls and local loads/stores in both affected kernels.
+Artifacts are in `attention-inline4`, `attention-inline4-short`,
+`inline4-comparison.json`, `inline4-backward-counters.ncu-repz`,
+`attention-unroll4`, and `cached-score`.
+
+An independent capacity measurement fits six complete context-4096 sequences
+in 3302 MiB, versus four in 3234 MiB before probability packing. This is a
+50% increase in long-sequence batch capacity near 3 GiB. Its 1320.903 ms
+measurement uses the preceding single-load pipeline and is not a fixed-size
+speed comparison. See `parallel-capacity` for all dimensions and buffers.

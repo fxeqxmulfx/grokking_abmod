@@ -349,6 +349,57 @@ mod kernels {
         }
     }
 
+    #[inline(always)]
+    fn attention_sum<const W: usize, const TILE: usize, const COLUMN: bool, const PAIR: bool>(
+        start: usize,
+        end: usize,
+        first: usize,
+        channel: usize,
+        mut offset: usize,
+        coefficients: [&[f32]; 2],
+        values: [&[Features<W>]; 2],
+    ) -> [f32; 2] {
+        let mut sums = [0.0; 2];
+        let whole = end - (end - start) % 4;
+        for row in (start..whole).step_by(4) {
+            let mut products = [[0.0; 2]; 4];
+            for local in 0..4 {
+                let index = if COLUMN {
+                    offset + start
+                } else {
+                    offset + row + local
+                };
+                products[local][0] =
+                    coefficients[0][index] * values[0][first + row + local][channel];
+                if PAIR {
+                    products[local][1] =
+                        coefficients[1][index] * values[1][first + row + local][channel];
+                }
+                if COLUMN {
+                    offset += ((row + local) / TILE + 1) * TILE;
+                }
+            }
+            // Issue independent loads before preserving the original addition order.
+            for local in 0..4 {
+                sums[0] += products[local][0];
+                if PAIR {
+                    sums[1] += products[local][1];
+                }
+            }
+        }
+        for row in whole..end {
+            let index = if COLUMN { offset + start } else { offset + row };
+            sums[0] += coefficients[0][index] * values[0][first + row][channel];
+            if PAIR {
+                sums[1] += coefficients[1][index] * values[1][first + row][channel];
+            }
+            if COLUMN {
+                offset += (row / TILE + 1) * TILE;
+            }
+        }
+        sums
+    }
+
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
@@ -379,12 +430,15 @@ mod kernels {
             let position = row % sequence;
             let head = channel / (width / heads);
             let offset = causal_offset(position, row / sequence * heads + head, blocks, TILE);
-            let mut total = 0.0;
-            for previous in 0..=position {
-                total +=
-                    probabilities[offset + previous] * value[row - position + previous][channel];
-            }
-            *output = total;
+            *output = attention_sum::<W, TILE, false, false>(
+                0,
+                position + 1,
+                row - position,
+                channel,
+                offset,
+                [probabilities; 2],
+                [value; 2],
+            )[0];
         }
     }
 
@@ -894,23 +948,29 @@ mod kernels {
             let first = row - position;
             let head_width = width / heads;
             let scale = 1.0 / (head_width as f32).sqrt();
-            if channel >= width {
+            if channel >= width / heads * heads {
                 return;
             }
             let head = channel / head_width;
             let q_offset = causal_offset(position, row / sequence * heads + head, blocks, TILE);
-            let mut k_offset = q_offset;
-            let mut q_sum = 0.0;
-            let mut k_sum = 0.0;
-            let mut v_sum = 0.0;
-            for previous in 0..=position {
-                q_sum += scores[q_offset + previous] * key[first + previous][channel];
-            }
-            for future in position..sequence {
-                k_sum += scores[k_offset + position] * query[first + future][channel];
-                v_sum += probabilities[k_offset + position] * gradient[first + future][channel];
-                k_offset += (future / TILE + 1) * TILE;
-            }
+            let [q_sum, _] = attention_sum::<W, TILE, false, false>(
+                0,
+                position + 1,
+                first,
+                channel,
+                q_offset,
+                [scores; 2],
+                [key; 2],
+            );
+            let [k_sum, v_sum] = attention_sum::<W, TILE, true, true>(
+                position,
+                sequence,
+                first,
+                channel,
+                q_offset,
+                [scores, probabilities],
+                [query, gradient],
+            );
             *q_gradient = q_sum * scale;
             *k_gradient = k_sum * scale;
             *v_gradient = v_sum;
