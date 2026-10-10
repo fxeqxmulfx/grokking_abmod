@@ -235,6 +235,17 @@ mod kernels {
     }
 
     #[device]
+    fn warp_output<'a, T>(
+        output: &'a mut DisjointSlice<'_, T, thread::WarpIndex>,
+    ) -> Option<&'a mut T> {
+        if let Some(warp) = thread::warp_index() {
+            output.get_mut(warp)
+        } else {
+            None
+        }
+    }
+
+    #[device]
     fn attention_dot<const W: usize>(
         begin: usize,
         head_width: usize,
@@ -243,8 +254,14 @@ mod kernels {
         right: &Features<W>,
     ) -> f32 {
         let mut total = 0.0;
-        for local in (lane..head_width).step_by(32) {
-            total += left[begin + local] * right[begin + local];
+        if head_width <= 32 {
+            if lane < head_width {
+                total = left[begin + lane] * right[begin + lane];
+            }
+        } else {
+            for local in (lane..head_width).step_by(32) {
+                total += left[begin + local] * right[begin + local];
+            }
         }
         warp::reduce_sum_f32(total)
     }
@@ -272,16 +289,8 @@ mod kernels {
             return;
         }
         // All lanes compute; only the owning lane accesses each mutable row.
-        let mut output = if let Some(warp) = thread::warp_index() {
-            out.get_mut(warp)
-        } else {
-            None
-        };
-        let mut probability = if let Some(warp) = thread::warp_index() {
-            probabilities.get_mut(warp)
-        } else {
-            None
-        };
+        let mut output = warp_output(&mut out);
+        let mut probability = warp_output(&mut probabilities);
         let position = row % sequence;
         let first = row - position;
         let head_width = width / heads;
@@ -771,9 +780,7 @@ mod kernels {
             total += partials[chunk * 2 * width + local];
         }
         let total = warp::reduce_sum_f32(total);
-        if let Some(warp) = thread::warp_index()
-            && let Some(output) = out.get_mut(warp)
-        {
+        if let Some(output) = warp_output(&mut out) {
             *output = total;
         }
     }
@@ -799,11 +806,7 @@ mod kernels {
         if row >= gradient.len() {
             return;
         }
-        let mut output = if let Some(warp) = thread::warp_index() {
-            out.get_mut(warp)
-        } else {
-            None
-        };
+        let mut output = warp_output(&mut out);
         let position = row % sequence;
         let first = row - position;
         let head_width = width / heads;
