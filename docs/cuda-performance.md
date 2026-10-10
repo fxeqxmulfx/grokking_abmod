@@ -1348,3 +1348,122 @@ The complete mod-97 epoch produces a checkpoint byte-identical to
 `epoch-embedding-slices/model.bin`. New artifacts are under
 `target/cuda-sdk-work`, including `verify-views-published.txt` and
 `epoch-views-published`.
+
+## Generic device helpers and immutable shared tiles
+
+CUDA Rust revision
+[`2e7b9847`](https://github.com/fxeqxmulfx/cuda-rust/commit/2e7b984757b0ddd391c3fbbc8a7d0f755edc1311)
+preserves explicit `inline`, `inline(always)`, `inline(never)`, and conditional
+inline policies on generic `#[device]` functions. The macro previously added
+`inline(never)` before the author's hint, causing rustc to ignore the hint.
+Helpers without an explicit policy retain their existing collector behavior.
+
+The new GPU regression separates helper inlining from moving an array into an
+iterator. Indexed helpers match ordinary inline code bit for bit at lengths
+1, 3, 4, 5, 255, 256, 257, and 4096; every variant also passes an independent
+f64 reference. Preserving the explicit hint does not improve this workload:
+the indexed helper executes 8,264,192 warp instructions versus 8,263,936
+before, with 30 versus 28 registers and zero spilling in both captures.
+The iterator executes 19,142,144 instructions after the patch, about 2.3 times
+the indexed loop. Its largest observed FP32 difference from the indexed
+result is 3.4e-6. Mesh GPT keeps its indexed ordinary helpers.
+
+The shared-memory API stages one immutable numeric slice at the generated
+kernel entry, before all user control flow. `#[block_shared(N)]` accepts a
+literal capacity in `1..=4096`. An optional scalar-only offset expression maps
+blocks to source tiles. The macro initializes the readable extent through
+disjoint raw pointers, synchronizes all threads, and borrows the readable
+extent through a local guard. The API rejects mutable slices, explicit
+lifetimes, unsupported elements, user control flow in offsets, and unchecked
+indexing. Primitive element traits are sealed, and offset operands cannot
+introduce overloaded user operators before the barrier. This is a single
+initialization phase; it does not expose mutable tile reuse.
+
+The SDK tests include compile failures for escaping and mutating slices,
+invalid offset control flow, shadowed primitive types, and unchecked indexing.
+GPU tests cover empty inputs, tails, grouped blocks, neighbor reads, and
+divergent early returns with 32, 64, and 128 threads per block. Compute
+Sanitizer racecheck and memcheck report no errors.
+
+A Mesh GPT experiment stages all four value rows for each batch item with
+`#[block_shared(512, offset = (block / sequence) * sequence * W)]` at width
+128. The full GPU verifier and complete mod-97 epoch pass, and the epoch and
+large-batch checkpoints are byte-identical to the control. The experimental
+kernel and dispatch add 71 client lines without reducing owned device memory.
+
+At batch 20160, old/new/new/old ordering gives 162.765 / 165.101 ms per update,
+or 1.44% overhead. After the user reported possible GPU interference, a
+new/old/old/new repeat with 30 timed updates and 10 warmup updates per trial
+gives 163.187 / 165.471 ms, or 1.40% overhead. Each comparison includes six
+trials per variant. GPU process monitoring during the repeat observes only
+the benchmark compute processes; clock and temperature telemetry is saved
+alongside timings. These small differences include power and thermal drift.
+Owned buffers remain 2888.1 MiB for both variants. Counter captures show
+108,783,056 versus 72,898,560 executed warp instructions, zero spills, and
+2 KiB of additional static shared memory per block in the staged variant.
+Profiled kernel durations are not used as end-to-end benchmark timings.
+
+The shared attention experiment is rejected because it adds code and slows
+training without saving VRAM. The safe SDK API remains available for future
+tile reuse experiments. Artifacts under `target/cuda-sdk-work` include
+`attention-comparison.json`, `attention-recheck-telemetry.csv`, both counter
+reports, `gpu-shared-attention.rs`, and the shared-tile sanitizer logs.
+
+## FlashAttention papers and remaining safe API requirements
+
+The downloaded sources are
+`papers/arXiv-2307.08691v1` ([FlashAttention-2](https://arxiv.org/abs/2307.08691))
+and `papers/arXiv-2603.05451v1`
+([FlashAttention-4](https://arxiv.org/abs/2603.05451)). Both are ignored local
+references. FlashAttention-2 is the useful starting point for this project's
+Ampere GPU: stream K/V tiles, maintain online softmax statistics, normalize
+the accumulated output once, and retain row logsumexp for backward
+recomputation. This removes global quadratic attention intermediates.
+Its split-Q work partition assigns different query rows to warps that reuse
+K/V, avoiding a cross-warp reduction of partial outputs.
+
+The current context-only shared experiment does not have that reuse: each
+thread reads its own value channels. Staging these values adds global loads,
+shared stores, shared loads, and a barrier. A useful tiled implementation must
+share K/V across multiple query rows and fuse scores, softmax, and context.
+Changing only the storage location of the existing context kernel does not
+implement FlashAttention.
+
+FlashAttention-4's fully asynchronous MMA, TMEM accumulators, and paired-CTA
+backward pipeline target datacenter Blackwell. The RTX 3050 Laptop is `sm_86`
+and cannot execute those instructions. Even consumer Blackwell `sm_120` does
+not provide the TMEM/tcgen05 path. Online softmax and memory-saving
+recomputation remain applicable here, but neither paper's BF16 tensor-core
+throughput can be assumed for the current FP32 implementation. FA4's degree-3
+exponential polynomial trades FP32 accuracy for throughput before BF16
+rounding; adopting it would require separate numerical validation.
+
+The SDK already supplies checked buffer views, typed launch contracts,
+`DisjointSlice`, an immutable entry-staged tile, scoped atomics, and low-level
+async-copy/MMA/TMA/TMEM instructions. It also has `ManagedBarrier` and
+`TmemGuard` typestate wrappers; these still require unsafe initialization or
+allocation and do not establish a complete tile pipeline's guarantees.
+
+| Priority | Missing safe abstraction | Required guarantees |
+| --- | --- | --- |
+| Ampere first | Reusable block tiles | Own storage across initialization, publication, reads, and reuse; reject overlapping mutable access and reads of uninitialized tails. Reuse must wait for every reader and outstanding hardware operation. |
+| Ampere first | Collective pipeline phases | Enforce participating threads/warps and uniform barriers through generated scheduling or checked compiler contracts. A freely constructible group handle or per-thread typestate alone cannot prove collective participation. |
+| Ampere first | Async global-to-shared copy groups | Check source/destination bounds, alignment, disjoint destinations, and tails; retain storage ownership and source borrows until completion; commit/wait on the issuing threads and synchronize before cross-thread reads. Dropping or forgetting a handle must not release storage still in use. |
+| Optional tensor cores | Typed matrix fragments and layouts | Enforce shape, element type, layout, address space, alignment, and full-warp participation. Tensor-core input precision must be an explicit implementation choice rather than an implicit FP32 replacement. |
+| Datacenter Blackwell | Borrowed TMA/TMEM descriptors and MMA completion | Bind descriptors to validated allocation extents and lifetimes; track TMEM subregion ownership and in-flight reads/writes; synchronize async proxies and prevent deallocation or reuse before completion. |
+| Datacenter Blackwell | Paired-CTA resource scopes | Preserve peers and remote shared-memory allocations until all accesses complete; enforce consistent CTA-group mode and phase participation. Existing checked cluster launch geometry does not establish device-side resource lifetimes. |
+
+Backward gradients also need a safe ownership/reduction plan. The existing
+scoped atomic APIs can support shared gradient accumulation; deterministic
+single-writer partitions or an explicit reduction pass are alternatives.
+Atomics alone do not establish buffer initialization or phase completion.
+
+For Mesh GPT, the useful first milestone is FP32 fused attention with linear
+workspace, preserving the existing XSA projection, causal mask, and complete
+backward derivatives. XSA removes a projection along the current token's value;
+it is not equivalent to merely masking the diagonal of ordinary attention.
+Validation must include the existing independent f64 output/gradient checks,
+ragged context lengths, causal tails, and a complete training epoch. A later
+asynchronous implementation should additionally have compile-failure tests
+for invalid tile lifetimes and participation, GPU race/memory checks, and
+measurements on hardware that actually supports its instructions.
