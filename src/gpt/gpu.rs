@@ -14,7 +14,7 @@ use super::{
     config::{Layout, token_codes},
 };
 
-const EMBEDDING_GRADIENT_ROWS: usize = 128;
+const EMBEDDING_GRADIENT_ROWS: usize = 256;
 
 #[cuda_module]
 // Explicit tensor indices keep the channel, head, and neighborhood math visible.
@@ -2887,7 +2887,22 @@ mod verification {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             for (width, vocab) in [(2, 3), (18, 17), (32, 17), (128, 99)] {
                 for rows in [
-                    1_usize, 31, 32, 33, 63, 64, 65, 127, 128, 129, 257, 2048, 4096, 4097,
+                    1_usize,
+                    31,
+                    32,
+                    33,
+                    63,
+                    64,
+                    65,
+                    127,
+                    128,
+                    129,
+                    EMBEDDING_GRADIENT_ROWS - 1,
+                    EMBEDDING_GRADIENT_ROWS,
+                    EMBEDDING_GRADIENT_ROWS + 1,
+                    2048,
+                    4096,
+                    4097,
                 ]
                 .into_iter()
                 .chain((width == 2).then_some(super::super::MAX_ROWS))

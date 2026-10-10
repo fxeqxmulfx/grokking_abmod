@@ -1209,3 +1209,30 @@ Artifacts are in `attention-inplace`, `attention-inplace-comparison.json`,
 `inplace-recheck-{old-a,new-a,new-b,old-b}`, `inplace-recheck-summary.json`,
 `inplace-recheck-activity.json`, `inplace-capacity`, `inplace-baseline-50`,
 `verify-attention-inplace.txt`, and `epoch-attention-inplace`.
+
+### Halve the embedding-gradient partial buffer
+
+The same checked embedding-gradient kernels now use 256-row chunks instead
+of 128. No kernel, workspace field, macro, or unsafe operation is added.
+Independent f64 validation follows the actual const-generic chunk size and
+checks its boundary minus one, the boundary, and its boundary plus one.
+
+| Fixed workload | 128 rows ms/update | 256 rows ms/update | Before / after process MiB | Owned bytes saved |
+| --- | ---: | ---: | --- | ---: |
+| Original, 50 timed updates | 4.805 | 4.865 | 148 / 148 | 405504 |
+| Batch 20160 | 164.058 | 164.847 | 3030 / 3014 | 15966720 |
+| Width 1024, batch 2688 | 172.794 | 173.637 | 3112 / 3096 | 17031168 |
+| Width 256, 49 blocks | 175.961 | 176.927 | 3054 / 3054 | 811008 |
+| Width 512, batch 2816 | 161.775 | 162.452 | 2994 / 2986 | 8921088 |
+| Context 4096, batch 7 | 917.065 | 924.294 | 2926 / 2920 | 5677056 |
+
+Fresh saved-binary controls use identical dimensions and no concurrent
+compilation. Large-workload time increases 0.4–0.8%; the longer original
+comparison increases 1.2%. The measured memory saving is retained under the
+accepted tradeoff. Grouping more rows changes FP32 summation boundaries;
+twenty-update parameter relative L2 differences are at most 7.71e-6.
+Every original f64 gradient and FP32 AdamW tolerance passes unchanged, as do
+context learning, the full modular-addition epoch, 31 CPU tests, and Clippy.
+Artifacts are in `embedding128-control`, `embedding256`,
+`embedding256-comparison.json`, `embedding{128,256}-baseline-50`,
+`verify-embedding-256.txt`, and `epoch-embedding256`.
