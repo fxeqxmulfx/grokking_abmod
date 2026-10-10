@@ -116,7 +116,7 @@ layer counts, and mesh depths are checked runtime values. See
 [Mesh GPT](mesh-gpt.md#gpu-execution-and-verification) for a wider specialization.
 The CUDA Rust patches are published on `experiments`, and the project's Git
 dependencies and CUDA compiler backend use revision
-[`9a905694`](https://github.com/fxeqxmulfx/cuda-rust/commit/9a9056948298e550de137b0bb303390f4be9185a).
+[`760d4aa3`](https://github.com/fxeqxmulfx/cuda-rust/commit/760d4aa372362781aa11706359329ce01e0d5877).
 Generic kernel identity and embedded artifact provenance now also allow safe
 `kernels::load(&context)?` in the GPT constructor.
 
@@ -1327,3 +1327,24 @@ Counter-run durations are separate from end-to-end timings. Artifacts are in
 `embedding-slices-control-repeat` and `embedding-slices-repeat`, and the
 epoch is in `epoch-embedding-slices`. Optimization is paused at the user's
 request after this validated slice change.
+
+## Borrowed CUDA buffer views
+
+CUDA Rust revision `760d4aa3` adds checked `DeviceView` and `DeviceViewMut`
+borrows. Generated synchronous launchers accept these views as well as owning
+buffers. Complete byte extents and destination alignment are checked before
+reinterpreting elements; Rust borrowing prevents mutation during a read view,
+overlapping mutable views, and escaping a callback borrow.
+
+Mesh GPT now uses the library's `with_chunks` method instead of transferring
+buffer ownership into a temporary typed owner and restoring it after launch.
+This removes 17 lines from the GPU client and leaves allocation ownership
+unchanged on success, callback error, or panic. No kernel equations change.
+
+Validation includes CUDA Core GPU tests and compile-failure lifetime tests,
+CUDA Host launcher tests, macro semantic tests, the full Mesh GPT GPU verifier,
+CPU tests, and strict Clippy. Both local-checkout and published-Git builds pass.
+The complete mod-97 epoch produces a checkpoint byte-identical to
+`epoch-embedding-slices/model.bin`. New artifacts are under
+`target/cuda-sdk-work`, including `verify-views-published.txt` and
+`epoch-views-published`.

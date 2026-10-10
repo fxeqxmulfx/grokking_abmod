@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use cuda_core::{
-    CudaContext, CudaStream, DeviceBuffer, LaunchConfig1D, LaunchContractError, LaunchDimension,
+    CudaContext, CudaStream, DeviceBuffer, DeviceViewMut, LaunchConfig1D, LaunchContractError,
+    LaunchDimension,
 };
 use cuda_device::{DisjointSlice, device, kernel, launch_bounds, launch_contract, thread, warp};
 use cuda_host::cuda_module;
@@ -1821,7 +1822,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             } else {
                 &before[layer - 1]
             };
-            with_buffer_chunks(&self.stream, &mut after[0], |output| {
+            after[0].with_chunks(|output| {
                 let launch = self
                     .module
                     .prepare_gpt_mesh::<W, 0>(config::<1>(output.len())?)?;
@@ -1838,7 +1839,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     &self.parameters[embedding].state,
                     output,
                 )
-            })?;
+            })??;
         }
         Ok(())
     }
@@ -1849,7 +1850,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         let embedding_output = c.attention_mesh_depth - 1;
         // Store tokens contiguously for each channel so neighboring head threads
         // read adjacent vocabulary values. The tied vectors are still generated once.
-        with_buffer_chunks(&self.stream, &mut workspace.head_embedding, |output| {
+        workspace.head_embedding.with_chunks(|output| {
             let launch = self
                 .module
                 .prepare_gpt_embedding_transpose::<W, V>(config::<1>(output.len())?)?;
@@ -1861,11 +1862,11 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &workspace.embeddings[embedding_output],
                 output,
             )
-        })?;
+        })??;
         for (out, op) in self.plan.ops.iter().enumerate() {
             match *op {
                 Op::Embed => {
-                    with_buffer_chunks(&self.stream, &mut workspace.features[out], |output| {
+                    workspace.features[out].with_chunks(|output| {
                         let launch = self
                             .module
                             .prepare_gpt_embed::<W>(config::<1>(output.len())?)?;
@@ -1878,7 +1879,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &workspace.embeddings[embedding_output],
                             output,
                         )
-                    })?;
+                    })??;
                 }
                 Op::RmsNorm { heads, input } => {
                     let (before, after) = workspace.features.split_at_mut(out);
@@ -1899,7 +1900,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     residual,
                 } => {
                     let (before, after) = workspace.features.split_at_mut(out);
-                    with_buffer_chunks(&self.stream, &mut after[0], |output| {
+                    after[0].with_chunks(|output| {
                         let launch = self
                             .module
                             .prepare_gpt_mesh::<W, 0>(config::<1>(output.len())?)?;
@@ -1916,11 +1917,11 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &self.parameters[group].state,
                             output,
                         )
-                    })?;
+                    })??;
                 }
                 Op::Rotary { input } => {
                     let (before, after) = workspace.features.split_at_mut(out);
-                    with_buffer_chunks(&self.stream, &mut after[0], |output| {
+                    after[0].with_chunks(|output| {
                         let launch = self
                             .module
                             .prepare_gpt_rope::<W, C>(config::<1>(output.len())?)?;
@@ -1934,7 +1935,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &before[input],
                             output,
                         )
-                    })?;
+                    })??;
                 }
                 Op::Attention {
                     query,
@@ -1946,7 +1947,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 }
                 Op::Exclusive { input, value } => {
                     let (before, after) = workspace.features.split_at_mut(out);
-                    with_buffer_chunks(&self.stream, &mut after[0], |output| {
+                    after[0].with_chunks(|output| {
                         let launch = self
                             .module
                             .prepare_gpt_exclusive::<W>(config::<1>(output.len())?)?;
@@ -1959,11 +1960,11 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &before[value],
                             output,
                         )
-                    })?;
+                    })??;
                 }
             }
         }
-        with_buffer_chunks(&self.stream, &mut workspace.logits, |output| {
+        workspace.logits.with_chunks(|output| {
             let launch = self
                 .module
                 .prepare_gpt_head::<W, V>(config::<1>(output.len())?)?;
@@ -1976,7 +1977,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &workspace.head_embedding,
                 output,
             )
-        })?;
+        })??;
         Ok(())
     }
 
@@ -2029,7 +2030,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     fn backward(&mut self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
         workspace.initialized.fill(false);
-        with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
+        workspace.scratch[0].with_chunks(|output| {
             let launch = self
                 .module
                 .prepare_gpt_head_backward::<W, V>(config::<1>(output.len())?)?;
@@ -2042,7 +2043,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &workspace.embeddings[c.attention_mesh_depth - 1],
                 output,
             )
-        })?;
+        })??;
         self.accumulate_scratch(workspace, self.plan.final_features, 0)?;
 
         for out in (0..self.plan.ops.len()).rev() {
@@ -2113,7 +2114,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &mut parameters.gradient,
                         )?;
                     }
-                    with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
+                    workspace.scratch[0].with_chunks(|output| {
                         let launch = self
                             .module
                             .prepare_gpt_mesh::<W, 1>(config::<1>(output.len())?)?;
@@ -2130,7 +2131,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &parameters.state,
                             output,
                         )
-                    })?;
+                    })??;
                     self.accumulate_scratch(workspace, input, 0)?;
                     if let Some(residual) = residual {
                         // Linear projection backward is finished; transfer its gradient ownership.
@@ -2138,7 +2139,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     }
                 }
                 Op::Rotary { input } => {
-                    with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
+                    workspace.scratch[0].with_chunks(|output| {
                         let launch = self
                             .module
                             .prepare_gpt_rope::<W, C>(config::<1>(output.len())?)?;
@@ -2152,7 +2153,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &workspace.adjoints[gradient_slot],
                             output,
                         )
-                    })?;
+                    })??;
                     self.accumulate_scratch(workspace, input, 0)?;
                 }
                 Op::Attention {
@@ -2168,24 +2169,26 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 }
                 Op::Exclusive { input, value } => {
                     let (dy, rest) = workspace.scratch.split_at_mut(1);
-                    with_buffer_chunks(&self.stream, &mut dy[0], |dy| {
-                        with_buffer_chunks(&self.stream, &mut rest[0], |dv| {
-                            let launch = self
-                                .module
-                                .prepare_gpt_exclusive_backward::<W>(config::<1>(dy.len())?)?;
-                            self.module.gpt_exclusive_backward(
-                                &self.stream,
-                                &launch,
-                                c.width,
-                                c.heads,
-                                &workspace.features[input],
-                                &workspace.features[value],
-                                &workspace.adjoints[gradient_slot],
-                                dy,
-                                dv,
-                            )
-                        })
-                    })?;
+                    dy[0].with_chunks(|dy| {
+                        rest[0]
+                            .with_chunks(|dv| {
+                                let launch = self
+                                    .module
+                                    .prepare_gpt_exclusive_backward::<W>(config::<1>(dy.len())?)?;
+                                self.module.gpt_exclusive_backward(
+                                    &self.stream,
+                                    &launch,
+                                    c.width,
+                                    c.heads,
+                                    &workspace.features[input],
+                                    &workspace.features[value],
+                                    &workspace.adjoints[gradient_slot],
+                                    dy,
+                                    dv,
+                                )
+                            })?
+                            .map_err(Box::<dyn std::error::Error>::from)
+                    })??;
                     self.accumulate_scratch(workspace, input, 0)?;
                     // V receives this local contribution and the subsequent
                     // attention contribution gathered from all causal queries.
@@ -2212,24 +2215,20 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             &workspace.features[self.plan.final_features],
             &mut workspace.embedding_gradient_partials,
         )?;
-        with_buffer_chunks(
-            &self.stream,
-            &mut workspace.embedding_adjoints[embedding_output],
-            |output| {
-                let launch = self
-                    .module
-                    .prepare_gpt_embedding_gradient_reduce::<W>(config::<1>(output.len())?)?;
-                self.module.gpt_embedding_gradient_reduce(
-                    &self.stream,
-                    &launch,
-                    c.width,
-                    c.vocab_size,
-                    chunks,
-                    &workspace.embedding_gradient_partials,
-                    output,
-                )
-            },
-        )?;
+        workspace.embedding_adjoints[embedding_output].with_chunks(|output| {
+            let launch = self
+                .module
+                .prepare_gpt_embedding_gradient_reduce::<W>(config::<1>(output.len())?)?;
+            self.module.gpt_embedding_gradient_reduce(
+                &self.stream,
+                &launch,
+                c.width,
+                c.vocab_size,
+                chunks,
+                &workspace.embedding_gradient_partials,
+                output,
+            )
+        })??;
         // Combine repeated input lookups with the dense head contribution
         // before traversing the shared embedding mesh exactly once.
         let group = &mut self.parameters[self.layout.embedding];
@@ -2253,7 +2252,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             )?;
             if layer > 0 {
                 let (before, after) = workspace.embedding_adjoints.split_at_mut(layer);
-                with_buffer_chunks(&self.stream, &mut before[layer - 1], |output| {
+                before[layer - 1].with_chunks(|output| {
                     let launch = self
                         .module
                         .prepare_gpt_mesh::<W, 1>(config::<1>(output.len())?)?;
@@ -2270,7 +2269,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         &group.state,
                         output,
                     )
-                })?;
+                })??;
             }
         }
         Ok(())
@@ -2302,23 +2301,25 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 statistics,
             )?;
         }
-        with_buffer_chunks(&self.stream, output, |output| {
-            let launch = self
-                .module
-                .prepare_gpt_rmsnorm_apply::<W>(config::<1>(output.len())?)?;
-            self.module.gpt_rmsnorm_apply(
-                &self.stream,
-                &launch,
-                heads,
-                head_width,
-                backward,
-                input,
-                if backward == 1 { gradient } else { input },
-                normalized,
-                statistics,
-                output,
-            )
-        })
+        output
+            .with_chunks(|output| {
+                let launch = self
+                    .module
+                    .prepare_gpt_rmsnorm_apply::<W>(config::<1>(output.len())?)?;
+                self.module.gpt_rmsnorm_apply(
+                    &self.stream,
+                    &launch,
+                    heads,
+                    head_width,
+                    backward,
+                    input,
+                    if backward == 1 { gradient } else { input },
+                    normalized,
+                    statistics,
+                    output,
+                )
+            })?
+            .map_err(Box::<dyn std::error::Error>::from)
     }
 
     fn attention<const BACKWARD: usize>(
@@ -2366,7 +2367,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &mut workspace.norm_statistics,
             )?;
         }
-        with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
+        workspace.scratch[0].with_chunks(|output| {
             let launch = self
                 .module
                 .prepare_gpt_feature_transpose::<W>(config::<1>(output.len())?)?;
@@ -2377,12 +2378,10 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 &workspace.features[if BACKWARD == 1 { value } else { key }],
                 output,
             )
-        })?;
-        with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |transposed| {
-            with_buffer_chunks(
-                &self.stream,
-                &mut workspace.probabilities[cache],
-                |output: &mut DeviceBuffer<[f32; PACK]>| {
+        })??;
+        workspace.scratch[0].with_chunks(|transposed| {
+            workspace.probabilities[cache]
+                .with_chunks(|output: &mut DeviceViewMut<'_, [f32; PACK]>| {
                     let launch = self
                         .module
                         .prepare_gpt_attention_scores_serial::<W, C, H, TILE, BACKWARD, PACK>(
@@ -2407,9 +2406,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         &workspace.norm_statistics,
                         output,
                     )
-                },
-            )
-        })?;
+                })?
+                .map_err(Box::<dyn std::error::Error>::from)
+        })??;
         Ok(())
     }
 
@@ -2434,10 +2433,8 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         if workspace.sequence >= 32 {
             self.serial_scores::<TILE, BACKWARD, PACK>(workspace, gradient_slot, inputs, cache)?;
         } else {
-            with_buffer_chunks(
-                &self.stream,
-                &mut workspace.probabilities[cache],
-                |output: &mut DeviceBuffer<[f32; TILE]>| {
+            workspace.probabilities[cache].with_chunks(
+                |output: &mut DeviceViewMut<'_, [f32; TILE]>| {
                     let launch = self
                         .module
                         .prepare_gpt_attention_scores::<W, C, H, TILE, BACKWARD>(config::<32>(
@@ -2464,7 +2461,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     )?;
                     Ok::<_, Box<dyn std::error::Error>>(())
                 },
-            )?;
+            )??;
         }
         if BACKWARD == 0 {
             let sequence = workspace.sequence;
@@ -2516,29 +2513,31 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             return Ok(());
         }
         let (dq, rest) = workspace.scratch.split_at_mut(1);
-        with_buffer_chunks(&self.stream, &mut dq[0], |dq| {
-            with_buffer_chunks(&self.stream, &mut rest[0], |dk| {
-                let launch = self
-                    .module
-                    .prepare_gpt_attention_backward::<W, C, H, TILE>(config::<1>(dq.len())?)?;
-                self.module.gpt_attention_backward(
-                    &self.stream,
-                    &launch,
-                    c.width,
-                    c.heads,
-                    workspace.sequence,
-                    workspace.sequence / TILE,
-                    workspace.sequence % TILE,
-                    workspace.rows / workspace.sequence,
-                    kernels::causal_blocks(workspace.sequence, TILE),
-                    &workspace.features[query],
-                    &workspace.features[key],
-                    &workspace.probabilities[cache],
-                    dq,
-                    dk,
-                )
-            })
-        })?;
+        dq[0].with_chunks(|dq| {
+            rest[0]
+                .with_chunks(|dk| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_attention_backward::<W, C, H, TILE>(config::<1>(dq.len())?)?;
+                    self.module.gpt_attention_backward(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.heads,
+                        workspace.sequence,
+                        workspace.sequence / TILE,
+                        workspace.sequence % TILE,
+                        workspace.rows / workspace.sequence,
+                        kernels::causal_blocks(workspace.sequence, TILE),
+                        &workspace.features[query],
+                        &workspace.features[key],
+                        &workspace.probabilities[cache],
+                        dq,
+                        dk,
+                    )
+                })?
+                .map_err(Box::<dyn std::error::Error>::from)
+        })??;
         Ok(())
     }
 
@@ -2549,25 +2548,27 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         probabilities: &DeviceBuffer<f32>,
         output: &mut DeviceBuffer<Features<W>>,
     ) -> Result<()> {
-        with_buffer_chunks(&self.stream, output, |output| {
-            let launch = self
-                .module
-                .prepare_gpt_attention_context::<W, TILE, COLUMN>(config::<1>(output.len())?)?;
-            self.module.gpt_attention_context(
-                &self.stream,
-                &launch,
-                self.config.width,
-                self.config.heads,
-                sequence,
-                sequence / TILE,
-                sequence % TILE,
-                value.len() / sequence,
-                kernels::causal_blocks(sequence, TILE),
-                value,
-                probabilities,
-                output,
-            )
-        })
+        output
+            .with_chunks(|output| {
+                let launch = self
+                    .module
+                    .prepare_gpt_attention_context::<W, TILE, COLUMN>(config::<1>(output.len())?)?;
+                self.module.gpt_attention_context(
+                    &self.stream,
+                    &launch,
+                    self.config.width,
+                    self.config.heads,
+                    sequence,
+                    sequence / TILE,
+                    sequence % TILE,
+                    value.len() / sequence,
+                    kernels::causal_blocks(sequence, TILE),
+                    value,
+                    probabilities,
+                    output,
+                )
+            })?
+            .map_err(Box::<dyn std::error::Error>::from)
     }
 
     fn add_features(
@@ -2576,19 +2577,21 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         right: &DeviceBuffer<Features<W>>,
         output: &mut DeviceBuffer<Features<W>>,
     ) -> Result<()> {
-        with_buffer_chunks(&self.stream, output, |output| {
-            let launch = self
-                .module
-                .prepare_gpt_add::<W>(config::<1>(output.len())?)?;
-            self.module.gpt_add(
-                &self.stream,
-                &launch,
-                self.config.width,
-                left,
-                right,
-                output,
-            )
-        })
+        output
+            .with_chunks(|output| {
+                let launch = self
+                    .module
+                    .prepare_gpt_add::<W>(config::<1>(output.len())?)?;
+                self.module.gpt_add(
+                    &self.stream,
+                    &launch,
+                    self.config.width,
+                    left,
+                    right,
+                    output,
+                )
+            })?
+            .map_err(Box::<dyn std::error::Error>::from)
     }
 
     fn accumulate_scratch(
@@ -2630,33 +2633,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     }
 }
 
-/// Reuse the same allocation through checked, owning array casts. No aliasing
-/// view, copy, or device allocation is introduced; restore rows even on launch error.
-fn with_buffer_chunks<
-    Row: cuda_core::DeviceCopy,
-    Element: cuda_core::DeviceCopy,
-    E: Into<Box<dyn std::error::Error>>,
->(
-    stream: &CudaStream,
-    buffer: &mut DeviceBuffer<Row>,
-    run: impl FnOnce(&mut DeviceBuffer<Element>) -> std::result::Result<(), E>,
-) -> Result<()> {
-    let empty = DeviceBuffer::zeroed(stream, 0)?;
-    let rows = std::mem::replace(buffer, empty);
-    let mut elements = match rows.cast_chunks::<Element>() {
-        Ok(elements) => elements,
-        Err(rows) => {
-            *buffer = rows;
-            return Err("allocation cannot be grouped into the requested elements".into());
-        }
-    };
-    let result = run(&mut elements).map_err(Into::into);
-    *buffer = elements
-        .cast_chunks::<Row>()
-        .map_err(|_| "allocation cannot be restored to its original rows")?;
-    result
-}
-
 fn mesh_gradient<const W: usize, const ROWS: usize>(
     module: &kernels::LoadedModule,
     stream: &Arc<CudaStream>,
@@ -2665,21 +2641,23 @@ fn mesh_gradient<const W: usize, const ROWS: usize>(
     output: &mut DeviceBuffer<f32>,
 ) -> Result<()> {
     let [width, offset, chunks, activated] = geometry;
-    with_buffer_chunks(stream, output, |output: &mut DeviceBuffer<[f32; 2]>| {
-        let launch = module.prepare_gpt_mesh_gradient::<W, ROWS>(config::<1>(output.len())?)?;
-        module.gpt_mesh_gradient(
-            stream,
-            &launch,
-            width,
-            offset,
-            activated,
-            chunks,
-            features[0],
-            features[1],
-            features[2],
-            output,
-        )
-    })
+    output
+        .with_chunks(|output: &mut DeviceViewMut<'_, [f32; 2]>| {
+            let launch = module.prepare_gpt_mesh_gradient::<W, ROWS>(config::<1>(output.len())?)?;
+            module.gpt_mesh_gradient(
+                stream,
+                &launch,
+                width,
+                offset,
+                activated,
+                chunks,
+                features[0],
+                features[1],
+                features[2],
+                output,
+            )
+        })?
+        .map_err(Box::<dyn std::error::Error>::from)
 }
 
 fn config<const LANES: usize>(
@@ -2940,41 +2918,43 @@ mod verification {
                             256,
                             EMBEDDING_GRADIENT_ROWS,
                         >(config::<1>(partials.len())?)?;
-                    let run_partials = |chunks, output: &mut DeviceBuffer<f32>| {
-                        model.module.gpt_embedding_gradient_partials(
-                            &model.stream,
-                            &launch,
-                            width,
-                            vocab,
-                            chunks,
-                            &tokens_gpu,
-                            &input_gpu,
-                            &gradient_gpu,
-                            &features_gpu,
-                            output,
-                        )
-                    };
+                    let run_partials =
+                        |chunks, output: &mut dyn cuda_host::KernelSliceArgMut<Elem = f32>| {
+                            model.module.gpt_embedding_gradient_partials(
+                                &model.stream,
+                                &launch,
+                                width,
+                                vocab,
+                                chunks,
+                                &tokens_gpu,
+                                &input_gpu,
+                                &gradient_gpu,
+                                &features_gpu,
+                                output,
+                            )
+                        };
                     run_partials(chunks, &mut partials)?;
                     let mut output: DeviceBuffer<Features> =
                         DeviceBuffer::from_host(&model.stream, &vec![[42.0; MAX_WIDTH]; vocab])?;
-                    with_buffer_chunks(&model.stream, &mut output, |output| {
+                    output.with_chunks(|output| {
                         let reduce =
                             model
                                 .module
                                 .prepare_gpt_embedding_gradient_reduce::<128>(config::<1>(
                                     output.len(),
                                 )?)?;
-                        let run_reduce = |chunks, output: &mut DeviceBuffer<f32>| {
-                            model.module.gpt_embedding_gradient_reduce(
-                                &model.stream,
-                                &reduce,
-                                width,
-                                vocab,
-                                chunks,
-                                &partials,
-                                output,
-                            )
-                        };
+                        let run_reduce =
+                            |chunks, output: &mut dyn cuda_host::KernelSliceArgMut<Elem = f32>| {
+                                model.module.gpt_embedding_gradient_reduce(
+                                    &model.stream,
+                                    &reduce,
+                                    width,
+                                    vocab,
+                                    chunks,
+                                    &partials,
+                                    output,
+                                )
+                            };
                         run_reduce(chunks, output)?;
                         let mut short = DeviceBuffer::zeroed(&model.stream, output.len() - 1)?;
                         assert!(run_reduce(chunks, &mut short).is_err());
@@ -2982,7 +2962,7 @@ mod verification {
                             assert!(run_reduce(count, output).is_err());
                         }
                         Ok::<_, cuda_core::LaunchContractError>(())
-                    })?;
+                    })??;
                     let output = output.to_host_vec(&model.stream)?;
                     for token in 0..vocab {
                         for channel in 0..width {
@@ -3346,18 +3326,20 @@ mod verification {
                               inverse,
                               source: &DeviceBuffer<Features>,
                               target: &mut DeviceBuffer<Features>| {
-                    with_buffer_chunks(&model.stream, target, |target| {
-                        model.module.gpt_rope(
-                            &model.stream,
-                            &launch,
-                            heads,
-                            half_width,
-                            sequence,
-                            inverse,
-                            source,
-                            target,
-                        )
-                    })
+                    target
+                        .with_chunks(|target| {
+                            model.module.gpt_rope(
+                                &model.stream,
+                                &launch,
+                                heads,
+                                half_width,
+                                sequence,
+                                inverse,
+                                source,
+                                target,
+                            )
+                        })?
+                        .map_err(Box::<dyn std::error::Error>::from)
                 };
                 for sequence in [1, 3, 128] {
                     for (source, target, inverse) in [
@@ -3470,11 +3452,11 @@ mod verification {
                 let mut output = DeviceBuffer::from_host(&model.stream, &sentinel)?;
                 let mut dy = DeviceBuffer::from_host(&model.stream, &sentinel)?;
                 let mut dv = DeviceBuffer::from_host(&model.stream, &sentinel)?;
-                with_buffer_chunks(&model.stream, &mut output, |output| {
+                output.with_chunks(|output| {
                     let launch = model
                         .module
                         .prepare_gpt_exclusive::<128>(config::<1>(output.len())?)?;
-                    let run = |width, heads, output: &mut DeviceBuffer<f32>| {
+                    let run = |width, heads, output: &mut dyn cuda_host::KernelSliceArgMut<Elem = f32>| {
                         model.module.gpt_exclusive(
                             &model.stream,
                             &launch,
@@ -3497,9 +3479,9 @@ mod verification {
                     let mut short = DeviceBuffer::zeroed(&model.stream, output.len() - 1)?;
                     assert!(run(width, heads, &mut short).is_err());
                     Ok::<_, Box<dyn std::error::Error>>(())
-                })?;
-                with_buffer_chunks(&model.stream, &mut dy, |dy| {
-                    with_buffer_chunks(&model.stream, &mut dv, |dv| {
+                })??;
+                dy.with_chunks(|dy| {
+                    dv.with_chunks(|dv| {
                         let launch = model
                             .module
                             .prepare_gpt_exclusive_backward::<128>(config::<1>(dy.len())?)?;
@@ -3514,8 +3496,9 @@ mod verification {
                             dy,
                             dv,
                         )
-                    })
-                })?;
+                    })?
+                    .map_err(Box::<dyn std::error::Error>::from)
+                })??;
                 let output = output.to_host_vec(&model.stream)?;
                 let dy = dy.to_host_vec(&model.stream)?;
                 let dv = dv.to_host_vec(&model.stream)?;
