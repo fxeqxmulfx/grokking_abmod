@@ -38,5 +38,5 @@ pub(crate) const XSA_EPSILON: f32 = 1e-12;
 pub(crate) type Features<const W: usize = MAX_WIDTH> = [f32; W];
 pub(crate) type Attention<const C: usize = MAX_CONTEXT, const H: usize = MAX_HEADS> = [[f32; C]; H];
 pub(crate) type Vocabulary<const V: usize = MAX_VOCAB> = [f32; V];
-// Each channel owns its normalized value and inverse RMS, including parallel writes.
-pub(crate) type NormCache<const W: usize = MAX_WIDTH> = [[f32; 2]; W];
+// Shared scratch for inverse RMS and the backward gradient projection.
+pub(crate) type NormStats = [f32; 2];

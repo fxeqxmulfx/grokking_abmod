@@ -113,11 +113,11 @@ dependencies and CUDA compiler backend use revision
 Generic kernel identity and embedded artifact provenance now also allow safe
 `kernels::load(&context)?` in the GPT constructor.
 
-RMSNorm and QK-Norm now assign one thread per output channel when the capacity
-and active head width are multiples of 32. Each complete warp cooperatively
-reduces squared inputs or the backward dot product. Smaller and unaligned
-shapes use the original serial reduction. The cache stores each channel's
-normalized value beside its inverse RMS so typed disjoint writes remain safe.
+The earlier RMSNorm and QK-Norm optimization assigned one thread per output channel when the capacity
+and active head width were multiples of 32. Each complete warp cooperatively
+reduced squared inputs or the backward dot product. Smaller and unaligned
+shapes used the original serial reduction. The cache stored each channel's
+normalized value beside its inverse RMS so typed disjoint writes remained safe.
 Checked launch contracts reject incomplete head geometry and overflowing
 dimensions; the forward and backward paths retain FP32 arithmetic.
 The new 25-update trace measures normalization forward/backward together at
@@ -321,6 +321,17 @@ previous binary; the narrow workload differs by at most `3.58e-7` (relative L2
 `6.16e-8`). All CPU tests, strict Clippy, both CUDA verification suites, invalid
 launch checks, and the complete mod-97 epoch pass.
 
+## Current optimization criteria
+
+Continue measured FP32 optimization while reducing unnecessary code and GPU
+memory, using ordinary Rust and const generics without new macros. Memory
+savings are an independently useful result even when throughput is unchanged.
+Report both memory saved and timing tradeoffs, and use the freed capacity for
+larger batches, wider/deeper models, and longer contexts. Retain fixed-shape
+comparisons separately from stress shapes adjusted to use about 3 GiB. Preserve
+the architecture, numerical checks, safe client APIs, and English repository
+content; run Python through uv and commit validated progress frequently.
+
 ## Large-memory and long-context workloads
 
 The benchmark accepts `--width`, `--heads`, `--layers`, `--attention-depth`,
@@ -436,3 +447,45 @@ differs from the preceding implementation by at most `5.96e-8` after 15 updates
 (relative L2 `9.94e-9`); the widest case differs by `4.02e-4` (relative L2
 `1.70e-5`). The saved binaries and all six checkpoint comparisons remain in
 the ignored profile directory.
+
+### Shared normalization statistics
+
+RMSNorm now uses two kernel definitions for all shapes: one warp per head
+computes statistics, then scalar channel owners apply normalization. Backward
+recomputes the inverse RMS from retained graph inputs and reads normalized
+features already in the graph. A single scratch allocation of two FP32 values
+per row/head replaces every per-node cache. This removes duplicate normalized
+features, repeated inverse RMS values, two kernel definitions, cache IDs in the
+execution plan, and 101 Rust lines overall.
+
+| Scenario | Before (ms/update) | Shared statistics | Before memory (MiB) | After memory (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Original | 5.337 | 5.380 | 256 | 238 |
+| Large batch | 80.071 | 80.466 | 3002 | 2714 |
+| Wide model | 104.131 | 83.095 | 2932 | 2608 |
+| Deep model | 83.652 | 81.686 | 3152 | 2828 |
+| Combined | 85.020 | 76.854 | 3178 | 2838 |
+| Long context | 378.799 | 377.517 | 2882 | 2738 |
+
+These are the same fixed shapes, five warmup updates, ten timed updates, and
+three trials, with separate process-memory probes. Wide-model update time
+decreases by 20.2%, and the combined scenario by 9.6%; the original and
+large-batch timing differences are under 1%. Large scenarios free 144--340 MiB
+of actual process memory. The wide-model Nsight Systems trace measures both
+normalization kernels together at 8.546 GPU ms/update, compared with 30.749
+for normalization forward/backward in the initial wide-model trace.
+All six 15-update checkpoints are byte-identical to
+the preceding implementation. All 28 CPU tests, strict Clippy, full f64 CUDA
+verification, context learning, and the complete mod-97 epoch pass.
+
+The additional launch costs matter for small shapes. Separate 30-update,
+ten-warmup, three-trial measurements show width eight increasing from 2.480 to
+2.639 ms/update and batch one from 0.682 to 0.729. This is an explicit timing
+tradeoff for the memory saving; reducing those extra launches remains useful.
+
+An earlier single-warp-row normalization experiment saved only each head's
+inverse but made lane zero gather and store whole rows. It removed 112 Rust
+lines and saved memory, yet increased original/large-batch/deep/combined times
+to 6.187/92.881/96.233/90.673 ms. The two-pass coalesced version replaces it.
+Artifacts are in `shapes-compact-norm`, `shapes-shared-norm`, and
+`shared-norm-comparison.json` under the ignored profile directory.

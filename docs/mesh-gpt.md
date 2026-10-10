@@ -102,8 +102,10 @@ scores[h] = q[h] @ k[h].T / sqrt(head_width)
 Means are taken over the channels within one head and one token. Q and K use
 their own RMS values; heads and batch items cannot affect one another's
 normalization. V keeps the output of its mesh. The same CUDA forward/backward
-kernels implement full-width residual RMSNorm and per-head QK-Norm, storing one
-inverse RMS per normalized group. Every block always uses QK-Norm.
+kernels implement full-width residual RMSNorm and per-head QK-Norm. One shared
+scratch buffer holds each group's inverse RMS and gradient projection; backward
+recomputes the inverse from graph inputs instead of retaining per-node caches.
+Every block always uses QK-Norm.
 
 ### Slice RoPE
 
@@ -387,7 +389,7 @@ It checks isolated CUDA full-width RMSNorm and per-head QK-Norm outputs and
 input derivatives against f64 autodiff for widths 2, 4, 6, 12, 32, 64, and 128,
 with head counts 1, 2, 4, and 8,
 zero/tiny/constant inputs, 129-row batch tails, and rejected invalid launch
-arguments, including oversized channel/head combinations and cache length
+arguments, including oversized channel/head combinations and statistics length
 mismatches.
 
 CUDA/reference checks additionally cover compact buffers, non-power-of-two

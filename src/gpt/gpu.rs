@@ -7,7 +7,7 @@ use cuda_host::cuda_module;
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    AdamWOptions, Attention, Features, GptConfig, IGNORE_TARGET, NormCache, RMSNORM_EPSILON,
+    AdamWOptions, Attention, Features, GptConfig, IGNORE_TARGET, NormStats, RMSNORM_EPSILON,
     ROPE_BASE, Vocabulary, XSA_EPSILON,
     config::{Layout, token_codes},
 };
@@ -52,72 +52,37 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         heads >= 1, heads <= W, head_width >= 2, head_width <= W,
-        heads * head_width <= W,
-        out.len() == input.len(), cache.len() == input.len()))]
-    pub fn gpt_rmsnorm<const W: usize>(
+        heads * head_width <= W, backward <= 1,
+        gradient.len() == input.len(), normalized.len() == input.len(),
+        out.len() >= input.len() * heads))]
+    pub fn gpt_rmsnorm_statistics<const W: usize>(
         heads: usize,
         head_width: usize,
+        backward: usize,
         input: &[Features<W>],
-        mut out: DisjointSlice<Features<W>>,
-        mut cache: DisjointSlice<NormCache<W>>,
+        gradient: &[Features<W>],
+        normalized: &[Features<W>],
+        mut out: DisjointSlice<NormStats, thread::WarpIndex>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
-        if let Some(output) = out.get_mut(index)
-            && let Some(saved) = cache.get_mut(thread::index_1d())
-        {
-            for head in 0..heads {
-                let begin = head * head_width;
-                let mut squares = 0.0;
-                for channel in begin..begin + head_width {
-                    let x = input[row][channel];
-                    squares += x * x;
-                }
-                let inverse = 1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt();
-                for channel in begin..begin + head_width {
-                    saved[channel] = [input[row][channel] * inverse, inverse];
-                    output[channel] = saved[channel][0];
-                }
-            }
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        _capacity_warps >= 1, W == _capacity_warps * 32, heads >= 1,
-        head_warps >= 1, heads * head_warps <= _capacity_warps,
-        out.len() == input.len() * W, cache.len() == out.len()))]
-    pub fn gpt_rmsnorm_parallel<const W: usize>(
-        _capacity_warps: usize,
-        heads: usize,
-        head_warps: usize,
-        input: &[Features<W>],
-        mut out: DisjointSlice<f32>,
-        mut cache: DisjointSlice<[f32; 2]>,
-    ) {
-        let head_width = head_warps * 32;
-        let index = thread::index_1d();
-        let row = index.get() / W;
-        let channel = index.get() % W;
-        // Row, head, and capacity boundaries align with complete hardware warps.
-        if row >= input.len() || channel >= heads * head_width {
+        let slot = index.get() / 32;
+        let row = slot / heads;
+        let begin = slot % heads * head_width;
+        let lane = index.get() % 32;
+        if row >= input.len() {
             return;
         }
-        let begin = channel / head_width * head_width;
-        let lane = channel % 32;
-        let mut squares = 0.0;
-        for local in (lane..head_width).step_by(32) {
-            let x = input[row][begin + local];
-            squares += x * x;
-        }
-        let squares = warp::reduce_sum_f32(squares);
-        let inverse = 1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt();
-        if let Some(output) = out.get_mut(index)
-            && let Some(saved) = cache.get_mut(thread::index_1d())
-        {
-            *output = input[row][channel] * inverse;
-            *saved = [*output, inverse];
+        let squares = attention_dot(begin, head_width, lane, &input[row], &input[row]);
+        let dot = if backward == 1 {
+            attention_dot(begin, head_width, lane, &gradient[row], &normalized[row])
+        } else {
+            0.0
+        };
+        if let Some(output) = warp_output(&mut out) {
+            *output = [
+                1.0 / (squares / head_width as f32 + RMSNORM_EPSILON).sqrt(),
+                dot,
+            ];
         }
     }
 
@@ -592,64 +557,33 @@ mod kernels {
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         heads >= 1, heads <= W, head_width >= 2, head_width <= W,
-        heads * head_width <= W,
-        gradient.len() == cache.len(), out.len() == cache.len()))]
-    pub fn gpt_rmsnorm_backward<const W: usize>(
+        heads * head_width <= W, backward <= 1,
+        normalized.len() == input.len(), statistics.len() >= input.len() * heads,
+        out.len() == input.len() * W))]
+    pub fn gpt_rmsnorm_apply<const W: usize>(
         heads: usize,
         head_width: usize,
-        gradient: &[Features<W>],
-        cache: &[NormCache<W>],
-        mut out: DisjointSlice<Features<W>>,
-    ) {
-        let index = thread::index_1d();
-        let row = index.get();
-        if let Some(output) = out.get_mut(index) {
-            for head in 0..heads {
-                let begin = head * head_width;
-                let mut dot = 0.0;
-                for channel in begin..begin + head_width {
-                    dot += gradient[row][channel] * cache[row][channel][0];
-                }
-                for channel in begin..begin + head_width {
-                    output[channel] = cache[row][channel][1]
-                        * (gradient[row][channel]
-                            - cache[row][channel][0] * dot / head_width as f32);
-                }
-            }
-        }
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        _capacity_warps >= 1, W == _capacity_warps * 32, heads >= 1,
-        head_warps >= 1, heads * head_warps <= _capacity_warps,
-        gradient.len() == cache.len(), out.len() == cache.len() * W))]
-    pub fn gpt_rmsnorm_backward_parallel<const W: usize>(
-        _capacity_warps: usize,
-        heads: usize,
-        head_warps: usize,
-        gradient: &[Features<W>],
-        cache: &[NormCache<W>],
+        backward: usize,
+        input: &[Features<W>],
+        normalized: &[Features<W>],
+        statistics: &[NormStats],
         mut out: DisjointSlice<f32>,
     ) {
-        let head_width = head_warps * 32;
         let index = thread::index_1d();
         let row = index.get() / W;
         let channel = index.get() % W;
-        if row >= gradient.len() || channel >= heads * head_width {
-            return;
-        }
-        let begin = channel / head_width * head_width;
-        let lane = channel % 32;
-        let mut dot = 0.0;
-        for local in (lane..head_width).step_by(32) {
-            dot += gradient[row][begin + local] * cache[row][begin + local][0];
-        }
-        let dot = warp::reduce_sum_f32(dot);
         if let Some(output) = out.get_mut(index) {
-            *output = cache[row][channel][1]
-                * (gradient[row][channel] - cache[row][channel][0] * dot / head_width as f32);
+            if channel >= heads * head_width {
+                return;
+            }
+            let [inverse, dot] = statistics[row * heads + channel / head_width];
+            let value = input[row][channel];
+            *output = inverse
+                * if backward == 1 {
+                    value - normalized[row][channel] * dot / head_width as f32
+                } else {
+                    value
+                };
         }
     }
 
@@ -988,7 +922,6 @@ enum Op {
         heads: usize,
         input: usize,
         out: usize,
-        cache: usize,
     },
     Mesh {
         group: usize,
@@ -1023,7 +956,6 @@ enum Op {
 struct Plan {
     ops: Vec<Op>,
     features: usize,
-    norms: usize,
     attentions: usize,
     final_features: usize,
 }
@@ -1033,7 +965,6 @@ impl Plan {
         let mut plan = Self {
             ops: vec![Op::Embed { out: 0 }],
             features: 1,
-            norms: 0,
             attentions: 0,
             final_features: 0,
         };
@@ -1079,14 +1010,7 @@ impl Plan {
     }
     fn rmsnorm(&mut self, input: usize, heads: usize) -> usize {
         let out = self.feature();
-        let cache = self.norms;
-        self.norms += 1;
-        self.ops.push(Op::RmsNorm {
-            heads,
-            input,
-            out,
-            cache,
-        });
+        self.ops.push(Op::RmsNorm { heads, input, out });
         out
     }
     fn mesh(&mut self, mut input: usize, group: usize, depth: usize) -> usize {
@@ -1133,7 +1057,7 @@ struct Workspace<const W: usize, const V: usize, const C: usize, const H: usize>
     mesh_gradient_partials: DeviceBuffer<f32>,
     features: Vec<DeviceBuffer<Features<W>>>,
     adjoints: Vec<DeviceBuffer<Features<W>>>,
-    norms: Vec<DeviceBuffer<NormCache<W>>>,
+    norm_statistics: DeviceBuffer<NormStats>,
     probabilities: Vec<DeviceBuffer<Attention<C, H>>>,
     scores: DeviceBuffer<Attention<C, H>>,
     scratch: Vec<DeviceBuffer<Features<W>>>,
@@ -1179,7 +1103,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             )?,
             features: buffers(stream, plan.features, rows)?,
             adjoints: buffers(stream, plan.features, rows)?,
-            norms: buffers(stream, plan.norms, rows)?,
+            norm_statistics: DeviceBuffer::zeroed(stream, rows * config.heads)?,
             probabilities: buffers(stream, plan.attentions, rows)?,
             scores: DeviceBuffer::zeroed(stream, rows)?,
             scratch: buffers(stream, 4, rows)?,
@@ -1290,7 +1214,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             .flatten()
             .map(DeviceBuffer::num_bytes)
             .sum::<usize>()
-                + w.norms.iter().map(DeviceBuffer::num_bytes).sum::<usize>()
+                + w.norm_statistics.num_bytes()
                 + w.probabilities
                     .iter()
                     .map(DeviceBuffer::num_bytes)
@@ -1572,43 +1496,16 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         &mut workspace.features[out],
                     )?;
                 }
-                Op::RmsNorm {
-                    heads,
-                    input,
-                    out,
-                    cache,
-                } => {
+                Op::RmsNorm { heads, input, out } => {
                     let (before, after) = workspace.features.split_at_mut(out);
-                    if W.is_multiple_of(32) && (c.width / heads).is_multiple_of(32) {
-                        with_buffer_chunks(&self.stream, &mut after[0], |output| {
-                            with_buffer_chunks(&self.stream, &mut workspace.norms[cache], |saved| {
-                                let launch = self
-                                    .module
-                                    .prepare_gpt_rmsnorm_parallel::<W>(config(output.len()))?;
-                                self.module.gpt_rmsnorm_parallel(
-                                    &self.stream,
-                                    &launch,
-                                    W / 32,
-                                    heads,
-                                    c.width / heads / 32,
-                                    &before[input],
-                                    output,
-                                    saved,
-                                )
-                            })
-                        })?;
-                    } else {
-                        let launch = self.module.prepare_gpt_rmsnorm::<W>(row_config)?;
-                        self.module.gpt_rmsnorm(
-                            &self.stream,
-                            &launch,
-                            heads,
-                            c.width / heads,
-                            &before[input],
-                            &mut after[0],
-                            &mut workspace.norms[cache],
-                        )?;
-                    }
+                    self.rmsnorm(
+                        heads,
+                        c.width / heads,
+                        0,
+                        [&before[input]; 3],
+                        &mut workspace.norm_statistics,
+                        &mut after[0],
+                    )?;
                 }
                 Op::Mesh {
                     group,
@@ -1758,7 +1655,6 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
 
     fn backward(&mut self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
-        let row_config = config(workspace.rows);
         workspace.initialized.fill(false);
         with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
             let launch = self
@@ -1779,40 +1675,19 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         for index in (0..self.plan.ops.len()).rev() {
             match self.plan.ops[index] {
                 Op::Embed { .. } => {}
-                Op::RmsNorm {
-                    heads,
-                    input,
-                    out,
-                    cache,
-                } => {
-                    if W.is_multiple_of(32) && (c.width / heads).is_multiple_of(32) {
-                        with_buffer_chunks(&self.stream, &mut workspace.scratch[0], |output| {
-                            let launch = self
-                                .module
-                                .prepare_gpt_rmsnorm_backward_parallel::<W>(config(output.len()))?;
-                            self.module.gpt_rmsnorm_backward_parallel(
-                                &self.stream,
-                                &launch,
-                                W / 32,
-                                heads,
-                                c.width / heads / 32,
-                                &workspace.adjoints[out],
-                                &workspace.norms[cache],
-                                output,
-                            )
-                        })?;
-                    } else {
-                        let launch = self.module.prepare_gpt_rmsnorm_backward::<W>(row_config)?;
-                        self.module.gpt_rmsnorm_backward(
-                            &self.stream,
-                            &launch,
-                            heads,
-                            c.width / heads,
+                Op::RmsNorm { heads, input, out } => {
+                    self.rmsnorm(
+                        heads,
+                        c.width / heads,
+                        1,
+                        [
+                            &workspace.features[input],
                             &workspace.adjoints[out],
-                            &workspace.norms[cache],
-                            &mut workspace.scratch[0],
-                        )?;
-                    }
+                            &workspace.features[out],
+                        ],
+                        &mut workspace.norm_statistics,
+                        &mut workspace.scratch[0],
+                    )?;
                     self.accumulate_scratch(workspace, input, 0)?;
                 }
                 Op::Mesh {
@@ -2065,6 +1940,48 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             }
         }
         Ok(())
+    }
+
+    fn rmsnorm(
+        &self,
+        heads: usize,
+        head_width: usize,
+        backward: usize,
+        inputs: [&DeviceBuffer<Features<W>>; 3],
+        statistics: &mut DeviceBuffer<NormStats>,
+        output: &mut DeviceBuffer<Features<W>>,
+    ) -> Result<()> {
+        let [input, gradient, normalized] = inputs;
+        let launch = self
+            .module
+            .prepare_gpt_rmsnorm_statistics::<W>(config(input.len() * heads * 32))?;
+        self.module.gpt_rmsnorm_statistics(
+            &self.stream,
+            &launch,
+            heads,
+            head_width,
+            backward,
+            input,
+            gradient,
+            normalized,
+            statistics,
+        )?;
+        with_buffer_chunks(&self.stream, output, |output| {
+            let launch = self
+                .module
+                .prepare_gpt_rmsnorm_apply::<W>(config(output.len()))?;
+            self.module.gpt_rmsnorm_apply(
+                &self.stream,
+                &launch,
+                heads,
+                head_width,
+                backward,
+                if backward == 1 { gradient } else { input },
+                normalized,
+                statistics,
+                output,
+            )
+        })
     }
 
     fn add_features(
@@ -2447,106 +2364,55 @@ mod verification {
                 }
                 let input_gpu = DeviceBuffer::from_host(&model.stream, &input)?;
                 let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
-                let mut output_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let mut derivative_gpu = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let mut cache = DeviceBuffer::zeroed(&model.stream, rows)?;
-                let launch = model.module.prepare_gpt_rmsnorm::<128>(config(rows))?;
+                let sentinel = vec![[42.0_f32; MAX_WIDTH]; rows];
+                let mut output_gpu = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                let mut derivative_gpu = DeviceBuffer::from_host(&model.stream, &sentinel)?;
+                let mut statistics =
+                    DeviceBuffer::from_host(&model.stream, &vec![[42.0_f32; 2]; rows * heads + 1])?;
                 let run_norm =
                     |heads,
                      head_width,
                      output: &mut DeviceBuffer<Features>,
-                     cache: &mut DeviceBuffer<NormCache>| {
-                        model.module.gpt_rmsnorm(
-                            &model.stream,
-                            &launch,
-                            heads,
-                            head_width,
-                            &input_gpu,
-                            output,
-                            cache,
-                        )
+                     statistics: &mut DeviceBuffer<NormStats>| {
+                        model.rmsnorm(heads, head_width, 0, [&input_gpu; 3], statistics, output)
                     };
-                run_norm(heads, head_width, &mut output_gpu, &mut cache)?;
-                let backward = model
-                    .module
-                    .prepare_gpt_rmsnorm_backward::<128>(config(rows))?;
+                run_norm(heads, head_width, &mut output_gpu, &mut statistics)?;
                 let run_backward =
                     |heads,
                      head_width,
-                     cache: &DeviceBuffer<NormCache>,
+                     normalized: &DeviceBuffer<Features>,
+                     statistics: &mut DeviceBuffer<NormStats>,
                      output: &mut DeviceBuffer<Features>| {
-                        model.module.gpt_rmsnorm_backward(
-                            &model.stream,
-                            &backward,
+                        model.rmsnorm(
                             heads,
                             head_width,
-                            &gradient_gpu,
-                            cache,
+                            1,
+                            [&input_gpu, &gradient_gpu, normalized],
+                            statistics,
                             output,
                         )
                     };
-                run_backward(heads, head_width, &cache, &mut derivative_gpu)?;
-                if head_width.is_multiple_of(32) {
-                    with_buffer_chunks(&model.stream, &mut output_gpu, |output| {
-                        with_buffer_chunks(&model.stream, &mut cache, |saved| {
-                            let launch = model
-                                .module
-                                .prepare_gpt_rmsnorm_parallel::<128>(config(output.len()))?;
-                            let mut run_parallel_norm = |capacity, heads, head_warps| {
-                                model.module.gpt_rmsnorm_parallel(
-                                    &model.stream,
-                                    &launch,
-                                    capacity,
-                                    heads,
-                                    head_warps,
-                                    &input_gpu,
-                                    output,
-                                    saved,
-                                )
-                            };
-                            run_parallel_norm(4, heads, head_width / 32)?;
-                            for (capacity, count, head_warps) in [
-                                (0, heads, head_width / 32),
-                                (3, heads, head_width / 32),
-                                (4, 0, head_width / 32),
-                                (4, heads, 0),
-                                (4, 5, 1),
-                                (4, 1, usize::MAX),
-                            ] {
-                                assert!(run_parallel_norm(capacity, count, head_warps).is_err());
-                            }
-                            Ok::<_, cuda_core::LaunchContractError>(())
-                        })
-                    })?;
-                    with_buffer_chunks(&model.stream, &mut derivative_gpu, |output| {
-                        let launch = model
-                            .module
-                            .prepare_gpt_rmsnorm_backward_parallel::<128>(config(output.len()))?;
-                        let mut run_parallel_backward = |capacity, heads, head_warps| {
-                            model.module.gpt_rmsnorm_backward_parallel(
-                                &model.stream,
-                                &launch,
-                                capacity,
-                                heads,
-                                head_warps,
-                                &gradient_gpu,
-                                &cache,
-                                output,
-                            )
-                        };
-                        run_parallel_backward(4, heads, head_width / 32)?;
-                        for (capacity, count, head_warps) in
-                            [(3, heads, 1), (4, 0, 1), (4, 1, 0), (4, 5, 1)]
-                        {
-                            assert!(run_parallel_backward(capacity, count, head_warps).is_err());
-                        }
-                        Ok::<_, cuda_core::LaunchContractError>(())
-                    })?;
-                }
+                run_backward(
+                    heads,
+                    head_width,
+                    &output_gpu,
+                    &mut statistics,
+                    &mut derivative_gpu,
+                )?;
                 let output = output_gpu.to_host_vec(&model.stream)?;
                 let derivative = derivative_gpu.to_host_vec(&model.stream)?;
+                assert_eq!(
+                    statistics.to_host_vec(&model.stream)?[rows * heads],
+                    [42.0; 2]
+                );
                 let doubles = |x: &[f32]| x.iter().map(|&x| f64::from(x)).collect::<Vec<_>>();
                 for row in 0..rows {
+                    assert!(
+                        output[row][width..]
+                            .iter()
+                            .chain(&derivative[row][width..])
+                            .all(|&v| v == 42.0)
+                    );
                     let (expected, gradients) = rmsnorm_reference(
                         &doubles(&input[row][..width]),
                         &doubles(&gradient[row][..width]),
@@ -2575,20 +2441,53 @@ mod verification {
                     (heads, 1),
                     (heads, MAX_WIDTH + 1),
                     (8, MAX_WIDTH / 8 + 1),
+                    (heads, usize::MAX),
                 ] {
                     assert!(
-                        run_norm(invalid_heads, invalid_width, &mut output_gpu, &mut cache)
-                            .is_err()
+                        run_norm(
+                            invalid_heads,
+                            invalid_width,
+                            &mut output_gpu,
+                            &mut statistics
+                        )
+                        .is_err()
                     );
                     assert!(
-                        run_backward(invalid_heads, invalid_width, &cache, &mut derivative_gpu)
-                            .is_err()
+                        run_backward(
+                            invalid_heads,
+                            invalid_width,
+                            &output_gpu,
+                            &mut statistics,
+                            &mut derivative_gpu
+                        )
+                        .is_err()
                     );
                 }
-                let mut wrong_cache = DeviceBuffer::zeroed(&model.stream, rows - 1)?;
-                assert!(run_norm(heads, head_width, &mut output_gpu, &mut wrong_cache).is_err());
+                let mut short = DeviceBuffer::zeroed(&model.stream, rows * heads - 1)?;
+                assert!(run_norm(heads, head_width, &mut output_gpu, &mut short).is_err());
                 assert!(
-                    run_backward(heads, head_width, &wrong_cache, &mut derivative_gpu).is_err()
+                    run_backward(
+                        heads,
+                        head_width,
+                        &output_gpu,
+                        &mut short,
+                        &mut derivative_gpu
+                    )
+                    .is_err()
+                );
+                let mut short_output = DeviceBuffer::zeroed(&model.stream, rows - 1)?;
+                assert!(run_norm(heads, head_width, &mut short_output, &mut statistics).is_err());
+                assert!(
+                    model
+                        .rmsnorm(
+                            heads,
+                            head_width,
+                            2,
+                            [&input_gpu; 3],
+                            &mut statistics,
+                            &mut output_gpu
+                        )
+                        .is_err()
                 );
             }
             Ok(())
