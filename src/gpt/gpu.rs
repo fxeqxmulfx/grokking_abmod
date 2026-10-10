@@ -234,10 +234,26 @@ mod kernels {
         }
     }
 
+    #[device]
+    fn attention_dot<const W: usize>(
+        begin: usize,
+        head_width: usize,
+        lane: usize,
+        left: &Features<W>,
+        right: &Features<W>,
+    ) -> f32 {
+        let mut total = 0.0;
+        for local in (lane..head_width).step_by(32) {
+            total += left[begin + local] * right[begin + local];
+        }
+        warp::reduce_sum_f32(total)
+    }
+
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, heads >= 1, heads <= H, sequence >= 1, sequence <= C,
+        width >= 2, width <= W, heads >= 1, heads <= H, heads <= width,
+        sequence >= 1, sequence <= C,
         out.len() == query.len(), key.len() == query.len(), value.len() == query.len(), probabilities.len() == query.len()))]
     pub fn gpt_attention<const W: usize, const C: usize, const H: usize>(
         width: usize,
@@ -246,47 +262,76 @@ mod kernels {
         query: &[Features<W>],
         key: &[Features<W>],
         value: &[Features<W>],
-        mut out: DisjointSlice<Features<W>>,
-        mut probabilities: DisjointSlice<Attention<C, H>>,
+        mut out: DisjointSlice<Features<W>, thread::WarpIndex>,
+        mut probabilities: DisjointSlice<Attention<C, H>, thread::WarpIndex>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
-        if let Some(output) = out.get_mut(index)
-            && let Some(probability) = probabilities.get_mut(thread::index_1d())
-        {
-            let position = row % sequence;
-            let first = row - position;
-            let head_width = width / heads;
-            let scale = 1.0 / (head_width as f32).sqrt();
-            for head in 0..heads {
-                let begin = head * head_width;
-                let mut maximum = f32::NEG_INFINITY;
+        let row = index.get() / 32;
+        let lane = index.get() % 32;
+        if row >= query.len() {
+            return;
+        }
+        // All lanes compute; only the owning lane accesses each mutable row.
+        let mut output = if let Some(warp) = thread::warp_index() {
+            out.get_mut(warp)
+        } else {
+            None
+        };
+        let mut probability = if let Some(warp) = thread::warp_index() {
+            probabilities.get_mut(warp)
+        } else {
+            None
+        };
+        let position = row % sequence;
+        let first = row - position;
+        let head_width = width / heads;
+        let scale = 1.0 / (head_width as f32).sqrt();
+        for head in 0..heads {
+            let begin = head * head_width;
+            let mut maximum = f32::NEG_INFINITY;
+            for previous in 0..=position {
+                let score =
+                    attention_dot(begin, head_width, lane, &query[row], &key[first + previous])
+                        * scale;
+                maximum = maximum.max(score);
+                if let Some(saved) = &mut probability {
+                    saved[head][previous] = score;
+                }
+            }
+            let mut sum = 0.0;
+            for previous in 0..=position {
+                let exponential = if let Some(saved) = &mut probability {
+                    let exponential = (saved[head][previous] - maximum).exp();
+                    saved[head][previous] = exponential;
+                    exponential
+                } else {
+                    0.0
+                };
+                sum += warp::shuffle_f32(exponential, 0);
+            }
+            if let Some(saved) = &mut probability {
                 for previous in 0..=position {
-                    let mut score = 0.0;
-                    for channel in begin..begin + head_width {
-                        score += query[row][channel] * key[first + previous][channel];
-                    }
-                    score *= scale;
-                    probability[head][previous] = score;
-                    if score > maximum {
-                        maximum = score;
+                    saved[head][previous] /= sum;
+                }
+            }
+            for tile in (0..head_width).step_by(32) {
+                let mut total = 0.0;
+                for previous in 0..=position {
+                    let p = if let Some(saved) = &mut probability {
+                        saved[head][previous]
+                    } else {
+                        0.0
+                    };
+                    let p = warp::shuffle_f32(p, 0);
+                    if tile + lane < head_width {
+                        total += p * value[first + previous][begin + tile + lane];
                     }
                 }
-                let mut sum = 0.0;
-                for previous in 0..=position {
-                    let p = previous;
-                    probability[head][p] = (probability[head][p] - maximum).exp();
-                    sum += probability[head][p];
-                }
-                for previous in 0..=position {
-                    probability[head][previous] /= sum;
-                }
-                for channel in begin..begin + head_width {
-                    let mut total = 0.0;
-                    for previous in 0..=position {
-                        total += probability[head][previous] * value[first + previous][channel];
+                for local in 0..(head_width - tile).min(32) {
+                    let value = warp::shuffle_f32(total, local as u32);
+                    if let Some(output) = &mut output {
+                        output[begin + tile + local] = value;
                     }
-                    output[channel] = total;
                 }
             }
         }
@@ -736,7 +781,8 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, heads >= 1, heads <= H, sequence >= 1, sequence <= C,
+        width >= 2, width <= W, heads >= 1, heads <= H, heads <= width,
+        sequence >= 1, sequence <= C,
         probabilities.len() == gradient.len(), value.len() == gradient.len(), out.len() == gradient.len()))]
     pub fn gpt_score_backward<const W: usize, const C: usize, const H: usize>(
         width: usize,
@@ -745,28 +791,42 @@ mod kernels {
         gradient: &[Features<W>],
         value: &[Features<W>],
         probabilities: &[Attention<C, H>],
-        mut out: DisjointSlice<Attention<C, H>>,
+        mut out: DisjointSlice<Attention<C, H>, thread::WarpIndex>,
     ) {
         let index = thread::index_1d();
-        let row = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let position = row % sequence;
-            let first = row - position;
-            let head_width = width / heads;
-            for head in 0..heads {
-                let begin = head * head_width;
-                let mut mean = 0.0;
-                for previous in 0..=position {
-                    let mut dot = 0.0;
-                    for channel in begin..begin + head_width {
-                        dot += gradient[row][channel] * value[first + previous][channel];
-                    }
+        let row = index.get() / 32;
+        let lane = index.get() % 32;
+        if row >= gradient.len() {
+            return;
+        }
+        let mut output = if let Some(warp) = thread::warp_index() {
+            out.get_mut(warp)
+        } else {
+            None
+        };
+        let position = row % sequence;
+        let first = row - position;
+        let head_width = width / heads;
+        for head in 0..heads {
+            let begin = head * head_width;
+            let mut mean = 0.0;
+            for previous in 0..=position {
+                let dot = attention_dot(
+                    begin,
+                    head_width,
+                    lane,
+                    &gradient[row],
+                    &value[first + previous],
+                );
+                mean += probabilities[row][head][previous] * dot;
+                if let Some(output) = &mut output {
                     output[head][previous] = dot;
-                    mean += probabilities[row][head][previous] * dot;
                 }
+            }
+            if let Some(output) = &mut output {
                 for previous in 0..=position {
-                    let p = previous;
-                    output[head][p] = probabilities[row][head][p] * (output[head][p] - mean);
+                    output[head][previous] =
+                        probabilities[row][head][previous] * (output[head][previous] - mean);
                 }
             }
         }
@@ -1596,7 +1656,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     out,
                     cache,
                 } => {
-                    let launch = self.module.prepare_gpt_attention::<W, C, H>(row_config)?;
+                    let launch = self
+                        .module
+                        .prepare_gpt_attention::<W, C, H>(config(workspace.rows * 32))?;
                     let (before, after) = workspace.features.split_at_mut(out);
                     self.module.gpt_attention(
                         &self.stream,
@@ -1849,7 +1911,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 } => {
                     let launch = self
                         .module
-                        .prepare_gpt_score_backward::<W, C, H>(row_config)?;
+                        .prepare_gpt_score_backward::<W, C, H>(config(workspace.rows * 32))?;
                     self.module.gpt_score_backward(
                         &self.stream,
                         &launch,

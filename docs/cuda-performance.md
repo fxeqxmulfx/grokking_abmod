@@ -403,3 +403,36 @@ from `6.56e-7` to `1.80e-3`; the widest model's relative L2 difference is
 `6.07e-5`. Default and large-batch differences stay below `2.99e-6`. All 28 CPU
 tests, strict Clippy, full CUDA verification, and the complete mod-97 epoch
 pass. Profiles and comparisons are retained under `target/mesh-gpt-profile/`.
+
+### Warp-owned attention rows
+
+Attention forward and score backward now share a cooperative FP32 dot product.
+One complete warp owns each output row through `WarpIndex`; only its owning
+lane obtains mutable references, while all lanes reduce channels and gather
+values. Broadcasts distribute probability values and collected output channels.
+The same definitions handle small, unaligned, and wide heads and introduce no
+new buffers or shape-specific kernel variants.
+
+| Scenario | After XSA (ms/update) | After warp attention |
+| --- | ---: | ---: |
+| Original | 5.488 | 5.340 |
+| Large batch | 111.254 | 79.918 |
+| Wide model | 108.554 | 103.801 |
+| Deep model | 88.006 | 83.245 |
+| Combined | 89.032 | 84.836 |
+| Long context | 1142.346 | 385.169 |
+
+The long-context trace measures attention forward at `180.978` GPU ms/update
+and score backward at `98.760`, down from `649.363` and `379.682` before these
+changes. Input-gradient gathering remains `67.925` ms/update. An isolated
+forward capture takes `87.90` ms and reaches `80.02%` SM throughput but `3.89%`
+DRAM throughput. Instruction count and partially active warp paths now matter
+more than external memory bandwidth for this kernel.
+
+Full f64 logits/gradient checks, strict FP32 optimizer checks, all 28 CPU tests,
+and the complete mod-97 epoch pass. The context-learning check reaches
+cross-entropy `0.00145` and predicts every target. The long-context checkpoint
+differs from the preceding implementation by at most `5.96e-8` after 15 updates
+(relative L2 `9.94e-9`); the widest case differs by `4.02e-4` (relative L2
+`1.70e-5`). The saved binaries and all six checkpoint comparisons remain in
+the ignored profile directory.
