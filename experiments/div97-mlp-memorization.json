@@ -1,0 +1,28 @@
+{
+  "command": "grok-simple",
+  "study": "Grow the one-layer ReLU MLP from width 32 until a memorization plateau appears",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mlp-memorization",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "depth": 1
+  },
+  "candidates": [
+    {"label": "mlp-relu-one-hot-w32", "width": 32},
+    {"label": "mlp-relu-one-hot-w40", "width": 40},
+    {"label": "mlp-relu-one-hot-w48", "width": 48},
+    {"label": "mlp-relu-one-hot-w56", "width": 56},
+    {"label": "mlp-relu-one-hot-w64", "width": 64}
+  ]
+}
