@@ -66,13 +66,15 @@ report every 25 epochs.
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
 | Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
 | Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
+| Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 99.81% / 96.41% | Below held-out target at the cap |
+| Dense GPTMini, seed 1 | 9,976 | 16 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 61.96% / 37.26% | Neither fitting nor grokking |
 
 The dense run first fitted training at epoch 725 and first reached joint
 99% accuracy at epoch 2,600. Twenty consecutive qualifying observations
 began at epoch 3,675 and were confirmed at epoch 4,150, a 2,950-epoch lag
 after training fit. It did not have the strict near-chance memorization
 plateau. Two observations in its final 1,000 epochs fell below 99%, with
-minimum held-out accuracy 96.28%. Smaller dense runs are in progress.
+minimum held-out accuracy 96.28%.
 
 Width 64 first fitted training at epoch 75 and reached joint 99% at epoch
 100. Its first 20-observation qualifying stretch began at epoch 1,375 and
@@ -80,6 +82,13 @@ was confirmed at epoch 1,850, following earlier transient failures. Every
 observation in its final 1,000 epochs exceeded 99% on both splits; minimum
 held-out accuracy was 99.87%. It did not exhibit the strict near-chance
 memorization plateau.
+
+Width 32 first fitted training at epoch 575 but never reached joint 99%
+within the cap. Its late generalization transition reached 96.41% held-out
+accuracy at epoch 10,000. Width 16 remained below the training threshold.
+These failures leave width 64 as the smallest successful tested model so
+far. A fresh width-32 run with weight decay 0.2 tests whether stronger
+regularization can bring the late transition inside the same budget.
 
 ## Mesh search settings
 

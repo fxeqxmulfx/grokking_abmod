@@ -374,14 +374,304 @@
       "peak_heldout_accuracy": 1.0,
       "final_window_failures": 0,
       "final_window_minimum_heldout_accuracy": 0.9987113402061856
+    },
+    {
+      "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w32",
+      "family": "dense",
+      "parameters": 32232,
+      "status": "complete",
+      "settings": {
+        "type": "Experiment",
+        "model": {
+          "type": "Transformer",
+          "width": 32,
+          "depth": 2,
+          "block": {
+            "type": "Block",
+            "attention": {
+              "type": "Attention",
+              "heads": 4,
+              "projections": {
+                "type": "FusedQKV",
+                "bias": false
+              },
+              "scores": {
+                "type": "QKNorm",
+                "eps": 1e-06,
+                "initial_scale": null
+              },
+              "weights": {
+                "type": "Softmax",
+                "fused": false
+              },
+              "exclusive": {
+                "type": "XSA",
+                "eps": 1e-06
+              },
+              "output_bias": false
+            },
+            "ffn": {
+              "type": "FFN",
+              "activation": {
+                "type": "ReLU2"
+              },
+              "multiplier": 4,
+              "bias": false
+            },
+            "norm": {
+              "type": "RMSNorm",
+              "eps": 1e-05,
+              "scale": false
+            },
+            "residual": {
+              "type": "PreNorm"
+            }
+          },
+          "positions": {
+            "type": "RoPE",
+            "theta": 10000.0,
+            "interleaved": false
+          },
+          "readout": {
+            "type": "Tied"
+          },
+          "final_norm": {
+            "type": "RMSNorm",
+            "eps": 1e-05,
+            "scale": false
+          },
+          "init": {
+            "type": "Normal",
+            "std": 0.02
+          },
+          "context": 50
+        },
+        "benchmark": {
+          "type": "ModularDivision",
+          "prime": 97,
+          "train_fraction": 0.5,
+          "tail": "short"
+        },
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 0.001,
+          "betas": [
+            0.9,
+            0.98
+          ],
+          "weight_decay": 0.1,
+          "eps": 1e-08,
+          "decay": "all"
+        },
+        "schedule": {
+          "type": "Schedule",
+          "warmup": 10,
+          "anneal": null,
+          "inclusive": false
+        },
+        "budget": {
+          "type": "Budget",
+          "updates": 100000,
+          "batch": 512
+        },
+        "seeds": {
+          "type": "Seeds",
+          "model": 1,
+          "data": 1,
+          "batches": null
+        },
+        "evaluate": {
+          "type": "Evaluate",
+          "every": 250,
+          "batch": 1024
+        },
+        "execution": {
+          "type": "CudaGraph",
+          "device": "cuda",
+          "threads": 1
+        },
+        "diagnostics": {
+          "type": "Diagnostics",
+          "every": 0,
+          "neighbors": false,
+          "gradients": false
+        },
+        "checkpoint": {
+          "type": "Checkpoint",
+          "every": 5000
+        },
+        "stopping": null
+      },
+      "history_sha256": "cee948fb699a181384bf995a4a6f5c56d7f74d689ecce0b4d89bf4017a1a28ca",
+      "history_file": "histories/dense-graph-w32.csv",
+      "plot_history_sha256": "96fed78dfa97ef655bfec93754dce05b8e21f7014d93b7ccc69c697c56839182",
+      "observations": 401,
+      "epochs": 10000.0,
+      "first_joint_99_epoch": null,
+      "first_train_99_epoch": 575.0,
+      "generalization": null,
+      "generalization_lag_epochs": null,
+      "delayed_grokking": null,
+      "memorization_plateau": null,
+      "stable_last_1000_epochs": false,
+      "final_train_accuracy": 0.9980670103092784,
+      "final_heldout_accuracy": 0.9641323024054983,
+      "peak_heldout_accuracy": 0.9641323024054983,
+      "final_window_failures": 41,
+      "final_window_minimum_heldout_accuracy": 0.27899484536082475
+    },
+    {
+      "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w16",
+      "family": "dense",
+      "parameters": 9976,
+      "status": "complete",
+      "settings": {
+        "type": "Experiment",
+        "model": {
+          "type": "Transformer",
+          "width": 16,
+          "depth": 2,
+          "block": {
+            "type": "Block",
+            "attention": {
+              "type": "Attention",
+              "heads": 4,
+              "projections": {
+                "type": "FusedQKV",
+                "bias": false
+              },
+              "scores": {
+                "type": "QKNorm",
+                "eps": 1e-06,
+                "initial_scale": null
+              },
+              "weights": {
+                "type": "Softmax",
+                "fused": false
+              },
+              "exclusive": {
+                "type": "XSA",
+                "eps": 1e-06
+              },
+              "output_bias": false
+            },
+            "ffn": {
+              "type": "FFN",
+              "activation": {
+                "type": "ReLU2"
+              },
+              "multiplier": 4,
+              "bias": false
+            },
+            "norm": {
+              "type": "RMSNorm",
+              "eps": 1e-05,
+              "scale": false
+            },
+            "residual": {
+              "type": "PreNorm"
+            }
+          },
+          "positions": {
+            "type": "RoPE",
+            "theta": 10000.0,
+            "interleaved": false
+          },
+          "readout": {
+            "type": "Tied"
+          },
+          "final_norm": {
+            "type": "RMSNorm",
+            "eps": 1e-05,
+            "scale": false
+          },
+          "init": {
+            "type": "Normal",
+            "std": 0.02
+          },
+          "context": 50
+        },
+        "benchmark": {
+          "type": "ModularDivision",
+          "prime": 97,
+          "train_fraction": 0.5,
+          "tail": "short"
+        },
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 0.001,
+          "betas": [
+            0.9,
+            0.98
+          ],
+          "weight_decay": 0.1,
+          "eps": 1e-08,
+          "decay": "all"
+        },
+        "schedule": {
+          "type": "Schedule",
+          "warmup": 10,
+          "anneal": null,
+          "inclusive": false
+        },
+        "budget": {
+          "type": "Budget",
+          "updates": 100000,
+          "batch": 512
+        },
+        "seeds": {
+          "type": "Seeds",
+          "model": 1,
+          "data": 1,
+          "batches": null
+        },
+        "evaluate": {
+          "type": "Evaluate",
+          "every": 250,
+          "batch": 1024
+        },
+        "execution": {
+          "type": "CudaGraph",
+          "device": "cuda",
+          "threads": 1
+        },
+        "diagnostics": {
+          "type": "Diagnostics",
+          "every": 0,
+          "neighbors": false,
+          "gradients": false
+        },
+        "checkpoint": {
+          "type": "Checkpoint",
+          "every": 5000
+        },
+        "stopping": null
+      },
+      "history_sha256": "c2a46fd2f83c1065a0c0cd1a769d299533483a989c4ee8028c057063f417ea1c",
+      "history_file": "histories/dense-graph-w16.csv",
+      "plot_history_sha256": "dd8fc4f683621415d9985b110fed21398d04ea6ce156467423a3191dfc4373be",
+      "observations": 401,
+      "epochs": 10000.0,
+      "first_joint_99_epoch": null,
+      "first_train_99_epoch": null,
+      "generalization": null,
+      "generalization_lag_epochs": null,
+      "delayed_grokking": null,
+      "memorization_plateau": null,
+      "stable_last_1000_epochs": false,
+      "final_train_accuracy": 0.6196305841924399,
+      "final_heldout_accuracy": 0.37263745704467355,
+      "peak_heldout_accuracy": 0.4737972508591065,
+      "final_window_failures": 41,
+      "final_window_minimum_heldout_accuracy": 0.36662371134020616
     }
   ],
   "smallest_tested_generalizing": {
-    "mesh": null,
-    "dense": 113608
+    "dense": 113608,
+    "mesh": null
   },
   "smallest_tested_delayed_grokking": {
-    "mesh": null,
-    "dense": null
+    "dense": null,
+    "mesh": null
   }
 }
