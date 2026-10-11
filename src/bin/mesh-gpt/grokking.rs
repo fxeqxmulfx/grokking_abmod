@@ -31,6 +31,7 @@ struct Options {
     workspace_capacity: usize,
     initialization_gain: f32,
     embedding_output_gain: f32,
+    qk_signs: usize,
     seed: u64,
     device: usize,
     output: PathBuf,
@@ -62,6 +63,7 @@ impl Options {
             workspace_capacity: 1,
             initialization_gain: 1.0,
             embedding_output_gain: 1.0,
+            qk_signs: 0,
             seed: 7,
             device: 0,
             output: PathBuf::from("target/mesh-gpt-grokking"),
@@ -86,6 +88,7 @@ impl Options {
                 "--embedding-output-gain" => {
                     options.embedding_output_gain = value(&mut arguments, &flag)?
                 }
+                "--qk-signs" => options.qk_signs = value(&mut arguments, &flag)?,
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--heads" => options.config.heads = value(&mut arguments, &flag)?,
                 "--layers" => options.config.layers = value(&mut arguments, &flag)?,
@@ -129,6 +132,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --workspace-cache N   Retain 1..3 batch shapes; more uses extra GPU memory (default: 1)\n\
             --init-gain X         Scale every initial mesh edge (default: 1)\n\
             --embedding-output-gain X  Additional gain on the final tied-embedding layer (default: 1)\n\
+            --qk-signs 0|1        Independent seeded signs on final Q/K mesh rows (default: 0)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
             --width N             Channels, 2..1024 (default: 128)\n\
@@ -161,6 +165,9 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         return Err("initialization gains must be finite and positive".into());
     }
     validate_workspace_capacity(options.workspace_capacity)?;
+    if options.qk_signs > 1 {
+        return Err("Q/K sign initialization must be 0 or 1".into());
+    }
     options.optimizer.validate()?;
     let dataset = EquationDataset::new(
         options.modulus,
@@ -182,7 +189,10 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
     let mut model = GrokModel::<W>::new(options.device, options.config, options.seed)?;
     model.set_workspace_capacity(options.workspace_capacity)?;
-    if options.initialization_gain != 1.0 || options.embedding_output_gain != 1.0 {
+    if options.initialization_gain != 1.0
+        || options.embedding_output_gain != 1.0
+        || options.qk_signs == 1
+    {
         let mut parameters = model.parameters()?;
         for parameter in &mut parameters {
             *parameter *= options.initialization_gain;
@@ -191,6 +201,32 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         let end = 2 * options.config.width * options.config.attention_mesh_depth;
         for parameter in &mut parameters[end - 2 * options.config.width..end] {
             *parameter *= options.embedding_output_gain;
+        }
+        if options.qk_signs == 1 {
+            let mut state = options.seed ^ 0x514b_5349_474e_5331;
+            let mesh_size = 2 * options.config.width * options.config.attention_mesh_depth;
+            let block_size = 2
+                * options.config.width
+                * (4 * options.config.attention_mesh_depth + options.config.ffn_mesh_depth);
+            for block in 0..options.config.layers {
+                for projection in 0..2 {
+                    let end = mesh_size + block * block_size + (projection + 1) * mesh_size;
+                    for row in parameters[end - 2 * options.config.width..end]
+                        .as_chunks_mut::<2>()
+                        .0
+                    {
+                        // SplitMix64 uses its own stream, leaving data and base weights unchanged.
+                        state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+                        let mut bits = state;
+                        bits = (bits ^ (bits >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+                        bits = (bits ^ (bits >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+                        bits ^= bits >> 31;
+                        let sign = if bits >> 63 == 0 { 1.0 } else { -1.0 };
+                        row[0] *= sign;
+                        row[1] *= sign;
+                    }
+                }
+            }
         }
         model.set_parameters(&parameters)?;
     }
@@ -224,7 +260,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         .open(options.output.join("run.txt"))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nworkspace_capacity={}",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nqk_signs={}\nworkspace_capacity={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
@@ -232,6 +268,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         options.evaluation_batch,
         options.initialization_gain,
         options.embedding_output_gain,
+        options.qk_signs,
         options.workspace_capacity,
     )?;
     println!(

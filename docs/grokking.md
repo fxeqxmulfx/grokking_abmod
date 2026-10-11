@@ -96,6 +96,10 @@ search for deeper meshes without changing their connectivity or operators.
 `--embedding-output-gain X` additionally scales only the embedding mesh's
 final linear layer. It scales both the input embeddings and tied output head
 at initialization, independently of the other projections. Its default is one.
+`--qk-signs 1` multiplies each final Q/K mesh row by an independent seeded
+sign. A separate SplitMix64 stream leaves the base initialization, dataset
+and sampler unchanged. This varies the initial Q/K directions while retaining
+all mesh connections; the default is zero.
 `--workspace-cache 3` retains the full training batch, short tail and evaluation
 batch buffers, avoiding repeated device allocation. It uses more GPU memory;
 the default retains one training batch shape. Every inference and update still

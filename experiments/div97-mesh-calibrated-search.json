@@ -52,6 +52,17 @@
       "attention-depth": 8,
       "ffn-depth": 16,
       "embedding-output-gain": 0.02
+    },
+    {
+      "label": "w128-h4-l2-d8-f16-g14-e01-lr003-wd001-cache3-qks1",
+      "width": 128,
+      "heads": 4,
+      "layers": 2,
+      "attention-depth": 8,
+      "ffn-depth": 16,
+      "embedding-output-gain": 0.1,
+      "learning-rate": 0.003,
+      "qk-signs": 1
     }
   ]
 }
