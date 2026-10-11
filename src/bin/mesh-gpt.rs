@@ -23,6 +23,8 @@ use grokking_abmod::{
 mod geometry;
 #[path = "mesh-gpt/grokking.rs"]
 mod grokking;
+#[path = "mesh-gpt/simple.rs"]
+mod simple;
 
 struct Options {
     command: String,
@@ -100,12 +102,16 @@ fn main() -> Result<()> {
     if std::env::args().nth(1).as_deref() == Some("grok") {
         return grokking::run(std::env::args().skip(2));
     }
+    if std::env::args().nth(1).as_deref() == Some("grok-simple") {
+        return simple::run(std::env::args().skip(2));
+    }
     let options = Options::parse()?;
     if options.help {
         println!(
             "Mesh GPT: mesh projections and optional embedding geometry\n\
-            Usage: cargo oxide run --bin mesh-gpt -- [train|generate|grok|verify] [options]\n\n\
+            Usage: cargo oxide run --bin mesh-gpt -- [train|generate|grok|grok-simple|verify] [options]\n\n\
             grok --help           Modular arithmetic experiments from arXiv:2201.02177v1\n\
+            grok-simple --help    Attention-free MLP, residual MLP, and bilinear baselines\n\
             --dataset PATH        UTF-8 training corpus (default: data/mesh-gpt-demo.txt)\n\
             --output PATH         Artifacts (default: target/mesh-gpt)\n\
             --checkpoint PATH     Load for generate; save for train (default: OUTPUT/model.bin)\n\
@@ -157,9 +163,10 @@ fn main() -> Result<()> {
             Ok(())
         }
         "train" => train(options, checkpoint),
-        other => {
-            Err(format!("unknown command: {other}; use train, generate, grok, or verify").into())
-        }
+        other => Err(format!(
+            "unknown command: {other}; use train, generate, grok, grok-simple, or verify"
+        )
+        .into()),
     }
 }
 

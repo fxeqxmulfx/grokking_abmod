@@ -36,6 +36,10 @@ and Gram/Fourier diagnostics are documented in
 The modular arithmetic experiment from arXiv:2201.02177v1 is available as
 `cargo oxide run --bin mesh-gpt -- grok`; see [Grokking on Mesh GPT](docs/grokking.md)
 for complete-split evaluation, abstract symbol tokens, and the paper's AdamW settings.
+`cargo oxide run --bin mesh-gpt -- grok-simple` trains attention-free MLP, residual
+MLP, and bilinear baselines on the same protocol with one-hot, binary, scalar, or
+discrete-logarithm operand encodings; `grok-simple --verify` checks its CUDA kernels
+against f64 automatic differentiation.
 See [CUDA profiling and measured training performance](docs/cuda-performance.md)
 for the warmed FP32 benchmark, Nsight captures, and CUDA optimizations.
 `SpecializedMeshGpt<W, V, C, H>` compiles tensor capacities from Rust const

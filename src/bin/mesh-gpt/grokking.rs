@@ -501,18 +501,18 @@ fn normalize_table_initialization(config: GptConfig, parameters: &mut [f32]) -> 
     Ok(())
 }
 
-fn validate_stop_accuracy(target: Option<f64>) -> Result<()> {
+pub(super) fn validate_stop_accuracy(target: Option<f64>) -> Result<()> {
     if target.is_some_and(|x| !(x > 0.0 && x <= 1.0)) {
         return Err("validation stop accuracy must be in (0, 1]".into());
     }
     Ok(())
 }
 
-fn reached_stop(target: Option<f64>, validation_accuracy: f64) -> bool {
+pub(super) fn reached_stop(target: Option<f64>, validation_accuracy: f64) -> bool {
     target.is_some_and(|x| validation_accuracy >= x)
 }
 
-fn epoch_steps(epochs: usize, examples: usize, batch: usize) -> Result<usize> {
+pub(super) fn epoch_steps(epochs: usize, examples: usize, batch: usize) -> Result<usize> {
     if epochs == 0 || examples == 0 || batch == 0 {
         return Err("epochs, training examples, and batch size must be positive".into());
     }
@@ -521,19 +521,19 @@ fn epoch_steps(epochs: usize, examples: usize, batch: usize) -> Result<usize> {
         .ok_or_else(|| "epoch budget exceeds the supported update count".into())
 }
 
-fn warmed_optimizer(mut optimizer: AdamWOptions, step: usize) -> AdamWOptions {
+pub(super) fn warmed_optimizer(mut optimizer: AdamWOptions, step: usize) -> AdamWOptions {
     optimizer.learning_rate *= step.min(10) as f32 / 10.0;
     optimizer
 }
 
-fn observed(step: Option<usize>) -> String {
+pub(super) fn observed(step: Option<usize>) -> String {
     step.map_or_else(|| "not_reached".into(), |step| step.to_string())
 }
 
 #[derive(Default)]
-struct Thresholds {
-    training: Option<usize>,
-    validation: Option<usize>,
+pub(super) struct Thresholds {
+    pub(super) training: Option<usize>,
+    pub(super) validation: Option<usize>,
 }
 
 struct Metrics {
@@ -541,7 +541,7 @@ struct Metrics {
     accuracy: f64,
 }
 
-fn row_metrics(row: &[f32], target: usize) -> (f64, usize) {
+pub(super) fn row_metrics(row: &[f32], target: usize) -> (f64, usize) {
     let mut prediction = 0;
     for token in 1..row.len() {
         if row[token] > row[prediction] {
@@ -639,7 +639,7 @@ fn record<const W: usize>(
     Ok(validation.accuracy)
 }
 
-fn write_dataset(directory: &Path, dataset: &EquationDataset) -> Result<()> {
+pub(super) fn write_dataset(directory: &Path, dataset: &EquationDataset) -> Result<()> {
     let mut equations = BufWriter::new(File::create(directory.join("equations.csv"))?);
     writeln!(
         equations,

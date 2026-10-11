@@ -7,7 +7,7 @@ mod config;
 mod geometry;
 mod gpu;
 mod grokking;
-mod reference;
+pub(crate) mod reference;
 mod text;
 
 pub use checkpoint::Checkpoint;

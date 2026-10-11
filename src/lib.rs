@@ -3,6 +3,7 @@
 pub mod gpt;
 mod gpu;
 mod mesh;
+pub mod simple;
 
 pub use gpu::{GpuMesh, LossPoint, TrainOptions, TrainReport};
 pub use mesh::{MAX_DEPTH, MeshTopology, Node, ReferenceMesh, piecewise_target};

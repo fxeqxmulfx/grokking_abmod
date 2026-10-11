@@ -241,13 +241,13 @@ fn read_features(tape: &Tape, ids: &[Vec<usize>]) -> Result<Vec<Vec<f32>>> {
         .collect()
 }
 
-struct Tape {
-    values: Vec<f64>,
+pub(crate) struct Tape {
+    pub(crate) values: Vec<f64>,
     edges: Vec<[(usize, f64); 2]>,
 }
 
 impl Tape {
-    fn new(values: impl IntoIterator<Item = f64>) -> Self {
+    pub(crate) fn new(values: impl IntoIterator<Item = f64>) -> Self {
         let values: Vec<_> = values.into_iter().collect();
         Self {
             edges: vec![[(NONE, 0.0); 2]; values.len()],
@@ -260,16 +260,16 @@ impl Tape {
         self.edges.push(edges);
         id
     }
-    fn constant(&mut self, value: f64) -> usize {
+    pub(crate) fn constant(&mut self, value: f64) -> usize {
         self.node(value, [(NONE, 0.0); 2])
     }
-    fn add(&mut self, a: usize, b: usize) -> usize {
+    pub(crate) fn add(&mut self, a: usize, b: usize) -> usize {
         self.node(self.values[a] + self.values[b], [(a, 1.0), (b, 1.0)])
     }
-    fn subtract(&mut self, a: usize, b: usize) -> usize {
+    pub(crate) fn subtract(&mut self, a: usize, b: usize) -> usize {
         self.node(self.values[a] - self.values[b], [(a, 1.0), (b, -1.0)])
     }
-    fn multiply(&mut self, a: usize, b: usize) -> usize {
+    pub(crate) fn multiply(&mut self, a: usize, b: usize) -> usize {
         self.node(
             self.values[a] * self.values[b],
             [(a, self.values[b]), (b, self.values[a])],
@@ -285,17 +285,17 @@ impl Tape {
             ],
         )
     }
-    fn scale(&mut self, a: usize, scale: f64) -> usize {
+    pub(crate) fn scale(&mut self, a: usize, scale: f64) -> usize {
         self.node(self.values[a] * scale, [(a, scale), (NONE, 0.0)])
     }
-    fn shift(&mut self, a: usize, offset: f64) -> usize {
+    pub(crate) fn shift(&mut self, a: usize, offset: f64) -> usize {
         self.node(self.values[a] + offset, [(a, 1.0), (NONE, 0.0)])
     }
     fn exp(&mut self, a: usize) -> usize {
         let v = self.values[a].exp();
         self.node(v, [(a, v), (NONE, 0.0)])
     }
-    fn log(&mut self, a: usize) -> usize {
+    pub(crate) fn log(&mut self, a: usize) -> usize {
         self.node(
             self.values[a].ln(),
             [(a, 1.0 / self.values[a]), (NONE, 0.0)],
@@ -314,6 +314,14 @@ impl Tape {
             ],
         )
     }
+    /// Uses the subgradient 0 at the kink, like the GPU kernels.
+    pub(crate) fn relu(&mut self, a: usize) -> usize {
+        let x = self.values[a];
+        self.node(
+            x.max(0.0),
+            [(a, if x > 0.0 { 1.0 } else { 0.0 }), (NONE, 0.0)],
+        )
+    }
     fn elu(&mut self, a: usize) -> usize {
         let x = self.values[a];
         if x >= 0.0 {
@@ -322,14 +330,14 @@ impl Tape {
             self.node(x.exp_m1(), [(a, x.exp()), (NONE, 0.0)])
         }
     }
-    fn sum(&mut self, ids: &[usize]) -> usize {
+    pub(crate) fn sum(&mut self, ids: &[usize]) -> usize {
         let mut total = ids[0];
         for &id in &ids[1..] {
             total = self.add(total, id);
         }
         total
     }
-    fn dot(&mut self, left: &[usize], right: &[usize]) -> usize {
+    pub(crate) fn dot(&mut self, left: &[usize], right: &[usize]) -> usize {
         let products: Vec<_> = left
             .iter()
             .zip(right)
@@ -337,7 +345,7 @@ impl Tape {
             .collect();
         self.sum(&products)
     }
-    fn shifted_exponentials(&mut self, ids: &[usize]) -> (f64, usize, Vec<usize>) {
+    pub(crate) fn shifted_exponentials(&mut self, ids: &[usize]) -> (f64, usize, Vec<usize>) {
         let maximum = ids
             .iter()
             .map(|&id| self.values[id])
@@ -366,7 +374,7 @@ impl Tape {
         let loss = self.sum(&weighted);
         (values, self.backward(loss, count))
     }
-    fn backward(&self, loss: usize, count: usize) -> Vec<f64> {
+    pub(crate) fn backward(&self, loss: usize, count: usize) -> Vec<f64> {
         let mut adjoints = vec![0.0; self.values.len()];
         adjoints[loss] = 1.0;
         for id in (0..self.values.len()).rev() {
@@ -381,7 +389,7 @@ impl Tape {
     }
 }
 
-fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], heads: usize) -> Vec<Vec<usize>> {
+pub(crate) fn rmsnorm(tape: &mut Tape, x: &[Vec<usize>], heads: usize) -> Vec<Vec<usize>> {
     let head_width = x[0].len() / heads;
     x.iter()
         .map(|row| {
