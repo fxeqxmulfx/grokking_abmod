@@ -27,6 +27,7 @@ struct Options {
     epochs: Option<usize>,
     batch: Option<usize>,
     report_every: usize,
+    stop_validation_accuracy: Option<f64>,
     evaluation_batch: usize,
     workspace_capacity: usize,
     initialization_gain: f32,
@@ -59,6 +60,7 @@ impl Options {
             epochs: None,
             batch: None,
             report_every: 1000,
+            stop_validation_accuracy: None,
             evaluation_batch: 128,
             workspace_capacity: 1,
             initialization_gain: 1.0,
@@ -82,6 +84,9 @@ impl Options {
                 "--epochs" => options.epochs = Some(value(&mut arguments, &flag)?),
                 "--batch" => options.batch = Some(value(&mut arguments, &flag)?),
                 "--report-every" => options.report_every = value(&mut arguments, &flag)?,
+                "--stop-validation-accuracy" => {
+                    options.stop_validation_accuracy = Some(value(&mut arguments, &flag)?)
+                }
                 "--eval-batch" => options.evaluation_batch = value(&mut arguments, &flag)?,
                 "--workspace-cache" => options.workspace_capacity = value(&mut arguments, &flag)?,
                 "--init-gain" => options.initialization_gain = value(&mut arguments, &flag)?,
@@ -126,8 +131,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
                                   quadratic-linear, cubic-product, cubic-mixed\n\
             --modulus P           Prime, 2..254 (default: 97)\n\
             --train-fraction X    Fixed training fraction, 0<X<1 (default: 0.5)\n\
-            --steps N             Gradient updates (default: 100000; no early stopping)\n\
+            --steps N             Gradient updates (default: 100000)\n\
             --epochs N            Complete passes over all training equations; replaces --steps\n\
+            --stop-validation-accuracy X  End at the first report with validation accuracy\n\
+                                  >=X, 0<X<=1 (default: none; train the whole budget)\n\
             --batch N             Equations per minibatch (default: min(512, train_size/2))\n\
             --report-every N      Evaluate both complete splits (default: 1000)\n\
             --eval-batch N        Equations per evaluation chunk (default: 128)\n\
@@ -171,6 +178,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         return Err("initialization gains must be finite and positive".into());
     }
     validate_workspace_capacity(options.workspace_capacity)?;
+    validate_stop_accuracy(options.stop_validation_accuracy)?;
     if options.qk_signs > 1 {
         return Err("Q/K sign initialization must be 0 or 1".into());
     }
@@ -282,11 +290,14 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         .open(options.output.join("run.txt"))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nqk_signs={}\nworkspace_capacity={}",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nqk_signs={}\nworkspace_capacity={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
         dataset.split(false).len().div_ceil(batch),
+        options
+            .stop_validation_accuracy
+            .map_or_else(|| "none".into(), |x| x.to_string()),
         options.evaluation_batch,
         options.initialization_gain,
         options.embedding_output_gain,
@@ -302,8 +313,11 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         batch,
         options.config.parameter_count()?
     );
+    let stop = options
+        .stop_validation_accuracy
+        .map_or_else(String::new, |x| format!(" or validation accuracy >={x}"));
     println!(
-        "Answer-only loss; AdamW beta2=0.98, decay={}, warmup=10; continuing for {} updates",
+        "Answer-only loss; AdamW beta2=0.98, decay={}, warmup=10; continuing for {} updates{stop}",
         options.optimizer.weight_decay, options.steps
     );
     let mut history = BufWriter::new(File::create(options.output.join("loss.csv"))?);
@@ -313,7 +327,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     )?;
     let start = Instant::now();
     let mut thresholds = Thresholds::default();
-    record(
+    let mut validation_accuracy = record(
         &mut history,
         &mut model,
         &dataset,
@@ -325,14 +339,18 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         start.elapsed().as_secs_f64(),
         &mut thresholds,
     )?;
-    let mut trained_examples = 0;
-    for step in 1..=options.steps {
+    let (mut step, mut trained_examples) = (0, 0);
+    // The stopping rule only sees complete-split evaluations, never training batches.
+    while step < options.steps
+        && !reached_stop(options.stop_validation_accuracy, validation_accuracy)
+    {
+        step += 1;
         let (inputs, targets) = dataset.batch(false, sampler.sample(batch)?)?;
         let optimizer = warmed_optimizer(options.optimizer, step);
         model.train_batch_with_optimizer(&inputs, &targets, EQUATION_CONTEXT, optimizer)?;
         trained_examples += inputs.len() / EQUATION_CONTEXT;
         if step.is_multiple_of(options.report_every) || step == options.steps {
-            record(
+            validation_accuracy = record(
                 &mut history,
                 &mut model,
                 &dataset,
@@ -346,6 +364,11 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
             )?;
         }
     }
+    let stop_reason = if reached_stop(options.stop_validation_accuracy, validation_accuracy) {
+        "validation_accuracy"
+    } else {
+        "update_budget"
+    };
     write_embeddings(&options.output, &model, &dataset)?;
     write_predictions(
         &options.output,
@@ -360,7 +383,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     let mut metadata = OpenOptions::new().append(true).open(&metadata_path)?;
     writeln!(
         metadata,
-        "elapsed_seconds={:.6}\ntraining_examples_seen={}\ncompleted_epochs={}\nexamples_in_partial_epoch={}\nfirst_recorded_train_99_step={}\nfirst_recorded_validation_99_step={}",
+        "elapsed_seconds={:.6}\nstop_reason={stop_reason}\ncompleted_steps={step}\ntraining_examples_seen={}\ncompleted_epochs={}\nexamples_in_partial_epoch={}\nfirst_recorded_train_99_step={}\nfirst_recorded_validation_99_step={}",
         start.elapsed().as_secs_f64(),
         trained_examples,
         trained_examples / dataset.split(false).len(),
@@ -377,6 +400,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         observed(thresholds.training),
         observed(thresholds.validation)
     );
+    println!("Stopped after {step} updates: {stop_reason}");
     Ok(())
 }
 
@@ -385,6 +409,17 @@ fn validate_workspace_capacity(capacity: usize) -> Result<()> {
         return Err("workspace capacity must be in 1..3".into());
     }
     Ok(())
+}
+
+fn validate_stop_accuracy(target: Option<f64>) -> Result<()> {
+    if target.is_some_and(|x| !(x > 0.0 && x <= 1.0)) {
+        return Err("validation stop accuracy must be in (0, 1]".into());
+    }
+    Ok(())
+}
+
+fn reached_stop(target: Option<f64>, validation_accuracy: f64) -> bool {
+    target.is_some_and(|x| validation_accuracy >= x)
 }
 
 fn epoch_steps(epochs: usize, examples: usize, batch: usize) -> Result<usize> {
@@ -472,7 +507,7 @@ fn record<const W: usize>(
     learning_rate: f32,
     elapsed: f64,
     thresholds: &mut Thresholds,
-) -> Result<()> {
+) -> Result<f64> {
     let train = evaluate(model, dataset, false, evaluation_batch)?;
     let validation = evaluate(model, dataset, true, evaluation_batch)?;
     if train.accuracy >= 0.99 && thresholds.training.is_none() {
@@ -511,7 +546,7 @@ fn record<const W: usize>(
         validation.loss,
         100.0 * validation.accuracy
     );
-    Ok(())
+    Ok(validation.accuracy)
 }
 
 fn write_dataset(directory: &Path, dataset: &EquationDataset) -> Result<()> {
@@ -664,6 +699,38 @@ mod tests {
                 .workspace_capacity,
             1
         );
+    }
+
+    #[test]
+    fn validation_stop_is_optional_inclusive_and_bounded() {
+        let options = Options::parse(std::iter::empty()).unwrap();
+        assert_eq!(options.stop_validation_accuracy, None);
+        assert!(!reached_stop(options.stop_validation_accuracy, 1.0));
+        let options = Options::parse(
+            ["--stop-validation-accuracy", "0.99"]
+                .map(str::to_owned)
+                .into_iter(),
+        )
+        .unwrap();
+        validate_stop_accuracy(options.stop_validation_accuracy).unwrap();
+        assert!(reached_stop(
+            options.stop_validation_accuracy,
+            4610.0 / 4656.0
+        ));
+        assert!(!reached_stop(
+            options.stop_validation_accuracy,
+            4609.0 / 4656.0
+        ));
+        validate_stop_accuracy(Some(1.0)).unwrap();
+        for target in ["0", "-0.5", "1.01", "NaN", "inf"] {
+            let options = Options::parse(
+                ["--stop-validation-accuracy", target]
+                    .map(str::to_owned)
+                    .into_iter(),
+            )
+            .unwrap();
+            assert!(validate_stop_accuracy(options.stop_validation_accuracy).is_err());
+        }
     }
 
     #[test]

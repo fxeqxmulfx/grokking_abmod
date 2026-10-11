@@ -1,10 +1,9 @@
 {
   "protocol": {
     "target": 0.99,
-    "generalization_observations": 20,
+    "generalization": "first_heldout_observation_at_target",
     "plateau_observations": 5,
     "plateau_heldout_ceiling": 0.1,
-    "stability_epochs": 1000,
     "epoch_cap": 10000
   },
   "runs": [
@@ -71,18 +70,14 @@
       "plot_history_sha256": "ee57b42e3c232f352dcf899002595acde718f5aa6ab9ecc4dcc24bf6ac97d423",
       "observations": 21,
       "epochs": 500.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.117053265,
       "final_heldout_accuracy": 0.021262887,
-      "peak_heldout_accuracy": 0.02233677,
-      "final_window_failures": 21,
-      "final_window_minimum_heldout_accuracy": 0.010094502
+      "peak_heldout_accuracy": 0.02233677
     },
     {
       "run": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/mesh-pilots/w128-h2-l2-d32-f64-g14-e01-lr003-wd001-cache3-qks1-pilot",
@@ -147,18 +142,14 @@
       "plot_history_sha256": "be7457e7b6f406cda59bd7936f4354ca23d89199fa4f234a851b3b101f1f44bc",
       "observations": 21,
       "epochs": 500.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.034149485,
       "final_heldout_accuracy": 0.030068729,
-      "peak_heldout_accuracy": 0.031572165,
-      "final_window_failures": 21,
-      "final_window_minimum_heldout_accuracy": 0.010094502
+      "peak_heldout_accuracy": 0.031572165
     }
   ],
   "smallest_tested_generalizing": {

@@ -24,14 +24,18 @@ embeddings, mesh projections, ELU, fixed QK normalization and tied head.
 ## Evidence and criteria
 
 Evaluate both complete splits every 250 updates, or 25 epochs. Generalization
-requires training and held-out accuracy at least 99% for 20 consecutive
-observations. Delayed grokking additionally requires an earlier stretch of
-five consecutive observations with training accuracy at least 99% and
-held-out accuracy at most 10%. Record the first 99% crossing separately.
-Stability at the budget requires every observation in the final 1,000 epochs
-to meet 99% on both splits. This checks sampled observations, not every
-intervening update. A minimum refers to tested configurations and seeds;
-failure of one setting does not establish a universal lower bound.
+is the first observation with held-out accuracy at least 99%. On 2026-10-11
+the user also made it the stopping rule: new runs pass
+`--stop-validation-accuracy 0.99` and end at that observation. It replaced
+20 consecutive observations at 99% on both splits, and it does not measure
+whether accuracy stays above the target. Earlier runs trained their whole
+budgets; their summaries apply the new rule to the recorded histories.
+Delayed grokking additionally requires an earlier stretch of five
+consecutive observations with training accuracy at least 99% and held-out
+accuracy at most 10%. Record the first training 99% crossing separately.
+This checks sampled observations, not every intervening update. A minimum
+refers to tested configurations and seeds; failure of one setting does not
+establish a universal lower bound.
 
 Raw artifacts remain in ignored run directories. Summaries retain settings,
 epoch counts and history SHA-256 hashes. `--output` also archives portable
@@ -68,40 +72,34 @@ report every 25 epochs.
 | Mesh calibrated, seed 7, gain 1.4, embedding gain 0.1 | 26,624 | 128 / 2 / 4 | 8 / 16 | 0.003 / 0.01 | 10,000 | 32.28% / 2.08% | Neither fitting nor grokking |
 | Mesh calibrated, seed 7, gain 1.4, embedding gain 0.1, Q/K signs | 26,624 | 128 / 2 / 4 | 8 / 16 | 0.003 / 0.01 | 10,000 | 27.75% / 1.89% | Neither fitting nor grokking |
 | Mesh fitting pilot, seed 7, gain 1.4, embedding gain 0.02, Q/K signs | 507,904 | 1024 / 5 / 8 | 8 / 16 | 0.001 / 0.01 | 400 (retired) | 100% / 2.62% | Confirmed memorization plateau; no grokking before retirement |
-| Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
-| Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
+| Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Generalized at epoch 2,600 |
+| Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Generalized at epoch 100 |
 | Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 99.81% / 96.41% | Below held-out target at the cap |
 | Dense GPTMini, seed 1 | 9,976 | 16 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 61.96% / 37.26% | Neither fitting nor grokking |
-| Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 100% / 100% | Delayed grokking; final window stable |
+| Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 100% / 100% | Delayed grokking at epoch 7,675 |
 | Dense GPTMini, seed 1 | 19,568 | 24 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 99.89% / 37.46% | Fitted training; failed held-out target |
 | Dense GPTMini, seed 1 | 9,976 | 16 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 69.61% / 34.60% | Neither fitting nor grokking |
 
-The dense run first fitted training at epoch 725 and first reached joint
-99% accuracy at epoch 2,600. Twenty consecutive qualifying observations
-began at epoch 3,675 and were confirmed at epoch 4,150, a 2,950-epoch lag
-after training fit. It did not have the strict near-chance memorization
-plateau. Two observations in its final 1,000 epochs fell below 99%, with
-minimum held-out accuracy 96.28%.
+The dense run first fitted training at epoch 725 and first reached 99%
+held-out accuracy at epoch 2,600, 1,875 epochs later. It did not have the
+strict near-chance memorization plateau. Having trained the whole budget,
+it later fell below 99% at some observations; two in its final 1,000 epochs
+did so, with minimum held-out accuracy 96.28%.
 
-Width 64 first fitted training at epoch 75 and reached joint 99% at epoch
-100. Its first 20-observation qualifying stretch began at epoch 1,375 and
-was confirmed at epoch 1,850, following earlier transient failures. Every
-observation in its final 1,000 epochs exceeded 99% on both splits; minimum
-held-out accuracy was 99.87%. It did not exhibit the strict near-chance
-memorization plateau.
+Width 64 first fitted training at epoch 75 and reached 99% held-out accuracy
+at epoch 100. It did not exhibit the strict near-chance memorization plateau.
 
-Width 32 first fitted training at epoch 575 but never reached joint 99%
-within the cap. Its late generalization transition reached 96.41% held-out
-accuracy at epoch 10,000. Width 16 remained below the training threshold.
-Changing only weight decay to 0.2 brought width 32's transition inside the
-budget. Training first reached 99% at epoch 825. A near-chance memorization
-plateau began at epoch 1,050 and was confirmed at 1,150. Joint 99% accuracy
-began at epoch 7,675 and satisfied the 20-observation criterion at 8,150.
-The run finished at 100% on both splits; every observation in the final
-1,000 epochs exceeded 99%, with minimum held-out accuracy 99.98%.
-This 32,232-parameter model is the smallest tested delayed-grokking model
-so far. Width 24 with the same stronger-decay recipe finished at 99.89%
-training and 37.46% held-out accuracy, without a generalization event.
+Width 32 first fitted training at epoch 575 but never reached 99% held-out
+accuracy within the cap. Its late generalization transition reached 96.41%
+held-out accuracy at epoch 10,000. Width 16 remained below the training
+threshold. Changing only weight decay to 0.2 brought width 32's transition
+inside the budget. Training first reached 99% at epoch 825. A near-chance
+memorization plateau began at epoch 1,050 and was confirmed at 1,150.
+Held-out accuracy first reached 99% at epoch 7,675, and the run finished at
+100% on both splits. This 32,232-parameter model is the smallest tested
+delayed-grokking model so far. Width 24 with the same stronger-decay recipe
+finished at 99.89% training and 37.46% held-out accuracy, without a
+generalization event.
 Width 16 with decay 0.2 finished at 69.61% training and 34.60% held-out
 accuracy. The dense stage completed seven fresh runs. The successful
 recipe and refinements are committed as `033597a` in the dense repository;
@@ -295,5 +293,16 @@ heads, two blocks, depths 8/16, initialization gain 1.4, embedding-output gain
 0.1, and the dense recipe's learning rate 0.001 and decay 0.1. Mesh arms have
 26,624 learned parameters, and table arms have 37,248. Each table arm starts as
 the same function as its mesh arm, and their one-epoch smoke runs had identical
-initial complete-split losses. Each arm has the full 10,000-epoch cap and runs
-concurrently with the others.
+initial complete-split losses. Each arm has the 10,000-epoch cap, and the arms
+run concurrently.
+
+A first launch without a stop rule reached epoch 3,325 in the mesh arms and
+3,575 in the table arms before the stopping rule changed. Its table arms first
+reached 99% held-out accuracy at epochs 375 (neighbor) and 525 (butterfly).
+Afterwards, transient loss spikes lowered accuracy on both splits at once:
+held-out accuracy fell below 99% at 7 of 129 and 12 of 123 later
+observations, to minima of 85.72% and 76.91%. Its mesh arms stayed near
+chance, peaking at 6.29% and 22.68% training and 2.38% and 2.36% held-out
+accuracy. All four arms then restarted from the original seed with
+`--stop-validation-accuracy 0.99`. The interrupted runs keep their
+interruption records and checkpoints in their ignored directories.

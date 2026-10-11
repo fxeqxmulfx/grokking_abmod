@@ -1,10 +1,9 @@
 {
   "protocol": {
     "target": 0.99,
-    "generalization_observations": 20,
+    "generalization": "first_heldout_observation_at_target",
     "plateau_observations": 5,
     "plateau_heldout_ceiling": 0.1,
-    "stability_epochs": 1000,
     "epoch_cap": 10000
   },
   "runs": [
@@ -62,18 +61,14 @@
       "plot_history_sha256": "302304f5692a1b0db7408d36aa0a869a05f54504cc6747d955d2e0552f15db6e",
       "observations": 101,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.016323024,
       "final_heldout_accuracy": 0.007087629,
-      "peak_heldout_accuracy": 0.020833333,
-      "final_window_failures": 11,
-      "final_window_minimum_heldout_accuracy": 0.006013746
+      "peak_heldout_accuracy": 0.020833333
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w128",
@@ -207,23 +202,17 @@
       "plot_history_sha256": "b20e89f8ff57748015db0d8c4331a97a8d7d588b18e1361eba94921522b7adad",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": 2600.0,
       "first_train_99_epoch": 725.0,
       "generalization": {
-        "onset_step": 36750,
-        "onset_epoch": 3675.0,
-        "confirmed_step": 41500,
-        "confirmed_epoch": 4150.0
+        "step": 26000,
+        "epoch": 2600.0
       },
-      "generalization_lag_epochs": 2950.0,
+      "generalization_lag_epochs": 1875.0,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 1.0,
       "final_heldout_accuracy": 1.0,
-      "peak_heldout_accuracy": 1.0,
-      "final_window_failures": 2,
-      "final_window_minimum_heldout_accuracy": 0.9628436426116839
+      "peak_heldout_accuracy": 1.0
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w64",
@@ -357,23 +346,17 @@
       "plot_history_sha256": "123b5b77174f85bdf4e3ca1248626e2630aec43121323de1e663fe2058a0106f",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": 100.0,
       "first_train_99_epoch": 75.0,
       "generalization": {
-        "onset_step": 13750,
-        "onset_epoch": 1375.0,
-        "confirmed_step": 18500,
-        "confirmed_epoch": 1850.0
+        "step": 1000,
+        "epoch": 100.0
       },
-      "generalization_lag_epochs": 1300.0,
+      "generalization_lag_epochs": 25.0,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": true,
       "final_train_accuracy": 1.0,
       "final_heldout_accuracy": 1.0,
-      "peak_heldout_accuracy": 1.0,
-      "final_window_failures": 0,
-      "final_window_minimum_heldout_accuracy": 0.9987113402061856
+      "peak_heldout_accuracy": 1.0
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w32",
@@ -507,18 +490,14 @@
       "plot_history_sha256": "96fed78dfa97ef655bfec93754dce05b8e21f7014d93b7ccc69c697c56839182",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": 575.0,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.9980670103092784,
       "final_heldout_accuracy": 0.9641323024054983,
-      "peak_heldout_accuracy": 0.9641323024054983,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.27899484536082475
+      "peak_heldout_accuracy": 0.9641323024054983
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w16",
@@ -652,18 +631,14 @@
       "plot_history_sha256": "dd8fc4f683621415d9985b110fed21398d04ea6ce156467423a3191dfc4373be",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.6196305841924399,
       "final_heldout_accuracy": 0.37263745704467355,
-      "peak_heldout_accuracy": 0.4737972508591065,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.36662371134020616
+      "peak_heldout_accuracy": 0.4737972508591065
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w32-wd02",
@@ -797,20 +772,15 @@
       "plot_history_sha256": "36ae71085ff5fb1a9424324dd02ff3e2a3d13a6ea98d0bf6f277cfdf3f7dfc15",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": 7675.0,
       "first_train_99_epoch": 825.0,
       "generalization": {
-        "onset_step": 76750,
-        "onset_epoch": 7675.0,
-        "confirmed_step": 81500,
-        "confirmed_epoch": 8150.0
+        "step": 76750,
+        "epoch": 7675.0
       },
       "generalization_lag_epochs": 6850.0,
       "delayed_grokking": {
-        "onset_step": 76750,
-        "onset_epoch": 7675.0,
-        "confirmed_step": 81500,
-        "confirmed_epoch": 8150.0
+        "step": 76750,
+        "epoch": 7675.0
       },
       "memorization_plateau": {
         "onset_step": 10500,
@@ -818,12 +788,9 @@
         "confirmed_step": 11500,
         "confirmed_epoch": 1150.0
       },
-      "stable_last_1000_epochs": true,
       "final_train_accuracy": 1.0,
       "final_heldout_accuracy": 1.0,
-      "peak_heldout_accuracy": 1.0,
-      "final_window_failures": 0,
-      "final_window_minimum_heldout_accuracy": 0.9997852233676976
+      "peak_heldout_accuracy": 1.0
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w24-wd02",
@@ -957,18 +924,14 @@
       "plot_history_sha256": "d20d46d83cc0fb79d79f7dce1180e2004ffd15d52d9fd73b36f30d6142050582",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": 4175.0,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.998926116838488,
       "final_heldout_accuracy": 0.3745704467353952,
-      "peak_heldout_accuracy": 0.46198453608247425,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.33719931271477666
+      "peak_heldout_accuracy": 0.46198453608247425
     },
     {
       "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w16-wd02",
@@ -1102,18 +1065,14 @@
       "plot_history_sha256": "d82e7b964a354b958e681b5b30144c848c45afd0b81a4429fa53427fd2000850",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.6960910652920962,
       "final_heldout_accuracy": 0.34600515463917525,
-      "peak_heldout_accuracy": 0.4795962199312715,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.3449312714776632
+      "peak_heldout_accuracy": 0.4795962199312715
     },
     {
       "run": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/mesh/w128-h4-l2-d4-f6-g14-wd01-cache3",
@@ -1176,18 +1135,14 @@
       "plot_history_sha256": "0e196c9344824769f89622dc5595e71af48d0524f1406b6501109487ce6a6231",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.062285223,
       "final_heldout_accuracy": 0.018041237,
-      "peak_heldout_accuracy": 0.022766323,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.015678694
+      "peak_heldout_accuracy": 0.022766323
     },
     {
       "run": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/mesh/w128-h4-l2-d8-f16-g14-e01-lr003-wd001-cache3",
@@ -1251,18 +1206,14 @@
       "plot_history_sha256": "106a64ad97d3697ded65efbeb07a181bc0b1041a7b2bd1d0ca8a182116cfa1e1",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.322809278,
       "final_heldout_accuracy": 0.020833333,
-      "peak_heldout_accuracy": 0.025558419,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.01911512
+      "peak_heldout_accuracy": 0.025558419
     },
     {
       "run": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/mesh/w1024-h8-l5-d8-f16-g14-e002-wd001-b256-cache3-qks1",
@@ -1326,7 +1277,6 @@
       "plot_history_sha256": "604cc54928d26713fbddd2e7f8a7577c525359904f4b1fc9633643a8c2eae005",
       "observations": 17,
       "epochs": 400.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": 200.0,
       "generalization": null,
       "generalization_lag_epochs": null,
@@ -1337,12 +1287,9 @@
         "confirmed_step": 7600,
         "confirmed_epoch": 400.0
       },
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 1.0,
       "final_heldout_accuracy": 0.026202749,
-      "peak_heldout_accuracy": 0.030068729,
-      "final_window_failures": 17,
-      "final_window_minimum_heldout_accuracy": 0.019974227
+      "peak_heldout_accuracy": 0.030068729
     },
     {
       "run": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/mesh/w128-h4-l2-d8-f16-g14-e01-lr003-wd001-cache3-qks1",
@@ -1407,18 +1354,14 @@
       "plot_history_sha256": "30fe904d84d45d41c8e7ec950a6f472a92673c9f8ebdef30d3b694138d179cd5",
       "observations": 401,
       "epochs": 10000.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.277491409,
       "final_heldout_accuracy": 0.018900344,
-      "peak_heldout_accuracy": 0.02362543,
-      "final_window_failures": 41,
-      "final_window_minimum_heldout_accuracy": 0.016967354
+      "peak_heldout_accuracy": 0.02362543
     }
   ],
   "smallest_tested_generalizing": {

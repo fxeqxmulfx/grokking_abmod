@@ -44,6 +44,10 @@ enter the sampler. Every report evaluates both entire splits and records their
 cross-entropy and answer accuracy, rather than an estimate from sampled batches.
 `--epochs N` ends after exactly `N` complete passes and includes each short
 final batch. It is mutually exclusive with an explicit `--steps` budget.
+`--stop-validation-accuracy X` ends training earlier, at the first report whose
+complete validation split reaches accuracy `X`. That report's checkpoint,
+embeddings and predictions are the final artifacts. Without the flag, training
+uses the whole budget.
 For division modulo 97 with a 50% split and batch 512, each epoch has 4,656
 equations and ten updates, so 10,000 epochs is 100,000 updates. Each CSV
 observation records examples seen, complete epochs, and partial-epoch progress.
@@ -126,7 +130,9 @@ The output directory contains:
 
 - `run.txt`: task, split sizes, seeds, model and optimizer settings, total examples
   seen, completed epochs, elapsed time, and first recorded steps with 99% accuracy.
-  A threshold that was not reached is recorded as `not_reached`.
+  A threshold that was not reached is recorded as `not_reached`. It also records
+  `stop_validation_accuracy`, `completed_steps` and `stop_reason`:
+  `validation_accuracy` or `update_budget`.
 - `loss.csv`: step-zero and subsequent complete-split metrics, examples seen,
   completed epochs, partial-epoch progress, weight L2 norm, learning rate,
   and elapsed time.

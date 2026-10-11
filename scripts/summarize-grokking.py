@@ -94,28 +94,21 @@ def summarize(directory, archive=None):
             writer.writerows(history)
         run["history_file"] = str(relative)
         run["plot_history_sha256"] = digest(destination)
-    success = lambda row: row["train"] >= .99 and row["heldout"] >= .99
     plateau = list(streaks(history, lambda row: row["train"] >= .99 and row["heldout"] <= .1, 5))
-    generalization = list(streaks(history, success, 20))
-    grok = next((event for event in generalization
-                 if any(p["confirmed_step"] < event["onset_step"] for p in plateau)), None)
+    # Generalization is the first observation at the held-out target; runs may stop there.
+    event = next(({"step": row["step"], "epoch": row["epoch"]}
+                  for row in history if row["heldout"] >= .99), None)
+    grok = event if event and any(p["confirmed_step"] < event["step"] for p in plateau) else None
     last = history[-1]
     first_train = next((row["epoch"] for row in history if row["train"] >= .99), None)
-    event = next(iter(generalization), None)
-    tail = [row for row in history if row["epoch"] >= last["epoch"] - 1000]
-    stable = (last["epoch"] >= 1000 and tail[0]["epoch"] <= last["epoch"] - 1000
-              and all(success(row) for row in tail))
     return {"run": str(directory.resolve()), **run, "observations": len(history),
-            "epochs": last["epoch"], "first_joint_99_epoch": next((r["epoch"] for r in history if success(r)), None),
-            "first_train_99_epoch": first_train,
+            "epochs": last["epoch"], "first_train_99_epoch": first_train,
             "generalization": event,
-            "generalization_lag_epochs": event["onset_epoch"] - first_train if event and first_train is not None else None,
+            "generalization_lag_epochs": event["epoch"] - first_train if event and first_train is not None else None,
             "delayed_grokking": grok,
-            "memorization_plateau": next(iter(plateau), None), "stable_last_1000_epochs": stable,
+            "memorization_plateau": next(iter(plateau), None),
             "final_train_accuracy": last["train"], "final_heldout_accuracy": last["heldout"],
-            "peak_heldout_accuracy": max(row["heldout"] for row in history),
-            "final_window_failures": sum(not success(row) for row in tail),
-            "final_window_minimum_heldout_accuracy": min(row["heldout"] for row in tail)}
+            "peak_heldout_accuracy": max(row["heldout"] for row in history)}
 
 
 def main():
@@ -125,17 +118,17 @@ def main():
     arguments = parser.parse_args()
     archive = arguments.output.parent if arguments.output else None
     runs = [summarize(directory, archive) for directory in arguments.directories]
-    report = {"protocol": {"target": .99, "generalization_observations": 20,
+    report = {"protocol": {"target": .99, "generalization": "first_heldout_observation_at_target",
                            "plateau_observations": 5, "plateau_heldout_ceiling": .1,
-                           "stability_epochs": 1000, "epoch_cap": 10_000}, "runs": runs}
+                           "epoch_cap": 10_000}, "runs": runs}
     report["smallest_tested_generalizing"] = {
         family: min((run["parameters"] for run in runs
                      if run["family"] == family and run["generalization"]), default=None)
-        for family in {run["family"] for run in runs}}
+        for family in sorted({run["family"] for run in runs})}
     report["smallest_tested_delayed_grokking"] = {
         family: min((run["parameters"] for run in runs
                      if run["family"] == family and run["delayed_grokking"]), default=None)
-        for family in {run["family"] for run in runs}}
+        for family in sorted({run["family"] for run in runs})}
     text = json.dumps(report, indent=2, allow_nan=False) + "\n"
     if arguments.output:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)

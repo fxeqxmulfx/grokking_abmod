@@ -1,10 +1,9 @@
 {
   "protocol": {
     "target": 0.99,
-    "generalization_observations": 20,
+    "generalization": "first_heldout_observation_at_target",
     "plateau_observations": 5,
     "plateau_heldout_ceiling": 0.1,
-    "stability_epochs": 1000,
     "epoch_cap": 10000
   },
   "runs": [
@@ -71,18 +70,14 @@
       "plot_history_sha256": "98b3f35154b03b4f4f7277e5abd46d9138effad479e5756eb27d51749ae912d6",
       "observations": 21,
       "epochs": 500.0,
-      "first_joint_99_epoch": null,
       "first_train_99_epoch": null,
       "generalization": null,
       "generalization_lag_epochs": null,
       "delayed_grokking": null,
       "memorization_plateau": null,
-      "stable_last_1000_epochs": false,
       "final_train_accuracy": 0.201460481,
       "final_heldout_accuracy": 0.01911512,
-      "peak_heldout_accuracy": 0.023410653,
-      "final_window_failures": 21,
-      "final_window_minimum_heldout_accuracy": 0.004939863
+      "peak_heldout_accuracy": 0.023410653
     }
   ],
   "smallest_tested_generalizing": {

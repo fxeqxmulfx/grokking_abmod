@@ -1,6 +1,6 @@
 {
   "epochs": 10000,
-  "output": "target/grok-div97-search/ablations",
+  "output": "target/grok-div97-search/ablations-stop99",
   "common": {
     "operation": "div",
     "modulus": 97,
@@ -8,6 +8,7 @@
     "seed": 7,
     "batch": 512,
     "report-every": 250,
+    "stop-validation-accuracy": 0.99,
     "eval-batch": 64,
     "workspace-cache": 3,
     "learning-rate": 0.001,
