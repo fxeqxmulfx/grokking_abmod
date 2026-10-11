@@ -203,7 +203,9 @@ increase weight decay to 0.1, and test widths 1024, 512, 256 and 128
 At width 1024 only decay changes from the active calibrated large run.
 To prioritize regularization trials, that decay-0.01 run may be retired
 after it establishes five consecutive training-99% / held-out-at-most-10%
-observations. Any retired run is recorded as interrupted at its last
+observations, or after reaching the 500-epoch fitting-pilot budget. The
+500-epoch stop was added after the first transient training-99% result at
+epoch 200, before observing epoch 500. Any retired run is recorded as interrupted at its last
 observation, without claiming failure over the full 10,000-epoch budget.
 The stronger-decay trial starts from the original seed, without reusing
 weights or optimizer state. Each fresh trial remains capped at 10,000 epochs.
