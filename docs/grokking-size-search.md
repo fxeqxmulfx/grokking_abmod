@@ -126,6 +126,21 @@ uv run --locked scripts/run-mesh-search.py experiments/div97-mesh-search.json \
   w512-h8-l2-d44-f44-g14-wd01
 ```
 
+Optional buffer reuse is enabled in
+[div97-mesh-cached-search.json](../experiments/div97-mesh-cached-search.json).
+Its separately named candidates use the same mathematics, seeds, batches
+and budgets, with a bounded pool of three batch shapes. A 50-epoch,
+500-update comparison at 123,904 parameters took 25.41 seconds with the
+original binary and 18.85 seconds with reuse, a 1.35x speedup. All recorded
+losses, accuracies and final checkpoint bytes matched exactly. The other
+experiment was paused during timing. This is a timing experiment, not a
+grokking result; speedup at other sizes is not established. Commands and
+binary/checkpoint hashes are in
+[workspace-cache-comparison.json](grokking-results/workspace-cache-comparison.json).
+The GPU verification suite also checks exact AdamW trajectories across
+full/tail batches, different sequence lengths, cache eviction, invalid
+inputs and shrinking the cache. Independent numerical checks still pass.
+
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
 Mesh defaults are substantially

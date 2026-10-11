@@ -28,6 +28,7 @@ struct Options {
     batch: Option<usize>,
     report_every: usize,
     evaluation_batch: usize,
+    workspace_capacity: usize,
     initialization_gain: f32,
     seed: u64,
     device: usize,
@@ -57,6 +58,7 @@ impl Options {
             batch: None,
             report_every: 1000,
             evaluation_batch: 128,
+            workspace_capacity: 1,
             initialization_gain: 1.0,
             seed: 7,
             device: 0,
@@ -77,6 +79,7 @@ impl Options {
                 "--batch" => options.batch = Some(value(&mut arguments, &flag)?),
                 "--report-every" => options.report_every = value(&mut arguments, &flag)?,
                 "--eval-batch" => options.evaluation_batch = value(&mut arguments, &flag)?,
+                "--workspace-cache" => options.workspace_capacity = value(&mut arguments, &flag)?,
                 "--init-gain" => options.initialization_gain = value(&mut arguments, &flag)?,
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--heads" => options.config.heads = value(&mut arguments, &flag)?,
@@ -118,6 +121,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --batch N             Equations per minibatch (default: min(512, train_size/2))\n\
             --report-every N      Evaluate both complete splits (default: 1000)\n\
             --eval-batch N        Equations per evaluation chunk (default: 128)\n\
+            --workspace-cache N   Retain 1..3 batch shapes; more uses extra GPU memory (default: 1)\n\
             --init-gain X         Scale every initial mesh edge (default: 1)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
@@ -147,6 +151,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     if !options.initialization_gain.is_finite() || options.initialization_gain <= 0.0 {
         return Err("initialization gain must be finite and positive".into());
     }
+    validate_workspace_capacity(options.workspace_capacity)?;
     options.optimizer.validate()?;
     let dataset = EquationDataset::new(
         options.modulus,
@@ -167,6 +172,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     // Start from the seed again after validating the requested minibatch size.
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
     let mut model = GrokModel::<W>::new(options.device, options.config, options.seed)?;
+    model.set_workspace_capacity(options.workspace_capacity)?;
     if options.initialization_gain != 1.0 {
         let mut parameters = model.parameters()?;
         for parameter in &mut parameters {
@@ -204,13 +210,14 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         .open(options.output.join("run.txt"))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}\nworkspace_capacity={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
         dataset.split(false).len().div_ceil(batch),
         options.evaluation_batch,
         options.initialization_gain,
+        options.workspace_capacity,
     )?;
     println!(
         "Mesh GPT grokking: {} mod {}, train={}, validation={}, batch={}, parameters={}",
@@ -234,7 +241,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     let mut thresholds = Thresholds::default();
     record(
         &mut history,
-        &model,
+        &mut model,
         &dataset,
         options.evaluation_batch,
         &options.output,
@@ -253,7 +260,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         if step.is_multiple_of(options.report_every) || step == options.steps {
             record(
                 &mut history,
-                &model,
+                &mut model,
                 &dataset,
                 options.evaluation_batch,
                 &options.output,
@@ -266,7 +273,12 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         }
     }
     write_embeddings(&options.output, &model, &dataset)?;
-    write_predictions(&options.output, &model, &dataset, options.evaluation_batch)?;
+    write_predictions(
+        &options.output,
+        &mut model,
+        &dataset,
+        options.evaluation_batch,
+    )?;
     let metadata_path = options.output.join("run.txt");
     let metadata =
         std::fs::read_to_string(&metadata_path)?.replace("status=running", "status=complete");
@@ -291,6 +303,13 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         observed(thresholds.training),
         observed(thresholds.validation)
     );
+    Ok(())
+}
+
+fn validate_workspace_capacity(capacity: usize) -> Result<()> {
+    if !(1..=3).contains(&capacity) {
+        return Err("workspace capacity must be in 1..3".into());
+    }
     Ok(())
 }
 
@@ -339,7 +358,7 @@ fn row_metrics(row: &[f32], target: usize) -> (f64, usize) {
 }
 
 fn evaluate<const W: usize>(
-    model: &GrokModel<W>,
+    model: &mut GrokModel<W>,
     dataset: &EquationDataset,
     validation: bool,
     batch: usize,
@@ -349,7 +368,7 @@ fn evaluate<const W: usize>(
     for start in (0..count).step_by(batch) {
         let indices: Vec<_> = (start..start.saturating_add(batch).min(count)).collect();
         let (inputs, targets) = dataset.batch(validation, &indices)?;
-        let logits = model.logits(&inputs, EQUATION_CONTEXT)?;
+        let logits = evaluation_logits(model, &inputs)?;
         for (x, y) in logits
             .as_chunks::<EQUATION_CONTEXT>()
             .0
@@ -370,7 +389,7 @@ fn evaluate<const W: usize>(
 #[allow(clippy::too_many_arguments)]
 fn record<const W: usize>(
     history: &mut impl Write,
-    model: &GrokModel<W>,
+    model: &mut GrokModel<W>,
     dataset: &EquationDataset,
     evaluation_batch: usize,
     directory: &Path,
@@ -479,7 +498,7 @@ fn write_embeddings<const W: usize>(
 
 fn write_predictions<const W: usize>(
     directory: &Path,
-    model: &GrokModel<W>,
+    model: &mut GrokModel<W>,
     dataset: &EquationDataset,
     batch: usize,
 ) -> Result<()> {
@@ -490,7 +509,7 @@ fn write_predictions<const W: usize>(
         for start in (0..split.len()).step_by(batch) {
             let indices: Vec<_> = (start..start.saturating_add(batch).min(split.len())).collect();
             let (inputs, targets) = dataset.batch(validation, &indices)?;
-            let logits = model.logits(&inputs, EQUATION_CONTEXT)?;
+            let logits = evaluation_logits(model, &inputs)?;
             for ((&index, x), y) in indices
                 .iter()
                 .zip(logits.as_chunks::<4>().0.iter())
@@ -513,6 +532,17 @@ fn write_predictions<const W: usize>(
     }
     file.flush()?;
     Ok(())
+}
+
+fn evaluation_logits<const W: usize>(
+    model: &mut GrokModel<W>,
+    inputs: &[u32],
+) -> Result<Vec<Vec<f32>>> {
+    if model.workspace_capacity() > 1 {
+        model.cached_logits(inputs, EQUATION_CONTEXT)
+    } else {
+        model.logits(inputs, EQUATION_CONTEXT)
+    }
 }
 
 #[cfg(test)]
@@ -538,6 +568,28 @@ mod tests {
         );
         let options = Options::parse(["--epochs", "3"].map(str::to_owned).into_iter()).unwrap();
         assert_eq!(options.epochs, Some(3));
+    }
+
+    #[test]
+    fn workspace_capacity_is_bounded_before_device_creation() {
+        for capacity in ["0", "4", "18446744073709551615"] {
+            let options = Options::parse(
+                ["--workspace-cache", capacity]
+                    .map(str::to_owned)
+                    .into_iter(),
+            )
+            .unwrap();
+            assert!(validate_workspace_capacity(options.workspace_capacity).is_err());
+        }
+        let options =
+            Options::parse(["--workspace-cache", "3"].map(str::to_owned).into_iter()).unwrap();
+        assert_eq!(options.workspace_capacity, 3);
+        assert_eq!(
+            Options::parse(std::iter::empty())
+                .unwrap()
+                .workspace_capacity,
+            1
+        );
     }
 
     #[test]

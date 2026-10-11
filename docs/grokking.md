@@ -93,6 +93,10 @@ adjusts their memory footprint while still evaluating every equation.
 including each projection's final layer. The default is one and preserves
 the original seeded initialization. This permits an explicit initialization
 search for deeper meshes without changing their connectivity or operators.
+`--workspace-cache 3` retains the full training batch, short tail and evaluation
+batch buffers, avoiding repeated device allocation. It uses more GPU memory;
+the default retains one training batch shape. Every inference and update still
+recomputes activations from current weights.
 
 The paper used a dense Transformer with approximately 400000 non-embedding
 parameters. This implementation carries its modular tasks and training protocol

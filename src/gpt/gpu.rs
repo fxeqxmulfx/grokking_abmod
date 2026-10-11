@@ -1543,7 +1543,8 @@ pub struct SpecializedMeshGpt<const W: usize, const V: usize, const C: usize, co
     module: kernels::LoadedModule,
     parameters: Vec<Parameters>,
     codes: DeviceBuffer<Features<W>>,
-    workspace: Option<Workspace<W, V, C, H>>,
+    workspaces: Vec<Workspace<W, V, C, H>>,
+    workspace_capacity: usize,
     beta1_power: f32,
     beta2_power: f32,
 }
@@ -1599,7 +1600,8 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             module,
             parameters,
             codes,
-            workspace: None,
+            workspaces: Vec::new(),
+            workspace_capacity: 1,
             beta1_power: 1.0,
             beta2_power: 1.0,
         })
@@ -1607,6 +1609,36 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
 
     pub fn config(&self) -> GptConfig {
         self.config
+    }
+
+    /// Retains up to three batch shapes. One preserves the default memory use.
+    /// Additional shapes trade device memory for fewer allocations at short tails.
+    pub fn set_workspace_capacity(&mut self, capacity: usize) -> Result<()> {
+        if !(1..=3).contains(&capacity) {
+            return Err("workspace capacity must be in 1..3".into());
+        }
+        self.workspace_capacity = capacity;
+        let excess = self.workspaces.len().saturating_sub(capacity);
+        self.workspaces.drain(..excess);
+        Ok(())
+    }
+
+    pub fn workspace_capacity(&self) -> usize {
+        self.workspace_capacity
+    }
+
+    fn take_workspace(&mut self, rows: usize, sequence: usize) -> Result<Workspace<W, V, C, H>> {
+        if let Some(index) = self
+            .workspaces
+            .iter()
+            .position(|workspace| workspace.rows == rows && workspace.sequence == sequence)
+        {
+            return Ok(self.workspaces.remove(index));
+        }
+        if self.workspaces.len() == self.workspace_capacity {
+            self.workspaces.remove(0);
+        }
+        Workspace::new(&self.stream, &self.plan, self.config, rows, sequence)
     }
 
     /// Bytes owned by device buffers, excluding CUDA context and module overhead.
@@ -1617,7 +1649,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 .iter()
                 .map(|p| p.state.num_bytes() + p.gradient.num_bytes())
                 .sum::<usize>();
-        if let Some(w) = &self.workspace {
+        for w in &self.workspaces {
             bytes += [
                 &w.embeddings,
                 &w.embedding_adjoints,
@@ -1686,6 +1718,24 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         )?;
         workspace.tokens.copy_from_host(&self.stream, tokens)?;
         self.forward(&mut workspace)?;
+        self.read_logits(&workspace)
+    }
+
+    /// Like `logits`, but reuses the bounded training workspace pool.
+    /// Every call recomputes activations from the current parameters.
+    pub fn cached_logits(&mut self, tokens: &[u32], sequence: usize) -> Result<Vec<Vec<f32>>> {
+        self.config.validate_tokens(tokens, sequence)?;
+        let mut workspace = self.take_workspace(tokens.len(), sequence)?;
+        let result = (|| {
+            workspace.tokens.copy_from_host(&self.stream, tokens)?;
+            self.forward(&mut workspace)?;
+            self.read_logits(&workspace)
+        })();
+        self.workspaces.push(workspace);
+        result
+    }
+
+    fn read_logits(&self, workspace: &Workspace<W, V, C, H>) -> Result<Vec<Vec<f32>>> {
         workspace
             .logits
             .to_host_vec(&self.stream)?
@@ -2040,18 +2090,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
 
     fn gradients(&mut self, inputs: &[u32], targets: &[u32], sequence: usize) -> Result<f64> {
         let supervised = self.config.validate_batch(inputs, targets, sequence)?;
-        let mut workspace = match self.workspace.take() {
-            Some(workspace) if workspace.rows == inputs.len() && workspace.sequence == sequence => {
-                workspace
-            }
-            _ => Workspace::new(
-                &self.stream,
-                &self.plan,
-                self.config,
-                inputs.len(),
-                sequence,
-            )?,
-        };
+        let mut workspace = self.take_workspace(inputs.len(), sequence)?;
         let result = (|| {
             workspace.tokens.copy_from_host(&self.stream, inputs)?;
             workspace.targets.copy_from_host(&self.stream, targets)?;
@@ -2061,7 +2100,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             self.backward(&mut workspace)?;
             Ok(loss)
         })();
-        self.workspace = Some(workspace);
+        self.workspaces.push(workspace);
         result
     }
 

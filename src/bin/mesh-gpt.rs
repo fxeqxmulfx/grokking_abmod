@@ -478,7 +478,76 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
     Ok(())
 }
 
+fn verify_workspace_cache(device: usize) -> Result<()> {
+    let config = GptConfig {
+        vocab_size: 7,
+        context: 3,
+        width: 16,
+        heads: 2,
+        layers: 2,
+        attention_mesh_depth: 2,
+        ffn_mesh_depth: 3,
+    };
+    let mut baseline = GpuMeshGpt::new(device, config, 11)?;
+    let mut cached = GpuMeshGpt::new(device, config, 11)?;
+    cached.set_workspace_capacity(3)?;
+    for (step, (batch, sequence)) in [(45, 3), (3, 3), (45, 3), (7, 2), (3, 3), (45, 3)]
+        .into_iter()
+        .enumerate()
+    {
+        let inputs: Vec<_> = (0..batch * sequence)
+            .map(|i| ((i + step) % config.vocab_size) as u32)
+            .collect();
+        let targets: Vec<_> = (0..inputs.len())
+            .map(|i| {
+                if (i + 1).is_multiple_of(sequence) {
+                    ((2 * i + step) % config.vocab_size) as u32
+                } else {
+                    IGNORE_TARGET
+                }
+            })
+            .collect();
+        let optimizer = AdamWOptions {
+            learning_rate: 0.001 * (step + 1) as f32,
+            weight_decay: 0.1,
+            beta2: 0.98,
+            ..AdamWOptions::default()
+        };
+        let expected =
+            baseline.train_batch_with_optimizer(&inputs, &targets, sequence, optimizer)?;
+        let actual = cached.train_batch_with_optimizer(&inputs, &targets, sequence, optimizer)?;
+        if expected != actual || baseline.parameters()? != cached.parameters()? {
+            return Err("workspace reuse changed minibatch loss or AdamW trajectory".into());
+        }
+        let inference = [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4];
+        if baseline.logits(&inference, 2)? != cached.cached_logits(&inference, 2)? {
+            return Err("cached inference changed logits after an optimizer update".into());
+        }
+        if cached.cached_logits(&[], 2).is_ok()
+            || cached.cached_logits(&[u32::MAX], 1).is_ok()
+            || cached.set_workspace_capacity(0).is_ok()
+            || cached.set_workspace_capacity(4).is_ok()
+        {
+            return Err("workspace cache validation failed".into());
+        }
+    }
+    let bytes = cached.allocated_device_bytes();
+    cached.set_workspace_capacity(1)?;
+    if cached.allocated_device_bytes() >= bytes
+        || baseline.logits(&[0, 1, 2], 3)? != cached.cached_logits(&[0, 1, 2], 3)?
+    {
+        return Err(
+            "shrinking the workspace cache failed to release buffers or preserve logits".into(),
+        );
+    }
+    println!(
+        "PASS workspace reuse: exact logits, masked losses and AdamW trajectory across full/tail batches, sequence changes, eviction, invalid input and shrinking"
+    );
+    Ok(())
+}
+
 fn verify(device: usize) -> Result<()> {
+    verify_workspace_cache(device)?;
     GpuMeshGpt::verify_attention_contracts(device)?;
     println!(
         "PASS fused attention contracts: tiles, complete sequences, lengths, overflow, shared memory"
