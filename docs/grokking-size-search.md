@@ -226,6 +226,17 @@ The binary hash, complete split bytes and every initial recorded loss,
 accuracy and weight norm match between the pilot and fresh trial. The sole
 settings difference is weight decay, 0.01 to 0.1.
 
+Smaller-model head pilots are defined in
+[div97-mesh-head-pilots.json](../experiments/div97-mesh-head-pilots.json).
+They keep 63,488 learned mesh parameters, width 128, five blocks and depths
+8/16, and vary heads between two, one and four. The two-head pilot is
+queued after the 26,624-parameter signed control finishes. These pilots
+use exactly 500 complete epochs and measure early fitting. Their shorter
+budgets cannot establish failure to grok within 10,000 epochs. A promising
+pilot gets a separately named full-budget run from the original seed.
+The eight-head full run supplies the corresponding first-500-epoch control
+with the same split, seed, initialization, batches, learning rate and decay.
+
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
 Mesh defaults are substantially
