@@ -1,0 +1,32 @@
+{
+  "study": "Shrink the continuous unit-normalized parity table model",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/table-unit-size",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "eval-batch": 64,
+    "workspace-cache": 3,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "init-gain": 1.4,
+    "embedding-output-gain": 0.1,
+    "heads": 4,
+    "connectivity": "neighbor",
+    "embedding": "table",
+    "embedding-form": "parity",
+    "embedding-norm": "unit"
+  },
+  "candidates": [
+    {"label": "unit-w128-h4-l2-d8-f16-s7", "width": 128, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
+    {"label": "unit-w64-h4-l2-d8-f16-s7", "width": 64, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
+    {"label": "unit-w32-h4-l2-d8-f16-s7", "width": 32, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
+    {"label": "unit-w16-h4-l2-d8-f16-s7", "width": 16, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
+    {"label": "unit-w8-h4-l2-d8-f16-s7", "width": 8, "layers": 2, "attention-depth": 8, "ffn-depth": 16}
+  ]
+}

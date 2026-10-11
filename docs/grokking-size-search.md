@@ -580,3 +580,33 @@ lower bound, rather than a measured crossing time. An
 [SVG copy](grokking-results/table-unit-control/table-unit-control.svg) is available.
 
 ![Initial scale versus continuous unit normalization](grokking-results/table-unit-control/table-unit-control.png)
+
+## Shrinking the unit-normalized table
+
+[div97-table-unit-size-search.json](../experiments/div97-table-unit-size-search.json)
+shrinks the fastest learned table, the parity table with continuous unit
+normalization. Every candidate keeps that arm's recipe, seed 7, the 99%
+held-out stopping rule and the 10,000-epoch cap; only the dimensions change.
+At width W, with L blocks, attention depth a and feed-forward depth f, the
+model has 99W table weights and 2WL(4a + f) mesh weights.
+
+The first stage halves the width from 128 to 8, keeping two blocks, four
+heads and depths 8/16:
+
+| Width | Table weights | Mesh weights | Parameters |
+| ---: | ---: | ---: | ---: |
+| 128 | 12,672 | 24,576 | 37,248 |
+| 64 | 6,336 | 12,288 | 18,624 |
+| 32 | 3,168 | 6,144 | 9,312 |
+| 16 | 1,584 | 3,072 | 4,656 |
+| 8 | 792 | 1,536 | 2,328 |
+
+The width-128 candidate repeats `table-unit-s7` with the binary that added
+`grok-simple`; an identical history would confirm that the GPT path is
+unchanged. `mesh-gpt verify` runs before the first candidate. The tied head
+reads unit vectors with the final RMSNorm state, whose norm √W bounds every
+logit; the bound falls from 11.3 at width 128 to 2.8 at width 8, so a failure
+at a small width need not reflect capacity alone. Later stages reduce depth
+and blocks at the smallest successful widths, then repeat the smallest
+success with further seeds. They are added to the manifest as new candidates
+after the preceding stage finishes.
