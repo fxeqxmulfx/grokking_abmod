@@ -1,0 +1,31 @@
+{
+  "command": "grok-simple",
+  "study": "Narrow the neighbor mesh MLPs of depths 5 and 9, which grokked at width 64, to the widths where the one-layer MLP had no memorization plateau",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mesh-mlp-width",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mesh-mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "connectivity": "neighbor"
+  },
+  "candidates": [
+    {"label": "mesh-mlp-neighbor-w56-d5", "width": 56, "depth": 5},
+    {"label": "mesh-mlp-neighbor-w56-d9", "width": 56, "depth": 9},
+    {"label": "mesh-mlp-neighbor-w48-d5", "width": 48, "depth": 5},
+    {"label": "mesh-mlp-neighbor-w48-d9", "width": 48, "depth": 9},
+    {"label": "mesh-mlp-neighbor-w40-d5", "width": 40, "depth": 5},
+    {"label": "mesh-mlp-neighbor-w40-d9", "width": 40, "depth": 9},
+    {"label": "mesh-mlp-neighbor-w32-d5", "width": 32, "depth": 5},
+    {"label": "mesh-mlp-neighbor-w32-d9", "width": 32, "depth": 9}
+  ]
+}

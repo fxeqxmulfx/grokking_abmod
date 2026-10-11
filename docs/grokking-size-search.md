@@ -938,3 +938,44 @@ most at butterfly depth 9, from 94.46% at epoch 6,400 to 80.11% at epoch
 6,425, whereas the MLP and neighbor depth 2 never lost more than 0.4 points.
 These are single runs with seed 7. Summaries and histories are in
 [summary.json](grokking-results/mesh-mlp-depth/summary.json).
+
+## Narrower mesh MLPs
+
+[div97-mesh-mlp-width.json](../experiments/div97-mesh-mlp-width.json) narrows
+the two neighbor meshes that reached the target at width 64, depths 5 and 9,
+to widths 56, 48, 40 and 32, where the one-layer MLP had no plateau. It keeps
+the depth study's settings: 9,568 to 17,192 parameters.
+
+| Width | Depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 56 | 5 | 16,744 | Epoch 575 | 4.2% | Not reached | Epochs 575 to 1,250 | 100% / 97.81% |
+| 56 | 9 | 17,192 | Epoch 400 | 4.0% | Epoch 5,075 | Epochs 400 to 875 | 100% / 99.05% |
+| 48 | 5 | 14,352 | Epoch 600 | 10.3% | Epoch 6,300 | No | 100% / 99.05% |
+| 48 | 9 | 14,736 | Epoch 400 | 8.9% | Epoch 7,950 | No | 100% / 99.05% |
+| 40 | 5 | 11,960 | Epoch 700 | 11.7% | Epoch 5,800 | No | 100% / 99.01% |
+| 40 | 9 | 12,280 | Epoch 525 | 10.4% | Epoch 4,400 | No | 100% / 99.01% |
+| 32 | 5 | 9,568 | Epoch 1,425 | 16.0% | Epoch 9,125 | No | 100% / 99.03% |
+| 32 | 9 | 9,824 | Epoch 1,000 | 15.9% | Not reached | No | 100% / 98.86% |
+
+Mesh layers lowered the plateau's onset by one step of the ladder. At width
+56, where the one-layer MLP first fitted at 11.1% held-out accuracy, depths 5
+and 9 fitted at 4.2% and 4.0% and stayed at most 10% for 28 and 20
+observations. At width 48, depth 9 fitted at 8.9% but stayed under the
+ceiling for only two observations. The other meshes of width 48 and below
+fitted at 10.3% to 16.0%, still below the one-layer MLPs of the same widths:
+20.0% at width 48, 27.4% at 40 and 59.0% at 32.
+
+Width 56 depth 9 grokked with delay: its plateau ended at epoch 875 and
+held-out accuracy reached 99% at epoch 5,075. At 17,192 parameters it is now
+the smallest attention-free model with delayed grokking, below 19,136 for
+width 64 depth 5. Width 56 depth 5 peaked at 98.26% and ended at 97.81%.
+Without a plateau, widths 48 and 40 reached the target at epochs 4,400 to
+7,950 and width 32 depth 5 at epoch 9,125, with 9,568 parameters; the
+one-layer MLP of the memorization ladder reached the target only from width
+48, at 13,968 parameters. Width 32 depth 9 peaked at 98.99% at epoch 9,900,
+one held-out equation short of the target. At epoch 3,000 every mesh led the
+one-layer MLP of its width by 22.7 to 50.2 points. As at width 64, the
+meshes' held-out accuracy was less stable: it fell 1.6 to 7.3 points below
+its running peak, against at most 0.4 points for those MLPs. These are
+single runs with seed 7. Summaries and
+histories are in [summary.json](grokking-results/mesh-mlp-width/summary.json).
