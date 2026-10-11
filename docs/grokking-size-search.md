@@ -70,6 +70,7 @@ report every 25 epochs.
 | Dense GPTMini, seed 1 | 9,976 | 16 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 61.96% / 37.26% | Neither fitting nor grokking |
 | Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 100% / 100% | Delayed grokking; final window stable |
 | Dense GPTMini, seed 1 | 19,568 | 24 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 99.89% / 37.46% | Fitted training; failed held-out target |
+| Dense GPTMini, seed 1 | 9,976 | 16 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 69.61% / 34.60% | Neither fitting nor grokking |
 
 The dense run first fitted training at epoch 725 and first reached joint
 99% accuracy at epoch 2,600. Twenty consecutive qualifying observations
@@ -97,8 +98,10 @@ The run finished at 100% on both splits; every observation in the final
 This 32,232-parameter model is the smallest tested delayed-grokking model
 so far. Width 24 with the same stronger-decay recipe finished at 99.89%
 training and 37.46% held-out accuracy, without a generalization event.
-Width 16 with decay 0.2 is the final dense refinement in progress before
-the Mesh stage.
+Width 16 with decay 0.2 finished at 69.61% training and 34.60% held-out
+accuracy. The dense stage completed seven fresh runs. The successful
+recipe and refinements are committed as `033597a` in the dense repository;
+the Mesh stage is active.
 
 ## Mesh search settings
 

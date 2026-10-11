@@ -969,6 +969,151 @@
       "peak_heldout_accuracy": 0.46198453608247425,
       "final_window_failures": 41,
       "final_window_minimum_heldout_accuracy": 0.33719931271477666
+    },
+    {
+      "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w16-wd02",
+      "family": "dense",
+      "parameters": 9976,
+      "status": "complete",
+      "settings": {
+        "type": "Experiment",
+        "model": {
+          "type": "Transformer",
+          "width": 16,
+          "depth": 2,
+          "block": {
+            "type": "Block",
+            "attention": {
+              "type": "Attention",
+              "heads": 4,
+              "projections": {
+                "type": "FusedQKV",
+                "bias": false
+              },
+              "scores": {
+                "type": "QKNorm",
+                "eps": 1e-06,
+                "initial_scale": null
+              },
+              "weights": {
+                "type": "Softmax",
+                "fused": false
+              },
+              "exclusive": {
+                "type": "XSA",
+                "eps": 1e-06
+              },
+              "output_bias": false
+            },
+            "ffn": {
+              "type": "FFN",
+              "activation": {
+                "type": "ReLU2"
+              },
+              "multiplier": 4,
+              "bias": false
+            },
+            "norm": {
+              "type": "RMSNorm",
+              "eps": 1e-05,
+              "scale": false
+            },
+            "residual": {
+              "type": "PreNorm"
+            }
+          },
+          "positions": {
+            "type": "RoPE",
+            "theta": 10000.0,
+            "interleaved": false
+          },
+          "readout": {
+            "type": "Tied"
+          },
+          "final_norm": {
+            "type": "RMSNorm",
+            "eps": 1e-05,
+            "scale": false
+          },
+          "init": {
+            "type": "Normal",
+            "std": 0.02
+          },
+          "context": 50
+        },
+        "benchmark": {
+          "type": "ModularDivision",
+          "prime": 97,
+          "train_fraction": 0.5,
+          "tail": "short"
+        },
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 0.001,
+          "betas": [
+            0.9,
+            0.98
+          ],
+          "weight_decay": 0.2,
+          "eps": 1e-08,
+          "decay": "all"
+        },
+        "schedule": {
+          "type": "Schedule",
+          "warmup": 10,
+          "anneal": null,
+          "inclusive": false
+        },
+        "budget": {
+          "type": "Budget",
+          "updates": 100000,
+          "batch": 512
+        },
+        "seeds": {
+          "type": "Seeds",
+          "model": 1,
+          "data": 1,
+          "batches": null
+        },
+        "evaluate": {
+          "type": "Evaluate",
+          "every": 250,
+          "batch": 1024
+        },
+        "execution": {
+          "type": "CudaGraph",
+          "device": "cuda",
+          "threads": 1
+        },
+        "diagnostics": {
+          "type": "Diagnostics",
+          "every": 0,
+          "neighbors": false,
+          "gradients": false
+        },
+        "checkpoint": {
+          "type": "Checkpoint",
+          "every": 5000
+        },
+        "stopping": null
+      },
+      "history_sha256": "35f7f1e7ee091a9463f1150541271c11e54179bdaabbd39a4fc0a3c45e346195",
+      "history_file": "histories/dense-graph-w16-wd02.csv",
+      "plot_history_sha256": "d82e7b964a354b958e681b5b30144c848c45afd0b81a4429fa53427fd2000850",
+      "observations": 401,
+      "epochs": 10000.0,
+      "first_joint_99_epoch": null,
+      "first_train_99_epoch": null,
+      "generalization": null,
+      "generalization_lag_epochs": null,
+      "delayed_grokking": null,
+      "memorization_plateau": null,
+      "stable_last_1000_epochs": false,
+      "final_train_accuracy": 0.6960910652920962,
+      "final_heldout_accuracy": 0.34600515463917525,
+      "peak_heldout_accuracy": 0.4795962199312715,
+      "final_window_failures": 41,
+      "final_window_minimum_heldout_accuracy": 0.3449312714776632
     }
   ],
   "smallest_tested_generalizing": {
