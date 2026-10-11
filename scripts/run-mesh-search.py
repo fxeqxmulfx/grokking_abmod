@@ -44,11 +44,19 @@ def main():
             embedding = (settings["modulus"] + 2) * width
         else:
             embedding = 2 * width * attention
-        parameters = embedding + 2 * width * layers * (4 * attention + ffn)
+        # Count learned weights: a frozen embedding is excluded, and each
+        # protected feature fixes two weights in every block's output and FFN mesh.
+        learned_embedding = 0 if settings.get("freeze-embedding") else embedding
+        protected = 4 * layers * settings.get("preserve-features", 0)
+        parameters = learned_embedding + 2 * width * layers * (4 * attention + ffn) - protected
         directory = ROOT / study["output"] / label
         command = [str(arguments.binary.resolve()), "grok", "--epochs", str(study["epochs"])]
         for key, value in settings.items():
-            command.extend((f"--{key}", str(value)))
+            # JSON booleans select switches that take no value.
+            if value is True:
+                command.append(f"--{key}")
+            elif value is not False:
+                command.extend((f"--{key}", str(value)))
         command.extend(("--output", str(directory)))
         print(json.dumps({"label": label, "parameters": parameters, "epochs": study["epochs"],
                           "command": command}), flush=True)
