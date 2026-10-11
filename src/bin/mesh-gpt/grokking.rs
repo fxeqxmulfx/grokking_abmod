@@ -15,7 +15,7 @@ use grokking_abmod::{
 
 use super::value;
 
-type GrokModel = SpecializedMeshGpt<128, 256, EQUATION_CONTEXT, 8>;
+type GrokModel<const W: usize> = SpecializedMeshGpt<W, 256, EQUATION_CONTEXT, 8>;
 
 struct Options {
     config: GptConfig,
@@ -27,6 +27,7 @@ struct Options {
     epochs: Option<usize>,
     batch: Option<usize>,
     report_every: usize,
+    evaluation_batch: usize,
     seed: u64,
     device: usize,
     output: PathBuf,
@@ -54,6 +55,7 @@ impl Options {
             epochs: None,
             batch: None,
             report_every: 1000,
+            evaluation_batch: 128,
             seed: 7,
             device: 0,
             output: PathBuf::from("target/mesh-gpt-grokking"),
@@ -72,6 +74,7 @@ impl Options {
                 "--epochs" => options.epochs = Some(value(&mut arguments, &flag)?),
                 "--batch" => options.batch = Some(value(&mut arguments, &flag)?),
                 "--report-every" => options.report_every = value(&mut arguments, &flag)?,
+                "--eval-batch" => options.evaluation_batch = value(&mut arguments, &flag)?,
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--heads" => options.config.heads = value(&mut arguments, &flag)?,
                 "--layers" => options.config.layers = value(&mut arguments, &flag)?,
@@ -98,7 +101,7 @@ impl Options {
 }
 
 pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
-    let mut options = Options::parse(arguments)?;
+    let options = Options::parse(arguments)?;
     if options.help {
         println!(
             "Mesh GPT grokking: abstract-symbol modular equations from arXiv:2201.02177v1\n\
@@ -111,9 +114,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --epochs N            Complete passes over all training equations; replaces --steps\n\
             --batch N             Equations per minibatch (default: min(512, train_size/2))\n\
             --report-every N      Evaluate both complete splits (default: 1000)\n\
+            --eval-batch N        Equations per evaluation chunk (default: 128)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
-            --width N             Channels, 2..128 (default: 128)\n\
+            --width N             Channels, 2..1024 (default: 128)\n\
             --heads N             Heads, 1..8, even channels/head (default: 4)\n\
             --layers N            Transformer blocks, 1..64 (default: 2)\n\
             --attention-depth N   Embedding/Q/K/V/output mesh depth (default: 4)\n\
@@ -124,8 +128,17 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         );
         return Ok(());
     }
-    if options.steps == 0 || options.report_every == 0 {
-        return Err("steps and report interval must be positive".into());
+    match options.config.width {
+        ..=128 => train::<128>(options),
+        129..=512 => train::<512>(options),
+        513..=1024 => train::<1024>(options),
+        _ => Err("grokking requires width <=1024".into()),
+    }
+}
+
+fn train<const W: usize>(mut options: Options) -> Result<()> {
+    if options.steps == 0 || options.report_every == 0 || options.evaluation_batch == 0 {
+        return Err("steps, report interval, and evaluation batch must be positive".into());
     }
     options.optimizer.validate()?;
     let dataset = EquationDataset::new(
@@ -146,7 +159,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
     }
     // Start from the seed again after validating the requested minibatch size.
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
-    let mut model = GrokModel::new(options.device, options.config, options.seed)?;
+    let mut model = GrokModel::<W>::new(options.device, options.config, options.seed)?;
     std::fs::create_dir_all(&options.output)?;
     write_dataset(&options.output, &dataset)?;
     std::fs::write(
@@ -177,11 +190,12 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         .open(options.output.join("run.txt"))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
         dataset.split(false).len().div_ceil(batch),
+        options.evaluation_batch,
     )?;
     println!(
         "Mesh GPT grokking: {} mod {}, train={}, validation={}, batch={}, parameters={}",
@@ -207,6 +221,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         &mut history,
         &model,
         &dataset,
+        options.evaluation_batch,
         &options.output,
         0,
         0,
@@ -225,6 +240,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
                 &mut history,
                 &model,
                 &dataset,
+                options.evaluation_batch,
                 &options.output,
                 step,
                 trained_examples,
@@ -235,7 +251,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         }
     }
     write_embeddings(&options.output, &model, &dataset)?;
-    write_predictions(&options.output, &model, &dataset)?;
+    write_predictions(&options.output, &model, &dataset, options.evaluation_batch)?;
     let metadata_path = options.output.join("run.txt");
     let metadata =
         std::fs::read_to_string(&metadata_path)?.replace("status=running", "status=complete");
@@ -307,11 +323,16 @@ fn row_metrics(row: &[f32], target: usize) -> (f64, usize) {
     (sum.ln() + maximum - f64::from(row[target]), prediction)
 }
 
-fn evaluate(model: &GrokModel, dataset: &EquationDataset, validation: bool) -> Result<Metrics> {
+fn evaluate<const W: usize>(
+    model: &GrokModel<W>,
+    dataset: &EquationDataset,
+    validation: bool,
+    batch: usize,
+) -> Result<Metrics> {
     let count = dataset.split(validation).len();
     let (mut loss, mut correct) = (0.0, 0);
-    for start in (0..count).step_by(512) {
-        let indices: Vec<_> = (start..(start + 512).min(count)).collect();
+    for start in (0..count).step_by(batch) {
+        let indices: Vec<_> = (start..start.saturating_add(batch).min(count)).collect();
         let (inputs, targets) = dataset.batch(validation, &indices)?;
         let logits = model.logits(&inputs, EQUATION_CONTEXT)?;
         for (x, y) in logits
@@ -332,10 +353,11 @@ fn evaluate(model: &GrokModel, dataset: &EquationDataset, validation: bool) -> R
 }
 
 #[allow(clippy::too_many_arguments)]
-fn record(
+fn record<const W: usize>(
     history: &mut impl Write,
-    model: &GrokModel,
+    model: &GrokModel<W>,
     dataset: &EquationDataset,
+    evaluation_batch: usize,
     directory: &Path,
     step: usize,
     trained_examples: usize,
@@ -343,8 +365,8 @@ fn record(
     elapsed: f64,
     thresholds: &mut Thresholds,
 ) -> Result<()> {
-    let train = evaluate(model, dataset, false)?;
-    let validation = evaluate(model, dataset, true)?;
+    let train = evaluate(model, dataset, false, evaluation_batch)?;
+    let validation = evaluate(model, dataset, true, evaluation_batch)?;
     if train.accuracy >= 0.99 && thresholds.training.is_none() {
         thresholds.training = Some(step);
     }
@@ -418,7 +440,11 @@ fn write_dataset(directory: &Path, dataset: &EquationDataset) -> Result<()> {
     Ok(())
 }
 
-fn write_embeddings(directory: &Path, model: &GrokModel, dataset: &EquationDataset) -> Result<()> {
+fn write_embeddings<const W: usize>(
+    directory: &Path,
+    model: &GrokModel<W>,
+    dataset: &EquationDataset,
+) -> Result<()> {
     let mut file = BufWriter::new(File::create(directory.join("embeddings.csv"))?);
     write!(file, "token_id,symbol")?;
     for channel in 0..model.config().width {
@@ -436,13 +462,18 @@ fn write_embeddings(directory: &Path, model: &GrokModel, dataset: &EquationDatas
     Ok(())
 }
 
-fn write_predictions(directory: &Path, model: &GrokModel, dataset: &EquationDataset) -> Result<()> {
+fn write_predictions<const W: usize>(
+    directory: &Path,
+    model: &GrokModel<W>,
+    dataset: &EquationDataset,
+    batch: usize,
+) -> Result<()> {
     let mut file = BufWriter::new(File::create(directory.join("predictions.csv"))?);
     writeln!(file, "split,a,b,answer,prediction,correct,cross_entropy")?;
     for validation in [false, true] {
         let split = dataset.split(validation);
-        for start in (0..split.len()).step_by(512) {
-            let indices: Vec<_> = (start..(start + 512).min(split.len())).collect();
+        for start in (0..split.len()).step_by(batch) {
+            let indices: Vec<_> = (start..start.saturating_add(batch).min(split.len())).collect();
             let (inputs, targets) = dataset.batch(validation, &indices)?;
             let logits = model.logits(&inputs, EQUATION_CONTEXT)?;
             for ((&index, x), y) in indices
