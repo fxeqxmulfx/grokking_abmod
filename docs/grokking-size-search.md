@@ -1026,3 +1026,28 @@ brought the target 1,825 and 3,625 epochs earlier at depths 5 and 9, more
 than the control's 750-epoch shift from rounding. These are single runs with
 seed 7. Summaries and histories, including the first build's repeat, are in
 [summary.json](grokking-results/mesh-mlp-own/summary.json).
+
+The final weights show that own-channel depth reduces to one gain per
+channel. A channel's gains start at 1, and each receives the derivative by
+their product times the other gains, so they stay equal: at depths 3, 5 and
+9 they ended at most 1.6e-7, 2.3e-7 and 3.6e-7 apart, relative to their
+size, a few roundings. Depth `D` thus computes
+`R diag(relu(u)^(D - 1)) relu(E x)` with one gain `u` per channel. Rescaling
+the factors of a ReLU channel leaves its function unchanged, and the least L2
+penalty of a channel scale `m_c = |E_c| relu(u_c)^(D - 1) |R_c|` split over
+its `D + 1` factors is `((D + 1) / 2) λ m_c^(2 / (D + 1))`, which favors
+fewer, larger channels as depth grows. Raw scales seem to agree: the 16
+largest of the 64 channels hold 38.5% of the summed scales in the one-layer
+MLP and 47.6%, 55.4%, 81.6% and 69.0% at depths 2, 3, 5 and 9. Most of that
+excess, however, sits in channels that are active for every operand pair and
+whose readout rows are nearly constant across classes: the constant part
+holds 79% to 99.9% of each such row's squared norm. These channels shift
+every logit nearly alike, which the softmax ignores. Depths 2 and 3 have 22
+and 25 of them with 57.6% and 69.1% of the summed scales, a single one holds
+67.4% at depth 5 and 43.5% at depth 9, and the MLP has none. With each
+readout row centered over the classes, the 16 largest channels hold 38.2% of
+the summed scales in the MLP, 37.4% and 38.8% at depths 2 and 3, and 46.3%
+and 46.2% at depths 5 and 9.
+[analyze-channel-scales.py](../scripts/analyze-channel-scales.py) computes
+these scales from the final weights, in
+[channel-scales.json](grokking-results/mesh-mlp-own/channel-scales.json).
