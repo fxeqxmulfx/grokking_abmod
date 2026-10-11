@@ -66,6 +66,7 @@ report every 25 epochs.
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
 | Mesh control, seed 7, gain 1.4 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 0.1 | 10,000 | 6.23% / 1.80% | Neither fitting nor grokking |
 | Mesh calibrated, seed 7, gain 1.4, embedding gain 0.1 | 26,624 | 128 / 2 / 4 | 8 / 16 | 0.003 / 0.01 | 10,000 | 32.28% / 2.08% | Neither fitting nor grokking |
+| Mesh calibrated, seed 7, gain 1.4, embedding gain 0.1, Q/K signs | 26,624 | 128 / 2 / 4 | 8 / 16 | 0.003 / 0.01 | 10,000 | 27.75% / 1.89% | Neither fitting nor grokking |
 | Mesh fitting pilot, seed 7, gain 1.4, embedding gain 0.02, Q/K signs | 507,904 | 1024 / 5 / 8 | 8 / 16 | 0.001 / 0.01 | 400 (retired) | 100% / 2.62% | Confirmed memorization plateau; no grokking before retirement |
 | Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
 | Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
@@ -172,8 +173,11 @@ These checks establish valid execution; the full epoch-budget runs measure
 learning and grokking. The first calibrated search used 26,624 parameters
 and completed all 10,000 epochs without fitting the training set. Its final
 training/held-out cross-entropies were 2.7389/6.7946, and neither split
-reached 99%. A controlled sign-initialization variant and a five-block,
-63,488-parameter variant are running. A 507,904-parameter sign variant uses
+reached 99%. Its controlled sign-initialization variant also completed the
+full budget without either split reaching 99%, finishing at 27.75% training
+and 1.89% held-out accuracy. The first-block initialization geometry check
+therefore did not produce a successful small model under these settings.
+The five-block, 63,488-parameter variant is running. A 507,904-parameter sign variant uses
 batch 256: eighteen full batches and the short batch of 48, or nineteen
 updates per epoch. It evaluates every 475 updates (25 epochs) and has a
 190,000-update cap. Its two-update capacity check passed with finite
@@ -229,13 +233,29 @@ settings difference is weight decay, 0.01 to 0.1.
 Smaller-model head pilots are defined in
 [div97-mesh-head-pilots.json](../experiments/div97-mesh-head-pilots.json).
 They keep 63,488 learned mesh parameters, width 128, five blocks and depths
-8/16, and vary heads between two, one and four. The two-head pilot is
-queued after the 26,624-parameter signed control finishes. These pilots
+8/16, and vary heads between two, one and four. The two-head pilot started
+after the 26,624-parameter signed control finished. These pilots
 use exactly 500 complete epochs and measure early fitting. Their shorter
 budgets cannot establish failure to grok within 10,000 epochs. A promising
 pilot gets a separately named full-budget run from the original seed.
 The eight-head full run supplies the corresponding first-500-epoch control
 with the same split, seed, initialization, batches, learning rate and decay.
+
+The two-head pilot completed 500 epochs at 20.15% training and 1.91%
+held-out accuracy, without reaching training 99%. The eight-head control
+was at 23.67% training and 2.04% held-out accuracy at the same epoch.
+These observations do not favor fewer heads for early fitting at this size.
+One- and four-head pilots remain unrun.
+
+Depth pilots are defined in
+[div97-mesh-depth-pilots.json](../experiments/div97-mesh-depth-pilots.json).
+They use width 128, two heads, two blocks, embedding-output gain 0.1 and
+attention/embedding depths 16, 32 and 64, with feed-forward depths twice
+as large. Their counts are 53,248, 106,496 and 212,992 parameters, and
+each pilot visits the full training set 500 times. The depth-32 pilot is
+selected first. These vary the complete configuration from the head
+pilots; their results cannot isolate a single cause or establish failure
+at the 10,000-epoch cap.
 
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
