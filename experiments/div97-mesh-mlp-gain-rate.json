@@ -1,0 +1,29 @@
+{
+  "command": "grok-simple",
+  "study": "Train the gains of the width-64 own-channel mesh MLP of depth 2 at 2, 4 and 8 times the learning rate, decay included, so that at the start each channel scale moves as fast in relative terms as with the gains of own-channel depths 3, 5 and 9, after repeating depth 2 to check that the multiplier leaves it unchanged",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mesh-mlp-gain-rate",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mesh-mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "width": 64,
+    "depth": 2,
+    "connectivity": "own"
+  },
+  "candidates": [
+    {"label": "mesh-mlp-own-w64-d2"},
+    {"label": "mesh-mlp-own-w64-d2-rate2", "mesh-learning-rate-multiplier": 2},
+    {"label": "mesh-mlp-own-w64-d2-rate4", "mesh-learning-rate-multiplier": 4},
+    {"label": "mesh-mlp-own-w64-d2-rate8", "mesh-learning-rate-multiplier": 8}
+  ]
+}

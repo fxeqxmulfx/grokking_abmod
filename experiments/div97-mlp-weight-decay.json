@@ -1,0 +1,28 @@
+{
+  "command": "grok-simple",
+  "study": "Raise the weight decay of the width-64 one-hot ReLU MLP to (D + 1) λ / 2 for λ = 0.1, so that AdamW shrinks each channel scale |E_c| |R_c| as fast as it shrinks |E_c| relu(u_c)^(D - 1) |R_c| in an own-channel mesh of depth D = 2, 3, 5 and 9",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mlp-weight-decay",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "depth": 1,
+    "width": 64
+  },
+  "candidates": [
+    {"label": "mlp-relu-one-hot-w64-wd015", "weight-decay": 0.15},
+    {"label": "mlp-relu-one-hot-w64-wd02", "weight-decay": 0.2},
+    {"label": "mlp-relu-one-hot-w64-wd03", "weight-decay": 0.3},
+    {"label": "mlp-relu-one-hot-w64-wd05", "weight-decay": 0.5}
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "definition": {
+    "scale": "|E_c| prod_l relu(u_lc) |R_c| of the final weights",
+    "centered_scale": "the scale with R_c minus its mean over the classes",
+    "top_share": "share of the summed scales in the 16 largest channels",
+    "effective_channels": "(sum m_c)^2 / sum m_c^2",
+    "always_active": "channels with E_c[a] + E_c[b] > 0 for every operand pair",
+    "readout_mean_share": "classes * mean(R_c)^2 / |R_c|^2",
+    "largest_relative_gain_spread": "max over channels of (max_l u_lc - min_l u_lc) / max_l |u_lc|"
+  },
+  "runs": [
+    {
+      "run": "target/grok-div97-search/mlp-weight-decay/mlp-relu-one-hot-w64-wd015",
+      "family": "mlp-relu-one-hot",
+      "parameters": 18624,
+      "epochs": 8575,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "a179c2b962085f598334492b731ec476cadeae7351084002bdbec3fcc5154874",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.02486476710838881,
+        "top_share": 0.34803069075239274,
+        "channels_for_90_percent": 52,
+        "effective_channels": 57.59428510330054
+      },
+      "centered_scales": {
+        "largest_share": 0.024016403889469642,
+        "top_share": 0.3450180078149331,
+        "channels_for_90_percent": 52,
+        "effective_channels": 57.924899524869616
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-weight-decay/mlp-relu-one-hot-w64-wd02",
+      "family": "mlp-relu-one-hot",
+      "parameters": 18624,
+      "epochs": 8575,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "4964ec063ba39521b3fa9b54aa1ef92f300deda7a53d4342dc8713aea755631e",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.024639091714937424,
+        "top_share": 0.33990840649213905,
+        "channels_for_90_percent": 53,
+        "effective_channels": 58.82340510275128
+      },
+      "centered_scales": {
+        "largest_share": 0.024475991703973646,
+        "top_share": 0.3359050909642591,
+        "channels_for_90_percent": 53,
+        "effective_channels": 59.15873910342234
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-weight-decay/mlp-relu-one-hot-w64-wd03",
+      "family": "mlp-relu-one-hot",
+      "parameters": 18624,
+      "epochs": 7975,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "e6d24c5a5a354feb3fb2bd6ffd52dcbd227fa494fda148c916945cfba5cddcdb",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.022730835670412713,
+        "top_share": 0.32016073564761793,
+        "channels_for_90_percent": 54,
+        "effective_channels": 60.691320852906074
+      },
+      "centered_scales": {
+        "largest_share": 0.022403017804322852,
+        "top_share": 0.3167281453485666,
+        "channels_for_90_percent": 54,
+        "effective_channels": 60.93725125264899
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-weight-decay/mlp-relu-one-hot-w64-wd05",
+      "family": "mlp-relu-one-hot",
+      "parameters": 18624,
+      "epochs": 10000,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "e03ac68bcb20fcd8e27e2208dea99dac9ff3ea749d36e40eb2717a48b67f56bf",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.021831037262679126,
+        "top_share": 0.2946349743179548,
+        "channels_for_90_percent": 57,
+        "effective_channels": 62.87289032719963
+      },
+      "centered_scales": {
+        "largest_share": 0.021436156616465894,
+        "top_share": 0.29214335896893373,
+        "channels_for_90_percent": 57,
+        "effective_channels": 62.95697618535753
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    }
+  ]
+}

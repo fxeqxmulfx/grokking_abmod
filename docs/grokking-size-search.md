@@ -1148,3 +1148,81 @@ operand pair. These are single runs with seed 7. Summaries and histories are
 in [summary.json](grokking-results/mlp-channel-decay/summary.json), channel
 scales in
 [channel-scales.json](grokking-results/mlp-channel-decay/channel-scales.json).
+
+## Stronger decay in the one-layer MLP
+
+AdamW shrinks every factor of a channel scale by the same fraction `lr λ`
+per step. The scale `|E_c| |R_c|` of a one-layer MLP channel thus decays at
+`2 λ` per unit learning rate, and `|E_c| relu(u_c)^(D - 1) |R_c|` in an
+own-channel mesh of depth `D` at `(D + 1) λ`.
+[div97-mlp-weight-decay.json](../experiments/div97-mlp-weight-decay.json)
+gives the width-64 MLP the weight decay `(D + 1) λ / 2` of own depths 2, 3,
+5 and 9 for λ = 0.1, that is 0.15, 0.2, 0.3 and 0.5, with the memorization
+ladder's other settings. It ran on the build whose repeat of the width-64
+MLP in the channel decay study was bitwise.
+
+| Weight decay | Own depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 0.1 | 1 | 18,624 | Epoch 1,375 | 5.8% | Not reached | Epochs 1,375 to 1,825 | 100% / 98.50% |
+| 0.15 | 2 | 18,624 | Epoch 1,450 | 8.9% | Epoch 8,575 | No | 100% / 99.05% |
+| 0.2 | 3 | 18,624 | Epoch 1,475 | 13.5% | Epoch 8,575 | No | 100% / 99.01% |
+| 0.3 | 5 | 18,624 | Epoch 1,575 | 26.6% | Epoch 7,975 | No | 100% / 99.03% |
+| 0.5 | 9 | 18,624 | Epoch 2,000 | 58.4% | Not reached | No | 100% / 97.98% |
+
+The stronger decay did the opposite of depth for memorization. The first fit
+came later, at epochs 1,450 to 2,000, with 8.9% to 58.4% held-out accuracy,
+and no run had a plateau. Generalization came earlier instead: at epoch
+5,000 held-out accuracy was 87.3%, 91.3%, 97.3% and 96.1%, against 53.7% at
+λ = 0.1 and 72.1%, 53.2%, 69.0% and 68.9% at own depths 2, 3, 5 and 9.
+Decays 0.15, 0.2 and 0.3 reached the target at epochs 8,575, 8,575 and
+7,975, and 0.5 peaked at 98.02%. The decay also spread the scales: with
+centered readout rows the 16 largest channels held 34.5%, 33.6%, 31.7% and
+29.2% of the summed scales, against 38.2% at λ = 0.1. A faster decay of the
+channel scales thus explains neither the earlier memorization nor the
+plateaus of the own meshes. These are single runs with seed 7. Summaries and
+histories are in [summary.json](grokking-results/mlp-weight-decay/summary.json),
+channel scales in
+[channel-scales.json](grokking-results/mlp-weight-decay/channel-scales.json).
+
+## Faster own-channel gains
+
+`grok-simple --mesh-learning-rate-multiplier k` trains mesh-layer weights at
+`k` times the learning rate, their decay included. A gain `u` used in `k`
+mesh layers changes `relu(u)^k` by `k` times its own relative step. At
+`u = 1`, one gain at `k` times the rate thus moves its channel scale as fast
+as own-channel depth `k + 1`, and at any size its decay shrinks the scale as
+fast. `grok-simple --verify` checks AdamW steps at multipliers 2, 3 and 8.
+[div97-mesh-mlp-gain-rate.json](../experiments/div97-mesh-mlp-gain-rate.json)
+trains the gains of own-channel depth 2 at 2, 4 and 8 times the rate, the
+initial pace of depths 3, 5 and 9, after repeating depth 2.
+
+The repeat reproduced own depth 2's loss history and final weights bitwise.
+
+| Gain rate | Own depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 1× | 2 | 18,688 | Epoch 850 | 3.8% | Not reached | Epochs 850 to 1,500 | 100% / 98.48% |
+| 2× | 3 | 18,688 | Epoch 750 | 3.8% | Not reached | Epochs 750 to 1,450 | 100% / 94.39% |
+| 4× | 5 | 18,688 | Epoch 700 | 3.5% | Not reached | Epochs 700 to 1,275 | 100% / 97.96% |
+| 8× | 9 | 18,688 | Epoch 675 | 3.8% | Not reached | Epochs 675 to 1,225 | 100% / 98.28% |
+
+Faster gains reproduced a small part of depth. They first fitted at epochs
+750, 700 and 675, against 650, 475 and 350 at own depths 3, 5 and 9, at the
+same 3.5% to 3.8% held-out accuracy, and held their plateaus for 29, 24 and
+23 observations, against 27 at 1× and 35, 54 and 61 at those depths.
+Held-out accuracy at epoch 5,000 stayed at 71.3% to 72.6%, against 72.1% at
+1×, and the runs ended at 94.39% to 98.28%. The multiplier scales a gain's
+loss step and its decay alike, so a gain whose gradient keeps its sign still
+settles near 1/λ = 10: the largest gain ended at 9.3 to 9.5 at every
+multiplier. Each of the `D - 1` gains of a deeper mesh has that bound, so
+their product can reach about `10^(D - 1)`, and at depths 5 and 9 the largest
+channel gains ended at 623 and 788. Adam moves a gain with a steady gradient
+by about the learning rate per step, so a product `g` of `D - 1` equal gains
+changes by about `(D - 1) lr g^(1 - 1/(D - 1))`, nearly in proportion to
+itself, while one gain at `D - 1` times the rate changes by `(D - 1) lr` at
+any size. The results thus suggest that own-channel depth acts through the
+power of its gains, which widens their range and speeds their growth as they
+grow, rather than through a faster rate or a stronger decay. These are
+single runs with seed 7. Summaries and histories are in
+[summary.json](grokking-results/mesh-mlp-gain-rate/summary.json), channel
+scales in
+[channel-scales.json](grokking-results/mesh-mlp-gain-rate/channel-scales.json).

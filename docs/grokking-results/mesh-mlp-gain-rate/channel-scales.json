@@ -1,0 +1,437 @@
+{
+  "definition": {
+    "scale": "|E_c| prod_l relu(u_lc) |R_c| of the final weights",
+    "centered_scale": "the scale with R_c minus its mean over the classes",
+    "top_share": "share of the summed scales in the 16 largest channels",
+    "effective_channels": "(sum m_c)^2 / sum m_c^2",
+    "always_active": "channels with E_c[a] + E_c[b] > 0 for every operand pair",
+    "readout_mean_share": "classes * mean(R_c)^2 / |R_c|^2",
+    "largest_relative_gain_spread": "max over channels of (max_l u_lc - min_l u_lc) / max_l |u_lc|"
+  },
+  "runs": [
+    {
+      "run": "target/grok-div97-search/mesh-mlp-gain-rate/mesh-mlp-own-w64-d2",
+      "family": "mesh-mlp-own-relu-one-hot",
+      "parameters": 18688,
+      "epochs": 10000,
+      "mesh_layers": 1,
+      "stored_mesh_layers": 1,
+      "model_sha256": "10b7cb7c3c2bc3afa448b9e9d5a5ee573a33b59fc30773e804dfd1b2d72f191f",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.04389815495792064,
+        "top_share": 0.476317872778067,
+        "channels_for_90_percent": 47,
+        "effective_channels": 46.097957639763166
+      },
+      "centered_scales": {
+        "largest_share": 0.026067382645079008,
+        "top_share": 0.3738493592625532,
+        "channels_for_90_percent": 53,
+        "effective_channels": 56.92269236919042
+      },
+      "always_active_channels": 22,
+      "always_active_scale_share": 0.5762161147685739,
+      "always_active": [
+        {
+          "scale_share": 0.04389815495792064,
+          "readout_mean_share": 0.9828905911946128
+        },
+        {
+          "scale_share": 0.03836580584630469,
+          "readout_mean_share": 0.9871140255062912
+        },
+        {
+          "scale_share": 0.036537481533060856,
+          "readout_mean_share": 0.9830785192237892
+        },
+        {
+          "scale_share": 0.03449258771583096,
+          "readout_mean_share": 0.9853413564136246
+        },
+        {
+          "scale_share": 0.034131488165231774,
+          "readout_mean_share": 0.9705063118308552
+        },
+        {
+          "scale_share": 0.03299317025033443,
+          "readout_mean_share": 0.9848091315663452
+        },
+        {
+          "scale_share": 0.030476201925580076,
+          "readout_mean_share": 0.9808818342838584
+        },
+        {
+          "scale_share": 0.029179558942873,
+          "readout_mean_share": 0.9721401076916878
+        },
+        {
+          "scale_share": 0.027004083302961376,
+          "readout_mean_share": 0.9784402648190593
+        },
+        {
+          "scale_share": 0.026709482441900897,
+          "readout_mean_share": 0.9699129508026206
+        },
+        {
+          "scale_share": 0.026379500539859414,
+          "readout_mean_share": 0.9778595760373228
+        },
+        {
+          "scale_share": 0.02610593352890679,
+          "readout_mean_share": 0.977445152927655
+        },
+        {
+          "scale_share": 0.02461620779606921,
+          "readout_mean_share": 0.9749317475394318
+        },
+        {
+          "scale_share": 0.024318256934442995,
+          "readout_mean_share": 0.9707896100976996
+        },
+        {
+          "scale_share": 0.02089712724591949,
+          "readout_mean_share": 0.940949149132802
+        },
+        {
+          "scale_share": 0.019883489140768585,
+          "readout_mean_share": 0.9701878469828142
+        },
+        {
+          "scale_share": 0.019389338058334628,
+          "readout_mean_share": 0.9663695007159969
+        },
+        {
+          "scale_share": 0.01819439666066579,
+          "readout_mean_share": 0.9428939851457167
+        },
+        {
+          "scale_share": 0.017228636520301453,
+          "readout_mean_share": 0.9652115759373282
+        },
+        {
+          "scale_share": 0.016633680426488544,
+          "readout_mean_share": 0.9627443135016481
+        },
+        {
+          "scale_share": 0.01658328499591114,
+          "readout_mean_share": 0.966187412243586
+        },
+        {
+          "scale_share": 0.012198247838907151,
+          "readout_mean_share": 0.9198898816829383
+        }
+      ]
+    },
+    {
+      "run": "target/grok-div97-search/mesh-mlp-gain-rate/mesh-mlp-own-w64-d2-rate2",
+      "family": "mesh-mlp-own-relu-one-hot-mesh-rate-2",
+      "parameters": 18688,
+      "epochs": 10000,
+      "mesh_layers": 1,
+      "stored_mesh_layers": 1,
+      "model_sha256": "6153935b1fabf8c2738997e11e9568a3adb09c9329035ec4f49844d4a428345f",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.05336036758700846,
+        "top_share": 0.5298683809244918,
+        "channels_for_90_percent": 46,
+        "effective_channels": 40.93020360613649
+      },
+      "centered_scales": {
+        "largest_share": 0.029209046471066813,
+        "top_share": 0.39381672576214793,
+        "channels_for_90_percent": 51,
+        "effective_channels": 54.57585754107583
+      },
+      "always_active_channels": 14,
+      "always_active_scale_share": 0.48225958915992906,
+      "always_active": [
+        {
+          "scale_share": 0.05336036758700846,
+          "readout_mean_share": 0.9742878422185164
+        },
+        {
+          "scale_share": 0.04413502726285065,
+          "readout_mean_share": 0.9781044893701829
+        },
+        {
+          "scale_share": 0.04161637585266313,
+          "readout_mean_share": 0.9622895034767242
+        },
+        {
+          "scale_share": 0.03994845900013977,
+          "readout_mean_share": 0.9737052746517527
+        },
+        {
+          "scale_share": 0.03801889382083876,
+          "readout_mean_share": 0.9771646589938535
+        },
+        {
+          "scale_share": 0.03638849382525596,
+          "readout_mean_share": 0.9744789100470791
+        },
+        {
+          "scale_share": 0.03433907322002317,
+          "readout_mean_share": 0.9476246309331317
+        },
+        {
+          "scale_share": 0.03433837889204334,
+          "readout_mean_share": 0.967285246587883
+        },
+        {
+          "scale_share": 0.03329096689026629,
+          "readout_mean_share": 0.9681668517599126
+        },
+        {
+          "scale_share": 0.03313088819046113,
+          "readout_mean_share": 0.9728007792794947
+        },
+        {
+          "scale_share": 0.028742876695515396,
+          "readout_mean_share": 0.9611478868983377
+        },
+        {
+          "scale_share": 0.027490768104096345,
+          "readout_mean_share": 0.9327125226149456
+        },
+        {
+          "scale_share": 0.026818279913267132,
+          "readout_mean_share": 0.9581373387413947
+        },
+        {
+          "scale_share": 0.0106407399054995,
+          "readout_mean_share": 0.9176587549370385
+        }
+      ]
+    },
+    {
+      "run": "target/grok-div97-search/mesh-mlp-gain-rate/mesh-mlp-own-w64-d2-rate4",
+      "family": "mesh-mlp-own-relu-one-hot-mesh-rate-4",
+      "parameters": 18688,
+      "epochs": 10000,
+      "mesh_layers": 1,
+      "stored_mesh_layers": 1,
+      "model_sha256": "6f8635e39e3baf7d61a7753afde2598771678bd3285bfce50304992869d72a27",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.04032855505466879,
+        "top_share": 0.5019084238398961,
+        "channels_for_90_percent": 47,
+        "effective_channels": 44.105260312860565
+      },
+      "centered_scales": {
+        "largest_share": 0.02541878120791313,
+        "top_share": 0.3554040793205659,
+        "channels_for_90_percent": 54,
+        "effective_channels": 59.05317574089098
+      },
+      "always_active_channels": 23,
+      "always_active_scale_share": 0.6401307339152933,
+      "always_active": [
+        {
+          "scale_share": 0.04032855505466879,
+          "readout_mean_share": 0.9836328118829083
+        },
+        {
+          "scale_share": 0.036324029534408775,
+          "readout_mean_share": 0.9846196189848834
+        },
+        {
+          "scale_share": 0.036171748484382156,
+          "readout_mean_share": 0.9823825649604381
+        },
+        {
+          "scale_share": 0.03533087919594411,
+          "readout_mean_share": 0.9826643643806227
+        },
+        {
+          "scale_share": 0.035163417452471146,
+          "readout_mean_share": 0.9848974821847921
+        },
+        {
+          "scale_share": 0.03313120143526615,
+          "readout_mean_share": 0.975771962412194
+        },
+        {
+          "scale_share": 0.03291018592038189,
+          "readout_mean_share": 0.9767391329129372
+        },
+        {
+          "scale_share": 0.032263696341150734,
+          "readout_mean_share": 0.9765939069428708
+        },
+        {
+          "scale_share": 0.02963614117792788,
+          "readout_mean_share": 0.9744580146862787
+        },
+        {
+          "scale_share": 0.02955488351811681,
+          "readout_mean_share": 0.9655523486592267
+        },
+        {
+          "scale_share": 0.029495865491745748,
+          "readout_mean_share": 0.948191117961192
+        },
+        {
+          "scale_share": 0.029188587292081188,
+          "readout_mean_share": 0.9510802562636996
+        },
+        {
+          "scale_share": 0.027350754212367937,
+          "readout_mean_share": 0.9772817592078141
+        },
+        {
+          "scale_share": 0.025780530291143113,
+          "readout_mean_share": 0.9588068637590796
+        },
+        {
+          "scale_share": 0.02496490313579472,
+          "readout_mean_share": 0.9758509117476402
+        },
+        {
+          "scale_share": 0.02431304530204501,
+          "readout_mean_share": 0.9479377687670634
+        },
+        {
+          "scale_share": 0.02362224122859511,
+          "readout_mean_share": 0.8800528260990998
+        },
+        {
+          "scale_share": 0.02353445034500932,
+          "readout_mean_share": 0.9512286170841937
+        },
+        {
+          "scale_share": 0.02326322402467062,
+          "readout_mean_share": 0.9757252998177246
+        },
+        {
+          "scale_share": 0.02235721941181003,
+          "readout_mean_share": 0.8976625342041091
+        },
+        {
+          "scale_share": 0.01720802863026733,
+          "readout_mean_share": 0.9191478743978179
+        },
+        {
+          "scale_share": 0.015575712924265276,
+          "readout_mean_share": 0.9624759541498419
+        },
+        {
+          "scale_share": 0.01266143351077941,
+          "readout_mean_share": 0.9419532817376693
+        }
+      ]
+    },
+    {
+      "run": "target/grok-div97-search/mesh-mlp-gain-rate/mesh-mlp-own-w64-d2-rate8",
+      "family": "mesh-mlp-own-relu-one-hot-mesh-rate-8",
+      "parameters": 18688,
+      "epochs": 10000,
+      "mesh_layers": 1,
+      "stored_mesh_layers": 1,
+      "model_sha256": "93076fb7d3709c409aeabb3e374658917461a5f9d54065d5ab67c7794c7319d0",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.04092478537583053,
+        "top_share": 0.5332072644804737,
+        "channels_for_90_percent": 47,
+        "effective_channels": 42.59948763096064
+      },
+      "centered_scales": {
+        "largest_share": 0.02734823645794814,
+        "top_share": 0.36021928414424315,
+        "channels_for_90_percent": 52,
+        "effective_channels": 57.551241380633414
+      },
+      "always_active_channels": 20,
+      "always_active_scale_share": 0.6057975059934073,
+      "always_active": [
+        {
+          "scale_share": 0.04092478537583053,
+          "readout_mean_share": 0.9824134181076459
+        },
+        {
+          "scale_share": 0.03920344805628839,
+          "readout_mean_share": 0.9848119258575656
+        },
+        {
+          "scale_share": 0.03701029809350449,
+          "readout_mean_share": 0.9632470002540456
+        },
+        {
+          "scale_share": 0.0364567698312499,
+          "readout_mean_share": 0.9763668319502204
+        },
+        {
+          "scale_share": 0.03623940738610392,
+          "readout_mean_share": 0.9841574814816648
+        },
+        {
+          "scale_share": 0.0355472978263213,
+          "readout_mean_share": 0.9816498927729292
+        },
+        {
+          "scale_share": 0.034319016418683276,
+          "readout_mean_share": 0.9694112817403058
+        },
+        {
+          "scale_share": 0.034210963808629036,
+          "readout_mean_share": 0.9596437093559903
+        },
+        {
+          "scale_share": 0.03269965843455047,
+          "readout_mean_share": 0.9800829284704998
+        },
+        {
+          "scale_share": 0.032681316797733916,
+          "readout_mean_share": 0.9836105765338906
+        },
+        {
+          "scale_share": 0.03239792245889767,
+          "readout_mean_share": 0.9438433351324281
+        },
+        {
+          "scale_share": 0.03231279468824113,
+          "readout_mean_share": 0.983226621751551
+        },
+        {
+          "scale_share": 0.030016170666285927,
+          "readout_mean_share": 0.9789927679283927
+        },
+        {
+          "scale_share": 0.029172352886209334,
+          "readout_mean_share": 0.9797643242153719
+        },
+        {
+          "scale_share": 0.02663725078586306,
+          "readout_mean_share": 0.9785800821238185
+        },
+        {
+          "scale_share": 0.02337781096608133,
+          "readout_mean_share": 0.865308857206085
+        },
+        {
+          "scale_share": 0.019750536047818946,
+          "readout_mean_share": 0.9717344273050582
+        },
+        {
+          "scale_share": 0.019539002423858177,
+          "readout_mean_share": 0.9717775933292525
+        },
+        {
+          "scale_share": 0.017938535073436904,
+          "readout_mean_share": 0.9619671007646459
+        },
+        {
+          "scale_share": 0.015362167967819558,
+          "readout_mean_share": 0.9417326406829607
+        }
+      ]
+    }
+  ]
+}
