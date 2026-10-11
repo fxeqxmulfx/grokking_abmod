@@ -75,6 +75,8 @@ def main():
         path = arguments.output / f"grokking-size-search.{extension}"
         metadata = {"Date": None} if extension == "svg" else {}
         figure.savefig(path, dpi=180, metadata=metadata)
+        if extension == "svg":
+            path.write_text("\n".join(line.rstrip() for line in path.read_text().splitlines()) + "\n")
         print(path)
     plt.close(figure)
 

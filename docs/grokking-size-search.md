@@ -65,6 +65,7 @@ report every 25 epochs.
 | --- | ---: | --- | --- | --- | ---: | --- | --- |
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
 | Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
+| Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
 
 The dense run first fitted training at epoch 725 and first reached joint
 99% accuracy at epoch 2,600. Twenty consecutive qualifying observations
@@ -72,6 +73,36 @@ began at epoch 3,675 and were confirmed at epoch 4,150, a 2,950-epoch lag
 after training fit. It did not have the strict near-chance memorization
 plateau. Two observations in its final 1,000 epochs fell below 99%, with
 minimum held-out accuracy 96.28%. Smaller dense runs are in progress.
+
+Width 64 first fitted training at epoch 75 and reached joint 99% at epoch
+100. Its first 20-observation qualifying stretch began at epoch 1,375 and
+was confirmed at epoch 1,850, following earlier transient failures. Every
+observation in its final 1,000 epochs exceeded 99% on both splits; minimum
+held-out accuracy was 99.87%. It did not exhibit the strict near-chance
+memorization plateau.
+
+## Mesh search settings
+
+The frozen candidates are in
+[div97-mesh-search.json](../experiments/div97-mesh-search.json). The first
+candidate has 495,616 parameters: width 512, two blocks, eight heads, and
+attention/embedding and feed-forward mesh depths both 44. Initialization
+gain 1.4 scales every original seeded mesh edge before training, including
+each projection's final layer. It preserves all operators and connectivity.
+A two-update smoke test had finite complete-split training loss
+`15.23044 -> 13.28423`; this checks initialization and updates, not grokking.
+
+The runner saves the exact command, frozen settings, binary SHA-256 and
+console log. It skips a completed identical configuration and refuses to
+overwrite a different or unfinished run. Mesh checkpoints currently hold
+weights only, so an interrupted run needs a separately named fresh attempt.
+Named candidates run serially on the GPU:
+
+```sh
+uv run --locked scripts/run-mesh-search.py experiments/div97-mesh-search.json --dry-run
+uv run --locked scripts/run-mesh-search.py experiments/div97-mesh-search.json \
+  w512-h8-l2-d44-f44-g14-wd01
+```
 
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original

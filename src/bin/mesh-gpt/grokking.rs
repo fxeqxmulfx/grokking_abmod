@@ -28,6 +28,7 @@ struct Options {
     batch: Option<usize>,
     report_every: usize,
     evaluation_batch: usize,
+    initialization_gain: f32,
     seed: u64,
     device: usize,
     output: PathBuf,
@@ -56,6 +57,7 @@ impl Options {
             batch: None,
             report_every: 1000,
             evaluation_batch: 128,
+            initialization_gain: 1.0,
             seed: 7,
             device: 0,
             output: PathBuf::from("target/mesh-gpt-grokking"),
@@ -75,6 +77,7 @@ impl Options {
                 "--batch" => options.batch = Some(value(&mut arguments, &flag)?),
                 "--report-every" => options.report_every = value(&mut arguments, &flag)?,
                 "--eval-batch" => options.evaluation_batch = value(&mut arguments, &flag)?,
+                "--init-gain" => options.initialization_gain = value(&mut arguments, &flag)?,
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--heads" => options.config.heads = value(&mut arguments, &flag)?,
                 "--layers" => options.config.layers = value(&mut arguments, &flag)?,
@@ -115,6 +118,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --batch N             Equations per minibatch (default: min(512, train_size/2))\n\
             --report-every N      Evaluate both complete splits (default: 1000)\n\
             --eval-batch N        Equations per evaluation chunk (default: 128)\n\
+            --init-gain X         Scale every initial mesh edge (default: 1)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
             --width N             Channels, 2..1024 (default: 128)\n\
@@ -140,6 +144,9 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     if options.steps == 0 || options.report_every == 0 || options.evaluation_batch == 0 {
         return Err("steps, report interval, and evaluation batch must be positive".into());
     }
+    if !options.initialization_gain.is_finite() || options.initialization_gain <= 0.0 {
+        return Err("initialization gain must be finite and positive".into());
+    }
     options.optimizer.validate()?;
     let dataset = EquationDataset::new(
         options.modulus,
@@ -160,6 +167,13 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     // Start from the seed again after validating the requested minibatch size.
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
     let mut model = GrokModel::<W>::new(options.device, options.config, options.seed)?;
+    if options.initialization_gain != 1.0 {
+        let mut parameters = model.parameters()?;
+        for parameter in &mut parameters {
+            *parameter *= options.initialization_gain;
+        }
+        model.set_parameters(&parameters)?;
+    }
     std::fs::create_dir_all(&options.output)?;
     write_dataset(&options.output, &dataset)?;
     std::fs::write(
@@ -190,12 +204,13 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         .open(options.output.join("run.txt"))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
         dataset.split(false).len().div_ceil(batch),
         options.evaluation_batch,
+        options.initialization_gain,
     )?;
     println!(
         "Mesh GPT grokking: {} mod {}, train={}, validation={}, batch={}, parameters={}",

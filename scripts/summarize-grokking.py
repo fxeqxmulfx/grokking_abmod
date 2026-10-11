@@ -89,7 +89,7 @@ def summarize(directory, archive=None):
         destination = archive / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         with destination.open("w", newline="") as output:
-            writer = csv.DictWriter(output, fieldnames=("step", "epoch", "train", "heldout"))
+            writer = csv.DictWriter(output, fieldnames=("step", "epoch", "train", "heldout"), lineterminator="\n")
             writer.writeheader()
             writer.writerows(history)
         run["history_file"] = str(relative)

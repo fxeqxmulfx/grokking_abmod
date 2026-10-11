@@ -89,6 +89,10 @@ depth sixteen have 507,904 learned parameters. This describes capacity;
 successful generalization must still be measured.
 Evaluation uses chunks of 128 equations by default; `--eval-batch N`
 adjusts their memory footprint while still evaluating every equation.
+`--init-gain X` scales all initial mesh edges before the first update,
+including each projection's final layer. The default is one and preserves
+the original seeded initialization. This permits an explicit initialization
+search for deeper meshes without changing their connectivity or operators.
 
 The paper used a dense Transformer with approximately 400000 non-embedding
 parameters. This implementation carries its modular tasks and training protocol
