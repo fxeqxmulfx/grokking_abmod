@@ -27,6 +27,14 @@
     {"label": "unit-w64-h4-l2-d8-f16-s7", "width": 64, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
     {"label": "unit-w32-h4-l2-d8-f16-s7", "width": 32, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
     {"label": "unit-w16-h4-l2-d8-f16-s7", "width": 16, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
-    {"label": "unit-w8-h4-l2-d8-f16-s7", "width": 8, "layers": 2, "attention-depth": 8, "ffn-depth": 16}
+    {"label": "unit-w8-h4-l2-d8-f16-s7", "width": 8, "layers": 2, "attention-depth": 8, "ffn-depth": 16},
+    {"label": "unit-w32-h4-l2-d4-f8-s7", "width": 32, "layers": 2, "attention-depth": 4, "ffn-depth": 8},
+    {"label": "unit-w32-h4-l2-d2-f4-s7", "width": 32, "layers": 2, "attention-depth": 2, "ffn-depth": 4},
+    {"label": "unit-w32-h4-l2-d1-f2-s7", "width": 32, "layers": 2, "attention-depth": 1, "ffn-depth": 2},
+    {"label": "unit-w32-h4-l1-d8-f16-s7", "width": 32, "layers": 1, "attention-depth": 8, "ffn-depth": 16},
+    {"label": "unit-w32-h4-l1-d4-f8-s7", "width": 32, "layers": 1, "attention-depth": 4, "ffn-depth": 8},
+    {"label": "unit-w32-h4-l1-d2-f4-s7", "width": 32, "layers": 1, "attention-depth": 2, "ffn-depth": 4},
+    {"label": "unit-w32-h4-l1-d1-f2-s7", "width": 32, "layers": 1, "attention-depth": 1, "ffn-depth": 2},
+    {"label": "rms-w16-h4-l2-d8-f16-s7", "width": 16, "layers": 2, "attention-depth": 8, "ffn-depth": 16, "embedding-norm": "rms"}
   ]
 }

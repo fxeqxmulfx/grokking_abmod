@@ -695,3 +695,30 @@ at a small width need not reflect capacity alone. Later stages reduce depth
 and blocks at the smallest successful widths, then repeat the smallest
 success with further seeds. They are added to the manifest as new candidates
 after the preceding stage finishes.
+
+GPU verification passed, and the width-128 repeat matched `table-unit-s7`
+exactly: every recorded loss and accuracy, the split, the symbol map, and the
+initial and final checkpoints and token vectors.
+
+| Width | Parameters | First training 99% | First held-out 99% | Final training / held-out |
+| ---: | ---: | ---: | ---: | --- |
+| 128 | 37,248 | Epoch 100 | Epoch 100 | 99.94% / 99.27% |
+| 64 | 18,624 | Epoch 150 | Epoch 175 | 99.83% / 99.08% |
+| 32 | 9,312 | Epoch 650 | Epoch 750 | 99.59% / 99.16% |
+| 16 | 4,656 | Not reached | Not reached | 60.72% / 58.48% |
+
+Width 16 used the whole budget without fitting the training set. Its training
+and held-out accuracies rose together, peaking at 66.47% and 63.04%, and its
+final training cross-entropy was 2.18. At the user's request, width 8 did not
+run after width 16 missed the target. At 9,312 and 18,624 parameters the table
+GPT reached the target sooner than every attention-free model of the same size
+(bilinear at epochs 1,225 and 1,450, squared MLP at 9,600 and 1,225); the
+6,704-parameter residual MLP remains the smallest tested success.
+
+The second stage starts from width 32. `run-mesh-search.py --stop-after-miss`
+ends a ladder at its first miss, so a smaller rung runs only after the larger
+one has reached the target. One ladder keeps two blocks and lowers the depths
+from 4/8 to 1/2 (6,240, 4,704 and 3,936 parameters); the other uses one block
+with depths from 8/16 to 1/2 (6,240, 4,704, 3,936 and 3,552). A final control
+repeats width 16 with `--embedding-norm rms`, whose radius √W raises the logit
+bound from 4 to 16 at the same 4,656 parameters.
