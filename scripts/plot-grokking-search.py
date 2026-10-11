@@ -61,8 +61,16 @@ def main():
             history = points(run, arguments.summary.parent)
             epochs, train, heldout = zip(*history, strict=True)
             label = f"{Path(run['run']).name} ({run['parameters']:,} params)"
+            if family == "mesh":
+                settings = run["settings"]
+                label = (f"{run['parameters']:,} W{settings['width']}/L{settings['layers']}/H{settings['heads']} "
+                         f"D{settings['attention_mesh_depth']}/{settings['ffn_mesh_depth']} "
+                         f"lr{float(settings['learning_rate']):g} wd{float(settings['weight_decay']):g} "
+                         f"G{float(settings.get('initialization_gain', 1)):g} "
+                         f"E{float(settings.get('embedding_output_gain', 1)):g} "
+                         f"QK{settings.get('qk_signs', 0)}")
             if run["status"] == "interrupted":
-                label += f" [stopped at {run['epochs']:g} epochs]"
+                label += f" [{run['epochs']:g}-epoch pilot]"
             axes[index, 0].plot(epochs, [100 * value for value in train], label=label, linewidth=1)
             axes[index, 1].plot(epochs, [100 * value for value in heldout], label=label, linewidth=1)
             peaks[0] = max(peaks[0], max((value for epoch, value in zip(epochs, train, strict=True)
