@@ -22,6 +22,7 @@
   "candidates": [
     {"label": "w128-h2-l2-d32-f64-g14-e01-wd001-cache3-qks1-pilot", "attention-depth": 32, "ffn-depth": 64},
     {"label": "w128-h2-l2-d16-f32-g14-e01-wd001-cache3-qks1-pilot", "attention-depth": 16, "ffn-depth": 32},
-    {"label": "w128-h2-l2-d64-f128-g14-e01-wd001-cache3-qks1-pilot", "attention-depth": 64, "ffn-depth": 128}
+    {"label": "w128-h2-l2-d64-f128-g14-e01-wd001-cache3-qks1-pilot", "attention-depth": 64, "ffn-depth": 128},
+    {"label": "w128-h2-l2-d32-f64-g14-e01-lr003-wd001-cache3-qks1-pilot", "attention-depth": 32, "ffn-depth": 64, "learning-rate": 0.003}
   ]
 }

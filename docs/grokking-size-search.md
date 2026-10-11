@@ -257,6 +257,15 @@ selected first. These vary the complete configuration from the head
 pilots; their results cannot isolate a single cause or establish failure
 at the 10,000-epoch cap.
 
+The depth-32 pilot completed 500 epochs at 11.71% training and 2.13%
+held-out accuracy. A fresh matched pilot changes only learning rate from
+0.001 to 0.003. It retains the original seed and 500-epoch budget; the
+other depth variants have not run yet. Pilot summaries are separate from
+the full-budget comparison in
+[head-pilot-summary.json](grokking-results/head-pilot-summary.json),
+[head-pilot-comparison.json](grokking-results/head-pilot-comparison.json),
+and [depth-pilot-summary.json](grokking-results/depth-pilot-summary.json).
+
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
 Mesh defaults are substantially
