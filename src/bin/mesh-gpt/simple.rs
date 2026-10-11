@@ -73,6 +73,9 @@ impl Options {
                 "--connectivity" => options.config.connectivity = value(&mut arguments, &flag)?,
                 "--tied-mesh" => options.config.tied_mesh = true,
                 "--decay-factors" => options.config.decay_factors = value(&mut arguments, &flag)?,
+                "--mesh-learning-rate-multiplier" => {
+                    options.config.mesh_learning_rate_multiplier = value(&mut arguments, &flag)?
+                }
                 "--modulus" => options.config.modulus = value(&mut arguments, &flag)?,
                 "--operation" => options.operation = value(&mut arguments, &flag)?,
                 "--train-fraction" => options.train_fraction = value(&mut arguments, &flag)?,
@@ -133,6 +136,8 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --decay-factors N     One-layer MLP: decay channel c's input column and readout\n\
                                   row at decay*s_c^(2/N-1), s_c=(|E_c|^2+|R_c|^2)/2, the\n\
                                   balanced L2 penalty of N factors (default: 2, plain AdamW)\n\
+            --mesh-learning-rate-multiplier K  Mesh MLP: mesh-layer weights train at K times\n\
+                                  the learning rate, decay included (default: 1)\n\
             --operation NAME      As for grok (default: add)\n\
             --modulus P           Prime, 2..254 (default: 97)\n\
             --train-fraction X    Fixed training fraction, 0<X<1 (default: 0.5)\n\
@@ -242,7 +247,7 @@ fn train(mut options: Options) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\ntied_mesh={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\ndecay_factors={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
+            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\ntied_mesh={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nmesh_learning_rate_multiplier={}\nweight_decay={}\ndecay_factors={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
             family(config),
             config.architecture,
             match config.architecture {
@@ -282,6 +287,10 @@ fn train(mut options: Options) -> Result<()> {
                 _ => "uniform_fan_in",
             },
             options.optimizer.learning_rate,
+            match config.architecture {
+                Architecture::MeshMlp => config.mesh_learning_rate_multiplier.to_string(),
+                _ => "none".into(),
+            },
             options.optimizer.weight_decay,
             config.decay_factors,
             options.steps,
@@ -317,8 +326,12 @@ fn train(mut options: Options) -> Result<()> {
         2 => String::new(),
         n => format!(" as {n} factors per channel"),
     };
+    let mesh_rate = match config.mesh_learning_rate_multiplier {
+        1 => String::new(),
+        k => format!(", mesh layers at {k}x the rate"),
+    };
     println!(
-        "Answer-only loss; AdamW beta2=0.98, decay={}{factors}, warmup=10; continuing for {} updates{stop}",
+        "Answer-only loss; AdamW beta2=0.98, decay={}{factors}, warmup=10{mesh_rate}; continuing for {} updates{stop}",
         options.optimizer.weight_decay, options.steps
     );
     let mut history = BufWriter::new(File::create(options.output.join("loss.csv"))?);
@@ -421,12 +434,16 @@ fn family(config: SimpleConfig) -> String {
     match config.architecture {
         Architecture::Bilinear => format!("{}-{}", config.architecture, config.encoding),
         Architecture::MeshMlp => format!(
-            "{}-{}{}-{}-{}",
+            "{}-{}{}-{}-{}{}",
             config.architecture,
             config.connectivity,
             if config.tied_mesh { "-tied" } else { "" },
             config.activation,
-            config.encoding
+            config.encoding,
+            match config.mesh_learning_rate_multiplier {
+                1 => String::new(),
+                k => format!("-mesh-rate-{k}"),
+            }
         ),
         _ if config.decay_factors != 2 => format!(
             "{}-{}-{}-decay-factors-{}",

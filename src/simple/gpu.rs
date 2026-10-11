@@ -1172,9 +1172,20 @@ impl GpuSimpleModel {
         self.beta2_power *= optimizer.beta2;
         let corrections = [1.0 - self.beta1_power, 1.0 - self.beta2_power];
         match &mut self.channel_decay {
+            // Mesh layers follow the dense layers and may train faster.
             None => {
-                for group in &mut self.parameters {
-                    self.kernels.adam(optimizer, corrections, group)?;
+                let mesh = AdamWOptions {
+                    learning_rate: optimizer.learning_rate
+                        * self.config.mesh_learning_rate_multiplier as f32,
+                    ..optimizer
+                };
+                for (index, group) in self.parameters.iter_mut().enumerate() {
+                    let options = if index < self.layers.len() {
+                        optimizer
+                    } else {
+                        mesh
+                    };
+                    self.kernels.adam(options, corrections, group)?;
                 }
             }
             // Both layers decay by multipliers of the weights before this step.
@@ -1696,8 +1707,12 @@ mod verification {
                     }
                     _ => config.architecture.to_string(),
                 };
+                let rate = match config.mesh_learning_rate_multiplier {
+                    1 => String::new(),
+                    k => format!(" mesh-rate={k}"),
+                };
                 println!(
-                    "PASS {model} {} {} width={} depth={} expansion={} modulus={}: logits (max error {logits:.1e} of max), loss, gradients (max error {gradients:.1e} of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
+                    "PASS {model}{rate} {} {} width={} depth={} expansion={} modulus={}: logits (max error {logits:.1e} of max), loss, gradients (max error {gradients:.1e} of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
                     config.activation,
                     config.encoding,
                     config.width,
@@ -1877,6 +1892,31 @@ mod verification {
                 tied_mesh: true,
                 ..mesh
             },
+            // Mesh layers at a multiple of the learning rate, tied or not.
+            SimpleConfig {
+                depth: 4,
+                connectivity: Connectivity::Own,
+                mesh_learning_rate_multiplier: 3,
+                ..mesh
+            },
+            SimpleConfig {
+                encoding: Encoding::Binary,
+                modulus: 11,
+                width: 12,
+                depth: 5,
+                connectivity: Connectivity::Butterfly,
+                tied_mesh: true,
+                mesh_learning_rate_multiplier: 2,
+                ..mesh
+            },
+            SimpleConfig {
+                modulus: 97,
+                width: 16,
+                depth: 2,
+                connectivity: Connectivity::Own,
+                mesh_learning_rate_multiplier: 8,
+                ..mesh
+            },
             // Channel decay as ten factors, whose shrunken first channel hits the cap.
             SimpleConfig {
                 modulus: 97,
@@ -1920,6 +1960,22 @@ mod verification {
         let mut decays: Vec<_> = (0..input.len()).map(|p| channels[p % width]).collect();
         decays.extend((0..readout.len()).map(|p| channels[p / classes]));
         decays
+    }
+
+    /// AdamW's learning rate for every parameter: the multiplied rate for
+    /// mesh-layer weights, which follow the dense layers.
+    fn rates(config: SimpleConfig, count: usize, optimizer: AdamWOptions) -> Vec<f32> {
+        let dense: usize = config.layers().iter().map(|layer| layer.parameters()).sum();
+        let mesh = optimizer.learning_rate * config.mesh_learning_rate_multiplier as f32;
+        (0..count)
+            .map(|p| {
+                if p < dense {
+                    optimizer.learning_rate
+                } else {
+                    mesh
+                }
+            })
+            .collect()
     }
 
     /// The largest absolute difference as a fraction of the largest expected value.
@@ -2027,21 +2083,23 @@ mod verification {
         for step in 1..=3 {
             let mut expected = model.parameters()?;
             let decays = decays(config, &expected, optimizer);
+            let rates = rates(config, expected.len(), optimizer);
             let (_, gradient) = model.loss_and_gradient(&table, &indices)?;
             // Check the optimizer with its actual FP32 inputs.
             b1 *= optimizer.beta1;
             b2 *= optimizer.beta2;
-            for (((parameter, moment), gradient), decay) in expected
+            for ((((parameter, moment), gradient), decay), rate) in expected
                 .iter_mut()
                 .zip(&mut moments)
                 .zip(gradient)
                 .zip(decays)
+                .zip(rates)
             {
                 let gradient = gradient as f32;
                 moment[0] = optimizer.beta1 * moment[0] + (1.0 - optimizer.beta1) * gradient;
                 moment[1] =
                     optimizer.beta2 * moment[1] + (1.0 - optimizer.beta2) * gradient * gradient;
-                *parameter -= optimizer.learning_rate
+                *parameter -= rate
                     * (moment[0]
                         / (1.0 - b1)
                         / ((moment[1] / (1.0 - b2)).sqrt() + optimizer.epsilon)

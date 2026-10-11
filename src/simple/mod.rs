@@ -318,6 +318,9 @@ pub struct SimpleConfig {
     /// which at `|E_c| = |R_c|` is the least L2 penalty of `n` factors with
     /// the product `|E_c| |R_c|`. Only one-layer MLPs use other values.
     pub decay_factors: usize,
+    /// Mesh-layer weights train at this multiple of the learning rate, their
+    /// decay included. Only mesh MLPs with mesh layers use other values.
+    pub mesh_learning_rate_multiplier: usize,
 }
 
 impl Default for SimpleConfig {
@@ -333,6 +336,7 @@ impl Default for SimpleConfig {
             connectivity: Connectivity::Neighbor,
             tied_mesh: false,
             decay_factors: 2,
+            mesh_learning_rate_multiplier: 1,
         }
     }
 }
@@ -371,6 +375,12 @@ impl SimpleConfig {
         }
         if self.decay_factors != 2 && (self.architecture != Architecture::Mlp || self.depth != 1) {
             return Err("only one-layer MLPs decay as more factors per channel".into());
+        }
+        if self.mesh_learning_rate_multiplier == 0 {
+            return Err("the mesh learning rate multiplier must be positive".into());
+        }
+        if self.mesh_learning_rate_multiplier != 1 && self.mesh_layers() == 0 {
+            return Err("only mesh layers multiply their learning rate".into());
         }
         if self.encoding == Encoding::DiscreteLog {
             primitive_root(self.modulus)?;
@@ -698,6 +708,22 @@ mod tests {
                 decay_factors: 3,
                 ..valid
             },
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                depth: 2,
+                mesh_learning_rate_multiplier: 0,
+                ..valid
+            },
+            SimpleConfig {
+                mesh_learning_rate_multiplier: 2,
+                ..valid
+            },
+            // A depth-1 mesh MLP has no mesh layer to train faster.
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                mesh_learning_rate_multiplier: 2,
+                ..valid
+            },
         ] {
             assert!(config.validate().is_err(), "{config:?}");
         }
@@ -729,6 +755,13 @@ mod tests {
             },
             SimpleConfig {
                 decay_factors: 10,
+                ..valid
+            },
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                depth: 2,
+                connectivity: Connectivity::Own,
+                mesh_learning_rate_multiplier: 8,
                 ..valid
             },
         ] {
