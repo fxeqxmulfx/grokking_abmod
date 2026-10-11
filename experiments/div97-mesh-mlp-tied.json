@@ -1,0 +1,29 @@
+{
+  "command": "grok-simple",
+  "study": "Tie the own-channel mesh layers of the width-64 one-hot ReLU MLP to one stored layer, so that depth D scales each channel by one gain to the power D - 1, after repeating untied own-channel depth 5 to check that tying leaves untied training unchanged",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mesh-mlp-tied",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mesh-mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "width": 64,
+    "connectivity": "own",
+    "tied-mesh": true
+  },
+  "candidates": [
+    {"label": "mesh-mlp-own-w64-d5", "depth": 5, "tied-mesh": false},
+    {"label": "mesh-mlp-own-tied-w64-d3", "depth": 3},
+    {"label": "mesh-mlp-own-tied-w64-d5", "depth": 5},
+    {"label": "mesh-mlp-own-tied-w64-d9", "depth": 9}
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "command": "grok-simple",
+  "study": "Decay each hidden channel of the width-64 one-hot ReLU MLP as n factors, the balanced L2 penalty of own-channel mesh depth n - 1, without adding gains, after repeating plain AdamW to check that channel decay leaves it unchanged",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mlp-channel-decay",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "depth": 1,
+    "width": 64
+  },
+  "candidates": [
+    {"label": "mlp-relu-one-hot-w64"},
+    {"label": "mlp-decay-factors-3-w64", "decay-factors": 3},
+    {"label": "mlp-decay-factors-4-w64", "decay-factors": 4},
+    {"label": "mlp-decay-factors-6-w64", "decay-factors": 6},
+    {"label": "mlp-decay-factors-10-w64", "decay-factors": 10}
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "definition": {
+    "scale": "|E_c| prod_l relu(u_lc) |R_c| of the final weights",
+    "centered_scale": "the scale with R_c minus its mean over the classes",
+    "top_share": "share of the summed scales in the 16 largest channels",
+    "effective_channels": "(sum m_c)^2 / sum m_c^2",
+    "always_active": "channels with E_c[a] + E_c[b] > 0 for every operand pair",
+    "readout_mean_share": "classes * mean(R_c)^2 / |R_c|^2",
+    "largest_relative_gain_spread": "max over channels of (max_l u_lc - min_l u_lc) / max_l |u_lc|"
+  },
+  "runs": [
+    {
+      "run": "target/grok-div97-search/mlp-channel-decay/mlp-relu-one-hot-w64",
+      "family": "mlp-relu-one-hot",
+      "parameters": 18624,
+      "epochs": 10000,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "30353e0516bae9e234fd135df949a61d5c988253398a95126bcfc01e05d31c2d",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.02653151667316529,
+        "top_share": 0.3852979904551949,
+        "channels_for_90_percent": 50,
+        "effective_channels": 54.73535356909934
+      },
+      "centered_scales": {
+        "largest_share": 0.026087415979725182,
+        "top_share": 0.38225029721387077,
+        "channels_for_90_percent": 50,
+        "effective_channels": 55.06236162451832
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-channel-decay/mlp-decay-factors-3-w64",
+      "family": "mlp-relu-one-hot-decay-factors-3",
+      "parameters": 18624,
+      "epochs": 10000,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "24dd4de7a816605ce0842e8345d772a289a0418348c37d04637a3d2f14042c84",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.0543981577034938,
+        "top_share": 0.47299000238802885,
+        "channels_for_90_percent": 53,
+        "effective_channels": 44.89769114581344
+      },
+      "centered_scales": {
+        "largest_share": 0.052025599827271035,
+        "top_share": 0.46136745652194006,
+        "channels_for_90_percent": 54,
+        "effective_channels": 46.424530177467624
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-channel-decay/mlp-decay-factors-4-w64",
+      "family": "mlp-relu-one-hot-decay-factors-4",
+      "parameters": 18624,
+      "epochs": 10000,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "010a4c693263588cb98834c0377557c1ac49effee11d82b5a10dba113b83ffd3",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.052329292348175925,
+        "top_share": 0.4346533038212888,
+        "channels_for_90_percent": 55,
+        "effective_channels": 48.54279609539485
+      },
+      "centered_scales": {
+        "largest_share": 0.05185969133863946,
+        "top_share": 0.43902137352391934,
+        "channels_for_90_percent": 55,
+        "effective_channels": 48.34085273983155
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-channel-decay/mlp-decay-factors-6-w64",
+      "family": "mlp-relu-one-hot-decay-factors-6",
+      "parameters": 18624,
+      "epochs": 10000,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "f4dbbb315c15a3fc545eade8de65fc49f33bf513b86b692ebe75672996a5141f",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.04952051156928147,
+        "top_share": 0.41122316170678774,
+        "channels_for_90_percent": 55,
+        "effective_channels": 51.39158156333967
+      },
+      "centered_scales": {
+        "largest_share": 0.05073344555467585,
+        "top_share": 0.4237915303618846,
+        "channels_for_90_percent": 55,
+        "effective_channels": 50.2397537638107
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    },
+    {
+      "run": "target/grok-div97-search/mlp-channel-decay/mlp-decay-factors-10-w64",
+      "family": "mlp-relu-one-hot-decay-factors-10",
+      "parameters": 18624,
+      "epochs": 10000,
+      "mesh_layers": 0,
+      "stored_mesh_layers": 0,
+      "model_sha256": "ad76b2eff75b9c3a7aa938831ea9a1ebc4805b0d51e45be01f66c4c00f25fe73",
+      "channels": 64,
+      "largest_relative_gain_spread": null,
+      "scales": {
+        "largest_share": 0.045727045483448414,
+        "top_share": 0.3940978971068929,
+        "channels_for_90_percent": 55,
+        "effective_channels": 53.157340102697304
+      },
+      "centered_scales": {
+        "largest_share": 0.048423327554096424,
+        "top_share": 0.4101845401990958,
+        "channels_for_90_percent": 55,
+        "effective_channels": 51.63821969504238
+      },
+      "always_active_channels": 0,
+      "always_active_scale_share": 0,
+      "always_active": []
+    }
+  ]
+}

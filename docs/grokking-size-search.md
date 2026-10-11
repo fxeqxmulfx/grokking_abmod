@@ -1051,3 +1051,100 @@ and 46.2% at depths 5 and 9.
 [analyze-channel-scales.py](../scripts/analyze-channel-scales.py) computes
 these scales from the final weights, in
 [channel-scales.json](grokking-results/mesh-mlp-own/channel-scales.json).
+
+## Tied own-channel gains
+
+`grok-simple --tied-mesh` makes every mesh layer of a mesh MLP use the first
+mesh layer's weights. An own-channel mesh of depth `D` then computes
+`R diag(relu(u)^(D - 1)) relu(E x)` with one stored gain per channel: 18,688
+parameters at width 64 and every depth, 64 more than the one-layer MLP. In
+exact arithmetic it trains as the untied mesh except for ε. Equal gains
+receive equal derivatives, and the tied gain receives their sum, so its Adam
+moments are `D - 1` and `(D - 1)^2` times the untied ones, and its step is
+theirs with ε divided by `D - 1`. `grok-simple --verify` checks tied meshes
+against the f64 reference, which repeats the stored layer.
+[div97-mesh-mlp-tied.json](../experiments/div97-mesh-mlp-tied.json) runs
+tied depths 3, 5 and 9 with the depth study's settings, after repeating
+untied depth 5.
+
+The repeat reproduced untied depth 5's loss history and final weights
+bitwise.
+
+| Depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 3 | 18,688 | Epoch 650 | 3.1% | Not reached | Epochs 650 to 1,600 | 100% / 85.72% |
+| 5 | 18,688 | Epoch 475 | 2.2% | Not reached | Epochs 475 to 1,900 | 100% / 98.78% |
+| 9 | 18,688 | Epoch 350 | 2.2% | Epoch 9,850 | Epochs 350 to 1,750 | 100% / 99.16% |
+
+The tied meshes followed the untied ones until ε and rounding moved them
+apart. They first fitted at the same epochs, 650, 475 and 350, with 3.1%,
+2.2% and 2.2% held-out accuracy against 3.2%, 2.2% and 2.1%, and held their
+plateaus for 39, 58 and 57 observations against 35, 54 and 61. Their losses
+differed from epoch 25 on, by more than 1% from epochs 575, 500 and 325, and
+their held-out accuracy by at most 8.2, 13.7 and 7.5 points.
+Depth 9 reached the target at epoch 9,850 instead of 9,475. Depth 5 peaked
+at 98.95%, 4,607 of the 4,656 held-out equations, three short of the target
+that untied depth 5 met at epoch 8,925 with exactly 4,610. Depth 3 ended at
+85.72% instead of 84.04%. The final weights had the same structure: 27, 3
+and 1 channels active for every operand pair, against 25, 2 and 1, and with
+centered readout rows the 16 largest channels held 38.1%, 49.2% and 45.1% of
+the summed scales, against 38.8%, 46.3% and 46.2%. One gain per channel,
+raised to the power `D - 1`, thus does what the `D - 1` separate gains do.
+These are single runs with seed 7. Summaries and histories are in
+[summary.json](grokking-results/mesh-mlp-tied/summary.json), channel scales
+in [channel-scales.json](grokking-results/mesh-mlp-tied/channel-scales.json).
+
+## Channel decay in the one-layer MLP
+
+If own-channel depth acted through the least L2 penalty of its balanced
+factors, a one-layer MLP with that penalty and no gains would behave like it.
+`grok-simple --decay-factors n` replaces the weight decay of a one-layer MLP
+by a decay per hidden channel: channel `c` decays its input column `E_c` and
+readout row `R_c` at `λ s_c^(2/n - 1)`, with `s_c = (|E_c|^2 + |R_c|^2) / 2`,
+capped at `1 / lr`. This is the gradient of `(n λ / 2) Σ_c s_c^(2/n)`, which
+for `|E_c| = |R_c|` is the least L2 penalty of the channel scale
+`|E_c| |R_c|` split over `n` factors: the own mesh's penalty for
+`n = D + 1`. Unlike a penalty on `|E_c| |R_c|` alone, it also penalizes
+unbalanced factors, and `n = 2` is the usual decay. `grok-simple --verify`
+checks the decay rates against the formula, including the cap.
+[div97-mlp-channel-decay.json](../experiments/div97-mlp-channel-decay.json)
+runs `n` = 3, 4, 6 and 10, the penalties of own depths 2, 3, 5 and 9, on the
+width-64 MLP, after repeating it with `n = 2`.
+
+The repeat reproduced the width-64 MLP of the memorization ladder bitwise.
+
+| Factors | Own depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 2 | 1 | 18,624 | Epoch 1,375 | 5.8% | Not reached | Epochs 1,375 to 1,825 | 100% / 98.50% |
+| 3 | 2 | 18,624 | Epoch 1,300 | 3.3% | Not reached | Epochs 1,300 to 6,325 | 100% / 14.48% |
+| 4 | 3 | 18,624 | Epoch 1,300 | 3.0% | Not reached | Epochs 1,300 to 10,000 | 100% / 7.56% |
+| 6 | 5 | 18,624 | Epoch 1,275 | 2.8% | Not reached | Epochs 1,275 to 10,000 | 100% / 5.73% |
+| 10 | 9 | 18,624 | Epoch 1,275 | 2.6% | Not reached | Epochs 1,275 to 10,000 | 100% / 4.88% |
+
+The penalty did not reproduce depth. It brought the first fit 75 to 100
+epochs earlier, against 525 to 1,025 epochs for own depths 2 to 9, and
+lowered held-out accuracy at that point to 3.3% to 2.6%, near the own
+meshes' 3.8% to 2.1%. But it stopped generalization instead of delaying it:
+held-out accuracy stayed at most 10% until epoch 6,325 at `n = 3` and to the
+cap at larger `n`, and ended at 14.48% to 4.88%. The weights grew instead.
+Their norm ended at 282, 381, 447 and 469, against 165 for the MLP, and the
+median channel then decayed at 13%, 3.3%, 0.86% and 0.29% of λ. Adam
+normalizes the loss gradient, so its steps do not shrink as the loss
+flattens, and a decay holds a weight only where its step grows with the
+weight. When a channel's weights grow by a factor `a`, its decay step
+changes by `a^(4/n - 1)`: it grows as the cube root at `n = 3`, where the
+norm peaked at 309 at epoch 3,575 and then fell, stays constant at `n = 4`
+and shrinks at larger `n`. An own-channel mesh instead decays each of its
+`D + 1` factors in proportion to that factor, and AdamW left those factors
+unbalanced: at depth 5 the median input column, gain and readout row had
+sizes 5.2, 1.95 and 4.45. The least L2 penalty of balanced factors describes
+the minima of an L2-penalized loss, not AdamW's decoupled decay. The own
+meshes' earlier memorization thus comes with their multiplicative gains,
+which the tied meshes keep, rather than with that penalty. The penalty
+concentrated the channel scales only slightly: with centered readout rows
+the 16 largest channels held 46.1%, 43.9%, 42.4% and 41.0% of the summed
+scales, against 38.2% for the MLP, and no channel was active for every
+operand pair. These are single runs with seed 7. Summaries and histories are
+in [summary.json](grokking-results/mlp-channel-decay/summary.json), channel
+scales in
+[channel-scales.json](grokking-results/mlp-channel-decay/channel-scales.json).
