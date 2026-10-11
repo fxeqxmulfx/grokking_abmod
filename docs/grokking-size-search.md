@@ -900,3 +900,41 @@ uneven self and neighbor weights.
 the onset width 64 and the MLP's settings and runs depths 1, 2, 3, 5 and 9
 with neighbor connectivity, and 3, 5 and 9 with butterfly connectivity:
 18,624 to 19,648 parameters. Depth 1 must reproduce the width-64 MLP bitwise.
+
+Depth 1 reproduced the loss history and final weights of the width-64 MLP
+bitwise. Every run memorized before it generalized:
+
+| Connectivity | Depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| Neighbor | 1 | 18,624 | Epoch 1,375 | 5.8% | Not reached | Epochs 1,375 to 1,825 | 100% / 98.50% |
+| Neighbor | 2 | 18,752 | Epoch 825 | 4.3% | Not reached | Epochs 825 to 1,350 | 100% / 95.62% |
+| Neighbor | 3 | 18,880 | Epoch 625 | 3.4% | Not reached | Epochs 625 to 1,075 | 100% / 88.12% |
+| Neighbor | 5 | 19,136 | Epoch 450 | 3.3% | Epoch 7,100 | Epochs 450 to 1,300 | 100% / 99.05% |
+| Neighbor | 9 | 19,648 | Epoch 350 | 2.8% | Epoch 5,850 | Epochs 350 to 975 | 100% / 99.03% |
+| Butterfly | 3 | 18,880 | Epoch 650 | 3.1% | Not reached | Epochs 650 to 1,350 | 100% / 97.51% |
+| Butterfly | 5 | 19,136 | Epoch 500 | 2.7% | Not reached | Epochs 500 to 1,825 | 100% / 96.54% |
+| Butterfly | 9 | 19,648 | Epoch 350 | 2.3% | Epoch 7,775 | Epochs 350 to 1,525 | 100% / 99.16% |
+
+Mesh layers did not remove the plateau; they moved memorization earlier. The
+first 99% training observation came at epoch 1,375 at depth 1 and at epoch
+350 at depth 9 under both connectivities, while held-out accuracy at that
+point fell from 5.8% to 2.8% and 2.3%, against 1.0% for chance. Each run had
+a single plateau, and butterfly meshes held theirs longer than neighbor meshes
+of the same depth: 29 to 54 observations against 19 to 35. A dense second
+layer of width 64, 22,720 parameters, had generalized at epoch 5,325 without
+a plateau, whereas one mesh layer kept the plateau.
+
+Held-out accuracy then also rose earlier with depth: at epoch 5,000 it was
+53.7% at depth 1 and 88.6% and 95.0% at neighbor depths 5 and 9. Those two
+and butterfly depth 9 reached the target 6,650, 5,500 and 7,425 epochs after
+fitting, delayed grokking by the criterion of `summarize-grokking.py`. At
+19,136 parameters, neighbor depth 5 is the smallest attention-free model with
+delayed grokking so far; the one-layer ReLU MLP needed width 128 and 37,248
+parameters. Neighbor depths 2 and 3 and butterfly depths 3 and 5 led the MLP
+at epochs 3,000 and 5,000 but fell behind it by epoch 9,000 and ended at
+88.12% to 97.51%. From depth 3, held-out accuracy was also less stable: it
+fell 4.9 to 14.3 points below its running peak within at most 200 epochs,
+most at butterfly depth 9, from 94.46% at epoch 6,400 to 80.11% at epoch
+6,425, whereas the MLP and neighbor depth 2 never lost more than 0.4 points.
+These are single runs with seed 7. Summaries and histories are in
+[summary.json](grokking-results/mesh-mlp-depth/summary.json).
