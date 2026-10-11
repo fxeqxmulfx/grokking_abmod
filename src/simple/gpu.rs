@@ -207,13 +207,16 @@ mod kernels {
         let item = index.get();
         if let Some(output) = out.get_mut(index) {
             let channel = item % width;
-            let unit = parents * channel;
-            let mut total = weights[unit][0] * simple_activate(input[item], ACTIVATION);
-            if parents == 2 {
+            // One expression per branch: accumulating across the branch fused
+            // the second product instead of the first, so two-parent runs no
+            // longer reproduced bitwise.
+            *output = if parents == 2 {
                 let parent = item - channel + (channel + stride) % width;
-                total += weights[unit + 1][0] * simple_activate(input[parent], ACTIVATION);
-            }
-            *output = total;
+                weights[2 * channel][0] * simple_activate(input[item], ACTIVATION)
+                    + weights[2 * channel + 1][0] * simple_activate(input[parent], ACTIVATION)
+            } else {
+                weights[channel][0] * simple_activate(input[item], ACTIVATION)
+            };
         }
         let _ = rows;
     }
@@ -241,11 +244,14 @@ mod kernels {
         let item = index.get();
         if let Some(output) = out.get_mut(index) {
             let channel = item % width;
-            let mut total = gradient[item] * weights[parents * channel][0];
-            if parents == 2 {
+            // As in `simple_mesh`, one expression per branch fixes the fused product.
+            let total = if parents == 2 {
                 let reader = (channel + width - stride) % width;
-                total += gradient[item - channel + reader] * weights[2 * reader + 1][0];
-            }
+                gradient[item] * weights[2 * channel][0]
+                    + gradient[item - channel + reader] * weights[2 * reader + 1][0]
+            } else {
+                gradient[item] * weights[channel][0]
+            };
             *output = total * simple_slope(before[item], ACTIVATION);
         }
         let _ = rows;
