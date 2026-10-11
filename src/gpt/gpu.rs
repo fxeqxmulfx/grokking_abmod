@@ -240,6 +240,7 @@ mod kernels {
 
     // Four query rows share K/V tiles. Each warp keeps its own output in
     // registers, and backward recomputes probabilities from logsumexp.
+    // Inline const loop bounds expose evaluated trip counts to CUDA unrolling.
     struct FlashState {
         position: usize,
         lane: usize,
@@ -297,7 +298,7 @@ mod kernels {
         } else if state.active {
             let mut c = 0;
             #[unroll]
-            while c < D / 32 {
+            while c < const { D / 32 } {
                 let column = lane + c * 32;
                 if column < width {
                     state.first[c] = first[begin + column];
@@ -322,7 +323,7 @@ mod kernels {
         let mut sum = 0.0;
         let mut c = 0;
         #[unroll]
-        while c < D / 32 {
+        while c < const { D / 32 } {
             let column = state.lane + c * 32;
             if column < state.width {
                 sum += vector[c] * tile.load(row, column);
@@ -361,12 +362,13 @@ mod kernels {
         if !state.active {
             return;
         }
+        let mut columns = thread::striped_columns::<D>();
         let mut c = 0;
         #[unroll]
-        while c < D / 32 {
+        while c < const { D / 32 } {
             let column = state.lane + c * 32;
-            if column < state.width
-                && let Some(index) = thread::striped_index::<D>(column)
+            if let Some(index) = columns.next()
+                && column < state.width
                 && let Some(value) = output.get_mut(index)
             {
                 *value = [state.output[c] * inverse, state.other[c]];
@@ -464,7 +466,7 @@ mod kernels {
             state.maximum = maximum;
             let mut c = 0;
             #[unroll]
-            while c < D / 32 {
+            while c < const { D / 32 } {
                 state.output[c] *= alpha;
                 c += 1;
             }
@@ -474,7 +476,7 @@ mod kernels {
                 let probability = warp::shuffle_f32(mass, row as u32);
                 let mut c = 0;
                 #[unroll]
-                while c < D / 32 {
+                while c < const { D / 32 } {
                     let column = state.lane + c * 32;
                     if column < head_width {
                         state.output[c] += probability * value.load(row, column);
@@ -623,7 +625,7 @@ mod kernels {
                 let derivative = warp::shuffle_f32(ds, row as u32);
                 let mut c = 0;
                 #[unroll]
-                while c < D / 32 {
+                while c < const { D / 32 } {
                     let column = state.lane + c * 32;
                     if column < head_width {
                         state.output[c] += derivative * key.load(row, column);
@@ -730,7 +732,7 @@ mod kernels {
                 let ds = warp::shuffle_f32(ds, row as u32);
                 let mut c = 0;
                 #[unroll]
-                while c < D / 32 {
+                while c < const { D / 32 } {
                     let column = state.lane + c * 32;
                     if column < head_width {
                         state.output[c] += ds * query.load(row, column);
