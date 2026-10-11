@@ -722,3 +722,61 @@ from 4/8 to 1/2 (6,240, 4,704 and 3,936 parameters); the other uses one block
 with depths from 8/16 to 1/2 (6,240, 4,704, 3,936 and 3,552). A final control
 repeats width 16 with `--embedding-norm rms`, whose radius √W raises the logit
 bound from 4 to 16 at the same 4,656 parameters.
+
+Width 32 kept the target while its meshes shrank to depths 2/4. Depths 1/2 and
+the first one-block rung missed it:
+
+| Blocks | Depths | Parameters | First training 99% | First held-out 99% | Final training / held-out |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 2 | 8/16 | 9,312 | Epoch 650 | Epoch 750 | 99.59% / 99.16% |
+| 2 | 4/8 | 6,240 | Epoch 300 | Epoch 325 | 99.79% / 99.61% |
+| 2 | 2/4 | 4,704 | Epoch 325 | Epoch 350 | 99.85% / 99.33% |
+| 2 | 1/2 | 3,936 | Not reached | Not reached | 95.21% / 93.64% |
+| 1 | 8/16 | 6,240 | Not reached | Not reached | 31.64% / 22.16% |
+
+The first row is the width-32 run of the first stage. Shallower meshes reached
+the target sooner: depths 4/8 and 2/4 took 325 and 350 epochs, against 750 at
+8/16. At depths 1/2, training and held-out accuracy stayed at 37–45% and
+27–31% from epoch 250 to 7,000. Held-out accuracy then rose from 30.2% to
+92.7% by epoch 7,200 and stayed between 88.81% and 95.34% for the rest of the
+budget. The one-block run peaked at 63.04% held-out accuracy at epoch 650 and
+then degraded. At epoch 1,350 its training cross-entropy jumped from 2.15 to
+4.59 and both accuracies fell to zero; it ended at 31.64% / 22.16%. The three
+smaller one-block rungs did not run.
+
+The RMS control reached the target with the 4,656 parameters at which the
+unit-normalized run had peaked at 63.04%. Training accuracy first reached 99%
+at epoch 850 and held-out accuracy at epoch 3,450, with 99.36% / 99.01%. The
+run did not settle. Held-out accuracy first passed 90% at epoch 650 and reached
+98.05% at epoch 1,350, but it fell by more than 10 points between consecutive
+observations 25 times, by up to 79.5 points. It was 14.9% at epoch 3,350, four
+observations before the crossing, so the stopping rule recorded the first good
+observation of an oscillating run. No unit-normalized run that reached the
+target fell by more than 10 points between observations before stopping; the
+width-16 unit run had 12 such falls and the one-block run 25. RMS
+normalization scales both the input vectors and the tied-head vectors by √W,
+so the control does not isolate the logit bound. It does show that 4,656
+parameters at width 16 can reach the target.
+
+The smallest unit-normalized success, two blocks with depths 2/4, reached the
+target on all five seeds:
+
+| Seed | First training 99% | First held-out 99% | Final training / held-out |
+| ---: | ---: | ---: | --- |
+| 7 | Epoch 325 | Epoch 350 | 99.85% / 99.33% |
+| 8 | Epoch 325 | Epoch 400 | 99.66% / 99.14% |
+| 9 | Epoch 475 | Epoch 575 | 99.57% / 99.18% |
+| 10 | Epoch 325 | Epoch 475 | 99.38% / 99.01% |
+| 11 | Epoch 275 | Epoch 275 | 99.57% / 99.05% |
+
+The median crossing is epoch 400 and the slowest epoch 575. None of these runs
+fell by more than 10 points between observations, and no run in the size
+search had a memorization plateau. At 4,704 parameters this model is about 30%
+smaller than the 6,704-parameter residual MLP, which needed 1,525 epochs.
+
+The third stage shrinks the RMS-normalized table at width 16 along the same
+two ladders: two blocks with depths 4/8, 2/4 and 1/2 (3,120, 2,352 and 1,968
+parameters), and one block with depths 8/16 to 1/2 (3,120, 2,352, 1,968 and
+1,776). Each run is also described by its largest fall in held-out accuracy
+between consecutive observations. The smallest RMS success is then repeated
+on seeds 8 to 11.
