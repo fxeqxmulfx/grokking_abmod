@@ -58,6 +58,36 @@ input IDs and all output logits, then differentiates the embedding mesh once.
 Gradients reach its edge weights from both uses; fixed codes are not optimized.
 The configuration and tokenizer saved in a checkpoint reconstruct the codes.
 
+### Ablation variants
+
+Two `GptConfig` fields test the mesh constraints. Their defaults,
+`TokenEmbedding::Mesh` and `MeshConnectivity::Neighbor`, give the architecture
+described above.
+
+`TokenEmbedding::Table` replaces the embedding mesh with a learned
+`vocab_size x width` table of tied vectors. Lookup, the tied head, the gradient
+sum, and AdamW decay are unchanged; only the parameterization differs. The
+table therefore adds per-token parameters and grows with the vocabulary.
+Initialization draws the same seeded embedding mesh and stores the vectors it
+generates. Q/K/V/output/feed-forward weights are unchanged, so a table model
+starts as the same function as its mesh counterpart. `tabulate_embedding`
+performs this conversion for any mesh-embedding weights, such as gained
+initial weights.
+
+`MeshConnectivity::Butterfly` keeps two parents and two weights per neuron in
+every mesh, but layer `l` reads channel `(c + 2^(l mod floor(log2 width))) mod width`:
+
+```text
+z[c] = w_self[c] * x[c] + w_partner[c] * x[(c + stride(l)) mod width]
+```
+
+At width 128 the strides are 1, 2, 4, ..., 64 and then repeat, so every output
+channel depends on every input channel after seven layers. The neighbor topology
+instead grows the receptive field by one channel per layer, giving a depth-`d`
+mesh a window of `d + 1` channels. Parameter counts do not change. For a
+non-power-of-two width the strides stop below `width / 2`, so a butterfly mesh
+may not reach every channel.
+
 ### Pre-RMSNorm
 
 Each token is normalized across its full channel width with
@@ -292,7 +322,11 @@ are installed. Checkpoint readers validate dimensions before allocating, reject
 invalid characters, nonfinite weights, truncation, and trailing bytes.
 The `MSHGPT07` format identifies mesh-generated tied token embeddings, bias-free
 mesh projections, parameter-free RMSNorm/QK-Norm, slice RoPE, and XSA.
-Older `MSHGPT01` and `MSHGPT02` checkpoints
+Default-architecture checkpoints keep this exact layout. `MSHGPT08` appends two
+little-endian `u32` fields after the seven dimensions: token embedding
+(0 mesh, 1 table) and mesh connectivity (0 neighbor, 1 butterfly). It is
+written only for ablations; readers reject unknown codes and an `MSHGPT08`
+header with both defaults. Older `MSHGPT01` and `MSHGPT02` checkpoints
 used learned position embeddings; `MSHGPT03` used RoPE with LayerNorm, and
 `MSHGPT04` still had mesh and vocabulary
 biases; `MSHGPT05` used learned RMSNorm scales without QK-Norm, and `MSHGPT06`
@@ -343,7 +377,7 @@ use grokking_abmod::gpt::{GptConfig, SpecializedMeshGpt};
 type WideGpt = SpecializedMeshGpt<256, 512, 256, 16>;
 let config = GptConfig {
     width: 256, vocab_size: 257, context: 129, heads: 16, layers: 3,
-    attention_mesh_depth: 2, ffn_mesh_depth: 2,
+    attention_mesh_depth: 2, ffn_mesh_depth: 2, ..GptConfig::default()
 };
 let mut model = WideGpt::new(0, config, 7)?;
 ```
@@ -403,3 +437,12 @@ CUDA/reference checks additionally cover compact buffers, non-power-of-two
 capacities, width 256 with 16 heads and vocabulary 257, context 129, and three
 blocks. They compare every gradient and AdamW update, dense and answer-only
 losses, and causal prefixes, and reject configurations exceeding each capacity.
+
+The ablations have the same checks. Table, butterfly, and combined models run at
+width 8 and at width 128 with depth 8, which reaches every butterfly stride from
+1 to 64 and the chunked 129-row mesh reductions. A combined model also uses the
+99-token grokking vocabulary. Isolated mesh-gradient reductions are compared at
+strides `1`, `width / 2`, and `width - 1`; launch contracts reject strides outside
+`1..width`. CPU tests apply finite differences to every parameter of all four
+variants. They check table and butterfly checkpoint round trips, and that a
+tabulated table model reproduces its mesh counterpart's logits.

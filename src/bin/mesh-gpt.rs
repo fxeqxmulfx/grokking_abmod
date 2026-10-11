@@ -14,7 +14,8 @@ use grokking_abmod::{
     Result,
     gpt::{
         AdamWOptions, CharacterTokenizer, Checkpoint, GptConfig, GptTrainOptions, GpuMeshGpt,
-        IGNORE_TARGET, ReferenceGpt, SpecializedMeshGpt, TextDataset,
+        IGNORE_TARGET, MeshConnectivity, ReferenceGpt, SpecializedMeshGpt, TextDataset,
+        TokenEmbedding,
     },
 };
 
@@ -443,14 +444,14 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
         }
     }
     let mut zero_embeddings = vec![0.5; config.parameter_count()?];
-    zero_embeddings[..2 * config.width * config.attention_mesh_depth].fill(0.0);
+    zero_embeddings[..config.embedding_parameter_count()].fill(0.0);
     model.set_parameters(&zero_embeddings)?;
     if model.logits(&x, 3)?.iter().flatten().any(|&x| x != 0.0) {
         return Err("zero token embeddings produced additive logit offsets".into());
     }
     println!(
-        "PASS mesh embeddings/RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, dense/masked gradients, causality, batch tails, AdamW beta2=0.999/0.98/reset, zero-input offsets",
-        config.width, config.heads, config.layers
+        "PASS {} embeddings, {} meshes, RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, dense/masked gradients, causality, batch tails, AdamW beta2=0.999/0.98/reset, zero-input offsets",
+        config.embedding, config.connectivity, config.width, config.heads, config.layers
     );
     for oversized in [
         GptConfig {
@@ -487,6 +488,7 @@ fn verify_workspace_cache(device: usize) -> Result<()> {
         layers: 2,
         attention_mesh_depth: 2,
         ffn_mesh_depth: 3,
+        ..GptConfig::default()
     };
     let mut baseline = GpuMeshGpt::new(device, config, 11)?;
     let mut cached = GpuMeshGpt::new(device, config, 11)?;
@@ -558,7 +560,7 @@ fn verify(device: usize) -> Result<()> {
     );
     GpuMeshGpt::verify_mesh_gradient_reduction(device)?;
     println!(
-        "PASS isolated mesh gradient reductions: f64 sums, chunk boundaries/tails, up to 131072 rows, untouched layers, contracts"
+        "PASS isolated mesh gradient reductions: f64 sums, chunk boundaries/tails, up to 131072 rows, untouched layers, parent strides, contracts"
     );
     GpuMeshGpt::verify_rmsnorm(device)?;
     println!(
@@ -581,6 +583,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 1,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
         GptConfig {
             vocab_size: 5,
@@ -590,6 +593,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 1,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
         GptConfig {
             vocab_size: 7,
@@ -599,6 +603,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 2,
             attention_mesh_depth: 3,
             ffn_mesh_depth: 4,
+            ..GptConfig::default()
         },
         GptConfig {
             vocab_size: 9,
@@ -608,6 +613,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 1,
             attention_mesh_depth: 1,
             ffn_mesh_depth: 1,
+            ..GptConfig::default()
         },
         GptConfig {
             vocab_size: 9,
@@ -617,6 +623,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 2,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
     ] {
         verify_model::<128, 256, 128, 8>(device, config, &[(1, 1), (1, 3), (2, 3), (43, 3)])?;
@@ -631,6 +638,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 3,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
         &[(1, 1), (2, 3), (43, 3)],
     )?;
@@ -644,6 +652,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 1,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
         &[(1, 1), (2, 3), (43, 3)],
     )?;
@@ -657,6 +666,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 3,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
         &[(1, 1), (1, 3), (2, 3)],
     )?;
@@ -670,6 +680,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 1,
             attention_mesh_depth: 1,
             ffn_mesh_depth: 1,
+            ..GptConfig::default()
         },
         &[(1, 129)],
     )?;
@@ -683,6 +694,7 @@ fn verify(device: usize) -> Result<()> {
             layers: 2,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         },
         &[(1, 1), (1, 3), (2, 3)],
     )?;
@@ -696,8 +708,59 @@ fn verify(device: usize) -> Result<()> {
             layers: 1,
             attention_mesh_depth: 1,
             ffn_mesh_depth: 1,
+            ..GptConfig::default()
         },
         &[(1, 1), (1, 4), (2, 4)],
+    )?;
+    // Ablations: a learned token table and butterfly mesh strides, alone and combined.
+    for (embedding, connectivity) in [
+        (TokenEmbedding::Table, MeshConnectivity::Neighbor),
+        (TokenEmbedding::Mesh, MeshConnectivity::Butterfly),
+        (TokenEmbedding::Table, MeshConnectivity::Butterfly),
+    ] {
+        for config in [
+            GptConfig {
+                vocab_size: 7,
+                context: 5,
+                width: 8,
+                heads: 2,
+                layers: 2,
+                attention_mesh_depth: 3,
+                ffn_mesh_depth: 4,
+                embedding,
+                connectivity,
+            },
+            // Depth 8 at width 128 reaches every butterfly stride from 1 to 64;
+            // 129 rows exercise the chunked mesh-gradient reductions.
+            GptConfig {
+                vocab_size: 9,
+                context: 3,
+                width: 128,
+                heads: 4,
+                layers: 1,
+                attention_mesh_depth: 8,
+                ffn_mesh_depth: 8,
+                embedding,
+                connectivity,
+            },
+        ] {
+            verify_model::<128, 256, 128, 8>(device, config, &[(1, 1), (1, 3), (2, 3), (43, 3)])?;
+        }
+    }
+    verify_model::<32, 99, 4, 4>(
+        device,
+        GptConfig {
+            vocab_size: 99,
+            context: 4,
+            width: 32,
+            heads: 4,
+            layers: 1,
+            attention_mesh_depth: 5,
+            ffn_mesh_depth: 6,
+            embedding: TokenEmbedding::Table,
+            connectivity: MeshConnectivity::Butterfly,
+        },
+        &[(1, 1), (1, 4), (2, 4), (33, 4)],
     )?;
     for (width, heads) in [(32, 1), (64, 2), (64, 1)] {
         verify_model::<64, 8, 256, 2>(
@@ -710,6 +773,7 @@ fn verify(device: usize) -> Result<()> {
                 layers: 1,
                 attention_mesh_depth: 1,
                 ffn_mesh_depth: 1,
+                ..GptConfig::default()
             },
             &[(1, 33), (1, 129), (2, 33)],
         )?;
@@ -724,6 +788,7 @@ fn verify(device: usize) -> Result<()> {
         layers: 1,
         attention_mesh_depth: 2,
         ffn_mesh_depth: 2,
+        ..GptConfig::default()
     };
     let mut model = GpuMeshGpt::new(device, config, 11)?;
     let inputs = [0, 1, 2, 4, 1, 2];

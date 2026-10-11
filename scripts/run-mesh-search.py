@@ -39,7 +39,12 @@ def main():
             parser.error("this search uses division mod 97 and a fixed half split")
         width, layers = settings["width"], settings["layers"]
         attention, ffn = settings["attention-depth"], settings["ffn-depth"]
-        parameters = 2 * width * (attention + layers * (4 * attention + ffn))
+        # A table ablation stores one vector per residue, operator and equals sign.
+        if settings.get("embedding", "mesh") == "table":
+            embedding = (settings["modulus"] + 2) * width
+        else:
+            embedding = 2 * width * attention
+        parameters = embedding + 2 * width * layers * (4 * attention + ffn)
         directory = ROOT / study["output"] / label
         command = [str(arguments.binary.resolve()), "grok", "--epochs", str(study["epochs"])]
         for key, value in settings.items():

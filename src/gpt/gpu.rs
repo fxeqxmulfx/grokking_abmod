@@ -12,7 +12,7 @@ use crate::{Result, mesh::validate_finite};
 
 use super::{
     AdamWOptions, Features, GptConfig, IGNORE_TARGET, MAX_ROWS, NormStats, RMSNORM_EPSILON,
-    ROPE_BASE, Vocabulary, XSA_EPSILON,
+    ROPE_BASE, TokenEmbedding, Vocabulary, XSA_EPSILON,
     config::{Layout, token_codes},
 };
 
@@ -96,12 +96,13 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, offset + 2 * width <= state.len(),
+        width >= 2, width <= W, stride >= 1, stride < width, offset + 2 * width <= state.len(),
         BACKWARD <= 1, BACKWARD * add_residual == 0,
         activated + add_residual <= 1, residual.len() == input.len(), activation.len() == input.len(),
         out.len() == input.len() * W))]
     pub fn gpt_mesh<const W: usize, const BACKWARD: usize>(
         width: usize,
+        stride: usize,
         offset: usize,
         activated: usize,
         add_residual: usize,
@@ -119,7 +120,7 @@ mod kernels {
                 return;
             }
             if BACKWARD == 1 {
-                let previous = (channel + width - 1) % width;
+                let previous = (channel + width - stride) % width;
                 *output = input[row][channel]
                     * slope(activation[row][channel], activated)
                     * state[offset + 2 * channel][0]
@@ -130,7 +131,7 @@ mod kernels {
             }
             let p = offset + 2 * channel;
             let value = input[row][channel] * state[p][0]
-                + input[row][(channel + 1) % width] * state[p + 1][0];
+                + input[row][(channel + stride) % width] * state[p + 1][0];
             let value = if activated == 1 && value < 0.0 {
                 value.exp() - 1.0
             } else {
@@ -1078,12 +1079,14 @@ mod kernels {
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        width >= 2, width <= W, activated <= 1, ROWS >= 1, ROWS <= 131072,
+        width >= 2, width <= W, stride >= 1, stride < width, activated <= 1,
+        ROWS >= 1, ROWS <= 131072,
         chunks >= 1, chunks <= 4096, offset + chunks * width <= out.len(),
         input.len() <= chunks * ROWS, input.len() + ROWS > chunks * ROWS,
         input.len() == activation.len(), gradient.len() == activation.len()))]
     pub fn gpt_mesh_gradient<const W: usize, const ROWS: usize>(
         width: usize,
+        stride: usize,
         offset: usize,
         activated: usize,
         chunks: usize,
@@ -1100,7 +1103,7 @@ mod kernels {
         if let Some(output) = out.get_mut(index) {
             let local = item - offset;
             let channel = local % width;
-            let parent = (channel + 1) % width;
+            let parent = (channel + stride) % width;
             let start = local / width * ROWS;
             let end = (start + ROWS).min(gradient.len());
             let mut totals = [0.0; 2];
@@ -1212,6 +1215,47 @@ mod kernels {
             }
             *output = total;
         }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, vocab >= 2,
+        table.len() == vocab * width, out.len() == vocab * W))]
+    pub fn gpt_embedding_table<const W: usize>(
+        width: usize,
+        vocab: usize,
+        table: &[[f32; 3]],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let token = index.get() / W;
+        let channel = index.get() % W;
+        if let Some(output) = out.get_mut(index)
+            && channel < width
+        {
+            *output = table[token * width + channel][0];
+        }
+        let _ = vocab;
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, vocab >= 2,
+        adjoint.len() == vocab, out.len() == vocab * width))]
+    pub fn gpt_embedding_table_gradient<const W: usize>(
+        width: usize,
+        vocab: usize,
+        adjoint: &[Features<W>],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            *output = adjoint[item / width][item % width];
+        }
+        let _ = vocab;
     }
 
     #[kernel]
@@ -1499,9 +1543,9 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             supervised: rows,
             tokens: DeviceBuffer::zeroed(stream, rows)?,
             targets: DeviceBuffer::zeroed(stream, rows)?,
-            embeddings: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
+            embeddings: buffers(stream, config.embedding_layers(), config.vocab_size)?,
             head_embedding: DeviceBuffer::zeroed(stream, config.width)?,
-            embedding_adjoints: buffers(stream, config.attention_mesh_depth, config.vocab_size)?,
+            embedding_adjoints: buffers(stream, config.embedding_layers(), config.vocab_size)?,
             embedding_gradient_partials: DeviceBuffer::zeroed(
                 stream,
                 rows.div_ceil(EMBEDDING_GRADIENT_ROWS) * config.vocab_size * config.width,
@@ -1888,7 +1932,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     pub fn token_embeddings(&self) -> Result<Vec<Vec<f32>>> {
         let mut workspace = Workspace::new(&self.stream, &self.plan, self.config, 1, 1)?;
         self.forward_embeddings(&mut workspace)?;
-        workspace.embeddings[self.config.attention_mesh_depth - 1]
+        workspace.embeddings[self.config.embedding_layers() - 1]
             .to_host_vec(&self.stream)?
             .iter()
             .map(|row| {
@@ -1903,6 +1947,23 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         // Generate the entire vocabulary once so the input and head share one
         // differentiable set of vectors. Recompute after every weight change.
         let embedding = self.layout.embedding;
+        if c.embedding == TokenEmbedding::Table {
+            return workspace.embeddings[0]
+                .with_chunks(|output| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_embedding_table::<W>(config::<1>(output.len())?)?;
+                    self.module.gpt_embedding_table(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.vocab_size,
+                        &self.parameters[embedding].state,
+                        output,
+                    )
+                })?
+                .map_err(Box::<dyn std::error::Error>::from);
+        }
         for layer in 0..c.attention_mesh_depth {
             let (before, after) = workspace.embeddings.split_at_mut(layer);
             let input = if layer == 0 {
@@ -1918,6 +1979,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     &self.stream,
                     &launch,
                     c.width,
+                    c.connectivity.stride(c.width, layer),
                     layer * 2 * c.width,
                     usize::from(layer + 1 != c.attention_mesh_depth),
                     0,
@@ -1935,7 +1997,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
     fn forward(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
         self.forward_embeddings(workspace)?;
-        let embedding_output = c.attention_mesh_depth - 1;
+        let embedding_output = c.embedding_layers() - 1;
         // Store tokens contiguously for each channel so neighboring head threads
         // read adjacent vocabulary values. The tied vectors are still generated once.
         workspace.head_embedding.with_chunks(|output| {
@@ -1996,6 +2058,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &self.stream,
                             &launch,
                             c.width,
+                            c.connectivity.stride(c.width, layer),
                             layer * 2 * c.width,
                             activated,
                             usize::from(residual.is_some()),
@@ -2117,7 +2180,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 c.width,
                 c.vocab_size,
                 &workspace.head_gradient,
-                &workspace.embeddings[c.attention_mesh_depth - 1],
+                &workspace.embeddings[c.embedding_layers() - 1],
                 output,
             )
         })??;
@@ -2151,12 +2214,13 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                     residual,
                 } => {
                     let parameters = &mut self.parameters[group];
+                    let stride = c.connectivity.stride(c.width, layer);
                     if workspace.rows > 128 {
                         let chunks = workspace.rows.div_ceil(32);
                         mesh_gradient::<W, 32>(
                             &self.module,
                             &self.stream,
-                            [c.width, 0, chunks, activated],
+                            [c.width, stride, 0, chunks, activated],
                             [
                                 &workspace.features[input],
                                 &workspace.features[out],
@@ -2182,7 +2246,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         mesh_gradient::<W, MAX_ROWS>(
                             &self.module,
                             &self.stream,
-                            [c.width, layer * c.width, 1, activated],
+                            [c.width, stride, layer * c.width, 1, activated],
                             [
                                 &workspace.features[input],
                                 &workspace.features[out],
@@ -2199,6 +2263,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                             &self.stream,
                             &launch,
                             c.width,
+                            stride,
                             layer * 2 * c.width,
                             activated,
                             0,
@@ -2273,7 +2338,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 }
             }
         }
-        let embedding_output = c.attention_mesh_depth - 1;
+        let embedding_output = c.embedding_layers() - 1;
         let chunks = workspace.rows.div_ceil(EMBEDDING_GRADIENT_ROWS);
         let launch = self
             .module
@@ -2309,8 +2374,23 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         // Combine repeated input lookups with the dense head contribution
         // before traversing the shared embedding mesh exactly once.
         let group = &mut self.parameters[self.layout.embedding];
+        if c.embedding == TokenEmbedding::Table {
+            let launch = self
+                .module
+                .prepare_gpt_embedding_table_gradient::<W>(config::<1>(group.gradient.len())?)?;
+            self.module.gpt_embedding_table_gradient(
+                &self.stream,
+                &launch,
+                c.width,
+                c.vocab_size,
+                &workspace.embedding_adjoints[0],
+                &mut group.gradient,
+            )?;
+            return Ok(());
+        }
         for layer in (0..c.attention_mesh_depth).rev() {
             let activated = usize::from(layer + 1 != c.attention_mesh_depth);
+            let stride = c.connectivity.stride(c.width, layer);
             let input = if layer == 0 {
                 &self.codes
             } else {
@@ -2319,7 +2399,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             mesh_gradient::<W, MAX_ROWS>(
                 &self.module,
                 &self.stream,
-                [c.width, layer * c.width, 1, activated],
+                [c.width, stride, layer * c.width, 1, activated],
                 [
                     input,
                     &workspace.embeddings[layer],
@@ -2337,6 +2417,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         &self.stream,
                         &launch,
                         c.width,
+                        stride,
                         layer * 2 * c.width,
                         activated,
                         0,
@@ -2649,11 +2730,11 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
 fn mesh_gradient<const W: usize, const ROWS: usize>(
     module: &kernels::LoadedModule,
     stream: &Arc<CudaStream>,
-    geometry: [usize; 4],
+    geometry: [usize; 5],
     features: [&DeviceBuffer<Features<W>>; 3],
     output: &mut DeviceBuffer<f32>,
 ) -> Result<()> {
-    let [width, offset, chunks, activated] = geometry;
+    let [width, stride, offset, chunks, activated] = geometry;
     output
         .with_chunks(|output: &mut DeviceViewMut<'_, [f32; 2]>| {
             let launch = module.prepare_gpt_mesh_gradient::<W, ROWS>(config::<1>(output.len())?)?;
@@ -2661,6 +2742,7 @@ fn mesh_gradient<const W: usize, const ROWS: usize>(
                 stream,
                 &launch,
                 width,
+                stride,
                 offset,
                 activated,
                 chunks,
@@ -3006,7 +3088,8 @@ mod verification {
             Ok(())
         }
 
-        /// Checks chunked reductions, row tails, untouched layers, and launch contracts.
+        /// Checks chunked reductions, row tails, untouched layers, parent strides,
+        /// and launch contracts.
         pub fn verify_mesh_gradient_reduction(device: usize) -> Result<()> {
             let model = GpuMeshGpt::new(device, GptConfig::default(), 7)?;
             for width in [2, 4, 32, 128] {
@@ -3045,31 +3128,35 @@ mod verification {
                     let gradient_gpu = DeviceBuffer::from_host(&model.stream, &gradient)?;
                     let chunks = rows.div_ceil(32);
                     let mut partials = DeviceBuffer::zeroed(&model.stream, chunks * 2 * width)?;
-                    let run_mesh_partials = |activated, chunks, output: &mut DeviceBuffer<f32>| {
-                        mesh_gradient::<128, 32>(
-                            &model.module,
-                            &model.stream,
-                            [width, 0, chunks, activated],
-                            [&input_gpu, &activation_gpu, &gradient_gpu],
-                            output,
-                        )
-                    };
+                    let run_mesh_partials =
+                        |activated, stride, chunks, output: &mut DeviceBuffer<f32>| {
+                            mesh_gradient::<128, 32>(
+                                &model.module,
+                                &model.stream,
+                                [width, stride, 0, chunks, activated],
+                                [&input_gpu, &activation_gpu, &gradient_gpu],
+                                output,
+                            )
+                        };
                     let sentinel = vec![42.0_f32; 6 * width];
-                    for (activated, offset) in [(0, 2 * width), (1, 2 * width)]
+                    // Butterfly layers use power-of-two strides; the kernels accept any in 1..width.
+                    for (activated, offset, stride) in [(0, 2 * width, 1), (1, 2 * width, 1)]
                         .into_iter()
-                        .chain((rows == 1).then_some((0, 2)))
-                        .chain((rows == 1).then_some((1, 2)))
+                        .chain((width > 2).then_some((1, 2 * width, width - 1)))
+                        .chain((width > 4).then_some((0, 2 * width, width / 2)))
+                        .chain((rows == 1).then_some((0, 2, 1)))
+                        .chain((rows == 1).then_some((1, 2, 1)))
                     {
                         let mut serial = DeviceBuffer::from_host(&model.stream, &sentinel)?;
                         let mut reduced = DeviceBuffer::from_host(&model.stream, &sentinel)?;
                         mesh_gradient::<128, MAX_ROWS>(
                             &model.module,
                             &model.stream,
-                            [width, offset / 2, 1, activated],
+                            [width, stride, offset / 2, 1, activated],
                             [&input_gpu, &activation_gpu, &gradient_gpu],
                             &mut serial,
                         )?;
-                        run_mesh_partials(activated, chunks, &mut partials)?;
+                        run_mesh_partials(activated, stride, chunks, &mut partials)?;
                         let reduce_launch =
                             model
                                 .module
@@ -3091,7 +3178,7 @@ mod verification {
                             let expected = if (offset..offset + 2 * width).contains(&parameter) {
                                 let local = parameter - offset;
                                 let channel = local / 2;
-                                let parent = (channel + local % 2) % width;
+                                let parent = (channel + local % 2 * stride) % width;
                                 (0..rows)
                                     .map(|row| {
                                         let value = f64::from(activation[row][channel]);
@@ -3112,29 +3199,65 @@ mod verification {
                                 assert!(
                                     (f64::from(actual) - expected).abs()
                                         < 3e-5 * (1.0 + expected.abs()),
-                                    "mesh reduction width={width} rows={rows} activated={activated} parameter={parameter}: {actual} vs {expected}"
+                                    "mesh reduction width={width} rows={rows} activated={activated} stride={stride} parameter={parameter}: {actual} vs {expected}"
                                 );
                             }
                         }
                     }
                     for bad_chunks in [0, 4097, chunks + 1, usize::MAX] {
-                        assert!(run_mesh_partials(0, bad_chunks, &mut partials).is_err());
+                        assert!(run_mesh_partials(0, 1, bad_chunks, &mut partials).is_err());
                     }
                     for length in [partials.len() - 1, partials.len() - 2] {
                         let mut too_short = DeviceBuffer::zeroed(&model.stream, length)?;
-                        assert!(run_mesh_partials(0, chunks, &mut too_short).is_err());
+                        assert!(run_mesh_partials(0, 1, chunks, &mut too_short).is_err());
                     }
-                    assert!(run_mesh_partials(2, chunks, &mut partials).is_err());
+                    assert!(run_mesh_partials(2, 1, chunks, &mut partials).is_err());
+                    for stride in [0, width, usize::MAX] {
+                        assert!(run_mesh_partials(0, stride, chunks, &mut partials).is_err());
+                    }
                     assert!(
                         mesh_gradient::<128, 32>(
                             &model.module,
                             &model.stream,
-                            [width, usize::MAX, chunks, 0],
+                            [width, 1, usize::MAX, chunks, 0],
                             [&input_gpu, &activation_gpu, &gradient_gpu],
                             &mut partials,
                         )
                         .is_err()
                     );
+                    if rows == 1 {
+                        let state =
+                            DeviceBuffer::from_host(&model.stream, &vec![[0.5_f32; 3]; 2 * width])?;
+                        let mut output: DeviceBuffer<Features> =
+                            DeviceBuffer::zeroed(&model.stream, rows)?;
+                        output.with_chunks(|output| {
+                            let launch = model
+                                .module
+                                .prepare_gpt_mesh::<128, 0>(config::<1>(output.len())?)?;
+                            for stride in [0, width, usize::MAX] {
+                                assert!(
+                                    model
+                                        .module
+                                        .gpt_mesh(
+                                            &model.stream,
+                                            &launch,
+                                            width,
+                                            stride,
+                                            0,
+                                            0,
+                                            0,
+                                            &input_gpu,
+                                            &input_gpu,
+                                            &input_gpu,
+                                            &state,
+                                            &mut *output,
+                                        )
+                                        .is_err()
+                                );
+                            }
+                            Ok::<_, cuda_core::LaunchContractError>(())
+                        })??;
+                    }
                 }
             }
             Ok(())

@@ -1,7 +1,8 @@
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    GptConfig, IGNORE_TARGET, RMSNORM_EPSILON, ROPE_BASE, XSA_EPSILON,
+    GptConfig, IGNORE_TARGET, MeshConnectivity, RMSNORM_EPSILON, ROPE_BASE, TokenEmbedding,
+    XSA_EPSILON,
     config::{Layout, token_codes},
 };
 
@@ -87,22 +88,33 @@ impl ReferenceGpt {
     fn forward(&self, tokens: &[u32], sequence: usize) -> (Tape, Vec<Vec<usize>>) {
         let config = self.config;
         let width = config.width;
+        let connectivity = config.connectivity;
         let mut tape = Tape::new(self.parameters.iter().map(|&p| f64::from(p)));
-        let codes: Vec<Vec<_>> = token_codes(config)
-            .iter()
-            .map(|row| {
-                row[..width]
+        let offset = self.layout.groups[self.layout.embedding].offset;
+        let embeddings = match config.embedding {
+            TokenEmbedding::Mesh => {
+                let codes: Vec<Vec<_>> = token_codes(config)
                     .iter()
-                    .map(|&x| tape.constant(f64::from(x)))
-                    .collect()
-            })
-            .collect();
-        let embeddings = mesh(
-            &mut tape,
-            &codes,
-            self.layout.groups[self.layout.embedding].offset,
-            config.attention_mesh_depth,
-        );
+                    .map(|row| {
+                        row[..width]
+                            .iter()
+                            .map(|&x| tape.constant(f64::from(x)))
+                            .collect()
+                    })
+                    .collect();
+                mesh(
+                    &mut tape,
+                    &codes,
+                    offset,
+                    config.attention_mesh_depth,
+                    connectivity,
+                )
+            }
+            // Parameter values are the first tape nodes, so table entries are their IDs.
+            TokenEmbedding::Table => (0..config.vocab_size)
+                .map(|token| (0..width).map(|c| offset + token * width + c).collect())
+                .collect(),
+        };
         let mut x: Vec<Vec<_>> = tokens
             .iter()
             .map(|&token| embeddings[token as usize].clone())
@@ -115,6 +127,7 @@ impl ReferenceGpt {
                     &normalized,
                     self.layout.groups[group].offset,
                     config.attention_mesh_depth,
+                    connectivity,
                 )
             });
             let query = rmsnorm(&mut tape, &query, config.heads);
@@ -128,6 +141,7 @@ impl ReferenceGpt {
                 &attended,
                 self.layout.groups[block.projection].offset,
                 config.attention_mesh_depth,
+                connectivity,
             );
             x = residual(&mut tape, &x, &projected);
             let normalized = rmsnorm(&mut tape, &x, 1);
@@ -136,6 +150,7 @@ impl ReferenceGpt {
                 &normalized,
                 self.layout.groups[block.ffn].offset,
                 config.ffn_mesh_depth,
+                connectivity,
             );
             x = residual(&mut tape, &x, &feed_forward);
         }
@@ -322,10 +337,17 @@ pub(super) fn rmsnorm_reference(
     tape.output_and_gradient(&output, gradient, width)
 }
 
-fn mesh(tape: &mut Tape, input: &[Vec<usize>], offset: usize, depth: usize) -> Vec<Vec<usize>> {
+fn mesh(
+    tape: &mut Tape,
+    input: &[Vec<usize>],
+    offset: usize,
+    depth: usize,
+    connectivity: MeshConnectivity,
+) -> Vec<Vec<usize>> {
     let width = input[0].len();
     let mut x = input.to_vec();
     for layer in 0..depth {
+        let stride = connectivity.stride(width, layer);
         x = x
             .iter()
             .map(|row| {
@@ -333,7 +355,7 @@ fn mesh(tape: &mut Tape, input: &[Vec<usize>], offset: usize, depth: usize) -> V
                     .map(|channel| {
                         let p = offset + layer * 2 * width + 2 * channel;
                         let left = tape.multiply(row[channel], p);
-                        let right = tape.multiply(row[(channel + 1) % width], p + 1);
+                        let right = tape.multiply(row[(channel + stride) % width], p + 1);
                         let sum = tape.add(left, right);
                         if layer + 1 == depth {
                             sum
@@ -711,34 +733,107 @@ mod tests {
             layers: 1,
             attention_mesh_depth: 2,
             ffn_mesh_depth: 2,
+            ..GptConfig::default()
         }
+    }
+
+    /// The default model and all three ablations; width 4 gives butterfly strides 1 and 2.
+    fn tiny_variants() -> Vec<GptConfig> {
+        [TokenEmbedding::Mesh, TokenEmbedding::Table]
+            .into_iter()
+            .flat_map(|embedding| {
+                [MeshConnectivity::Neighbor, MeshConnectivity::Butterfly].map(|connectivity| {
+                    GptConfig {
+                        embedding,
+                        connectivity,
+                        ..tiny_config()
+                    }
+                })
+            })
+            .collect()
     }
 
     #[test]
     fn zero_inputs_do_not_create_mesh_or_head_offsets() {
         let width = 4;
         for depth in [1, 3, 16] {
-            let mut tape = Tape::new(std::iter::repeat_n(0.5, 2 * width * depth));
-            let zero = tape.node(0.0, [(NONE, 0.0); 2]);
-            let output = mesh(&mut tape, &[vec![zero; width]], 0, depth);
-            for &id in &output[0] {
-                assert_eq!(tape.values[id], 0.0);
+            for connectivity in [MeshConnectivity::Neighbor, MeshConnectivity::Butterfly] {
+                let mut tape = Tape::new(std::iter::repeat_n(0.5, 2 * width * depth));
+                let zero = tape.node(0.0, [(NONE, 0.0); 2]);
+                let output = mesh(&mut tape, &[vec![zero; width]], 0, depth, connectivity);
+                for &id in &output[0] {
+                    assert_eq!(tape.values[id], 0.0);
+                }
             }
         }
-        let config = tiny_config();
-        let mut parameters = vec![0.5; config.parameter_count().unwrap()];
-        parameters[..2 * config.width * config.attention_mesh_depth].fill(0.0);
-        let model = ReferenceGpt::from_parameters(config, parameters).unwrap();
-        let inputs = [0, 1, 2, 3, 4, 0];
-        assert_eq!(
-            model.logits(&inputs, 3).unwrap(),
-            vec![vec![0.0; config.vocab_size]; inputs.len()]
-        );
+        for config in tiny_variants() {
+            let mut parameters = vec![0.5; config.parameter_count().unwrap()];
+            parameters[..config.embedding_parameter_count()].fill(0.0);
+            let model = ReferenceGpt::from_parameters(config, parameters).unwrap();
+            let inputs = [0, 1, 2, 3, 4, 0];
+            assert_eq!(
+                model.logits(&inputs, 3).unwrap(),
+                vec![vec![0.0; config.vocab_size]; inputs.len()]
+            );
+        }
+    }
+
+    #[test]
+    fn butterfly_meshes_read_power_of_two_distant_channels() {
+        let width = 8;
+        let depth = 3;
+        let mut tape = Tape::new(std::iter::repeat_n(0.0, 2 * width * depth));
+        let input: Vec<_> = (0..width)
+            .map(|channel| tape.constant(channel as f64))
+            .collect();
+        // Isolate each layer's second parent: zero self edges, unit second edges.
+        for layer in 0..depth {
+            for channel in 0..width {
+                tape.values[layer * 2 * width + 2 * channel + 1] = 1.0;
+            }
+        }
+        let output = mesh(&mut tape, &[input], 0, depth, MeshConnectivity::Butterfly);
+        for (channel, &id) in output[0].iter().enumerate() {
+            // ELU leaves these nonnegative values unchanged; strides are 1, 2 and 4.
+            assert_eq!(tape.values[id], ((channel + 7) % width) as f64);
+        }
+    }
+
+    #[test]
+    fn table_embedding_matches_the_tabulated_mesh_model() {
+        for connectivity in [MeshConnectivity::Neighbor, MeshConnectivity::Butterfly] {
+            let mesh = GptConfig {
+                connectivity,
+                ..tiny_config()
+            };
+            let table = GptConfig {
+                embedding: TokenEmbedding::Table,
+                ..mesh
+            };
+            let mesh_model = ReferenceGpt::new(mesh, 7).unwrap();
+            let table_model = ReferenceGpt::new(table, 7).unwrap();
+            assert_eq!(
+                table_model.parameters(),
+                super::super::tabulate_embedding(mesh, mesh_model.parameters()).unwrap()
+            );
+            let inputs = [0, 1, 3, 2, 4, 1];
+            let expected = mesh_model.logits(&inputs, 3).unwrap();
+            let actual = table_model.logits(&inputs, 3).unwrap();
+            for (expected, actual) in expected.iter().flatten().zip(actual.iter().flatten()) {
+                assert!((expected - actual).abs() < 1e-5 * (1.0 + expected.abs()));
+            }
+        }
     }
 
     #[test]
     fn all_transformer_gradients_match_finite_differences() {
-        let model = ReferenceGpt::new(tiny_config(), 7).unwrap();
+        for config in tiny_variants() {
+            transformer_gradients_match_finite_differences(config);
+        }
+    }
+
+    fn transformer_gradients_match_finite_differences(config: GptConfig) {
+        let model = ReferenceGpt::new(config, 7).unwrap();
         let x = [0, 1, 3, 2, 4, 1];
         for y in [
             [1, 3, 2, 4, 1, 0],
@@ -772,7 +867,7 @@ mod tests {
                 let numerical = (a - b) / step;
                 assert!(
                     (analytic - numerical).abs() < 4e-4 * (1.0 + analytic.abs()),
-                    "parameter={parameter}: {analytic} vs {numerical}"
+                    "{config:?} parameter={parameter}: {analytic} vs {numerical}"
                 );
             }
         }

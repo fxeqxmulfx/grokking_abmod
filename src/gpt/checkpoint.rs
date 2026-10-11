@@ -6,9 +6,11 @@ use std::{
 
 use crate::{Result, mesh::validate_finite};
 
-use super::{CharacterTokenizer, GptConfig};
+use super::{CharacterTokenizer, GptConfig, MeshConnectivity, TokenEmbedding};
 
 /// A versioned weights-only checkpoint. Loading resets the AdamW state.
+/// The default architecture keeps the MSHGPT07 layout; MSHGPT08 adds the
+/// token-embedding and mesh-connectivity ablation fields.
 pub struct Checkpoint {
     pub config: GptConfig,
     pub tokenizer: CharacterTokenizer,
@@ -23,9 +25,15 @@ impl Checkpoint {
             return Err("checkpoint model, parameters, and tokenizer do not match".into());
         }
         validate_finite(&self.parameters, "checkpoint parameters")?;
+        let ablation = [
+            usize::from(self.config.embedding == TokenEmbedding::Table),
+            usize::from(self.config.connectivity == MeshConnectivity::Butterfly),
+        ];
+        let default = ablation == [0, 0];
         let mut file = File::create(path)?;
-        file.write_all(b"MSHGPT07")?;
-        for field in [
+        file.write_all(if default { b"MSHGPT07" } else { b"MSHGPT08" })?;
+        let extra: &[usize] = if default { &[] } else { &ablation };
+        for &field in [
             self.config.vocab_size,
             self.config.context,
             self.config.width,
@@ -33,7 +41,10 @@ impl Checkpoint {
             self.config.layers,
             self.config.attention_mesh_depth,
             self.config.ffn_mesh_depth,
-        ] {
+        ]
+        .iter()
+        .chain(extra)
+        {
             file.write_all(&(field as u32).to_le_bytes())?;
         }
         for &character in &self.tokenizer.characters {
@@ -53,7 +64,7 @@ impl Checkpoint {
     fn read(reader: &mut impl Read) -> Result<Self> {
         let mut magic = [0_u8; 8];
         reader.read_exact(&mut magic)?;
-        if &magic != b"MSHGPT07" {
+        if &magic != b"MSHGPT07" && &magic != b"MSHGPT08" {
             return Err(match &magic {
                 b"MSHGPT01" | b"MSHGPT02" => "checkpoint uses learned position embeddings; retrain Mesh GPT with RoPE",
                 b"MSHGPT03" => "checkpoint uses LayerNorm; retrain Mesh GPT with RMSNorm",
@@ -68,7 +79,7 @@ impl Checkpoint {
             reader.read_exact(&mut bytes)?;
             Ok(bytes)
         };
-        let config = GptConfig {
+        let mut config = GptConfig {
             vocab_size: u32::from_le_bytes(word()?) as usize,
             context: u32::from_le_bytes(word()?) as usize,
             width: u32::from_le_bytes(word()?) as usize,
@@ -76,7 +87,25 @@ impl Checkpoint {
             layers: u32::from_le_bytes(word()?) as usize,
             attention_mesh_depth: u32::from_le_bytes(word()?) as usize,
             ffn_mesh_depth: u32::from_le_bytes(word()?) as usize,
+            ..GptConfig::default()
         };
+        if &magic == b"MSHGPT08" {
+            config.embedding = match u32::from_le_bytes(word()?) {
+                0 => TokenEmbedding::Mesh,
+                1 => TokenEmbedding::Table,
+                _ => return Err("unknown checkpoint token embedding".into()),
+            };
+            config.connectivity = match u32::from_le_bytes(word()?) {
+                0 => MeshConnectivity::Neighbor,
+                1 => MeshConnectivity::Butterfly,
+                _ => return Err("unknown checkpoint mesh connectivity".into()),
+            };
+            if config.embedding == TokenEmbedding::Mesh
+                && config.connectivity == MeshConnectivity::Neighbor
+            {
+                return Err("the default architecture must use the MSHGPT07 layout".into());
+            }
+        }
         let count = config.parameter_count()?;
         let mut characters = Vec::with_capacity(config.vocab_size);
         for _ in 0..config.vocab_size {
@@ -157,5 +186,57 @@ mod tests {
         let mut invalid = bytes;
         invalid[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
         assert!(Checkpoint::read(&mut invalid.as_slice()).is_err());
+    }
+
+    #[test]
+    fn ablation_checkpoints_round_trip_their_architecture() {
+        let tokenizer = CharacterTokenizer::from_text("abcde").unwrap();
+        for (embedding, connectivity, codes) in [
+            (TokenEmbedding::Table, MeshConnectivity::Neighbor, [1, 0]),
+            (TokenEmbedding::Mesh, MeshConnectivity::Butterfly, [0, 1]),
+            (TokenEmbedding::Table, MeshConnectivity::Butterfly, [1, 1]),
+        ] {
+            let config = GptConfig {
+                vocab_size: tokenizer.vocab_size(),
+                embedding,
+                connectivity,
+                ..GptConfig::default()
+            };
+            let parameters = ReferenceGpt::new(config, 3).unwrap().parameters().to_vec();
+            let path = std::env::temp_dir().join(format!(
+                "mesh-gpt-ablation-{}-{}{}.bin",
+                std::process::id(),
+                codes[0],
+                codes[1]
+            ));
+            let checkpoint = Checkpoint {
+                config,
+                tokenizer: tokenizer.clone(),
+                parameters,
+            };
+            checkpoint.save(&path).unwrap();
+            let bytes = std::fs::read(&path).unwrap();
+            std::fs::remove_file(&path).unwrap();
+            assert_eq!(&bytes[..8], b"MSHGPT08");
+            for (field, code) in codes.into_iter().enumerate() {
+                let start = 36 + 4 * field;
+                assert_eq!(bytes[start..start + 4], (code as u32).to_le_bytes());
+            }
+            let loaded = Checkpoint::read(&mut bytes.as_slice()).unwrap();
+            assert_eq!(loaded.config, config);
+            assert_eq!(loaded.parameters, checkpoint.parameters);
+            // Older readers would misplace these fields, and unknown codes must not load.
+            let mut legacy = bytes.clone();
+            legacy[..8].copy_from_slice(b"MSHGPT07");
+            assert!(Checkpoint::read(&mut legacy.as_slice()).is_err());
+            for field in [36, 40] {
+                let mut unknown = bytes.clone();
+                unknown[field..field + 4].copy_from_slice(&2_u32.to_le_bytes());
+                assert!(Checkpoint::read(&mut unknown.as_slice()).is_err());
+            }
+            let mut default = bytes;
+            default[36..44].fill(0);
+            assert!(Checkpoint::read(&mut default.as_slice()).is_err());
+        }
     }
 }

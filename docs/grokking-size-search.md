@@ -276,3 +276,24 @@ See the [portable results](grokking-results/summary.json) and
 Mesh defaults are substantially
 smaller than the user's successful parameter count, so their failure does
 not settle the larger-model search.
+
+## Architecture ablations
+
+No completed Mesh run raised held-out accuracy above chance, including the
+runs that fit the training set. Two architectural constraints could explain
+this. The embedding mesh computes each token vector from fixed codes of an
+abstract symbol ID through a depth-`d` neighbor mesh. Channel `c` therefore
+depends only on code channels `c..c+d`, and tokens cannot receive independent
+vectors. Neighbor meshes also mix channels only locally, so the Q/K/V,
+output and feed-forward meshes cannot form global channel combinations.
+
+The factorial ablation in
+[div97-mesh-ablations.json](../experiments/div97-mesh-ablations.json) crosses
+`--embedding mesh|table` with `--connectivity neighbor|butterfly`; see
+[Mesh GPT](mesh-gpt.md#ablation-variants). All four arms use width 128, four
+heads, two blocks, depths 8/16, initialization gain 1.4, embedding-output gain
+0.1, and the dense recipe's learning rate 0.001 and decay 0.1. Mesh arms have
+26,624 learned parameters, and table arms have 37,248. Each table arm starts as
+the same function as its mesh arm, and their one-epoch smoke runs had identical
+initial complete-split losses. Each arm has the full 10,000-epoch cap and runs
+concurrently with the others.

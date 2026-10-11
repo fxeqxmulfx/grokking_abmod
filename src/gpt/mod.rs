@@ -1,5 +1,6 @@
 //! A Transformer whose learned parameters are mesh edges, including tied embeddings.
 //! Bias-free, with parameter-free RMSNorm, QK-Norm, slice RoPE, and XSA.
+//! Ablations can replace the embedding mesh with a table or use butterfly strides.
 
 mod checkpoint;
 mod config;
@@ -9,7 +10,9 @@ mod reference;
 mod text;
 
 pub use checkpoint::Checkpoint;
-pub use config::{AdamWOptions, GptConfig, GptTrainOptions};
+pub use config::{
+    AdamWOptions, GptConfig, GptTrainOptions, MeshConnectivity, TokenEmbedding, tabulate_embedding,
+};
 pub use gpu::{GpuMeshGpt, SpecializedMeshGpt};
 pub use grokking::{
     EQUATION_CONTEXT, Equation, EquationDataset, EquationSampler, ModularOperation,

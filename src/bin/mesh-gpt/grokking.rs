@@ -9,7 +9,7 @@ use grokking_abmod::{
     Result,
     gpt::{
         AdamWOptions, Checkpoint, EQUATION_CONTEXT, EquationDataset, EquationSampler, GptConfig,
-        ModularOperation, SpecializedMeshGpt,
+        ModularOperation, SpecializedMeshGpt, TokenEmbedding, tabulate_embedding,
     },
 };
 
@@ -96,6 +96,8 @@ impl Options {
                     options.config.attention_mesh_depth = value(&mut arguments, &flag)?
                 }
                 "--ffn-depth" => options.config.ffn_mesh_depth = value(&mut arguments, &flag)?,
+                "--embedding" => options.config.embedding = value(&mut arguments, &flag)?,
+                "--connectivity" => options.config.connectivity = value(&mut arguments, &flag)?,
                 "--learning-rate" => {
                     options.optimizer.learning_rate = value(&mut arguments, &flag)?
                 }
@@ -140,6 +142,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --layers N            Transformer blocks, 1..64 (default: 2)\n\
             --attention-depth N   Embedding/Q/K/V/output mesh depth (default: 4)\n\
             --ffn-depth N         Feed-forward mesh depth (default: 6)\n\
+            --embedding NAME      Tied token vectors: mesh (default) or table; a table\n\
+                                  starts from the vectors the seeded mesh generates\n\
+            --connectivity NAME   Second mesh parent: neighbor, c+1 (default), or\n\
+                                  butterfly, c+2^(layer mod floor(log2 width))\n\
             --seed N              Model, symbol permutation, split, sampling seed (default: 7)\n\
             --device N            CUDA device ordinal (default: 0)\n\
             --output PATH         Artifacts (default: target/mesh-gpt-grokking)"
@@ -193,7 +199,13 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         || options.embedding_output_gain != 1.0
         || options.qk_signs == 1
     {
-        let mut parameters = model.parameters()?;
+        // Adjust the mesh-embedding parameterization. A table then stores the
+        // adjusted mesh's vectors, so both variants start as the same function.
+        let mesh = GptConfig {
+            embedding: TokenEmbedding::Mesh,
+            ..options.config
+        };
+        let mut parameters = mesh.initial_parameters(options.seed)?;
         for parameter in &mut parameters {
             *parameter *= options.initialization_gain;
         }
@@ -228,6 +240,9 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
                 }
             }
         }
+        if options.config.embedding == TokenEmbedding::Table {
+            parameters = tabulate_embedding(mesh, &parameters)?;
+        }
         model.set_parameters(&parameters)?;
     }
     std::fs::create_dir_all(&options.output)?;
@@ -235,7 +250,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=mesh_gpt\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\nabstract_symbol_permutation=true\nloss=answer_only\ncontext=4\nwidth={}\nheads={}\nlayers={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nall_parameters=mesh_edges\nattention=xsa\npositions=slice_rope\nnormalization=pre_rmsnorm\nqk_norm=per_head_rmsnorm\nrmsnorm_affine=false\nbias=false\nembeddings=mesh\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint=weights_only\n",
+            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=mesh_gpt\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\nabstract_symbol_permutation=true\nloss=answer_only\ncontext=4\nwidth={}\nheads={}\nlayers={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nembedding_parameters={}\nall_parameters={}\nattention=xsa\npositions=slice_rope\nnormalization=pre_rmsnorm\nqk_norm=per_head_rmsnorm\nrmsnorm_affine=false\nbias=false\nembeddings={}\nmesh_connectivity={}\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint=weights_only\n",
             options.operation,
             options.modulus,
             options.train_fraction,
@@ -248,6 +263,13 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
             options.config.attention_mesh_depth,
             options.config.ffn_mesh_depth,
             options.config.parameter_count()?,
+            options.config.embedding_parameter_count(),
+            match options.config.embedding {
+                TokenEmbedding::Mesh => "mesh_edges",
+                TokenEmbedding::Table => "mesh_edges_and_token_table",
+            },
+            options.config.embedding,
+            options.config.connectivity,
             options.optimizer.learning_rate,
             options.optimizer.weight_decay,
             batch,
@@ -642,6 +664,25 @@ mod tests {
                 .workspace_capacity,
             1
         );
+    }
+
+    #[test]
+    fn ablation_flags_select_the_embedding_and_connectivity() {
+        use grokking_abmod::gpt::MeshConnectivity;
+        let options = Options::parse(std::iter::empty()).unwrap();
+        assert_eq!(options.config.embedding, TokenEmbedding::Mesh);
+        assert_eq!(options.config.connectivity, MeshConnectivity::Neighbor);
+        let options = Options::parse(
+            ["--embedding", "table", "--connectivity", "butterfly"]
+                .map(str::to_owned)
+                .into_iter(),
+        )
+        .unwrap();
+        assert_eq!(options.config.embedding, TokenEmbedding::Table);
+        assert_eq!(options.config.connectivity, MeshConnectivity::Butterfly);
+        for flags in [["--embedding", "dense"], ["--connectivity", "random"]] {
+            assert!(Options::parse(flags.map(str::to_owned).into_iter()).is_err());
+        }
     }
 
     #[test]
