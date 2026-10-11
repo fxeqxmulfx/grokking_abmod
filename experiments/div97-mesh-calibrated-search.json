@@ -73,6 +73,18 @@
       "ffn-depth": 16,
       "embedding-output-gain": 0.02,
       "qk-signs": 1
+    },
+    {
+      "label": "w1024-h8-l5-d8-f16-g14-e002-wd001-b256-cache3-qks1",
+      "width": 1024,
+      "heads": 8,
+      "layers": 5,
+      "attention-depth": 8,
+      "ffn-depth": 16,
+      "embedding-output-gain": 0.02,
+      "batch": 256,
+      "report-every": 475,
+      "qk-signs": 1
     }
   ]
 }

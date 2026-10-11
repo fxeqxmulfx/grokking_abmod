@@ -160,7 +160,7 @@ original initialization. The candidates test gains 0.1 and 0.02, shallower
 mesh projections, learning rates 0.001 and 0.003, and decay 0.01. Results
 apply to each complete configuration because several settings vary.
 
-All four candidates passed a two-update, batch-eight initialization check,
+The four original candidates passed a two-update, batch-eight initialization check,
 with exhaustive evaluations and finite losses. Starting training losses
 were 4.6310 (26,624 parameters), 4.5964 (63,488), 4.6765 (495,616), and
 4.6417 (507,904). Zero, negative, NaN and infinite output gains are rejected
@@ -172,7 +172,11 @@ learning and grokking. The first calibrated search used 26,624 parameters
 and completed all 10,000 epochs without fitting the training set. Its final
 training/held-out cross-entropies were 2.7389/6.7946, and neither split
 reached 99%. A controlled sign-initialization variant and a five-block,
-63,488-parameter variant are running.
+63,488-parameter variant are running. A 507,904-parameter sign variant uses
+batch 256: eighteen full batches and the short batch of 48, or nineteen
+updates per epoch. It evaluates every 475 updates (25 epochs) and has a
+190,000-update cap. Its two-update capacity check passed with finite
+complete-split losses; that check is excluded from the grokking results.
 
 The controlled `--qk-signs 1` variant changes only the final Q/K rows using
 a separate seeded sign stream. An independent f64 reconstruction of the
