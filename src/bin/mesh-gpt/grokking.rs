@@ -24,6 +24,7 @@ struct Options {
     operation: ModularOperation,
     train_fraction: f64,
     steps: usize,
+    epochs: Option<usize>,
     batch: Option<usize>,
     report_every: usize,
     seed: u64,
@@ -50,6 +51,7 @@ impl Options {
             operation: ModularOperation::Add,
             train_fraction: 0.5,
             steps: 100_000,
+            epochs: None,
             batch: None,
             report_every: 1000,
             seed: 7,
@@ -57,12 +59,17 @@ impl Options {
             output: PathBuf::from("target/mesh-gpt-grokking"),
             help: false,
         };
+        let mut explicit_steps = false;
         while let Some(flag) = arguments.next() {
             match flag.as_str() {
                 "--modulus" => options.modulus = value(&mut arguments, &flag)?,
                 "--operation" => options.operation = value(&mut arguments, &flag)?,
                 "--train-fraction" => options.train_fraction = value(&mut arguments, &flag)?,
-                "--steps" => options.steps = value(&mut arguments, &flag)?,
+                "--steps" => {
+                    options.steps = value(&mut arguments, &flag)?;
+                    explicit_steps = true;
+                }
+                "--epochs" => options.epochs = Some(value(&mut arguments, &flag)?),
                 "--batch" => options.batch = Some(value(&mut arguments, &flag)?),
                 "--report-every" => options.report_every = value(&mut arguments, &flag)?,
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
@@ -83,6 +90,9 @@ impl Options {
                 _ => return Err(format!("unknown grok option: {flag}; use grok --help").into()),
             }
         }
+        if explicit_steps && options.epochs.is_some() {
+            return Err("choose either --epochs or --steps".into());
+        }
         Ok(options)
     }
 }
@@ -98,6 +108,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --modulus P           Prime, 2..254 (default: 97)\n\
             --train-fraction X    Fixed training fraction, 0<X<1 (default: 0.5)\n\
             --steps N             Gradient updates (default: 100000; no early stopping)\n\
+            --epochs N            Complete passes over all training equations; replaces --steps\n\
             --batch N             Equations per minibatch (default: min(512, train_size/2))\n\
             --report-every N      Evaluate both complete splits (default: 1000)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
@@ -130,6 +141,9 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         .unwrap_or_else(|| 512.min(dataset.split(false).len() / 2));
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
     sampler.sample(batch)?;
+    if let Some(epochs) = options.epochs {
+        options.steps = epoch_steps(epochs, dataset.split(false).len(), batch)?;
+    }
     // Start from the seed again after validating the requested minibatch size.
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
     let mut model = GrokModel::new(options.device, options.config, options.seed)?;
@@ -158,6 +172,17 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             options.report_every,
         ),
     )?;
+    let mut metadata = OpenOptions::new()
+        .append(true)
+        .open(options.output.join("run.txt"))?;
+    writeln!(
+        metadata,
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch",
+        options
+            .epochs
+            .map_or_else(|| "none".into(), |n| n.to_string()),
+        dataset.split(false).len().div_ceil(batch),
+    )?;
     println!(
         "Mesh GPT grokking: {} mod {}, train={}, validation={}, batch={}, parameters={}",
         options.operation,
@@ -174,7 +199,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
     let mut history = BufWriter::new(File::create(options.output.join("loss.csv"))?);
     writeln!(
         history,
-        "step,train_cross_entropy,validation_cross_entropy,train_accuracy,validation_accuracy,weight_l2,learning_rate,elapsed_seconds"
+        "step,training_examples_seen,completed_epochs,examples_in_partial_epoch,train_cross_entropy,validation_cross_entropy,train_accuracy,validation_accuracy,weight_l2,learning_rate,elapsed_seconds"
     )?;
     let start = Instant::now();
     let mut thresholds = Thresholds::default();
@@ -183,6 +208,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         &model,
         &dataset,
         &options.output,
+        0,
         0,
         0.0,
         start.elapsed().as_secs_f64(),
@@ -201,6 +227,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
                 &dataset,
                 &options.output,
                 step,
+                trained_examples,
                 optimizer.learning_rate,
                 start.elapsed().as_secs_f64(),
                 &mut thresholds,
@@ -234,6 +261,15 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         observed(thresholds.validation)
     );
     Ok(())
+}
+
+fn epoch_steps(epochs: usize, examples: usize, batch: usize) -> Result<usize> {
+    if epochs == 0 || examples == 0 || batch == 0 {
+        return Err("epochs, training examples, and batch size must be positive".into());
+    }
+    epochs
+        .checked_mul(examples.div_ceil(batch))
+        .ok_or_else(|| "epoch budget exceeds the supported update count".into())
 }
 
 fn warmed_optimizer(mut optimizer: AdamWOptions, step: usize) -> AdamWOptions {
@@ -302,6 +338,7 @@ fn record(
     dataset: &EquationDataset,
     directory: &Path,
     step: usize,
+    trained_examples: usize,
     learning_rate: f32,
     elapsed: f64,
     thresholds: &mut Thresholds,
@@ -322,8 +359,13 @@ fn record(
         .sqrt();
     writeln!(
         history,
-        "{step},{:.9},{:.9},{:.9},{:.9},{norm:.9},{learning_rate:.9},{elapsed:.6}",
-        train.loss, validation.loss, train.accuracy, validation.accuracy
+        "{step},{trained_examples},{},{},{:.9},{:.9},{:.9},{:.9},{norm:.9},{learning_rate:.9},{elapsed:.6}",
+        trained_examples / dataset.split(false).len(),
+        trained_examples % dataset.split(false).len(),
+        train.loss,
+        validation.loss,
+        train.accuracy,
+        validation.accuracy
     )?;
     history.flush()?;
     Checkpoint {
@@ -430,6 +472,27 @@ fn write_predictions(directory: &Path, model: &GrokModel, dataset: &EquationData
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn epoch_budgets_include_short_tail_batches_and_reject_overflow() {
+        assert_eq!(epoch_steps(10_000, 4656, 512).unwrap(), 100_000);
+        assert_eq!(epoch_steps(10_000, 4656, 4656).unwrap(), 10_000);
+        assert_eq!(epoch_steps(3, 10, 4).unwrap(), 9);
+        assert!(epoch_steps(0, 4656, 512).is_err());
+        assert!(epoch_steps(1, 0, 512).is_err());
+        assert!(epoch_steps(1, 4656, 0).is_err());
+        assert!(epoch_steps(usize::MAX, 4656, 512).is_err());
+        assert!(
+            Options::parse(
+                ["--epochs", "3", "--steps", "4"]
+                    .map(str::to_owned)
+                    .into_iter()
+            )
+            .is_err()
+        );
+        let options = Options::parse(["--epochs", "3"].map(str::to_owned).into_iter()).unwrap();
+        assert_eq!(options.epochs, Some(3));
+    }
 
     #[test]
     fn grokking_defaults_and_warmup_follow_the_paper_protocol() {

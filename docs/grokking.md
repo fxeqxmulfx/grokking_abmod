@@ -12,14 +12,14 @@ and updates work; observing grokking requires a much longer run.
 ```bash
 # One complete epoch: 4704 training equations, nine batches of 512 and one of 96.
 cargo oxide run --bin mesh-gpt -- grok \
-  --steps 10 --report-every 10 --output target/mesh-gpt-grokking-epoch
+  --epochs 1 --report-every 10 --output target/mesh-gpt-grokking-epoch
 
 # The paper's usual 100000-update budget; training continues after perfect accuracy.
 cargo oxide run --bin mesh-gpt -- grok
 
 # Modular division, excluding division by zero.
 cargo oxide run --bin mesh-gpt -- grok \
-  --operation div --train-fraction 0.5 --seed 7 \
+  --operation div --train-fraction 0.5 --seed 7 --epochs 10000 \
   --output target/mesh-gpt-grokking-div
 
 # Learning curves and a PCA view of the shared generated vectors.
@@ -42,6 +42,11 @@ Minibatches traverse a shuffled training set without replacement. A short final
 batch completes each epoch before the next shuffle. Validation equations never
 enter the sampler. Every report evaluates both entire splits and records their
 cross-entropy and answer accuracy, rather than an estimate from sampled batches.
+`--epochs N` ends after exactly `N` complete passes and includes each short
+final batch. It is mutually exclusive with an explicit `--steps` budget.
+For division modulo 97 with a 50% split and batch 512, each epoch has 4,656
+equations and ten updates, so 10,000 epochs is 100,000 updates. Each CSV
+observation records examples seen, complete epochs, and partial-epoch progress.
 
 ## Tasks and optimization
 
@@ -90,8 +95,9 @@ The output directory contains:
 - `run.txt`: task, split sizes, seeds, model and optimizer settings, total examples
   seen, completed epochs, elapsed time, and first recorded steps with 99% accuracy.
   A threshold that was not reached is recorded as `not_reached`.
-- `loss.csv`: step-zero and subsequent complete-split metrics, weight L2 norm,
-  learning rate, and elapsed time.
+- `loss.csv`: step-zero and subsequent complete-split metrics, examples seen,
+  completed epochs, partial-epoch progress, weight L2 norm, learning rate,
+  and elapsed time.
 - `equations.csv`: the exact split, numeric labels, and input/target token IDs.
 - `symbols.csv`: the residue-to-token mapping, operator, and equals sign.
 - `model.bin`: `MSHGPT07` weights and the exact abstract-symbol tokenizer. Private-use
