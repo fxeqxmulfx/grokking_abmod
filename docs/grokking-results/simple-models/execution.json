@@ -1,0 +1,57 @@
+{
+  "reason": "user_requested_stop",
+  "recorded_at_utc": "2026-10-11T16:24:46.056193+00:00",
+  "manifest_sha256": "4eea650bd4289a501819a8a5ec01ab7fd034508bab7d981616d86440a1ec11f7",
+  "completed_labels": [
+    "mlp-relu-one-hot-w128",
+    "mlp-relu-one-hot-w512",
+    "mlp-relu-one-hot-w256",
+    "mlp-relu-one-hot-w64",
+    "mlp-relu-one-hot-w32",
+    "mlp-relu-one-hot-w16",
+    "mlp-relu-one-hot-w8",
+    "mlp2-relu-one-hot-w128",
+    "mlp2-relu-one-hot-w64",
+    "mlp-square-one-hot-w128",
+    "mlp-square-one-hot-w64",
+    "mlp-square-one-hot-w32",
+    "mlp-square-one-hot-w16",
+    "mlp-square-one-hot-w8",
+    "residual-relu-one-hot-d128",
+    "residual-relu-one-hot-d64",
+    "residual-relu-one-hot-d32",
+    "residual-relu-one-hot-d16",
+    "residual2-relu-one-hot-d64",
+    "bilinear-one-hot-r64",
+    "bilinear-one-hot-r32",
+    "bilinear-one-hot-r16",
+    "bilinear-one-hot-r8",
+    "bilinear-one-hot-r4",
+    "bilinear-one-hot-r2",
+    "mlp-relu-discrete-log-w128",
+    "mlp-relu-discrete-log-w512",
+    "mlp2-relu-discrete-log-w512",
+    "residual-relu-discrete-log-d128",
+    "mlp-relu-binary-w512"
+  ],
+  "interrupted_labels": [
+    "mlp2-relu-binary-w512"
+  ],
+  "not_started_labels": [
+    "residual-relu-binary-d128",
+    "bilinear-binary-r64",
+    "mlp-relu-scalar-w512",
+    "mlp2-relu-scalar-w512",
+    "residual-relu-scalar-d128"
+  ],
+  "interrupted_last_observation": {
+    "label": "mlp2-relu-binary-w512",
+    "step": 66750,
+    "epoch": 6675,
+    "train_accuracy": 1.0,
+    "validation_accuracy": 0.037585911,
+    "peak_validation_accuracy": 0.038015464,
+    "model_checkpoint_sha256": "5f22f1db7e533120af15428b824aa8cfc17dade674c09106425a980c4ac460ee",
+    "last_observation_is_not_the_exact_interruption_update": true
+  }
+}

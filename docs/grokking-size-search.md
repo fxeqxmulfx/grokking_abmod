@@ -581,6 +581,91 @@ lower bound, rather than a measured crossing time. An
 
 ![Initial scale versus continuous unit normalization](grokking-results/table-unit-control/table-unit-control.png)
 
+## Attention-free baselines
+
+[div97-simple-models.json](../experiments/div97-simple-models.json) asks how
+simple a network can reach 99% held-out accuracy under the same protocol.
+`mesh-gpt grok-simple` trains bias-free models on both operands: an MLP with
+one or two hidden ReLU or squared layers, a residual MLP with pre-RMSNorm
+blocks of expansion 4 and a final RMSNorm, and a bilinear model
+`(U a) ⊙ (V b)` followed by a linear readout. Operands enter as residue values
+rather than abstract symbols, encoded as one-hot vectors, ±1 bits, a centered
+scalar, or a zero flag with the centered discrete logarithm base 5. Every run
+uses seed 7 and the split, sampler, warmup, AdamW settings, complete-split
+evaluation, stopping rule and epoch cap of the Mesh trials. `grok-simple
+--verify` compares CUDA logits, losses and gradients with an independent f64
+reference, and AdamW steps with an FP32 host computation.
+
+The user stopped the queue during `mlp2-relu-binary-w512` at epoch 6,675,
+when it had 100% training and 3.76% held-out accuracy. The five remaining
+binary and scalar arms did not start;
+[execution.json](grokking-results/simple-models/execution.json) records the
+stop. With one-hot operands, a plateau is a confirmed stretch of five
+observations at training accuracy of at least 99% and held-out accuracy of at
+most 10%:
+
+| Model | Parameters | First training 99% | First held-out 99% | Plateau | Final training / held-out |
+| --- | ---: | ---: | ---: | --- | --- |
+| ReLU MLP, width 512 | 148,992 | Epoch 125 | Epoch 2,700 | Yes | 100% / 99.10% |
+| ReLU MLP, width 256 | 74,496 | Epoch 225 | Epoch 4,250 | Yes | 100% / 99.01% |
+| ReLU MLP, width 128 | 37,248 | Epoch 475 | Epoch 6,350 | Yes | 100% / 99.08% |
+| ReLU MLP, width 64 | 18,624 | Epoch 1,375 | Not reached | Yes | 100% / 98.50% |
+| ReLU MLP, width 32 | 9,312 | Epoch 4,350 | Not reached | No | 100% / 93.00% |
+| ReLU MLP, width 16 | 4,656 | Not reached | Not reached | No | 78.09% / 56.23% |
+| ReLU MLP, width 8 | 2,328 | Not reached | Not reached | No | 29.42% / 19.85% |
+| Two-layer ReLU MLP, width 128 | 53,632 | Epoch 300 | Epoch 3,575 | Yes | 100% / 99.08% |
+| Two-layer ReLU MLP, width 64 | 22,720 | Epoch 625 | Epoch 5,325 | No | 100% / 99.12% |
+| Squared MLP, width 128 | 37,248 | Epoch 125 | Epoch 525 | No | 100% / 99.10% |
+| Squared MLP, width 64 | 18,624 | Epoch 225 | Epoch 1,225 | No | 100% / 99.05% |
+| Squared MLP, width 32 | 9,312 | Epoch 350 | Epoch 9,600 | No | 100% / 99.01% |
+| Squared MLP, width 16 | 4,656 | Epoch 775 | Not reached | No | 100% / 86.04% |
+| Squared MLP, width 8 | 2,328 | Not reached | Not reached | No | 77.73% / 65.46% |
+| Residual MLP, width 128 | 168,320 | Epoch 25 | Epoch 1,000 | Yes | 100% / 99.68% |
+| Residual MLP, width 64 | 51,392 | Epoch 75 | Epoch 725 | Yes | 100% / 99.01% |
+| Residual MLP, width 32 | 17,504 | Epoch 200 | Epoch 500 | No | 100% / 99.48% |
+| Residual MLP, width 16 | 6,704 | Epoch 975 | Epoch 1,525 | No | 100% / 99.31% |
+| Two-block residual MLP, width 64 | 84,160 | Epoch 50 | Epoch 5,350 | Yes | 100% / 99.48% |
+| Bilinear, rank 64 | 18,624 | Epoch 200 | Epoch 1,450 | No | 100% / 99.01% |
+| Bilinear, rank 32 | 9,312 | Epoch 275 | Epoch 1,225 | No | 100% / 99.01% |
+| Bilinear, rank 16 | 4,656 | Epoch 575 | Not reached | No | 100% / 97.04% |
+| Bilinear, rank 8 | 2,328 | Not reached | Not reached | No | 61.10% / 49.85% |
+| Bilinear, rank 4 | 1,164 | Not reached | Not reached | No | 16.37% / 11.28% |
+| Bilinear, rank 2 | 582 | Not reached | Not reached | No | 4.98% / 2.94% |
+
+The smallest tested one-hot models to reach the target are the
+6,704-parameter residual MLP at epoch 1,525, the 9,312-parameter bilinear
+model at epoch 1,225 and squared MLP at epoch 9,600, and the 22,720-parameter
+two-layer ReLU MLP at epoch 5,325. One ReLU layer needed width 128. The
+closest misses peaked at 98.50% (ReLU width 64), 97.16% (bilinear rank 16)
+and 93.26% (ReLU width 32). At 37,248 parameters, the count of the
+unit-normalized table GPT that reached the target at epoch 100, the squared
+MLP took 525 epochs and the ReLU MLP 6,350.
+
+Only ReLU models showed delayed grokking. One-layer ReLU MLPs of widths 128
+to 512, the two-layer ReLU MLP of width 128, the residual MLPs of widths 64
+and 128 and the two-block residual MLP fitted the training set by epoch 475
+and generalized 550 to 5,775 epochs after their plateaus were confirmed. The
+one-layer ReLU MLP of width 64 also had a plateau but missed the target.
+Smaller ReLU models that generalized, and every squared and bilinear model,
+had no plateau. In `summary.json` a family omits depth, so
+`mlp-relu-one-hot` covers both MLP depths.
+
+| Encoding | Model | Parameters | Final training / held-out | Peak held-out |
+| --- | --- | ---: | --- | ---: |
+| Discrete logarithm | ReLU MLP, width 128 | 12,928 | 6.92% / 5.15% | 6.01% |
+| Discrete logarithm | ReLU MLP, width 512 | 51,712 | 7.07% / 5.71% | 6.79% |
+| Discrete logarithm | Two-layer ReLU MLP, width 512 | 313,856 | 11.43% / 7.56% | 8.40% |
+| Discrete logarithm | Residual MLP, width 128 | 144,000 | 26.61% / 18.34% | 20.53% |
+| ±1 bits | ReLU MLP, width 512 | 56,832 | 99.12% / 3.67% | 3.87% |
+| ±1 bits | Two-layer ReLU MLP, width 512, interrupted | 318,976 | 100% / 3.76% | 3.80% |
+
+Neither structured encoding generalized. Discrete logarithms turn division
+into subtraction modulo 96, yet no model fitted its training split within
+10,000 epochs. Both binary models memorized the training split, first at
+epochs 6,025 and 125, while held-out accuracy stayed below 4%, against 1.03%
+for a uniform guess. Summaries and archived histories are in
+[summary.json](grokking-results/simple-models/summary.json).
+
 ## Shrinking the unit-normalized table
 
 [div97-table-unit-size-search.json](../experiments/div97-table-unit-size-search.json)
