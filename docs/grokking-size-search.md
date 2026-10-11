@@ -834,3 +834,50 @@ a memorization plateau, the criterion of `summarize-grokking.py`. Each run also
 reports held-out accuracy at its first observation with 99% training accuracy,
 a graded measure of memorization. Once a plateau appears, a width between that
 rung and the previous one narrows the onset.
+
+The user stopped width 256 at epoch 5,625, and widths 512 and 1,024 did not
+start, so that the GPU could take the attention-free ladder below;
+[execution.json](grokking-results/table-rms-growth/execution.json) records the
+stop. No width had a memorization plateau:
+
+| Width | Parameters | First training 99% | Held-out then | First held-out 99% | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 32 | 9,312 | Epoch 250 | 98.1% | Epoch 300 | 100% / 99.46% |
+| 64 | 18,624 | Epoch 175 | 95.1% | Epoch 250 | 100% / 99.21% |
+| 128 | 37,248 | Epoch 200 | 73.0% | Epoch 2,325 | 100% / 99.03% |
+| 256 | 74,496 | Epoch 150 | 74.6% | Not reached by epoch 5,625 | 98.97% / 95.45% |
+
+Growth separated fitting from generalization without a plateau. Held-out
+accuracy at the first 99% training observation fell from 98.1% at width 32 to
+73.0% and 74.6% at widths 128 and 256, and the largest gap between training
+and held-out accuracy, 42.8 points at epochs 125 and 100, left held-out
+accuracy at 31.4% and 50.0%. Width 128 reached the target 2,125 epochs after
+fitting; width 256 peaked at 97.29% before it stopped. The unit-normalized
+runs of widths 32, 64 and 128 had 98.4%, 97.4% and 99.3% held-out accuracy at
+their first 99% training observation. Summaries and histories are in
+[summary.json](grokking-results/table-rms-growth/summary.json).
+
+## Memorization onset of the one-hot ReLU MLP
+
+Among the attention-free baselines, the one-layer one-hot ReLU MLP had a
+plateau at widths 64 to 512 and none at width 32.
+[div97-mlp-memorization.json](../experiments/div97-mlp-memorization.json)
+narrows the onset with widths 32, 40, 48, 56 and 64, each 2,328 parameters
+larger, under the protocol of those baselines and `--stop-after-plateau`.
+Widths 32 and 64 repeat earlier runs, and both loss histories and final
+weights match them bitwise.
+
+| Width | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 32 | 9,312 | Epoch 4,350 | 59.0% | Not reached | No | 100% / 93.00% |
+| 40 | 11,640 | Epoch 2,575 | 27.4% | Not reached | No | 100% / 98.09% |
+| 48 | 13,968 | Epoch 2,200 | 20.0% | Epoch 8,700 | No | 100% / 99.05% |
+| 56 | 16,296 | Epoch 1,775 | 11.1% | Not reached | No | 100% / 93.00% |
+| 64 | 18,624 | Epoch 1,375 | 5.8% | Not reached | Epochs 1,375 to 1,825 | 100% / 98.50% |
+
+Held-out accuracy at the first 99% training observation falls with every
+step in width, and only width 64 stays under the 10% ceiling for five
+observations. Its 19 plateau observations span 450 epochs; held-out accuracy
+then rises gradually, to 23.7% at epoch 3,000, 53.7% at epoch 5,000 and
+98.50% at the cap. Summaries and histories are in
+[summary.json](grokking-results/mlp-memorization/summary.json).

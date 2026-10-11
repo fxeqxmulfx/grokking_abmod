@@ -1,0 +1,31 @@
+{
+  "reason": "user_requested_stop",
+  "recorded_at_utc": "2026-10-11T17:41:36.702642+00:00",
+  "manifest_sha256": "b205803f92887eef92839cfbaf64b8b475ff06291857fb3c2bd90043f999938e",
+  "completed_labels": [
+    "rms-w32-h4-l2-d8-f16-s7",
+    "rms-w64-h4-l2-d8-f16-s7",
+    "rms-w128-h4-l2-d8-f16-s7"
+  ],
+  "interrupted_labels": [
+    "rms-w256-h4-l2-d8-f16-s7"
+  ],
+  "not_started_labels": [
+    "rms-w512-h4-l2-d8-f16-s7",
+    "rms-w1024-h4-l2-d8-f16-s7"
+  ],
+  "not_started_reasons": {
+    "rms-w512-h4-l2-d8-f16-s7": "paused_for_the_attention_free_mlp_ladder",
+    "rms-w1024-h4-l2-d8-f16-s7": "paused_for_the_attention_free_mlp_ladder"
+  },
+  "interrupted_last_observation": {
+    "label": "rms-w256-h4-l2-d8-f16-s7",
+    "step": 56250,
+    "epoch": 5625,
+    "train_accuracy": 0.989690722,
+    "validation_accuracy": 0.954467354,
+    "peak_validation_accuracy": 0.972938144,
+    "model_checkpoint_sha256": "20de84d50723366e0b22a0b6e8c641611b6151e0881aaff956a2e14897ecbd63",
+    "last_observation_is_not_the_exact_interruption_update": true
+  }
+}
