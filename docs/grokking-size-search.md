@@ -65,6 +65,7 @@ report every 25 epochs.
 | --- | ---: | --- | --- | --- | ---: | --- | --- |
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
 | Mesh control, seed 7, gain 1.4 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 0.1 | 10,000 | 6.23% / 1.80% | Neither fitting nor grokking |
+| Mesh calibrated, seed 7, gain 1.4, embedding gain 0.1 | 26,624 | 128 / 2 / 4 | 8 / 16 | 0.003 / 0.01 | 10,000 | 32.28% / 2.08% | Neither fitting nor grokking |
 | Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
 | Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
 | Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 99.81% / 96.41% | Below held-out target at the cap |
@@ -167,7 +168,11 @@ before device creation. Exact settings, commands, losses and the binary
 hash are archived in
 [mesh-initialization-smoke.json](grokking-results/mesh-initialization-smoke.json).
 These checks establish valid execution; the full epoch-budget runs measure
-learning and grokking. The first calibrated search uses 26,624 parameters.
+learning and grokking. The first calibrated search used 26,624 parameters
+and completed all 10,000 epochs without fitting the training set. Its final
+training/held-out cross-entropies were 2.7389/6.7946, and neither split
+reached 99%. A controlled sign-initialization variant and a five-block,
+63,488-parameter variant are running.
 
 The controlled `--qk-signs 1` variant changes only the final Q/K rows using
 a separate seeded sign stream. An independent f64 reconstruction of the

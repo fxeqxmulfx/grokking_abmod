@@ -63,6 +63,16 @@
       "embedding-output-gain": 0.1,
       "learning-rate": 0.003,
       "qk-signs": 1
+    },
+    {
+      "label": "w128-h8-l5-d8-f16-g14-e002-wd001-cache3-qks1",
+      "width": 128,
+      "heads": 8,
+      "layers": 5,
+      "attention-depth": 8,
+      "ffn-depth": 16,
+      "embedding-output-gain": 0.02,
+      "qk-signs": 1
     }
   ]
 }

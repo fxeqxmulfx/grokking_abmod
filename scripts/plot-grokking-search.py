@@ -56,19 +56,22 @@ def main():
     for index, family in enumerate(families):
         runs = sorted((run for run in report["runs"] if run["family"] == family),
                       key=lambda run: run["parameters"], reverse=True)
+        peaks = [0.0, 0.0]
         for run in runs:
             history = points(run, arguments.summary.parent)
             epochs, train, heldout = zip(*history, strict=True)
             label = f"{Path(run['run']).name} ({run['parameters']:,} params)"
             axes[index, 0].plot(epochs, [100 * value for value in train], label=label, linewidth=1)
             axes[index, 1].plot(epochs, [100 * value for value in heldout], label=label, linewidth=1)
-        for axis, split in zip(axes[index], ("Training", "Held-out"), strict=True):
+            peaks[0] = max(peaks[0], max(train))
+            peaks[1] = max(peaks[1], max(heldout))
+        for axis, split, peak in zip(axes[index], ("Training", "Held-out"), peaks, strict=True):
             axis.axhline(99, color="gray", linestyle="--", linewidth=.6)
             axis.set(title=f"{family.title()} GPT: {split.lower()} accuracy",
                      xlabel="Complete passes over the training split", ylabel="Accuracy (%)",
                      xlim=(0, 10_000), ylim=(0, 101))
             axis.grid(alpha=.2)
-            axis.legend(fontsize=8, loc="lower right")
+            axis.legend(fontsize=7, loc="upper right" if peak < .65 else "lower right")
     figure.suptitle("Division modulo 97: exhaustive fixed-split evaluation")
     arguments.output.mkdir(parents=True, exist_ok=True)
     for extension in ("svg", "png"):
