@@ -71,6 +71,8 @@ impl Options {
                 "--depth" => options.config.depth = value(&mut arguments, &flag)?,
                 "--expansion" => options.config.expansion = value(&mut arguments, &flag)?,
                 "--connectivity" => options.config.connectivity = value(&mut arguments, &flag)?,
+                "--tied-mesh" => options.config.tied_mesh = true,
+                "--decay-factors" => options.config.decay_factors = value(&mut arguments, &flag)?,
                 "--modulus" => options.config.modulus = value(&mut arguments, &flag)?,
                 "--operation" => options.operation = value(&mut arguments, &flag)?,
                 "--train-fraction" => options.train_fraction = value(&mut arguments, &flag)?,
@@ -127,6 +129,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --connectivity NAME   Mesh MLP second parent: neighbor, c+1 (default),\n\
                                   butterfly, c+2^(layer mod floor(log2 width)), or\n\
                                   own, none: each mesh unit scales its own channel\n\
+            --tied-mesh           Mesh MLP: every mesh layer uses one stored layer's weights\n\
+            --decay-factors N     One-layer MLP: decay channel c's input column and readout\n\
+                                  row at decay*s_c^(2/N-1), s_c=(|E_c|^2+|R_c|^2)/2, the\n\
+                                  balanced L2 penalty of N factors (default: 2, plain AdamW)\n\
             --operation NAME      As for grok (default: add)\n\
             --modulus P           Prime, 2..254 (default: 97)\n\
             --train-fraction X    Fixed training fraction, 0<X<1 (default: 0.5)\n\
@@ -236,7 +242,7 @@ fn train(mut options: Options) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
+            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\ntied_mesh={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\ndecay_factors={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
             family(config),
             config.architecture,
             match config.architecture {
@@ -264,6 +270,10 @@ fn train(mut options: Options) -> Result<()> {
             },
             config.mesh_layers(),
             match config.architecture {
+                Architecture::MeshMlp => config.tied_mesh.to_string(),
+                _ => "none".into(),
+            },
+            match config.architecture {
                 Architecture::ResidualMlp => "pre_rmsnorm_blocks_and_final",
                 _ => "none",
             },
@@ -273,9 +283,13 @@ fn train(mut options: Options) -> Result<()> {
             },
             options.optimizer.learning_rate,
             options.optimizer.weight_decay,
+            config.decay_factors,
             options.steps,
             options.report_every,
             match config.architecture {
+                Architecture::MeshMlp if config.tied_mesh => {
+                    "raw_f32_le_dense_layers_then_one_tied_mesh_layer"
+                }
                 Architecture::MeshMlp => "raw_f32_le_dense_layers_then_mesh_layers",
                 _ => "raw_f32_le_layer_order",
             },
@@ -299,8 +313,12 @@ fn train(mut options: Options) -> Result<()> {
     let stop = options
         .stop_validation_accuracy
         .map_or_else(String::new, |x| format!(" or validation accuracy >={x}"));
+    let factors = match config.decay_factors {
+        2 => String::new(),
+        n => format!(" as {n} factors per channel"),
+    };
     println!(
-        "Answer-only loss; AdamW beta2=0.98, decay={}, warmup=10; continuing for {} updates{stop}",
+        "Answer-only loss; AdamW beta2=0.98, decay={}{factors}, warmup=10; continuing for {} updates{stop}",
         options.optimizer.weight_decay, options.steps
     );
     let mut history = BufWriter::new(File::create(options.output.join("loss.csv"))?);
@@ -403,8 +421,16 @@ fn family(config: SimpleConfig) -> String {
     match config.architecture {
         Architecture::Bilinear => format!("{}-{}", config.architecture, config.encoding),
         Architecture::MeshMlp => format!(
-            "{}-{}-{}-{}",
-            config.architecture, config.connectivity, config.activation, config.encoding
+            "{}-{}{}-{}-{}",
+            config.architecture,
+            config.connectivity,
+            if config.tied_mesh { "-tied" } else { "" },
+            config.activation,
+            config.encoding
+        ),
+        _ if config.decay_factors != 2 => format!(
+            "{}-{}-{}-decay-factors-{}",
+            config.architecture, config.activation, config.encoding, config.decay_factors
         ),
         _ => format!(
             "{}-{}-{}",

@@ -308,6 +308,16 @@ pub struct SimpleConfig {
     pub expansion: usize,
     /// The parents of each mesh-layer unit. Only mesh MLPs use it.
     pub connectivity: Connectivity,
+    /// Every mesh layer uses the first mesh layer's weights, so a mesh MLP
+    /// of any depth stores one mesh layer. Only mesh MLPs use it.
+    pub tied_mesh: bool,
+    /// Factors per hidden channel whose balanced L2 penalty the weight decay
+    /// imitates. For `n` other than 2, AdamW decays the input column and
+    /// readout row of channel `c` at `λ s_c^(2/n - 1)`, where
+    /// `s_c = (|E_c|² + |R_c|²) / 2`: the gradient of `(nλ/2) Σ_c s_c^(2/n)`,
+    /// which at `|E_c| = |R_c|` is the least L2 penalty of `n` factors with
+    /// the product `|E_c| |R_c|`. Only one-layer MLPs use other values.
+    pub decay_factors: usize,
 }
 
 impl Default for SimpleConfig {
@@ -321,6 +331,8 @@ impl Default for SimpleConfig {
             depth: 1,
             expansion: 4,
             connectivity: Connectivity::Neighbor,
+            tied_mesh: false,
+            decay_factors: 2,
         }
     }
 }
@@ -350,6 +362,15 @@ impl SimpleConfig {
         // A unit's second parent must be another channel.
         if self.mesh_layers() > 0 && self.connectivity.parents() == 2 && self.width < 2 {
             return Err("a second mesh parent needs a width of at least 2".into());
+        }
+        if self.tied_mesh && self.architecture != Architecture::MeshMlp {
+            return Err("only mesh MLPs tie mesh layers".into());
+        }
+        if self.decay_factors < 2 {
+            return Err("weight decay imitates at least two factors per channel".into());
+        }
+        if self.decay_factors != 2 && (self.architecture != Architecture::Mlp || self.depth != 1) {
+            return Err("only one-layer MLPs decay as more factors per channel".into());
         }
         if self.encoding == Encoding::DiscreteLog {
             primitive_root(self.modulus)?;
@@ -412,17 +433,37 @@ impl SimpleConfig {
         }
     }
 
+    /// Mesh layers with their own weights: at most one when they are tied.
+    pub fn stored_mesh_layers(&self) -> usize {
+        if self.tied_mesh {
+            self.mesh_layers().min(1)
+        } else {
+            self.mesh_layers()
+        }
+    }
+
+    /// The stored mesh layer whose weights mesh layer `layer` uses.
+    pub(crate) fn stored_mesh_layer(&self, layer: usize) -> usize {
+        if self.tied_mesh { 0 } else { layer }
+    }
+
+    /// The exponent `2/n - 1` of the hidden-channel decay multipliers.
+    pub(crate) fn decay_exponent(&self) -> f32 {
+        (2.0 / self.decay_factors as f64 - 1.0) as f32
+    }
+
     /// Distance from each unit of mesh layer `layer` to its second parent, or
     /// 0 without one.
     pub fn mesh_stride(&self, layer: usize) -> usize {
         self.connectivity.stride(self.width, layer)
     }
 
-    /// Parameter group sizes in storage order: the dense layers, then the mesh layers.
+    /// Parameter group sizes in storage order: the dense layers, then the
+    /// stored mesh layers.
     pub(crate) fn groups(&self) -> Vec<usize> {
         let mut groups: Vec<_> = self.layers().into_iter().map(Dense::parameters).collect();
         let mesh = self.connectivity.parents() * self.width;
-        groups.extend(std::iter::repeat_n(mesh, self.mesh_layers()));
+        groups.extend(std::iter::repeat_n(mesh, self.stored_mesh_layers()));
         groups
     }
 
@@ -443,7 +484,7 @@ impl SimpleConfig {
         }
         // A unit weights its own channel by 1 and any second parent by 0.
         let unit = &[1.0, 0.0][..self.connectivity.parents()];
-        for _ in 0..self.mesh_layers() * self.width {
+        for _ in 0..self.stored_mesh_layers() * self.width {
             parameters.extend_from_slice(unit);
         }
         parameters
@@ -536,6 +577,24 @@ mod tests {
             ..mesh
         };
         assert_eq!(own.parameter_count(), 291 * 16 + 2 * 16);
+        // Tied mesh layers store one layer at any depth.
+        for depth in [2, 3, 9] {
+            let tied = SimpleConfig {
+                depth,
+                tied_mesh: true,
+                ..own
+            };
+            assert_eq!(tied.parameter_count(), 291 * 16 + 16);
+            assert_eq!(tied.stored_mesh_layers(), 1);
+            assert_eq!(tied.stored_mesh_layer(depth - 2), 0);
+        }
+        let tied = SimpleConfig {
+            tied_mesh: true,
+            ..mesh
+        };
+        assert_eq!(tied.parameter_count(), 291 * 16 + 2 * 16);
+        assert_eq!(SimpleConfig { depth: 1, ..tied }.stored_mesh_layers(), 0);
+        assert_eq!(own.stored_mesh_layer(1), 1);
         assert_eq!(
             mesh.layers(),
             [
@@ -621,6 +680,24 @@ mod tests {
                 depth: 2,
                 ..valid
             },
+            SimpleConfig {
+                tied_mesh: true,
+                ..valid
+            },
+            SimpleConfig {
+                decay_factors: 1,
+                ..valid
+            },
+            SimpleConfig {
+                depth: 2,
+                decay_factors: 3,
+                ..valid
+            },
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                decay_factors: 3,
+                ..valid
+            },
         ] {
             assert!(config.validate().is_err(), "{config:?}");
         }
@@ -642,6 +719,16 @@ mod tests {
                 width: 1,
                 depth: 2,
                 connectivity: Connectivity::Own,
+                ..valid
+            },
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                depth: 9,
+                tied_mesh: true,
+                ..valid
+            },
+            SimpleConfig {
+                decay_factors: 10,
                 ..valid
             },
         ] {
@@ -689,6 +776,11 @@ mod tests {
         assert_eq!(gains.len(), own.parameter_count());
         assert_eq!(gains[..dense.len()], dense);
         assert_eq!(gains[dense.len()..], [1.0; 3 * 8]);
+        let tied = SimpleConfig {
+            tied_mesh: true,
+            ..own
+        };
+        assert_eq!(tied.initial_parameters(3), gains[..dense.len() + 8]);
         assert_eq!(own.mesh_stride(2), 0);
         assert_eq!(mlp.mesh_layers(), 0);
         assert_eq!("mesh-mlp".parse(), Ok(Architecture::MeshMlp));

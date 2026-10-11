@@ -441,6 +441,76 @@ mod kernels {
             slot[0] -= learning_rate * (m / (v.sqrt() + epsilon) + weight_decay * slot[0]);
         }
     }
+
+    /// `out[c] = max(s_c, MIN_POSITIVE)^exponent` for hidden channel `c` of a
+    /// one-layer MLP, with `s_c = (sum_i E[i][c]^2 + sum_k R[c][k]^2) / 2` over
+    /// its input-major input layer `E` and its readout `R`.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        inputs >= 1, width >= 1, classes >= 1, input.len() == inputs * width,
+        readout.len() == width * classes, out.len() == width))]
+    pub fn simple_channel_decay<const S: usize>(
+        inputs: usize,
+        width: usize,
+        classes: usize,
+        exponent: f32,
+        input: &[[f32; 3]],
+        readout: &[[f32; 3]],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let _ = S;
+        let index = thread::index_1d();
+        let channel = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let mut squares = 0.0;
+            for row in 0..inputs {
+                let weight = input[row * width + channel][0];
+                squares += weight * weight;
+            }
+            for class in 0..classes {
+                let weight = readout[channel * classes + class][0];
+                squares += weight * weight;
+            }
+            *output = (0.5 * squares).max(f32::MIN_POSITIVE).powf(exponent);
+        }
+    }
+
+    /// `simple_adam` with the decay of weight `p` multiplied by
+    /// `scale[p / stride % width]` and capped at `1 / learning_rate`, so that
+    /// the decay alone removes at most the whole weight.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        stride >= 1, width >= 1, scale.len() == width, state.len() >= stride * width,
+        gradient.len() == state.len()))]
+    pub fn simple_adam_channels<const S: usize>(
+        learning_rate: f32,
+        weight_decay: f32,
+        beta1: f32,
+        beta2: f32,
+        epsilon: f32,
+        correction1: f32,
+        correction2: f32,
+        stride: usize,
+        width: usize,
+        scale: &[f32],
+        gradient: &[f32],
+        mut state: DisjointSlice<[f32; 3]>,
+    ) {
+        let _ = S;
+        let index = thread::index_1d();
+        let parameter = index.get();
+        if let Some(slot) = state.get_mut(index) {
+            let g = gradient[parameter];
+            slot[1] = beta1 * slot[1] + (1.0 - beta1) * g;
+            slot[2] = beta2 * slot[2] + (1.0 - beta2) * g * g;
+            let m = slot[1] / correction1;
+            let v = slot[2] / correction2;
+            let decay = (weight_decay * scale[parameter / stride % width]).min(1.0 / learning_rate);
+            slot[0] -= learning_rate * (m / (v.sqrt() + epsilon) + decay * slot[0]);
+        }
+    }
 }
 
 /// Weights with their AdamW moments, and the latest gradient, for one layer.
@@ -834,6 +904,66 @@ impl Kernels {
         )?;
         Ok(())
     }
+
+    /// The decay multipliers of a one-layer MLP's hidden channels from its
+    /// input layer and readout.
+    fn channel_decay(
+        &self,
+        layers: [Dense; 2],
+        exponent: f32,
+        input: &DeviceBuffer<[f32; 3]>,
+        readout: &DeviceBuffer<[f32; 3]>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let launch = self
+            .module
+            .prepare_simple_channel_decay::<0>(config::<1>(out.len())?)?;
+        self.module.simple_channel_decay(
+            &self.stream,
+            &launch,
+            layers[0].inputs,
+            layers[0].outputs,
+            layers[1].outputs,
+            exponent,
+            input,
+            readout,
+            out,
+        )?;
+        Ok(())
+    }
+
+    /// `channels` holds the parameters per channel step and the channel count:
+    /// weight `p` decays with `scale[p / stride % width]`.
+    fn adam_channels(
+        &self,
+        optimizer: AdamWOptions,
+        corrections: [f32; 2],
+        channels: [usize; 2],
+        scale: &DeviceBuffer<f32>,
+        group: &mut Parameters,
+    ) -> Result<()> {
+        let [stride, width] = channels;
+        let launch = self
+            .module
+            .prepare_simple_adam_channels::<0>(config::<1>(group.state.len())?)?;
+        self.module.simple_adam_channels(
+            &self.stream,
+            &launch,
+            optimizer.learning_rate,
+            optimizer.weight_decay,
+            optimizer.beta1,
+            optimizer.beta2,
+            optimizer.epsilon,
+            corrections[0],
+            corrections[1],
+            stride,
+            width,
+            scale,
+            &group.gradient,
+            &mut group.state,
+        )?;
+        Ok(())
+    }
 }
 
 /// An attention-free model trained entirely on the device. Parameters,
@@ -844,6 +974,10 @@ pub struct GpuSimpleModel {
     layers: Vec<Dense>,
     kernels: Kernels,
     parameters: Vec<Parameters>,
+    /// The running sum and one layer's gradient for tied mesh layers.
+    mesh_gradients: Vec<DeviceBuffer<f32>>,
+    /// Hidden-channel decay multipliers when weight decay imitates more factors.
+    channel_decay: Option<DeviceBuffer<f32>>,
     workspaces: Vec<Workspace>,
     beta1_power: f32,
     beta2_power: f32,
@@ -871,11 +1005,25 @@ impl GpuSimpleModel {
             });
             offset += size;
         }
+        let tied = config.stored_mesh_layers() < config.mesh_layers();
+        let mesh_gradients = (0..if tied { 2 } else { 0 })
+            .map(|_| {
+                let size = config.connectivity.parents() * config.width;
+                Ok(DeviceBuffer::zeroed(&stream, size)?)
+            })
+            .collect::<Result<_>>()?;
+        let channel_decay = if config.decay_factors == 2 {
+            None
+        } else {
+            Some(DeviceBuffer::zeroed(&stream, config.width)?)
+        };
         Ok(Self {
             config,
             layers,
             kernels: Kernels { stream, module },
             parameters,
+            mesh_gradients,
+            channel_decay,
             workspaces: Vec::new(),
             beta1_power: 1.0,
             beta2_power: 1.0,
@@ -1023,8 +1171,27 @@ impl GpuSimpleModel {
         self.beta1_power *= optimizer.beta1;
         self.beta2_power *= optimizer.beta2;
         let corrections = [1.0 - self.beta1_power, 1.0 - self.beta2_power];
-        for group in &mut self.parameters {
-            self.kernels.adam(optimizer, corrections, group)?;
+        match &mut self.channel_decay {
+            None => {
+                for group in &mut self.parameters {
+                    self.kernels.adam(optimizer, corrections, group)?;
+                }
+            }
+            // Both layers decay by multipliers of the weights before this step.
+            Some(scale) => {
+                let (width, classes) = (self.config.width, self.config.modulus);
+                let [input, readout] = self.parameters.get_disjoint_mut([0, 1])?;
+                self.kernels.channel_decay(
+                    [self.layers[0], self.layers[1]],
+                    self.config.decay_exponent(),
+                    &input.state,
+                    &readout.state,
+                    scale,
+                )?;
+                let k = &self.kernels;
+                k.adam_channels(optimizer, corrections, [1, width], scale, input)?;
+                k.adam_channels(optimizer, corrections, [classes, width], scale, readout)?;
+            }
         }
         Ok(())
     }
@@ -1129,7 +1296,7 @@ impl GpuSimpleModel {
                 )?;
             }
             Architecture::MeshMlp => {
-                // Groups: the input layer, the readout, then mesh layer l at 2 + l.
+                // Groups: the input layer, the readout, then stored mesh layer l at 2 + l.
                 let depth = c.depth;
                 k.dense::<IDENTITY>(
                     layers[0],
@@ -1141,8 +1308,9 @@ impl GpuSimpleModel {
                 )?;
                 for layer in 1..depth {
                     let mesh = [c.width, c.connectivity.parents(), c.mesh_stride(layer - 1)];
+                    let group = 2 + c.stored_mesh_layer(layer - 1);
                     let [before, after] = values.get_disjoint_mut([layer - 1, layer])?;
-                    k.mesh::<ACTIVATION>(rows, mesh, before, state(1 + layer), after)?;
+                    k.mesh::<ACTIVATION>(rows, mesh, before, state(group), after)?;
                 }
                 k.dense::<ACTIVATION>(
                     layers[1],
@@ -1227,6 +1395,7 @@ impl GpuSimpleModel {
         let c = self.config;
         let rows = workspace.rows;
         let (k, layers, parameters) = (&self.kernels, &self.layers, &mut self.parameters);
+        let mesh_gradients = &mut self.mesh_gradients;
         let input = [c.input_features(), 0];
         let values = &workspace.values;
         let adjoints = &mut workspace.adjoints;
@@ -1301,20 +1470,32 @@ impl GpuSimpleModel {
                 )?;
                 for layer in (1..depth).rev() {
                     let mesh = [c.width, c.connectivity.parents(), c.mesh_stride(layer - 1)];
+                    let group = 2 + c.stored_mesh_layer(layer - 1);
                     let [upstream, target] =
                         adjoints.get_disjoint_mut([layer % 2, (layer - 1) % 2])?;
+                    // Tied layers below the last add their gradients to its gradient.
+                    let tied = c.tied_mesh && layer + 1 < depth;
                     k.mesh_weight_gradient::<ACTIVATION>(
                         rows,
                         mesh,
                         &values[layer - 1],
                         upstream,
-                        &mut parameters[1 + layer].gradient,
+                        if tied {
+                            &mut mesh_gradients[0]
+                        } else {
+                            &mut parameters[group].gradient
+                        },
                     )?;
+                    if tied {
+                        let [layer_gradient, sum] = mesh_gradients.get_disjoint_mut([0, 1])?;
+                        k.combine::<ADD>(&parameters[group].gradient, layer_gradient, sum)?;
+                        std::mem::swap(&mut parameters[group].gradient, sum);
+                    }
                     k.mesh_input_gradient::<ACTIVATION>(
                         rows,
                         mesh,
                         upstream,
-                        &parameters[1 + layer].state,
+                        &parameters[group].state,
                         &values[layer - 1],
                         target,
                     )?;
@@ -1501,8 +1682,17 @@ mod verification {
             for config in configurations() {
                 let [logits, gradients] = verify_model(device, config)?;
                 let model = match config.architecture {
+                    Architecture::MeshMlp if config.tied_mesh => {
+                        format!("{} {} tied", config.architecture, config.connectivity)
+                    }
                     Architecture::MeshMlp => {
                         format!("{} {}", config.architecture, config.connectivity)
+                    }
+                    _ if config.decay_factors != 2 => {
+                        format!(
+                            "{} decay-factors={}",
+                            config.architecture, config.decay_factors
+                        )
                     }
                     _ => config.architecture.to_string(),
                 };
@@ -1663,7 +1853,73 @@ mod verification {
                 connectivity: Connectivity::Own,
                 ..mesh
             },
+            // Tied mesh layers sum their gradients, with one or two parents.
+            SimpleConfig {
+                depth: 4,
+                connectivity: Connectivity::Own,
+                tied_mesh: true,
+                ..mesh
+            },
+            SimpleConfig {
+                encoding: Encoding::Binary,
+                modulus: 11,
+                width: 12,
+                depth: 5,
+                connectivity: Connectivity::Butterfly,
+                tied_mesh: true,
+                ..mesh
+            },
+            SimpleConfig {
+                modulus: 97,
+                width: 16,
+                depth: 9,
+                connectivity: Connectivity::Own,
+                tied_mesh: true,
+                ..mesh
+            },
+            // Channel decay as ten factors, whose shrunken first channel hits the cap.
+            SimpleConfig {
+                modulus: 97,
+                width: 12,
+                decay_factors: 10,
+                ..base
+            },
+            SimpleConfig {
+                encoding: Encoding::Binary,
+                modulus: 11,
+                width: 9,
+                decay_factors: 3,
+                ..base
+            },
         ]
+    }
+
+    /// AdamW's decay of every parameter: the weight decay, or for channel
+    /// decay the capped multiple for the parameter's hidden channel.
+    fn decays(config: SimpleConfig, parameters: &[f32], optimizer: AdamWOptions) -> Vec<f32> {
+        if config.decay_factors == 2 {
+            return vec![optimizer.weight_decay; parameters.len()];
+        }
+        let (width, classes) = (config.width, config.modulus);
+        let (input, readout) = parameters.split_at(config.input_features() * width);
+        let channels: Vec<_> = (0..width)
+            .map(|channel| {
+                let mut squares = 0.0_f32;
+                for row in 0..config.input_features() {
+                    squares += input[row * width + channel].powi(2);
+                }
+                for class in 0..classes {
+                    squares += readout[channel * classes + class].powi(2);
+                }
+                let scale = (0.5 * squares)
+                    .max(f32::MIN_POSITIVE)
+                    .powf(config.decay_exponent());
+                (optimizer.weight_decay * scale).min(1.0 / optimizer.learning_rate)
+            })
+            .collect();
+        let mut decays: Vec<_> = (0..input.len()).map(|p| channels[p % width]).collect();
+        decays.extend((0..readout.len()).map(|p| channels[p / classes]));
+        decays
     }
 
     /// The largest absolute difference as a fraction of the largest expected value.
@@ -1695,7 +1951,18 @@ mod verification {
         if model.parameters()? != initial.parameters() {
             return Err("GPU initialization differs from the reference".into());
         }
-        let parameters = verification_parameters(config, 11);
+        let mut parameters = verification_parameters(config, 11);
+        if config.decay_factors != 2 {
+            // A nearly dead channel tests the cap on its decay.
+            let (width, classes) = (config.width, config.modulus);
+            let readout = config.input_features() * width;
+            for row in 0..config.input_features() {
+                parameters[row * width] *= 1e-3;
+            }
+            for class in 0..classes {
+                parameters[readout + class] *= 1e-3;
+            }
+        }
         model.set_parameters(&parameters)?;
         let reference = ReferenceSimpleModel::from_parameters(config, parameters.clone())?;
         let dataset = EquationDataset::new(config.modulus, ModularOperation::Divide, 0.5, 7)?;
@@ -1759,12 +2026,16 @@ mod verification {
         let mut first_step = Vec::new();
         for step in 1..=3 {
             let mut expected = model.parameters()?;
+            let decays = decays(config, &expected, optimizer);
             let (_, gradient) = model.loss_and_gradient(&table, &indices)?;
             // Check the optimizer with its actual FP32 inputs.
             b1 *= optimizer.beta1;
             b2 *= optimizer.beta2;
-            for ((parameter, moment), gradient) in
-                expected.iter_mut().zip(&mut moments).zip(gradient)
+            for (((parameter, moment), gradient), decay) in expected
+                .iter_mut()
+                .zip(&mut moments)
+                .zip(gradient)
+                .zip(decays)
             {
                 let gradient = gradient as f32;
                 moment[0] = optimizer.beta1 * moment[0] + (1.0 - optimizer.beta1) * gradient;
@@ -1774,7 +2045,7 @@ mod verification {
                     * (moment[0]
                         / (1.0 - b1)
                         / ((moment[1] / (1.0 - b2)).sqrt() + optimizer.epsilon)
-                        + optimizer.weight_decay * *parameter);
+                        + decay * *parameter);
             }
             model.train_batch(&table, &batches, 5, indices.len(), optimizer)?;
             let actual = model.parameters()?;
@@ -1884,6 +2155,15 @@ mod verification {
         let triples = DeviceBuffer::<[f32; 3]>::zeroed(&k.stream, 3 * width)?;
         let mut mesh_gradient = DeviceBuffer::<f32>::zeroed(&k.stream, 2 * width)?;
         let mut gain_gradient = DeviceBuffer::<f32>::zeroed(&k.stream, width)?;
+        // Channel decay of this one-layer MLP, and an input layer to update.
+        let dense = [layer, model.layers[1]];
+        let readout = &model.parameters[1].state;
+        let mut scale = DeviceBuffer::<f32>::zeroed(&k.stream, width)?;
+        let mut long_scale = DeviceBuffer::<f32>::zeroed(&k.stream, width + 1)?;
+        let mut group = Parameters {
+            state: DeviceBuffer::zeroed(&k.stream, layer.parameters())?,
+            gradient: DeviceBuffer::zeroed(&k.stream, layer.parameters())?,
+        };
         k.dense::<IDENTITY>(layer, 2, &input, [columns, 0], state, &mut exact)?;
         k.weight_gradient::<IDENTITY>(layer, 2, &input, [columns, 0], &exact, &mut gradient)?;
         k.gather(&table, &batches.indices, 1, &mut normalized)?;
@@ -1893,6 +2173,8 @@ mod verification {
         k.mesh::<RELU>(2, own, &hidden, &gains, &mut exact)?;
         k.mesh_input_gradient::<RELU>(2, own, &hidden, &gains, &hidden, &mut exact)?;
         k.mesh_weight_gradient::<RELU>(2, own, &hidden, &exact, &mut gain_gradient)?;
+        k.channel_decay(dense, -0.5, state, readout, &mut scale)?;
+        k.adam_channels(optimizer, [0.5, 0.5], [1, width], &scale, &mut group)?;
         if k.dense::<IDENTITY>(layer, 2, &input, [columns, 0], state, &mut long)
             .is_ok()
             || k.dense::<IDENTITY>(layer, 2, &input, [columns, 1], state, &mut exact)
@@ -1924,6 +2206,14 @@ mod verification {
             || k.mesh_weight_gradient::<RELU>(2, mesh, &hidden, &exact, &mut gradient)
                 .is_ok()
             || k.mesh_weight_gradient::<RELU>(2, own, &hidden, &exact, &mut mesh_gradient)
+                .is_ok()
+            || k.channel_decay(dense, -0.5, state, readout, &mut long_scale)
+                .is_ok()
+            || k.channel_decay(dense, -0.5, readout, state, &mut scale)
+                .is_ok()
+            || k.adam_channels(optimizer, [0.5, 0.5], [1, width], &long_scale, &mut group)
+                .is_ok()
+            || k.adam_channels(optimizer, [0.5, 0.5], [0, width], &scale, &mut group)
                 .is_ok()
         {
             return Err("a launch contract accepted mismatched buffers".into());

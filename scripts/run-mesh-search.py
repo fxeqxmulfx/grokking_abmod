@@ -40,7 +40,9 @@ def simple_parameters(settings):
         return 2 * features * width + (depth - 1) * width**2 + width * modulus
     if model == "mesh-mlp":
         parents = 1 if settings.get("connectivity") == "own" else 2
-        return 2 * features * width + (depth - 1) * parents * width + width * modulus
+        # Tied mesh layers store one layer's weights.
+        stored = min(depth - 1, 1) if settings.get("tied-mesh") else depth - 1
+        return 2 * features * width + stored * parents * width + width * modulus
     if model == "residual-mlp":
         return 2 * features * width + 2 * depth * settings.get("expansion", 4) * width**2 + width * modulus
     if model == "bilinear":

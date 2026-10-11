@@ -90,7 +90,7 @@ pub(crate) fn verification_parameters(config: SimpleConfig, seed: u64) -> Vec<f3
         .map(|&p| 2.0 * p)
         .collect();
     let parents = config.connectivity.parents();
-    let mesh = parameters.len() - parents * config.width * config.mesh_layers();
+    let mesh = parameters.len() - parents * config.width * config.stored_mesh_layers();
     let mut random = Random::new(seed);
     for unit in parameters[mesh..].chunks_exact_mut(parents) {
         unit[0] = 0.75 + 0.5 * random.unit();
@@ -179,7 +179,7 @@ fn forward(
                 for layer in 0..config.mesh_layers() {
                     let activated = activate(&mut tape, &hidden);
                     let stride = config.mesh_stride(layer);
-                    let offset = mesh_offset + parents * width * layer;
+                    let offset = mesh_offset + parents * width * config.stored_mesh_layer(layer);
                     hidden = (0..width)
                         .map(|channel| {
                             let inputs =
@@ -281,6 +281,17 @@ mod tests {
             depth: 4,
             ..base
         });
+        // Tied layers add the gradients of every use of their weights.
+        for connectivity in [Connectivity::Own, Connectivity::Butterfly] {
+            configs.push(SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                connectivity,
+                width: 6,
+                depth: 4,
+                tied_mesh: true,
+                ..base
+            });
+        }
         for encoding in [Encoding::OneHot, Encoding::DiscreteLog] {
             configs.push(SimpleConfig {
                 architecture: Architecture::Bilinear,
@@ -406,6 +417,50 @@ mod tests {
         ];
         let model = ReferenceSimpleModel::from_parameters(own, parameters).unwrap();
         assert_eq!(model.logits(&[1.0, 1.0]).unwrap(), [[1.0, 0.0, -1.0]]);
+        let tied = SimpleConfig {
+            depth: 3,
+            tied_mesh: true,
+            ..own
+        };
+        // Gains [0.5, 3] applied twice turn relu([2, 1]) into [0.5, 9], which
+        // reads out as [0.5, 9, 8.5].
+        let parameters = vec![1.0, 2.0, 1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 1.0, 0.5, 3.0];
+        let model = ReferenceSimpleModel::from_parameters(tied, parameters).unwrap();
+        assert_eq!(model.logits(&[1.0, 1.0]).unwrap(), [[0.5, 9.0, 8.5]]);
+    }
+
+    #[test]
+    fn tied_meshes_repeat_their_one_stored_layer() {
+        let base = SimpleConfig {
+            architecture: Architecture::MeshMlp,
+            modulus: 7,
+            width: 5,
+            depth: 5,
+            ..SimpleConfig::default()
+        };
+        let (features, _) = batch(base);
+        for connectivity in [Connectivity::Own, Connectivity::Butterfly] {
+            let untied = SimpleConfig {
+                connectivity,
+                ..base
+            };
+            let tied = SimpleConfig {
+                tied_mesh: true,
+                ..untied
+            };
+            let shared = verification_parameters(tied, 5);
+            let (dense, mesh) = shared.split_at(shared.len() - connectivity.parents() * 5);
+            let mut repeated = dense.to_vec();
+            for _ in 0..untied.mesh_layers() {
+                repeated.extend_from_slice(mesh);
+            }
+            let expected = ReferenceSimpleModel::from_parameters(untied, repeated)
+                .unwrap()
+                .logits(&features)
+                .unwrap();
+            let model = ReferenceSimpleModel::from_parameters(tied, shared).unwrap();
+            assert_eq!(model.logits(&features).unwrap(), expected);
+        }
     }
 
     #[test]
