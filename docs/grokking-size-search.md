@@ -195,6 +195,19 @@ Reproduce the captures and f64 analysis in a fresh directory:
 uv run --locked scripts/analyze-mesh-qk-initialization.py --output target/qk-init-recheck
 ```
 
+The next regularization candidates are frozen in
+[div97-mesh-regularization-search.json](../experiments/div97-mesh-regularization-search.json).
+They retain the five-block signed initialization and batch-256 protocol,
+increase weight decay to 0.1, and test widths 1024, 512, 256 and 128
+(507,904, 253,952, 126,976 and 63,488 parameters). None has run yet.
+At width 1024 only decay changes from the active calibrated large run.
+To prioritize regularization trials, that decay-0.01 run may be retired
+after it establishes five consecutive training-99% / held-out-at-most-10%
+observations. Any retired run is recorded as interrupted at its last
+observation, without claiming failure over the full 10,000-epoch budget.
+The stronger-decay trial starts from the original seed, without reusing
+weights or optimizer state. Each fresh trial remains capped at 10,000 epochs.
+
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
 Mesh defaults are substantially
