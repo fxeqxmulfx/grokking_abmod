@@ -881,3 +881,22 @@ observations. Its 19 plateau observations span 450 epochs; held-out accuracy
 then rises gradually, to 23.7% at epoch 3,000, 53.7% at epoch 5,000 and
 98.50% at the cap. Summaries and histories are in
 [summary.json](grokking-results/mlp-memorization/summary.json).
+
+## Mesh layers in the one-hot ReLU MLP
+
+The table GPT trained into its mesh without a plateau, while the dense
+one-hot MLP memorized from width 64. `grok-simple --model mesh-mlp` puts the
+mesh into that MLP: every hidden layer after the first is a mesh layer in
+which unit `c` adds its own activated channel and channel `c + s` with two
+learned weights, where `s = 1` for neighbor connectivity and
+`2^(l mod floor(log2 W))` in mesh layer `l` for butterfly connectivity.
+Depth `D` adds `2W(D - 1)` parameters to the one-layer MLP. Mesh layers start
+as the identity and draw no random numbers, so at every depth a ReLU mesh MLP
+first computes the one-layer MLP of the same seed, and depth 1 is that MLP.
+`grok-simple --verify` checks the mesh kernels against the f64 reference with
+uneven self and neighbor weights.
+
+[div97-mesh-mlp-depth.json](../experiments/div97-mesh-mlp-depth.json) keeps
+the onset width 64 and the MLP's settings and runs depths 1, 2, 3, 5 and 9
+with neighbor connectivity, and 3, 5 and 9 with butterfly connectivity:
+18,624 to 19,648 parameters. Depth 1 must reproduce the width-64 MLP bitwise.

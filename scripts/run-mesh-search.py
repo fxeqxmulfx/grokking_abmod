@@ -38,6 +38,8 @@ def simple_parameters(settings):
     model, depth = settings.get("model", "mlp"), settings.get("depth", 1)
     if model == "mlp":
         return 2 * features * width + (depth - 1) * width**2 + width * modulus
+    if model == "mesh-mlp":
+        return 2 * features * width + (depth - 1) * 2 * width + width * modulus
     if model == "residual-mlp":
         return 2 * features * width + 2 * depth * settings.get("expansion", 4) * width**2 + width * modulus
     if model == "bilinear":

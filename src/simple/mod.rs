@@ -1,14 +1,19 @@
 //! Attention-free baselines for the grokking experiments. Each model reads the
 //! two encoded operands of `a op b` and predicts the answer through a bias-free
-//! linear readout: a plain MLP, a pre-norm residual MLP, or the elementwise
-//! product of two operand embeddings.
+//! linear readout: a plain MLP, an MLP whose deeper hidden layers are Mesh GPT's
+//! two-parent mesh layers, a pre-norm residual MLP, or the elementwise product
+//! of two operand embeddings.
 
 mod gpu;
 mod reference;
 
 use std::{fmt, str::FromStr};
 
-use crate::{Result, gpt::Equation, mesh::Random};
+use crate::{
+    Result,
+    gpt::{Equation, MeshConnectivity},
+    mesh::Random,
+};
 
 pub use gpu::{DeviceBatches, DeviceTable, GpuSimpleModel};
 pub use reference::ReferenceSimpleModel;
@@ -27,6 +32,10 @@ const MAX_SIMPLE_PARAMETERS: usize = 1 << 28;
 pub enum Architecture {
     /// Concatenated operands, `depth` activated hidden layers, and a readout.
     Mlp,
+    /// An MLP whose hidden layers after the first are mesh layers: unit `c`
+    /// weights its own activated channel and one other, `c + stride`, as in
+    /// Mesh GPT. Depth 1 is the one-layer MLP.
+    MeshMlp,
     /// An operand embedding, `depth` pre-RMSNorm feed-forward blocks with
     /// residual connections, a final RMSNorm, and a readout.
     ResidualMlp,
@@ -38,6 +47,7 @@ impl fmt::Display for Architecture {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::Mlp => "mlp",
+            Self::MeshMlp => "mesh-mlp",
             Self::ResidualMlp => "residual-mlp",
             Self::Bilinear => "bilinear",
         })
@@ -50,6 +60,7 @@ impl FromStr for Architecture {
     fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
         match value {
             "mlp" => Ok(Self::Mlp),
+            "mesh-mlp" => Ok(Self::MeshMlp),
             "residual-mlp" => Ok(Self::ResidualMlp),
             "bilinear" => Ok(Self::Bilinear),
             _ => Err(format!("unknown model: {value}")),
@@ -230,10 +241,12 @@ pub struct SimpleConfig {
     pub modulus: usize,
     /// Hidden width of an MLP, or the residual and embedding width.
     pub width: usize,
-    /// Hidden layers of an MLP or blocks of a residual MLP. Bilinear models ignore it.
+    /// MLP and mesh-MLP hidden layers or residual-MLP blocks. Bilinear models ignore it.
     pub depth: usize,
     /// Feed-forward width of a residual block, as a multiple of `width`.
     pub expansion: usize,
+    /// The second parent of each mesh-layer unit. Only mesh MLPs use it.
+    pub connectivity: MeshConnectivity,
 }
 
 impl Default for SimpleConfig {
@@ -246,6 +259,7 @@ impl Default for SimpleConfig {
             width: 128,
             depth: 1,
             expansion: 4,
+            connectivity: MeshConnectivity::Neighbor,
         }
     }
 }
@@ -272,6 +286,10 @@ impl SimpleConfig {
         {
             return Err(format!("residual hidden width must be in 1..={MAX_SIMPLE_WIDTH}").into());
         }
+        // A unit's second parent must be another channel.
+        if self.mesh_layers() > 0 && self.width < 2 {
+            return Err("mesh layers need a width of at least 2".into());
+        }
         if self.encoding == Encoding::DiscreteLog {
             primitive_root(self.modulus)?;
         }
@@ -291,8 +309,9 @@ impl SimpleConfig {
         2 * self.operand_features()
     }
 
-    /// Layers in parameter order. A bilinear model's first two layers read
-    /// `a` and `b` respectively; every other first layer reads both.
+    /// Dense layers in parameter order. A bilinear model's first two layers
+    /// read `a` and `b` respectively; every other first layer reads both. A
+    /// mesh MLP stores its mesh layers after its input layer and readout.
     pub fn layers(&self) -> Vec<Dense> {
         let (classes, width) = (self.modulus, self.width);
         let dense = |inputs, outputs| Dense { inputs, outputs };
@@ -302,6 +321,9 @@ impl SimpleConfig {
                 layers.extend((1..self.depth).map(|_| dense(width, width)));
                 layers.push(dense(width, classes));
                 layers
+            }
+            Architecture::MeshMlp => {
+                vec![dense(self.input_features(), width), dense(width, classes)]
             }
             Architecture::ResidualMlp => {
                 let hidden = width * self.expansion;
@@ -321,18 +343,43 @@ impl SimpleConfig {
         }
     }
 
+    /// Mesh layers of a mesh MLP, each with a self and a neighbor weight per unit.
+    pub fn mesh_layers(&self) -> usize {
+        match self.architecture {
+            Architecture::MeshMlp => self.depth.saturating_sub(1),
+            _ => 0,
+        }
+    }
+
+    /// Distance from each unit of mesh layer `layer` to its second parent.
+    pub fn mesh_stride(&self, layer: usize) -> usize {
+        self.connectivity.stride(self.width, layer)
+    }
+
+    /// Parameter group sizes in storage order: the dense layers, then the mesh layers.
+    pub(crate) fn groups(&self) -> Vec<usize> {
+        let mut groups: Vec<_> = self.layers().into_iter().map(Dense::parameters).collect();
+        groups.extend(std::iter::repeat_n(2 * self.width, self.mesh_layers()));
+        groups
+    }
+
     pub fn parameter_count(&self) -> usize {
-        self.layers().into_iter().map(Dense::parameters).sum()
+        self.groups().into_iter().sum()
     }
 
     /// PyTorch's default `nn.Linear` initialization, U(-1/sqrt(fan_in), 1/sqrt(fan_in)),
-    /// drawn layer by layer from a seeded SplitMix64 stream.
+    /// drawn layer by layer from a seeded SplitMix64 stream. Mesh layers start
+    /// as the identity and draw nothing, so a ReLU mesh MLP of any depth first
+    /// computes the one-layer MLP of the same seed.
     pub fn initial_parameters(&self, seed: u64) -> Vec<f32> {
         let mut random = Random::new(seed ^ 0x73696d706c650004);
         let mut parameters = Vec::with_capacity(self.parameter_count());
         for layer in self.layers() {
             let bound = 1.0 / (layer.inputs as f32).sqrt();
             parameters.extend((0..layer.parameters()).map(|_| (2.0 * random.unit() - 1.0) * bound));
+        }
+        for _ in 0..self.mesh_layers() * self.width {
+            parameters.extend([1.0, 0.0]);
         }
         parameters
     }
@@ -414,6 +461,24 @@ mod tests {
             ..mlp
         };
         assert_eq!(deep.parameter_count(), 194 * 16 + 2 * 16 * 16 + 16 * 97);
+        let mesh = SimpleConfig {
+            architecture: Architecture::MeshMlp,
+            ..deep
+        };
+        assert_eq!(mesh.parameter_count(), 291 * 16 + 2 * 2 * 16);
+        assert_eq!(
+            mesh.layers(),
+            [
+                Dense {
+                    inputs: 194,
+                    outputs: 16
+                },
+                Dense {
+                    inputs: 16,
+                    outputs: 97
+                }
+            ]
+        );
         let residual = SimpleConfig {
             architecture: Architecture::ResidualMlp,
             width: 32,
@@ -475,16 +540,71 @@ mod tests {
                 modulus: 96,
                 ..valid
             },
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                depth: 0,
+                ..valid
+            },
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                width: 1,
+                depth: 2,
+                ..valid
+            },
         ] {
             assert!(config.validate().is_err(), "{config:?}");
         }
-        SimpleConfig {
-            architecture: Architecture::Bilinear,
-            depth: 0,
-            ..valid
+        for config in [
+            SimpleConfig {
+                architecture: Architecture::Bilinear,
+                depth: 0,
+                ..valid
+            },
+            // Without mesh layers, a single channel is a valid one-layer MLP.
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                width: 1,
+                ..valid
+            },
+        ] {
+            config.validate().unwrap();
         }
-        .validate()
-        .unwrap();
+    }
+
+    #[test]
+    fn mesh_mlps_extend_the_one_layer_mlp_with_identity_meshes() {
+        let mlp = SimpleConfig {
+            width: 8,
+            ..SimpleConfig::default()
+        };
+        let mesh = SimpleConfig {
+            architecture: Architecture::MeshMlp,
+            depth: 4,
+            connectivity: MeshConnectivity::Butterfly,
+            ..mlp
+        };
+        let dense = mlp.initial_parameters(3);
+        let parameters = mesh.initial_parameters(3);
+        assert_eq!(parameters.len(), mesh.parameter_count());
+        assert_eq!(parameters[..dense.len()], dense);
+        assert_eq!(parameters.len() - dense.len(), 3 * 2 * 8);
+        let (meshes, _) = parameters[dense.len()..].as_chunks::<2>();
+        assert!(meshes.iter().all(|&pair| pair == [1.0, 0.0]));
+        assert_eq!(
+            SimpleConfig { depth: 1, ..mesh }.initial_parameters(3),
+            dense
+        );
+        // Butterfly strides double up to half the largest power of two in the width.
+        let strides: Vec<_> = (0..4).map(|layer| mesh.mesh_stride(layer)).collect();
+        assert_eq!(strides, [1, 2, 4, 1]);
+        let neighbor = SimpleConfig {
+            connectivity: MeshConnectivity::Neighbor,
+            ..mesh
+        };
+        assert_eq!(neighbor.mesh_stride(2), 1);
+        assert_eq!(mlp.mesh_layers(), 0);
+        assert_eq!("mesh-mlp".parse(), Ok(Architecture::MeshMlp));
+        assert_eq!(Architecture::MeshMlp.to_string(), "mesh-mlp");
     }
 
     #[test]

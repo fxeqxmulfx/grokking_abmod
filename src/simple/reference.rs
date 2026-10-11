@@ -1,7 +1,7 @@
 use crate::{
     Result,
     gpt::reference::{Tape, rmsnorm},
-    mesh::validate_finite,
+    mesh::{Random, validate_finite},
 };
 
 use super::{Activation, Architecture, SimpleConfig};
@@ -80,6 +80,24 @@ impl ReferenceSimpleModel {
     }
 }
 
+/// Weights for derivative checks: twice the initial dense weights, so that
+/// every nonlinearity matters, and uneven mesh weights in place of the
+/// identity, so that every mesh link carries a signal.
+pub(crate) fn verification_parameters(config: SimpleConfig, seed: u64) -> Vec<f32> {
+    let mut parameters: Vec<_> = config
+        .initial_parameters(seed)
+        .iter()
+        .map(|&p| 2.0 * p)
+        .collect();
+    let mesh = parameters.len() - 2 * config.width * config.mesh_layers();
+    let mut random = Random::new(seed);
+    for [own, other] in parameters[mesh..].as_chunks_mut::<2>().0 {
+        *own = 0.75 + 0.5 * random.unit();
+        *other = random.unit() - 0.5;
+    }
+    parameters
+}
+
 fn loss_and_gradient(
     config: SimpleConfig,
     parameters: impl IntoIterator<Item = f64>,
@@ -119,6 +137,7 @@ fn forward(
             Some(start)
         })
         .collect();
+    let mesh_offset: usize = layers.iter().map(|layer| layer.parameters()).sum();
     let dense = |tape: &mut Tape, input: &[usize], layer: usize| -> Vec<usize> {
         let outputs = layers[layer].outputs;
         (0..outputs)
@@ -150,6 +169,25 @@ fn forward(
                     hidden = dense(&mut tape, &activated, layer);
                 }
                 hidden
+            }
+            Architecture::MeshMlp => {
+                let width = config.width;
+                let mut hidden = dense(&mut tape, &x, 0);
+                for layer in 0..config.mesh_layers() {
+                    let activated = activate(&mut tape, &hidden);
+                    let stride = config.mesh_stride(layer);
+                    let offset = mesh_offset + 2 * width * layer;
+                    hidden = (0..width)
+                        .map(|channel| {
+                            let parents =
+                                [activated[channel], activated[(channel + stride) % width]];
+                            let weights = [offset + 2 * channel, offset + 2 * channel + 1];
+                            tape.dot(&parents, &weights)
+                        })
+                        .collect();
+                }
+                let activated = activate(&mut tape, &hidden);
+                dense(&mut tape, &activated, 1)
             }
             Architecture::ResidualMlp => {
                 let mut hidden = dense(&mut tape, &x, 0);
@@ -187,7 +225,7 @@ fn forward(
 mod tests {
     use super::*;
     use crate::{
-        gpt::{EquationDataset, ModularOperation},
+        gpt::{EquationDataset, MeshConnectivity, ModularOperation},
         simple::Encoding,
     };
 
@@ -220,8 +258,23 @@ mod tests {
                     expansion: 2,
                     ..base
                 });
+                configs.push(SimpleConfig {
+                    architecture: Architecture::MeshMlp,
+                    activation,
+                    encoding,
+                    depth: 3,
+                    ..base
+                });
             }
         }
+        // A width of 6 has butterfly strides 1, 2, 1.
+        configs.push(SimpleConfig {
+            architecture: Architecture::MeshMlp,
+            connectivity: MeshConnectivity::Butterfly,
+            width: 6,
+            depth: 4,
+            ..base
+        });
         for encoding in [Encoding::OneHot, Encoding::DiscreteLog] {
             configs.push(SimpleConfig {
                 architecture: Architecture::Bilinear,
@@ -241,10 +294,9 @@ mod tests {
     #[test]
     fn reference_gradients_match_central_differences() {
         for config in variants() {
-            let parameters: Vec<_> = config
-                .initial_parameters(5)
+            let parameters: Vec<_> = verification_parameters(config, 5)
                 .iter()
-                .map(|&p| 2.0 * f64::from(p))
+                .map(|&p| f64::from(p))
                 .collect();
             let (features, targets) = batch(config);
             let count = parameters.len();
@@ -321,6 +373,45 @@ mod tests {
         let logits = model.logits(&[1.0, 1.0]).unwrap();
         for (actual, expected) in logits[0].iter().zip([1.0, -1.0, 0.0]) {
             assert!((actual - expected).abs() < 1e-6, "{actual} {expected}");
+        }
+        let mesh = SimpleConfig {
+            architecture: Architecture::MeshMlp,
+            activation: Activation::Relu,
+            width: 2,
+            depth: 2,
+            ..config
+        };
+        // hidden = relu([a + b, 2a - b]) = [2, 1]. The mesh layer gives
+        // [2 + 0.5 * 1, -1 * 1 + 3 * 2] = [2.5, 5], and the readout
+        // [[1, 0, -1], [0, 1, 1]] gives [2.5, 5, 2.5].
+        let parameters = vec![
+            1.0, 2.0, 1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.5, -1.0, 3.0,
+        ];
+        let model = ReferenceSimpleModel::from_parameters(mesh, parameters).unwrap();
+        assert_eq!(model.logits(&[1.0, 1.0]).unwrap(), [[2.5, 5.0, 2.5]]);
+    }
+
+    #[test]
+    fn identity_meshes_preserve_the_one_layer_relu_mlp() {
+        let mlp = SimpleConfig {
+            modulus: 7,
+            width: 5,
+            ..SimpleConfig::default()
+        };
+        let (features, _) = batch(mlp);
+        let expected = ReferenceSimpleModel::new(mlp, 5)
+            .unwrap()
+            .logits(&features)
+            .unwrap();
+        for connectivity in [MeshConnectivity::Neighbor, MeshConnectivity::Butterfly] {
+            let mesh = SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                depth: 4,
+                connectivity,
+                ..mlp
+            };
+            let model = ReferenceSimpleModel::new(mesh, 5).unwrap();
+            assert_eq!(model.logits(&features).unwrap(), expected);
         }
     }
 

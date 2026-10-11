@@ -185,6 +185,94 @@ mod kernels {
         let _ = inputs;
     }
 
+    /// `out[r][c] = W[c][0] f(input[r][c]) + W[c][1] f(input[r][(c + stride) % width])`,
+    /// a mesh layer whose weights are stored unit by unit.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, width >= 2, stride >= 1, stride < width,
+        input.len() == rows * width, weights.len() == 2 * width,
+        out.len() == rows * width))]
+    pub fn simple_mesh<const ACTIVATION: usize>(
+        rows: usize,
+        width: usize,
+        stride: usize,
+        input: &[f32],
+        weights: &[[f32; 3]],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let channel = item % width;
+            let parent = item - channel + (channel + stride) % width;
+            *output = weights[2 * channel][0] * simple_activate(input[item], ACTIVATION)
+                + weights[2 * channel + 1][0] * simple_activate(input[parent], ACTIVATION);
+        }
+        let _ = rows;
+    }
+
+    /// `out[r][c] = f'(before[r][c]) (gradient[r][c] W[c][0] + gradient[r][u] W[u][1])`,
+    /// where `u = (c - stride) mod width` is the unit that reads channel `c`
+    /// as its second parent.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, width >= 2, stride >= 1, stride < width,
+        gradient.len() == rows * width, weights.len() == 2 * width,
+        before.len() == rows * width, out.len() == rows * width))]
+    pub fn simple_mesh_input_gradient<const ACTIVATION: usize>(
+        rows: usize,
+        width: usize,
+        stride: usize,
+        gradient: &[f32],
+        weights: &[[f32; 3]],
+        before: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let channel = item % width;
+            let reader = (channel + width - stride) % width;
+            let total = gradient[item] * weights[2 * channel][0]
+                + gradient[item - channel + reader] * weights[2 * reader + 1][0];
+            *output = total * simple_slope(before[item], ACTIVATION);
+        }
+        let _ = rows;
+    }
+
+    /// `out[2c + k] = sum_r f(input[r][parent]) gradient[r][c]`, with the parent
+    /// `c` for the self weight (`k = 0`) and `(c + stride) % width` for the
+    /// other. One thread owns each weight and adds the rows in order.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, width >= 2, stride >= 1, stride < width,
+        input.len() == rows * width, gradient.len() == rows * width,
+        out.len() == 2 * width))]
+    pub fn simple_mesh_weight_gradient<const ACTIVATION: usize>(
+        rows: usize,
+        width: usize,
+        stride: usize,
+        input: &[f32],
+        gradient: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let channel = item / 2;
+            let parent = (channel + item % 2 * stride) % width;
+            let mut total = 0.0;
+            for row in 0..rows {
+                total += simple_activate(input[row * width + parent], ACTIVATION)
+                    * gradient[row * width + channel];
+            }
+            *output = total;
+        }
+    }
+
     /// Elementwise `left + right`, or `left * right` for the `PRODUCT` operation.
     #[kernel]
     #[launch_bounds(128)]
@@ -408,14 +496,14 @@ impl Workspace {
 
 /// Row widths of the saved forward values and of the backward scratch buffers.
 ///
-/// MLP values are the hidden pre-activations; their gradients alternate
-/// between two buffers. A residual MLP saves the streams `h_0..=h_B`, their
-/// RMSNorms `n_0..=n_B`, each block's pre-activation `z_b`, and one block
-/// output. A bilinear model saves both embeddings and their product.
+/// MLP and mesh-MLP values are the hidden pre-activations; their gradients alternate
+/// between two buffers. A residual MLP saves the streams `h_0..=h_B`, their RMSNorms
+/// `n_0..=n_B`, each block's pre-activation `z_b`, and one block output. A bilinear
+/// model saves both embeddings and their product.
 fn buffer_widths(config: SimpleConfig) -> (Vec<usize>, Vec<usize>) {
     let (width, depth) = (config.width, config.depth);
     match config.architecture {
-        Architecture::Mlp => (vec![width; depth], vec![width; 2]),
+        Architecture::Mlp | Architecture::MeshMlp => (vec![width; depth], vec![width; 2]),
         Architecture::ResidualMlp => {
             let hidden = width * config.expansion;
             let mut values = vec![width; 2 * depth + 2];
@@ -558,6 +646,86 @@ impl Kernels {
         Ok(())
     }
 
+    /// `mesh` holds the layer width and the stride to each unit's second
+    /// parent; `ACTIVATION` applies to the inputs.
+    fn mesh<const ACTIVATION: usize>(
+        &self,
+        rows: usize,
+        mesh: [usize; 2],
+        input: &DeviceBuffer<f32>,
+        weights: &DeviceBuffer<[f32; 3]>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let [width, stride] = mesh;
+        let launch = self
+            .module
+            .prepare_simple_mesh::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module.simple_mesh(
+            &self.stream,
+            &launch,
+            rows,
+            width,
+            stride,
+            input,
+            weights,
+            out,
+        )?;
+        Ok(())
+    }
+
+    /// `before` holds the pre-activation values of the mesh layer input.
+    fn mesh_input_gradient<const ACTIVATION: usize>(
+        &self,
+        rows: usize,
+        mesh: [usize; 2],
+        gradient: &DeviceBuffer<f32>,
+        weights: &DeviceBuffer<[f32; 3]>,
+        before: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let [width, stride] = mesh;
+        let launch = self
+            .module
+            .prepare_simple_mesh_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module.simple_mesh_input_gradient(
+            &self.stream,
+            &launch,
+            rows,
+            width,
+            stride,
+            gradient,
+            weights,
+            before,
+            out,
+        )?;
+        Ok(())
+    }
+
+    fn mesh_weight_gradient<const ACTIVATION: usize>(
+        &self,
+        rows: usize,
+        mesh: [usize; 2],
+        input: &DeviceBuffer<f32>,
+        gradient: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let [width, stride] = mesh;
+        let launch = self
+            .module
+            .prepare_simple_mesh_weight_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module.simple_mesh_weight_gradient(
+            &self.stream,
+            &launch,
+            rows,
+            width,
+            stride,
+            input,
+            gradient,
+            out,
+        )?;
+        Ok(())
+    }
+
     /// Forward reads `[x, x, x]`; backward reads `[x, dn, n]` and writes `dx`.
     fn rmsnorm<const BACKWARD: usize>(
         &self,
@@ -670,18 +838,19 @@ impl GpuSimpleModel {
         let module = kernels::load(&context)?;
         let layers = config.layers();
         let initial = config.initial_parameters(seed);
-        let mut parameters = Vec::with_capacity(layers.len());
+        let groups = config.groups();
+        let mut parameters = Vec::with_capacity(groups.len());
         let mut offset = 0;
-        for layer in &layers {
-            let state: Vec<_> = initial[offset..offset + layer.parameters()]
+        for size in groups {
+            let state: Vec<_> = initial[offset..offset + size]
                 .iter()
                 .map(|&p| [p, 0.0, 0.0])
                 .collect();
             parameters.push(Parameters {
                 state: DeviceBuffer::from_host(&stream, &state)?,
-                gradient: DeviceBuffer::zeroed(&stream, layer.parameters())?,
+                gradient: DeviceBuffer::zeroed(&stream, size)?,
             });
-            offset += layer.parameters();
+            offset += size;
         }
         Ok(Self {
             config,
@@ -720,13 +889,14 @@ impl GpuSimpleModel {
         }
         validate_finite(values, "parameters")?;
         let mut offset = 0;
-        for (layer, group) in self.layers.iter().zip(&mut self.parameters) {
-            let state: Vec<_> = values[offset..offset + layer.parameters()]
+        for group in &mut self.parameters {
+            let size = group.gradient.len();
+            let state: Vec<_> = values[offset..offset + size]
                 .iter()
                 .map(|&p| [p, 0.0, 0.0])
                 .collect();
             group.state.copy_from_host(&self.kernels.stream, &state)?;
-            offset += layer.parameters();
+            offset += size;
         }
         self.beta1_power = 1.0;
         self.beta2_power = 1.0;
@@ -939,6 +1109,31 @@ impl GpuSimpleModel {
                     &mut workspace.logits,
                 )?;
             }
+            Architecture::MeshMlp => {
+                // Groups: the input layer, the readout, then mesh layer l at 2 + l.
+                let depth = c.depth;
+                k.dense::<IDENTITY>(
+                    layers[0],
+                    rows,
+                    &workspace.inputs,
+                    input,
+                    state(0),
+                    &mut values[0],
+                )?;
+                for layer in 1..depth {
+                    let mesh = [c.width, c.mesh_stride(layer - 1)];
+                    let [before, after] = values.get_disjoint_mut([layer - 1, layer])?;
+                    k.mesh::<ACTIVATION>(rows, mesh, before, state(1 + layer), after)?;
+                }
+                k.dense::<ACTIVATION>(
+                    layers[1],
+                    rows,
+                    &values[depth - 1],
+                    [c.width, 0],
+                    state(1),
+                    &mut workspace.logits,
+                )?;
+            }
             Architecture::ResidualMlp => {
                 let blocks = c.depth;
                 let hidden = c.width * c.expansion;
@@ -1053,6 +1248,54 @@ impl GpuSimpleModel {
                         rows,
                         upstream,
                         &parameters[layer].state,
+                        &values[layer - 1],
+                        target,
+                    )?;
+                }
+                k.weight_gradient::<IDENTITY>(
+                    layers[0],
+                    rows,
+                    &workspace.inputs,
+                    input,
+                    &adjoints[0],
+                    &mut parameters[0].gradient,
+                )?;
+            }
+            Architecture::MeshMlp => {
+                // As in the MLP, the gradient of z_k lives in adjoints[k % 2].
+                let depth = c.depth;
+                k.weight_gradient::<ACTIVATION>(
+                    layers[1],
+                    rows,
+                    &values[depth - 1],
+                    [c.width, 0],
+                    logits,
+                    &mut parameters[1].gradient,
+                )?;
+                k.input_gradient::<ACTIVATION>(
+                    layers[1],
+                    rows,
+                    logits,
+                    &parameters[1].state,
+                    &values[depth - 1],
+                    &mut adjoints[(depth - 1) % 2],
+                )?;
+                for layer in (1..depth).rev() {
+                    let mesh = [c.width, c.mesh_stride(layer - 1)];
+                    let [upstream, target] =
+                        adjoints.get_disjoint_mut([layer % 2, (layer - 1) % 2])?;
+                    k.mesh_weight_gradient::<ACTIVATION>(
+                        rows,
+                        mesh,
+                        &values[layer - 1],
+                        upstream,
+                        &mut parameters[1 + layer].gradient,
+                    )?;
+                    k.mesh_input_gradient::<ACTIVATION>(
+                        rows,
+                        mesh,
+                        upstream,
+                        &parameters[1 + layer].state,
                         &values[layer - 1],
                         target,
                     )?;
@@ -1223,8 +1466,8 @@ fn config<const LANES: usize>(
 mod verification {
     use super::*;
     use crate::{
-        gpt::{EquationDataset, ModularOperation},
-        simple::{Activation, Encoding, ReferenceSimpleModel},
+        gpt::{EquationDataset, MeshConnectivity, ModularOperation},
+        simple::{Activation, Encoding, ReferenceSimpleModel, reference::verification_parameters},
     };
 
     impl GpuSimpleModel {
@@ -1235,9 +1478,14 @@ mod verification {
         pub fn verify(device: usize) -> Result<()> {
             for config in configurations() {
                 let [logits, gradients] = verify_model(device, config)?;
+                let model = match config.architecture {
+                    Architecture::MeshMlp => {
+                        format!("{} {}", config.architecture, config.connectivity)
+                    }
+                    _ => config.architecture.to_string(),
+                };
                 println!(
-                    "PASS {} {} {} width={} depth={} expansion={} modulus={}: logits (max error {logits:.1e} of max), loss, gradients (max error {gradients:.1e} of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
-                    config.architecture,
+                    "PASS {model} {} {} width={} depth={} expansion={} modulus={}: logits (max error {logits:.1e} of max), loss, gradients (max error {gradients:.1e} of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
                     config.activation,
                     config.encoding,
                     config.width,
@@ -1267,6 +1515,10 @@ mod verification {
         };
         let bilinear = SimpleConfig {
             architecture: Architecture::Bilinear,
+            ..base
+        };
+        let mesh = SimpleConfig {
+            architecture: Architecture::MeshMlp,
             ..base
         };
         vec![
@@ -1336,6 +1588,39 @@ mod verification {
                 width: 2,
                 ..bilinear
             },
+            SimpleConfig { depth: 3, ..mesh },
+            // Butterfly strides 1, 2, 4, 1 on a width that is not a power of two.
+            SimpleConfig {
+                encoding: Encoding::Binary,
+                modulus: 11,
+                width: 12,
+                depth: 5,
+                connectivity: MeshConnectivity::Butterfly,
+                ..mesh
+            },
+            // The narrowest mesh. Squares keep one row's two units alive.
+            SimpleConfig {
+                activation: Activation::Square,
+                encoding: Encoding::DiscreteLog,
+                modulus: 13,
+                width: 2,
+                depth: 3,
+                connectivity: MeshConnectivity::Butterfly,
+                ..mesh
+            },
+            // The experiments' shapes, including the depth-1 mesh MLP.
+            SimpleConfig {
+                modulus: 97,
+                width: 12,
+                depth: 1,
+                ..mesh
+            },
+            SimpleConfig {
+                modulus: 97,
+                width: 16,
+                depth: 9,
+                ..mesh
+            },
         ]
     }
 
@@ -1368,8 +1653,7 @@ mod verification {
         if model.parameters()? != initial.parameters() {
             return Err("GPU initialization differs from the reference".into());
         }
-        // Larger weights make every nonlinearity matter.
-        let parameters: Vec<_> = initial.parameters().iter().map(|&p| 2.0 * p).collect();
+        let parameters = verification_parameters(config, 11);
         model.set_parameters(&parameters)?;
         let reference = ReferenceSimpleModel::from_parameters(config, parameters.clone())?;
         let dataset = EquationDataset::new(config.modulus, ModularOperation::Divide, 0.5, 7)?;
@@ -1547,9 +1831,18 @@ mod verification {
         let mut gradient = DeviceBuffer::<f32>::zeroed(&k.stream, layer.parameters())?;
         let mut statistics = DeviceBuffer::<[f32; 2]>::zeroed(&k.stream, 1)?;
         let mut normalized = DeviceBuffer::<f32>::zeroed(&k.stream, 2 * columns)?;
+        // A mesh layer as wide as the dense layer's output, with stride width - 1.
+        let width = layer.outputs;
+        let mesh = [width, width - 1];
+        let hidden = DeviceBuffer::<f32>::zeroed(&k.stream, 2 * width)?;
+        let weights = DeviceBuffer::<[f32; 3]>::zeroed(&k.stream, 2 * width)?;
+        let mut mesh_gradient = DeviceBuffer::<f32>::zeroed(&k.stream, 2 * width)?;
         k.dense::<IDENTITY>(layer, 2, &input, [columns, 0], state, &mut exact)?;
         k.weight_gradient::<IDENTITY>(layer, 2, &input, [columns, 0], &exact, &mut gradient)?;
         k.gather(&table, &batches.indices, 1, &mut normalized)?;
+        k.mesh::<RELU>(2, mesh, &hidden, &weights, &mut exact)?;
+        k.mesh_input_gradient::<RELU>(2, mesh, &hidden, &weights, &hidden, &mut exact)?;
+        k.mesh_weight_gradient::<RELU>(2, mesh, &hidden, &exact, &mut mesh_gradient)?;
         if k.dense::<IDENTITY>(layer, 2, &input, [columns, 0], state, &mut long)
             .is_ok()
             || k.dense::<IDENTITY>(layer, 2, &input, [columns, 1], state, &mut exact)
@@ -1566,6 +1859,16 @@ mod verification {
                 &mut normalized,
             )
             .is_ok()
+            || k.mesh::<RELU>(2, [width, width], &hidden, &weights, &mut exact)
+                .is_ok()
+            || k.mesh::<RELU>(2, [width, 0], &hidden, &weights, &mut exact)
+                .is_ok()
+            || k.mesh::<RELU>(2, mesh, &hidden, &weights, &mut long)
+                .is_ok()
+            || k.mesh_input_gradient::<RELU>(2, mesh, &hidden, state, &hidden, &mut exact)
+                .is_ok()
+            || k.mesh_weight_gradient::<RELU>(2, mesh, &hidden, &exact, &mut gradient)
+                .is_ok()
         {
             return Err("a launch contract accepted mismatched buffers".into());
         }

@@ -70,6 +70,7 @@ impl Options {
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--depth" => options.config.depth = value(&mut arguments, &flag)?,
                 "--expansion" => options.config.expansion = value(&mut arguments, &flag)?,
+                "--connectivity" => options.config.connectivity = value(&mut arguments, &flag)?,
                 "--modulus" => options.config.modulus = value(&mut arguments, &flag)?,
                 "--operation" => options.operation = value(&mut arguments, &flag)?,
                 "--train-fraction" => options.train_fraction = value(&mut arguments, &flag)?,
@@ -114,14 +115,17 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         println!(
             "Attention-free baselines on the Mesh GPT grokking protocol\n\
             Usage: cargo oxide run --bin mesh-gpt -- grok-simple [options]\n\n\
-            --model NAME          mlp (default), residual-mlp, or bilinear\n\
+            --model NAME          mlp (default), mesh-mlp, residual-mlp, or bilinear\n\
             --encoding NAME       Per operand: one-hot (default), binary (+-1 bits),\n\
                                   scalar ((v-48)/48 for p=97), or discrete-log\n\
                                   ([v==0, centered log to a primitive root]; prime p)\n\
             --activation NAME     relu (default) or square; bilinear has none\n\
             --width N             MLP hidden width, residual stream, or bilinear rank (default: 128)\n\
-            --depth N             MLP hidden layers or residual blocks, 1..64 (default: 1)\n\
+            --depth N             MLP hidden layers or residual blocks, 1..64 (default: 1);\n\
+                                  a mesh MLP's layers after the first are mesh layers\n\
             --expansion N         Residual block hidden width / stream width (default: 4)\n\
+            --connectivity NAME   Mesh MLP second parent: neighbor, c+1 (default), or\n\
+                                  butterfly, c+2^(layer mod floor(log2 width))\n\
             --operation NAME      As for grok (default: add)\n\
             --modulus P           Prime, 2..254 (default: 97)\n\
             --train-fraction X    Fixed training fraction, 0<X<1 (default: 0.5)\n\
@@ -231,7 +235,7 @@ fn train(mut options: Options) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization=uniform_fan_in\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint=raw_f32_le_layer_order\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
+            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
             family(config),
             config.architecture,
             match config.architecture {
@@ -254,13 +258,26 @@ fn train(mut options: Options) -> Result<()> {
                 config.expansion
             ),
             match config.architecture {
+                Architecture::MeshMlp => config.connectivity.name(),
+                _ => "none",
+            },
+            config.mesh_layers(),
+            match config.architecture {
                 Architecture::ResidualMlp => "pre_rmsnorm_blocks_and_final",
                 _ => "none",
+            },
+            match config.architecture {
+                Architecture::MeshMlp => "uniform_fan_in_dense_identity_mesh",
+                _ => "uniform_fan_in",
             },
             options.optimizer.learning_rate,
             options.optimizer.weight_decay,
             options.steps,
             options.report_every,
+            match config.architecture {
+                Architecture::MeshMlp => "raw_f32_le_dense_layers_then_mesh_layers",
+                _ => "raw_f32_le_layer_order",
+            },
             options
                 .epochs
                 .map_or_else(|| "none".into(), |n| n.to_string()),
@@ -384,6 +401,10 @@ fn train(mut options: Options) -> Result<()> {
 fn family(config: SimpleConfig) -> String {
     match config.architecture {
         Architecture::Bilinear => format!("{}-{}", config.architecture, config.encoding),
+        Architecture::MeshMlp => format!(
+            "{}-{}-{}-{}",
+            config.architecture, config.connectivity, config.activation, config.encoding
+        ),
         _ => format!(
             "{}-{}-{}",
             config.architecture, config.activation, config.encoding

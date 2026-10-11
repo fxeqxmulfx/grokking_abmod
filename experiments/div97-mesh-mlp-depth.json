@@ -1,0 +1,32 @@
+{
+  "command": "grok-simple",
+  "study": "Deepen the width-64 one-hot ReLU MLP, whose memorization plateau first appeared at this width, with identity-initialized mesh layers",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mesh-mlp-depth",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mesh-mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "width": 64,
+    "connectivity": "neighbor"
+  },
+  "candidates": [
+    {"label": "mesh-mlp-neighbor-w64-d1", "depth": 1},
+    {"label": "mesh-mlp-neighbor-w64-d2", "depth": 2},
+    {"label": "mesh-mlp-neighbor-w64-d3", "depth": 3},
+    {"label": "mesh-mlp-neighbor-w64-d5", "depth": 5},
+    {"label": "mesh-mlp-neighbor-w64-d9", "depth": 9},
+    {"label": "mesh-mlp-butterfly-w64-d3", "depth": 3, "connectivity": "butterfly"},
+    {"label": "mesh-mlp-butterfly-w64-d5", "depth": 5, "connectivity": "butterfly"},
+    {"label": "mesh-mlp-butterfly-w64-d9", "depth": 9, "connectivity": "butterfly"}
+  ]
+}
