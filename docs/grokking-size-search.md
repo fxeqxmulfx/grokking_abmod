@@ -64,6 +64,7 @@ report every 25 epochs.
 | Model | Parameters | Width / blocks / heads | Mesh depths | LR / decay | Epochs | Final training / held-out | Result |
 | --- | ---: | --- | --- | --- | ---: | --- | --- |
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
+| Mesh control, seed 7, gain 1.4 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 0.1 | 10,000 | 6.23% / 1.80% | Neither fitting nor grokking |
 | Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
 | Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
 | Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 99.81% / 96.41% | Below held-out target at the cap |
@@ -141,9 +142,12 @@ The GPU verification suite also checks exact AdamW trajectories across
 full/tail batches, different sequence lengths, cache eviction, invalid
 inputs and shrinking the cache. Independent numerical checks still pass.
 
-The lightweight 12,288-parameter control overlaps the initial large-model
-run. GPU memory fits both independent models; accuracy and complete epochs
-are the comparison measures, not concurrent wall time.
+The lightweight 12,288-parameter control overlapped the initial large-model
+run and finished the full budget without fitting training data. Accuracy and
+complete epochs are the comparison measures for overlapping runs. The large
+control is temporarily paused with its optimizer state preserved in process
+memory while the smaller calibrated comparisons run. Its pause is recorded
+in the raw run's `scheduling.json`; it has no final-budget result yet.
 
 Initialization refinements are in
 [div97-mesh-calibrated-search.json](../experiments/div97-mesh-calibrated-search.json).
@@ -164,6 +168,23 @@ hash are archived in
 [mesh-initialization-smoke.json](grokking-results/mesh-initialization-smoke.json).
 These checks establish valid execution; the full epoch-budget runs measure
 learning and grokking. The first calibrated search uses 26,624 parameters.
+
+The controlled `--qk-signs 1` variant changes only the final Q/K rows using
+a separate seeded sign stream. An independent f64 reconstruction of the
+initialized first block gives mean self-attention probability 82.83% with
+the original directions and 29.82% with the signs, averaged over all 9,312
+inputs and four heads. The captured parameter magnitudes are exactly equal,
+and every other parameter is unchanged. Capture uses one update at learning
+rate `1e-30`; observed losses are unchanged. This checks initialization
+geometry, not learning. The complete-budget controlled run measures whether
+this difference helps fitting and grokking.
+
+See [qk-initialization-analysis.json](grokking-results/qk-initialization-analysis.json).
+Reproduce the captures and f64 analysis in a fresh directory:
+
+```sh
+uv run --locked scripts/analyze-mesh-qk-initialization.py --output target/qk-init-recheck
+```
 
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
