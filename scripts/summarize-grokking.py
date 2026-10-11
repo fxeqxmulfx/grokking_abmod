@@ -1,0 +1,131 @@
+#!/usr/bin/env -S uv run --locked --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+"""Compare exhaustive dense and Mesh GPT division runs in complete epochs."""
+
+import argparse
+import csv
+import hashlib
+import json
+import math
+from pathlib import Path
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def mesh_run(directory):
+    metadata = dict(line.split("=", 1) for line in (directory / "run.txt").read_text().splitlines())
+    count, batch = int(metadata["training_equations"]), int(metadata["batch"])
+    updates = math.ceil(count / batch)
+    with (directory / "loss.csv").open(newline="") as source:
+        raw = list(csv.DictReader(source))
+    history = []
+    for row in raw:
+        step = int(row["step"])
+        complete, partial = divmod(step, updates)
+        seen = int(row.get("training_examples_seen", complete * count + min(partial * batch, count)))
+        history.append({"step": step, "epoch": seen / count,
+                        "train": float(row["train_accuracy"]), "heldout": float(row["validation_accuracy"])})
+    return {"family": "mesh", "parameters": int(metadata["parameters"]),
+            "status": metadata["status"], "settings": metadata, "history": history,
+            "history_sha256": digest(directory / "loss.csv")}
+
+
+def dense_run(directory):
+    manifest = json.loads((directory / "experiment.json").read_text())
+    settings = manifest["description"]
+    model, benchmark = settings["model"], settings["benchmark"]
+    block, attention = model["block"], model["block"]["attention"]
+    # Exact count for this study's bias-free, parameter-free RMSNorm GPTMini.
+    if not (benchmark["type"] == "ModularDivision"
+            and attention["projections"] == {"type": "FusedQKV", "bias": False}
+            and attention["scores"]["type"] == "QKNorm"
+            and not attention["output_bias"] and not block["ffn"]["bias"]
+            and block["norm"]["type"] == "RMSNorm" and not block["norm"]["scale"]
+            and model["final_norm"]["type"] == "RMSNorm" and not model["final_norm"]["scale"]
+            and model["readout"]["type"] == "Tied" and model["positions"]["type"] == "RoPE"):
+        raise ValueError(f"Unsupported dense parameter-count protocol: {directory}")
+    width, layers = model["width"], model["depth"]
+    vocab = benchmark["prime"] + 142  # Author vocabulary: EOS, equals, 20 operators, 120 permutations.
+    parameters = width * vocab + layers * ((4 + 2 * block["ffn"]["multiplier"]) * width**2 + attention["heads"])
+    raw = [json.loads(line) for line in (directory / "history.jsonl").read_text().splitlines()]
+    history = [{"step": row["step"], "epoch": row["epochs_seen"],
+                "train": row["train"]["accuracy"], "heldout": row["heldout"]["accuracy"]} for row in raw]
+    return {"family": "dense", "parameters": parameters,
+            "status": "complete" if (directory / "result.json").exists() else "running",
+            "settings": settings, "history": history, "history_sha256": digest(directory / "history.jsonl")}
+
+
+def streaks(history, predicate, length):
+    """Every first confirmation in a consecutive qualifying stretch."""
+    start, count = None, 0
+    for row in history:
+        if predicate(row):
+            if not count:
+                start = row
+            count += 1
+            if count == length:
+                yield {"onset_step": start["step"], "onset_epoch": start["epoch"],
+                       "confirmed_step": row["step"], "confirmed_epoch": row["epoch"]}
+        else:
+            count = 0
+
+
+def summarize(directory):
+    run = mesh_run(directory) if (directory / "run.txt").exists() else dense_run(directory)
+    history = run.pop("history")
+    if not history or any(not 0 <= row[key] <= 1 for row in history for key in ("train", "heldout")):
+        raise ValueError(f"Missing history or invalid accuracy: {directory}")
+    if any(a["step"] >= b["step"] or a["epoch"] >= b["epoch"] for a, b in zip(history, history[1:])):
+        raise ValueError(f"Non-increasing history: {directory}")
+    if history[-1]["epoch"] > 10_000:
+        raise ValueError(f"Run exceeded the 10,000-epoch cap: {directory}")
+    success = lambda row: row["train"] >= .99 and row["heldout"] >= .99
+    plateau = list(streaks(history, lambda row: row["train"] >= .99 and row["heldout"] <= .1, 5))
+    generalization = list(streaks(history, success, 20))
+    grok = next((event for event in generalization
+                 if any(p["confirmed_step"] < event["onset_step"] for p in plateau)), None)
+    last = history[-1]
+    tail = [row for row in history if row["epoch"] >= last["epoch"] - 1000]
+    stable = (last["epoch"] >= 1000 and tail[0]["epoch"] <= last["epoch"] - 1000
+              and all(success(row) for row in tail))
+    return {"run": str(directory.resolve()), **run, "observations": len(history),
+            "epochs": last["epoch"], "first_joint_99_epoch": next((r["epoch"] for r in history if success(r)), None),
+            "generalization": next(iter(generalization), None), "delayed_grokking": grok,
+            "memorization_plateau": next(iter(plateau), None), "stable_last_1000_epochs": stable,
+            "final_train_accuracy": last["train"], "final_heldout_accuracy": last["heldout"],
+            "peak_heldout_accuracy": max(row["heldout"] for row in history)}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("directories", nargs="+", type=Path)
+    parser.add_argument("--output", type=Path)
+    arguments = parser.parse_args()
+    runs = [summarize(directory) for directory in arguments.directories]
+    report = {"protocol": {"target": .99, "generalization_observations": 20,
+                           "plateau_observations": 5, "plateau_heldout_ceiling": .1,
+                           "stability_epochs": 1000, "epoch_cap": 10_000}, "runs": runs}
+    report["smallest_tested_generalizing"] = {
+        family: min((run["parameters"] for run in runs
+                     if run["family"] == family and run["generalization"]), default=None)
+        for family in {run["family"] for run in runs}}
+    report["smallest_tested_delayed_grokking"] = {
+        family: min((run["parameters"] for run in runs
+                     if run["family"] == family and run["delayed_grokking"]), default=None)
+        for family in {run["family"] for run in runs}}
+    text = json.dumps(report, indent=2, allow_nan=False) + "\n"
+    if arguments.output:
+        arguments.output.parent.mkdir(parents=True, exist_ok=True)
+        arguments.output.write_text(text)
+        print(arguments.output)
+    else:
+        print(text, end="")
+
+
+if __name__ == "__main__":
+    main()
