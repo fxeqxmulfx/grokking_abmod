@@ -780,3 +780,57 @@ parameters), and one block with depths 8/16 to 1/2 (3,120, 2,352, 1,968 and
 1,776). Each run is also described by its largest fall in held-out accuracy
 between consecutive observations. The smallest RMS success is then repeated
 on seeds 8 to 11.
+
+The user stopped the third stage during the first one-block run, to grow the
+model instead. Two blocks reached the target down to depths 4/8:
+
+| Blocks | Depths | Parameters | First training 99% | First held-out 99% | Final training / held-out | Falls over 10 points |
+| ---: | --- | ---: | ---: | ---: | --- | ---: |
+| 2 | 8/16 | 4,656 | Epoch 850 | Epoch 3,450 | 99.36% / 99.01% | 25 |
+| 2 | 4/8 | 3,120 | Epoch 6,475 | Epoch 8,725 | 99.63% / 99.05% | 43 |
+| 2 | 2/4 | 2,352 | Epoch 7,175 | Not reached | 97.38% / 95.51% | 39 |
+| 1 | 8/16 | 3,120 | Not reached | Not reached | 22.47% / 15.85% at epoch 5,050 | 3 |
+
+The first row is the control. Depths 4/8 reached the target at epoch 8,725 of
+10,000, and its largest fall was 90.2 points. Depths 2/4 missed the target,
+peaking at 98.93% held-out accuracy at epoch 8,875 with falls of up to 95.9
+points, so depths 1/2 did not run. The one-block run peaked at 24.61% held-out accuracy at epoch
+1,050 and was interrupted after its observation at epoch 5,050. Its smaller
+rungs and the RMS seed repeats did not run;
+[execution.json](grokking-results/table-unit-size/execution.json) records
+every label that was skipped or interrupted.
+
+The smallest successes are 4,704 parameters with unit normalization, on five
+of five seeds, and 3,120 with RMS normalization, on one seed and close to the
+epoch cap. No run memorized before it generalized: none had a memorization
+plateau, and whenever training accuracy first reached 99%, held-out accuracy
+was already between 97.0% and 99.3%.
+
+Each ladder ran as one `run-mesh-search.py` call with its labels in order and
+`--stop-after-miss`; the RMS control and the seed repeats ran without it. The
+first stage predates the option, which reproduces its stop after width 16.
+The summary archives every history, including the interrupted run:
+
+```bash
+uv run --locked scripts/run-mesh-search.py experiments/div97-table-unit-size-search.json \
+  --stop-after-miss unit-w32-h4-l2-d4-f8-s7 unit-w32-h4-l2-d2-f4-s7 unit-w32-h4-l2-d1-f2-s7
+uv run --locked scripts/summarize-grokking.py target/grok-div97-search/table-unit-size/* \
+  --output docs/grokking-results/table-unit-size/summary.json
+```
+
+## Growing the RMS-normalized table
+
+The size search found no memorization plateau, so
+[div97-table-rms-growth.json](../experiments/div97-table-rms-growth.json) asks
+at what size one appears. It keeps the recipe of the width-16 RMS control, with
+two blocks and depths 8/16, and doubles the width from 32 to 1,024. The model
+grows from 9,312 to 297,984 parameters, 291 per unit of width. Only the width
+changes, because depth alone changed the learning time at width 32; depth and
+blocks are grown only if width 1,024 has no plateau. Widths 32, 64 and 128
+match unit-normalized runs of the same architecture and seed.
+
+`run-mesh-search.py --stop-after-plateau` ends the ladder at the first run with
+a memorization plateau, the criterion of `summarize-grokking.py`. Each run also
+reports held-out accuracy at its first observation with 99% training accuracy,
+a graded measure of memorization. Once a plateau appears, a width between that
+rung and the previous one narrows the onset.
