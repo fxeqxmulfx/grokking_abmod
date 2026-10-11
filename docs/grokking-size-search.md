@@ -66,6 +66,7 @@ report every 25 epochs.
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
 | Mesh control, seed 7, gain 1.4 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 0.1 | 10,000 | 6.23% / 1.80% | Neither fitting nor grokking |
 | Mesh calibrated, seed 7, gain 1.4, embedding gain 0.1 | 26,624 | 128 / 2 / 4 | 8 / 16 | 0.003 / 0.01 | 10,000 | 32.28% / 2.08% | Neither fitting nor grokking |
+| Mesh fitting pilot, seed 7, gain 1.4, embedding gain 0.02, Q/K signs | 507,904 | 1024 / 5 / 8 | 8 / 16 | 0.001 / 0.01 | 400 (retired) | 100% / 2.62% | Confirmed memorization plateau; no grokking before retirement |
 | Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
 | Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
 | Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 99.81% / 96.41% | Below held-out target at the cap |
@@ -195,20 +196,35 @@ Reproduce the captures and f64 analysis in a fresh directory:
 uv run --locked scripts/analyze-mesh-qk-initialization.py --output target/qk-init-recheck
 ```
 
-The next regularization candidates are frozen in
+The regularization candidates are frozen in
 [div97-mesh-regularization-search.json](../experiments/div97-mesh-regularization-search.json).
 They retain the five-block signed initialization and batch-256 protocol,
 increase weight decay to 0.1, and test widths 1024, 512, 256 and 128
-(507,904, 253,952, 126,976 and 63,488 parameters). None has run yet.
-At width 1024 only decay changes from the active calibrated large run.
+(507,904, 253,952, 126,976 and 63,488 parameters). Width 1024 is running;
+the smaller three have not run yet.
+At width 1024 only decay changes from the retained fitting pilot.
 To prioritize regularization trials, that decay-0.01 run may be retired
 after it establishes five consecutive training-99% / held-out-at-most-10%
 observations, or after reaching the 500-epoch fitting-pilot budget. The
 500-epoch stop was added after the first transient training-99% result at
-epoch 200, before observing epoch 500. Any retired run is recorded as interrupted at its last
+epoch 200, before observing epoch 500. Any retired run is recorded as
+interrupted at its last
 observation, without claiming failure over the full 10,000-epoch budget.
 The stronger-decay trial starts from the original seed, without reusing
 weights or optimizer state. Each fresh trial remains capped at 10,000 epochs.
+
+The 507,904-parameter pilot first reached training 99% at epoch 200, then
+fell below the threshold at epochs 225, 250 and 275. A qualifying
+memorization plateau began at epoch 300 and was confirmed at epoch 400;
+training was 100% at the last four observations, with final held-out
+accuracy 2.62%. The pilot was retired at its epoch-400 checkpoint. This
+result covers 400 epochs and leaves later generalization under that recipe
+unmeasured. Its retained checkpoint hash, scheduling events and the fresh
+run's command are in
+[mesh-regularization-handoff.json](grokking-results/mesh-regularization-handoff.json).
+The binary hash, complete split bytes and every initial recorded loss,
+accuracy and weight norm match between the pilot and fresh trial. The sole
+settings difference is weight decay, 0.01 to 0.1.
 
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original

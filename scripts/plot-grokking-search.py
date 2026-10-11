@@ -61,10 +61,14 @@ def main():
             history = points(run, arguments.summary.parent)
             epochs, train, heldout = zip(*history, strict=True)
             label = f"{Path(run['run']).name} ({run['parameters']:,} params)"
+            if run["status"] == "interrupted":
+                label += f" [stopped at {run['epochs']:g} epochs]"
             axes[index, 0].plot(epochs, [100 * value for value in train], label=label, linewidth=1)
             axes[index, 1].plot(epochs, [100 * value for value in heldout], label=label, linewidth=1)
-            peaks[0] = max(peaks[0], max(train))
-            peaks[1] = max(peaks[1], max(heldout))
+            peaks[0] = max(peaks[0], max((value for epoch, value in zip(epochs, train, strict=True)
+                                        if epoch >= 5000), default=0))
+            peaks[1] = max(peaks[1], max((value for epoch, value in zip(epochs, heldout, strict=True)
+                                        if epoch >= 5000), default=0))
         for axis, split, peak in zip(axes[index], ("Training", "Held-out"), peaks, strict=True):
             axis.axhline(99, color="gray", linestyle="--", linewidth=.6)
             axis.set(title=f"{family.title()} GPT: {split.lower()} accuracy",
