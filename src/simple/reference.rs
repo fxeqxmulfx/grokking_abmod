@@ -89,11 +89,14 @@ pub(crate) fn verification_parameters(config: SimpleConfig, seed: u64) -> Vec<f3
         .iter()
         .map(|&p| 2.0 * p)
         .collect();
-    let mesh = parameters.len() - 2 * config.width * config.mesh_layers();
+    let parents = config.connectivity.parents();
+    let mesh = parameters.len() - parents * config.width * config.mesh_layers();
     let mut random = Random::new(seed);
-    for [own, other] in parameters[mesh..].as_chunks_mut::<2>().0 {
-        *own = 0.75 + 0.5 * random.unit();
-        *other = random.unit() - 0.5;
+    for unit in parameters[mesh..].chunks_exact_mut(parents) {
+        unit[0] = 0.75 + 0.5 * random.unit();
+        if let Some(other) = unit.get_mut(1) {
+            *other = random.unit() - 0.5;
+        }
     }
     parameters
 }
@@ -171,18 +174,18 @@ fn forward(
                 hidden
             }
             Architecture::MeshMlp => {
-                let width = config.width;
+                let (width, parents) = (config.width, config.connectivity.parents());
                 let mut hidden = dense(&mut tape, &x, 0);
                 for layer in 0..config.mesh_layers() {
                     let activated = activate(&mut tape, &hidden);
                     let stride = config.mesh_stride(layer);
-                    let offset = mesh_offset + 2 * width * layer;
+                    let offset = mesh_offset + parents * width * layer;
                     hidden = (0..width)
                         .map(|channel| {
-                            let parents =
+                            let inputs =
                                 [activated[channel], activated[(channel + stride) % width]];
-                            let weights = [offset + 2 * channel, offset + 2 * channel + 1];
-                            tape.dot(&parents, &weights)
+                            let unit = offset + parents * channel;
+                            tape.dot(&inputs[..parents], &[unit, unit + 1][..parents])
                         })
                         .collect();
                 }
@@ -225,8 +228,8 @@ fn forward(
 mod tests {
     use super::*;
     use crate::{
-        gpt::{EquationDataset, MeshConnectivity, ModularOperation},
-        simple::Encoding,
+        gpt::{EquationDataset, ModularOperation},
+        simple::{Connectivity, Encoding},
     };
 
     fn variants() -> Vec<SimpleConfig> {
@@ -258,19 +261,22 @@ mod tests {
                     expansion: 2,
                     ..base
                 });
-                configs.push(SimpleConfig {
-                    architecture: Architecture::MeshMlp,
-                    activation,
-                    encoding,
-                    depth: 3,
-                    ..base
-                });
+                for connectivity in [Connectivity::Neighbor, Connectivity::Own] {
+                    configs.push(SimpleConfig {
+                        architecture: Architecture::MeshMlp,
+                        activation,
+                        encoding,
+                        depth: 3,
+                        connectivity,
+                        ..base
+                    });
+                }
             }
         }
         // A width of 6 has butterfly strides 1, 2, 1.
         configs.push(SimpleConfig {
             architecture: Architecture::MeshMlp,
-            connectivity: MeshConnectivity::Butterfly,
+            connectivity: Connectivity::Butterfly,
             width: 6,
             depth: 4,
             ..base
@@ -389,6 +395,17 @@ mod tests {
         ];
         let model = ReferenceSimpleModel::from_parameters(mesh, parameters).unwrap();
         assert_eq!(model.logits(&[1.0, 1.0]).unwrap(), [[2.5, 5.0, 2.5]]);
+        let own = SimpleConfig {
+            connectivity: Connectivity::Own,
+            ..mesh
+        };
+        // Gains [0.5, -2] turn relu([2, 1]) into [1, -2], whose ReLU [1, 0]
+        // reads out as [1, 0, -1].
+        let parameters = vec![
+            1.0, 2.0, 1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 1.0, 0.5, -2.0,
+        ];
+        let model = ReferenceSimpleModel::from_parameters(own, parameters).unwrap();
+        assert_eq!(model.logits(&[1.0, 1.0]).unwrap(), [[1.0, 0.0, -1.0]]);
     }
 
     #[test]
@@ -403,7 +420,11 @@ mod tests {
             .unwrap()
             .logits(&features)
             .unwrap();
-        for connectivity in [MeshConnectivity::Neighbor, MeshConnectivity::Butterfly] {
+        for connectivity in [
+            Connectivity::Own,
+            Connectivity::Neighbor,
+            Connectivity::Butterfly,
+        ] {
             let mesh = SimpleConfig {
                 architecture: Architecture::MeshMlp,
                 depth: 4,

@@ -124,8 +124,9 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --depth N             MLP hidden layers or residual blocks, 1..64 (default: 1);\n\
                                   a mesh MLP's layers after the first are mesh layers\n\
             --expansion N         Residual block hidden width / stream width (default: 4)\n\
-            --connectivity NAME   Mesh MLP second parent: neighbor, c+1 (default), or\n\
-                                  butterfly, c+2^(layer mod floor(log2 width))\n\
+            --connectivity NAME   Mesh MLP second parent: neighbor, c+1 (default),\n\
+                                  butterfly, c+2^(layer mod floor(log2 width)), or\n\
+                                  own, none: each mesh unit scales its own channel\n\
             --operation NAME      As for grok (default: add)\n\
             --modulus P           Prime, 2..254 (default: 97)\n\
             --train-fraction X    Fixed training fraction, 0<X<1 (default: 0.5)\n\

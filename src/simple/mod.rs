@@ -34,7 +34,8 @@ pub enum Architecture {
     Mlp,
     /// An MLP whose hidden layers after the first are mesh layers: unit `c`
     /// weights its own activated channel and one other, `c + stride`, as in
-    /// Mesh GPT. Depth 1 is the one-layer MLP.
+    /// Mesh GPT, or only its own channel with `Connectivity::Own`. Depth 1 is
+    /// the one-layer MLP.
     MeshMlp,
     /// An operand embedding, `depth` pre-RMSNorm feed-forward blocks with
     /// residual connections, a final RMSNorm, and a readout.
@@ -64,6 +65,66 @@ impl FromStr for Architecture {
             "residual-mlp" => Ok(Self::ResidualMlp),
             "bilinear" => Ok(Self::Bilinear),
             _ => Err(format!("unknown model: {value}")),
+        }
+    }
+}
+
+/// The parents of each mesh-layer unit, its own channel first.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Connectivity {
+    /// Ablation: no second parent, so a mesh layer scales each activated
+    /// channel by a learned gain.
+    Own,
+    /// Mesh GPT's neighbor connectivity: the second parent is channel `c + 1`.
+    #[default]
+    Neighbor,
+    /// Mesh GPT's butterfly connectivity: in mesh layer `l` the second parent
+    /// is channel `c + 2^(l mod floor(log2 width))`.
+    Butterfly,
+}
+
+impl Connectivity {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Own => "own",
+            Self::Neighbor => MeshConnectivity::Neighbor.name(),
+            Self::Butterfly => MeshConnectivity::Butterfly.name(),
+        }
+    }
+
+    /// Weights per mesh-layer unit.
+    pub fn parents(self) -> usize {
+        match self {
+            Self::Own => 1,
+            Self::Neighbor | Self::Butterfly => 2,
+        }
+    }
+
+    /// Distance from a unit to its second parent, in `1..width`, or 0 without one.
+    fn stride(self, width: usize, layer: usize) -> usize {
+        match self {
+            Self::Own => 0,
+            Self::Neighbor => MeshConnectivity::Neighbor.stride(width, layer),
+            Self::Butterfly => MeshConnectivity::Butterfly.stride(width, layer),
+        }
+    }
+}
+
+impl fmt::Display for Connectivity {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.name())
+    }
+}
+
+impl FromStr for Connectivity {
+    type Err = String;
+
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "own" => Ok(Self::Own),
+            "neighbor" => Ok(Self::Neighbor),
+            "butterfly" => Ok(Self::Butterfly),
+            _ => Err(format!("unknown mesh connectivity: {value}")),
         }
     }
 }
@@ -245,8 +306,8 @@ pub struct SimpleConfig {
     pub depth: usize,
     /// Feed-forward width of a residual block, as a multiple of `width`.
     pub expansion: usize,
-    /// The second parent of each mesh-layer unit. Only mesh MLPs use it.
-    pub connectivity: MeshConnectivity,
+    /// The parents of each mesh-layer unit. Only mesh MLPs use it.
+    pub connectivity: Connectivity,
 }
 
 impl Default for SimpleConfig {
@@ -259,7 +320,7 @@ impl Default for SimpleConfig {
             width: 128,
             depth: 1,
             expansion: 4,
-            connectivity: MeshConnectivity::Neighbor,
+            connectivity: Connectivity::Neighbor,
         }
     }
 }
@@ -287,8 +348,8 @@ impl SimpleConfig {
             return Err(format!("residual hidden width must be in 1..={MAX_SIMPLE_WIDTH}").into());
         }
         // A unit's second parent must be another channel.
-        if self.mesh_layers() > 0 && self.width < 2 {
-            return Err("mesh layers need a width of at least 2".into());
+        if self.mesh_layers() > 0 && self.connectivity.parents() == 2 && self.width < 2 {
+            return Err("a second mesh parent needs a width of at least 2".into());
         }
         if self.encoding == Encoding::DiscreteLog {
             primitive_root(self.modulus)?;
@@ -343,7 +404,7 @@ impl SimpleConfig {
         }
     }
 
-    /// Mesh layers of a mesh MLP, each with a self and a neighbor weight per unit.
+    /// Mesh layers of a mesh MLP, each with one weight per unit and parent.
     pub fn mesh_layers(&self) -> usize {
         match self.architecture {
             Architecture::MeshMlp => self.depth.saturating_sub(1),
@@ -351,7 +412,8 @@ impl SimpleConfig {
         }
     }
 
-    /// Distance from each unit of mesh layer `layer` to its second parent.
+    /// Distance from each unit of mesh layer `layer` to its second parent, or
+    /// 0 without one.
     pub fn mesh_stride(&self, layer: usize) -> usize {
         self.connectivity.stride(self.width, layer)
     }
@@ -359,7 +421,8 @@ impl SimpleConfig {
     /// Parameter group sizes in storage order: the dense layers, then the mesh layers.
     pub(crate) fn groups(&self) -> Vec<usize> {
         let mut groups: Vec<_> = self.layers().into_iter().map(Dense::parameters).collect();
-        groups.extend(std::iter::repeat_n(2 * self.width, self.mesh_layers()));
+        let mesh = self.connectivity.parents() * self.width;
+        groups.extend(std::iter::repeat_n(mesh, self.mesh_layers()));
         groups
     }
 
@@ -378,8 +441,10 @@ impl SimpleConfig {
             let bound = 1.0 / (layer.inputs as f32).sqrt();
             parameters.extend((0..layer.parameters()).map(|_| (2.0 * random.unit() - 1.0) * bound));
         }
+        // A unit weights its own channel by 1 and any second parent by 0.
+        let unit = &[1.0, 0.0][..self.connectivity.parents()];
         for _ in 0..self.mesh_layers() * self.width {
-            parameters.extend([1.0, 0.0]);
+            parameters.extend_from_slice(unit);
         }
         parameters
     }
@@ -466,6 +531,11 @@ mod tests {
             ..deep
         };
         assert_eq!(mesh.parameter_count(), 291 * 16 + 2 * 2 * 16);
+        let own = SimpleConfig {
+            connectivity: Connectivity::Own,
+            ..mesh
+        };
+        assert_eq!(own.parameter_count(), 291 * 16 + 2 * 16);
         assert_eq!(
             mesh.layers(),
             [
@@ -566,6 +636,14 @@ mod tests {
                 width: 1,
                 ..valid
             },
+            // Without second parents, mesh layers need only one channel.
+            SimpleConfig {
+                architecture: Architecture::MeshMlp,
+                width: 1,
+                depth: 2,
+                connectivity: Connectivity::Own,
+                ..valid
+            },
         ] {
             config.validate().unwrap();
         }
@@ -580,7 +658,7 @@ mod tests {
         let mesh = SimpleConfig {
             architecture: Architecture::MeshMlp,
             depth: 4,
-            connectivity: MeshConnectivity::Butterfly,
+            connectivity: Connectivity::Butterfly,
             ..mlp
         };
         let dense = mlp.initial_parameters(3);
@@ -598,13 +676,30 @@ mod tests {
         let strides: Vec<_> = (0..4).map(|layer| mesh.mesh_stride(layer)).collect();
         assert_eq!(strides, [1, 2, 4, 1]);
         let neighbor = SimpleConfig {
-            connectivity: MeshConnectivity::Neighbor,
+            connectivity: Connectivity::Neighbor,
             ..mesh
         };
         assert_eq!(neighbor.mesh_stride(2), 1);
+        // Own-channel meshes start with unit gains and have no second parent.
+        let own = SimpleConfig {
+            connectivity: Connectivity::Own,
+            ..mesh
+        };
+        let gains = own.initial_parameters(3);
+        assert_eq!(gains.len(), own.parameter_count());
+        assert_eq!(gains[..dense.len()], dense);
+        assert_eq!(gains[dense.len()..], [1.0; 3 * 8]);
+        assert_eq!(own.mesh_stride(2), 0);
         assert_eq!(mlp.mesh_layers(), 0);
         assert_eq!("mesh-mlp".parse(), Ok(Architecture::MeshMlp));
         assert_eq!(Architecture::MeshMlp.to_string(), "mesh-mlp");
+        for connectivity in [
+            Connectivity::Own,
+            Connectivity::Neighbor,
+            Connectivity::Butterfly,
+        ] {
+            assert_eq!(connectivity.to_string().parse(), Ok(connectivity));
+        }
     }
 
     #[test]

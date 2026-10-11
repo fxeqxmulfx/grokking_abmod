@@ -39,7 +39,8 @@ def simple_parameters(settings):
     if model == "mlp":
         return 2 * features * width + (depth - 1) * width**2 + width * modulus
     if model == "mesh-mlp":
-        return 2 * features * width + (depth - 1) * 2 * width + width * modulus
+        parents = 1 if settings.get("connectivity") == "own" else 2
+        return 2 * features * width + (depth - 1) * parents * width + width * modulus
     if model == "residual-mlp":
         return 2 * features * width + 2 * depth * settings.get("expansion", 4) * width**2 + width * modulus
     if model == "bilinear":
