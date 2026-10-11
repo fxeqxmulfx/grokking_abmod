@@ -34,13 +34,17 @@ intervening update. A minimum refers to tested configurations and seeds;
 failure of one setting does not establish a universal lower bound.
 
 Raw artifacts remain in ignored run directories. Summaries retain settings,
-epoch counts and history SHA-256 hashes. Recompute them with:
+epoch counts and history SHA-256 hashes. `--output` also archives portable
+accuracy histories beside the summary so plots do not depend on the original
+run directories. Recompute them with:
 
 ```sh
 uv run --locked scripts/summarize-grokking.py \
   /home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w128 \
   target/grok-div97-search/default-w128-h4-l2-d4-f6-s7 \
   --output target/grok-div97-search/summary.json
+uv run --locked scripts/plot-grokking-search.py \
+  target/grok-div97-search/summary.json --output target/grok-div97-search/plots
 ```
 
 The dense environment is locked to PyTorch 2.14.1+cu126. Its historical
@@ -54,12 +58,23 @@ with those historical trajectories.
 
 The preliminary Mesh control began before the user specified dense-first
 ordering. It completed the full budget; subsequent Mesh searches follow
-the dense stage.
+the dense stage. This control reported every 100 epochs; new search runs
+report every 25 epochs.
 
 | Model | Parameters | Width / blocks / heads | Mesh depths | LR / decay | Epochs | Final training / held-out | Result |
 | --- | ---: | --- | --- | --- | ---: | --- | --- |
 | Mesh control, seed 7 | 12,288 | 128 / 2 / 4 | 4 / 6 | 0.001 / 1 | 10,000 | 1.63% / 0.71% | Neither fitting nor grokking |
+| Dense GPTMini, seed 1 | 423,816 | 128 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window not stable |
 
-Dense runs are in progress. The original Mesh defaults are substantially
+The dense run first fitted training at epoch 725 and first reached joint
+99% accuracy at epoch 2,600. Twenty consecutive qualifying observations
+began at epoch 3,675 and were confirmed at epoch 4,150, a 2,950-epoch lag
+after training fit. It did not have the strict near-chance memorization
+plateau. Two observations in its final 1,000 epochs fell below 99%, with
+minimum held-out accuracy 96.28%. Smaller dense runs are in progress.
+
+See the [portable results](grokking-results/summary.json) and
+[learning curves](grokking-results/grokking-size-search.svg). The original
+Mesh defaults are substantially
 smaller than the user's successful parameter count, so their failure does
 not settle the larger-model search.

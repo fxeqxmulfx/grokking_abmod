@@ -75,7 +75,7 @@ def streaks(history, predicate, length):
             count = 0
 
 
-def summarize(directory):
+def summarize(directory, archive=None):
     run = mesh_run(directory) if (directory / "run.txt").exists() else dense_run(directory)
     history = run.pop("history")
     if not history or any(not 0 <= row[key] <= 1 for row in history for key in ("train", "heldout")):
@@ -84,21 +84,38 @@ def summarize(directory):
         raise ValueError(f"Non-increasing history: {directory}")
     if history[-1]["epoch"] > 10_000:
         raise ValueError(f"Run exceeded the 10,000-epoch cap: {directory}")
+    if archive:
+        relative = Path("histories") / f"{run['family']}-{directory.name}.csv"
+        destination = archive / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open("w", newline="") as output:
+            writer = csv.DictWriter(output, fieldnames=("step", "epoch", "train", "heldout"))
+            writer.writeheader()
+            writer.writerows(history)
+        run["history_file"] = str(relative)
+        run["plot_history_sha256"] = digest(destination)
     success = lambda row: row["train"] >= .99 and row["heldout"] >= .99
     plateau = list(streaks(history, lambda row: row["train"] >= .99 and row["heldout"] <= .1, 5))
     generalization = list(streaks(history, success, 20))
     grok = next((event for event in generalization
                  if any(p["confirmed_step"] < event["onset_step"] for p in plateau)), None)
     last = history[-1]
+    first_train = next((row["epoch"] for row in history if row["train"] >= .99), None)
+    event = next(iter(generalization), None)
     tail = [row for row in history if row["epoch"] >= last["epoch"] - 1000]
     stable = (last["epoch"] >= 1000 and tail[0]["epoch"] <= last["epoch"] - 1000
               and all(success(row) for row in tail))
     return {"run": str(directory.resolve()), **run, "observations": len(history),
             "epochs": last["epoch"], "first_joint_99_epoch": next((r["epoch"] for r in history if success(r)), None),
-            "generalization": next(iter(generalization), None), "delayed_grokking": grok,
+            "first_train_99_epoch": first_train,
+            "generalization": event,
+            "generalization_lag_epochs": event["onset_epoch"] - first_train if event and first_train is not None else None,
+            "delayed_grokking": grok,
             "memorization_plateau": next(iter(plateau), None), "stable_last_1000_epochs": stable,
             "final_train_accuracy": last["train"], "final_heldout_accuracy": last["heldout"],
-            "peak_heldout_accuracy": max(row["heldout"] for row in history)}
+            "peak_heldout_accuracy": max(row["heldout"] for row in history),
+            "final_window_failures": sum(not success(row) for row in tail),
+            "final_window_minimum_heldout_accuracy": min(row["heldout"] for row in tail)}
 
 
 def main():
@@ -106,7 +123,8 @@ def main():
     parser.add_argument("directories", nargs="+", type=Path)
     parser.add_argument("--output", type=Path)
     arguments = parser.parse_args()
-    runs = [summarize(directory) for directory in arguments.directories]
+    archive = arguments.output.parent if arguments.output else None
+    runs = [summarize(directory, archive) for directory in arguments.directories]
     report = {"protocol": {"target": .99, "generalization_observations": 20,
                            "plateau_observations": 5, "plateau_heldout_ceiling": .1,
                            "stability_epochs": 1000, "epoch_cap": 10_000}, "runs": runs}

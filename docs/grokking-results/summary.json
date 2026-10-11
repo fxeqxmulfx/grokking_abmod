@@ -1,0 +1,237 @@
+{
+  "protocol": {
+    "target": 0.99,
+    "generalization_observations": 20,
+    "plateau_observations": 5,
+    "plateau_heldout_ceiling": 0.1,
+    "stability_epochs": 1000,
+    "epoch_cap": 10000
+  },
+  "runs": [
+    {
+      "run": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/default-w128-h4-l2-d4-f6-s7",
+      "family": "mesh",
+      "parameters": 12288,
+      "status": "complete",
+      "settings": {
+        "paper": "https://arxiv.org/abs/2201.02177v1",
+        "status": "complete",
+        "model": "mesh_gpt",
+        "operation": "div",
+        "modulus": "97",
+        "train_fraction": "0.5",
+        "training_equations": "4656",
+        "validation_equations": "4656",
+        "seed": "7",
+        "abstract_symbol_permutation": "true",
+        "loss": "answer_only",
+        "context": "4",
+        "width": "128",
+        "heads": "4",
+        "layers": "2",
+        "attention_mesh_depth": "4",
+        "ffn_mesh_depth": "6",
+        "parameters": "12288",
+        "all_parameters": "mesh_edges",
+        "attention": "xsa",
+        "positions": "slice_rope",
+        "normalization": "pre_rmsnorm",
+        "qk_norm": "per_head_rmsnorm",
+        "rmsnorm_affine": "false",
+        "bias": "false",
+        "embeddings": "mesh",
+        "betas": "0.9,0.98",
+        "epsilon": "1e-8",
+        "learning_rate": "0.001",
+        "weight_decay": "1",
+        "warmup_steps": "10",
+        "batch": "512",
+        "steps": "100000",
+        "report_every": "1000",
+        "evaluation": "complete_splits",
+        "checkpoint": "weights_only",
+        "elapsed_seconds": "685.096198",
+        "training_examples_seen": "46560000",
+        "completed_epochs": "10000",
+        "examples_in_partial_epoch": "0",
+        "first_recorded_train_99_step": "not_reached",
+        "first_recorded_validation_99_step": "not_reached"
+      },
+      "history_sha256": "ac211ad9e876248cec85f365f69f6c7bc379d345020ad67b4fc6f4dcc7d27faa",
+      "history_file": "histories/mesh-default-w128-h4-l2-d4-f6-s7.csv",
+      "plot_history_sha256": "4a4000fa931c858f3f157a9cc23821e3d6adb263a24c332bb8110557f5afffdc",
+      "observations": 101,
+      "epochs": 10000.0,
+      "first_joint_99_epoch": null,
+      "first_train_99_epoch": null,
+      "generalization": null,
+      "generalization_lag_epochs": null,
+      "delayed_grokking": null,
+      "memorization_plateau": null,
+      "stable_last_1000_epochs": false,
+      "final_train_accuracy": 0.016323024,
+      "final_heldout_accuracy": 0.007087629,
+      "peak_heldout_accuracy": 0.020833333,
+      "final_window_failures": 11,
+      "final_window_minimum_heldout_accuracy": 0.006013746
+    },
+    {
+      "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w128",
+      "family": "dense",
+      "parameters": 423816,
+      "status": "complete",
+      "settings": {
+        "type": "Experiment",
+        "model": {
+          "type": "Transformer",
+          "width": 128,
+          "depth": 2,
+          "block": {
+            "type": "Block",
+            "attention": {
+              "type": "Attention",
+              "heads": 4,
+              "projections": {
+                "type": "FusedQKV",
+                "bias": false
+              },
+              "scores": {
+                "type": "QKNorm",
+                "eps": 1e-06,
+                "initial_scale": null
+              },
+              "weights": {
+                "type": "Softmax",
+                "fused": false
+              },
+              "exclusive": {
+                "type": "XSA",
+                "eps": 1e-06
+              },
+              "output_bias": false
+            },
+            "ffn": {
+              "type": "FFN",
+              "activation": {
+                "type": "ReLU2"
+              },
+              "multiplier": 4,
+              "bias": false
+            },
+            "norm": {
+              "type": "RMSNorm",
+              "eps": 1e-05,
+              "scale": false
+            },
+            "residual": {
+              "type": "PreNorm"
+            }
+          },
+          "positions": {
+            "type": "RoPE",
+            "theta": 10000.0,
+            "interleaved": false
+          },
+          "readout": {
+            "type": "Tied"
+          },
+          "final_norm": {
+            "type": "RMSNorm",
+            "eps": 1e-05,
+            "scale": false
+          },
+          "init": {
+            "type": "Normal",
+            "std": 0.02
+          },
+          "context": 50
+        },
+        "benchmark": {
+          "type": "ModularDivision",
+          "prime": 97,
+          "train_fraction": 0.5,
+          "tail": "short"
+        },
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 0.001,
+          "betas": [
+            0.9,
+            0.98
+          ],
+          "weight_decay": 0.1,
+          "eps": 1e-08,
+          "decay": "all"
+        },
+        "schedule": {
+          "type": "Schedule",
+          "warmup": 10,
+          "anneal": null,
+          "inclusive": false
+        },
+        "budget": {
+          "type": "Budget",
+          "updates": 100000,
+          "batch": 512
+        },
+        "seeds": {
+          "type": "Seeds",
+          "model": 1,
+          "data": 1,
+          "batches": null
+        },
+        "evaluate": {
+          "type": "Evaluate",
+          "every": 250,
+          "batch": 1024
+        },
+        "execution": {
+          "type": "CudaGraph",
+          "device": "cuda",
+          "threads": 1
+        },
+        "diagnostics": {
+          "type": "Diagnostics",
+          "every": 0,
+          "neighbors": false,
+          "gradients": false
+        },
+        "checkpoint": {
+          "type": "Checkpoint",
+          "every": 5000
+        },
+        "stopping": null
+      },
+      "history_sha256": "9fa7e12beae4b53b6b9f349df63d3b58c3341cc63ecb8e2c8b202065ac1e0c71",
+      "history_file": "histories/dense-graph-w128.csv",
+      "plot_history_sha256": "bda83547557abf3e8a69bdfdf9352f326a678c26b46831efc037e8c7985000fc",
+      "observations": 401,
+      "epochs": 10000.0,
+      "first_joint_99_epoch": 2600.0,
+      "first_train_99_epoch": 725.0,
+      "generalization": {
+        "onset_step": 36750,
+        "onset_epoch": 3675.0,
+        "confirmed_step": 41500,
+        "confirmed_epoch": 4150.0
+      },
+      "generalization_lag_epochs": 2950.0,
+      "delayed_grokking": null,
+      "memorization_plateau": null,
+      "stable_last_1000_epochs": false,
+      "final_train_accuracy": 1.0,
+      "final_heldout_accuracy": 1.0,
+      "peak_heldout_accuracy": 1.0,
+      "final_window_failures": 2,
+      "final_window_minimum_heldout_accuracy": 0.9628436426116839
+    }
+  ],
+  "smallest_tested_generalizing": {
+    "dense": 423816,
+    "mesh": null
+  },
+  "smallest_tested_delayed_grokking": {
+    "dense": null,
+    "mesh": null
+  }
+}
