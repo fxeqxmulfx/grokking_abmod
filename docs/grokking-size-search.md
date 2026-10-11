@@ -425,4 +425,41 @@ arm, these differences are not attributed to geometry. The unit-normalized
 parity table reached 99% at epoch 100, 225 epochs before any other learned
 table. Training summaries are in
 [embedding-geometry-summary.json](grokking-results/embedding-geometry-summary.json).
-The mesh, frozen-table and arithmetic-order arms are still running.
+
+Seven diagnostic arms ran the full 10,000 epochs without reaching 99%
+training or held-out accuracy. Chance is 1/97, about 1.0%. Learned weights
+exclude a frozen table and the weights fixed by protected features.
+
+| Diagnostic arm | Learned weights | Final training / held-out | Peak training | Peak held-out |
+| --- | ---: | --- | ---: | ---: |
+| Mesh, unit-normalized | 26,624 | 9.45% / 2.56% | 10.46% | 2.71% |
+| Mesh, RMS-normalized | 26,624 | 7.39% / 2.23% | 7.39% | 2.60% |
+| Mesh, 7 protected features | 26,568 | 5.28% / 1.85% | 5.63% | 2.15% |
+| Frozen parity table, initial scale | 24,576 | 6.92% / 2.19% | 7.54% | 2.34% |
+| Frozen parity table, unit | 24,576 | 6.53% / 1.83% | 6.98% | 2.21% |
+| Frozen orthogonal table, unit | 24,576 | 7.24% / 1.50% | 7.88% | 2.02% |
+| Frozen discrete-log Fourier table, unit | 24,576 | 21.31% / 20.36% | 23.95% | 23.56% |
+
+Neither normalization nor protected token identities lets the mesh
+embedding fit the training set. Each mesh arm ends within four points of
+the ablation's mesh-neighbor run, at 5.48% / 1.37%. Freezing a table
+produces the same failure. The frozen parity table starts from the
+table-neighbor initialization, which reached 99% held-out accuracy at
+epoch 375 when trained, yet frozen it fits 6.92% of the training set.
+Unit normalization and an orthogonal table do not change this. Of the
+frozen tables, only the one that supplies the discrete-log order fits more
+than 8%.
+
+That arm is also the only diagnostic whose held-out accuracy tracks its
+training accuracy. It peaked at 23.56% held-out at epoch 650 and 23.95%
+training at epoch 1,175, then ended at 20.36% and 21.31%. Its errors
+concentrate next to the answer in discrete-log order. Exact answers and the
+two adjacent logarithms account for 48.26% of training and 46.28% of
+held-out predictions. A further 6.44% and 6.98% fall two steps away, and
+the rest scatter across other offsets. The frozen readout limits
+resolution. Adjacent codes of the eight equal harmonics have cosine 0.946,
+so a final state of norm √128 aligned exactly with the answer's code leads
+each neighbor by 0.61 in logit. That state gives the answer probability
+0.435 and cross-entropy 0.834; the run ended at cross-entropy 2.19. The
+nine mesh-code arms, four further frozen tables and three arithmetic-order
+arms are still running.
