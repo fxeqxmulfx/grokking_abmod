@@ -55,6 +55,18 @@ def missed(directory, settings):
     return float(last["validation_accuracy"]) < settings["stop-validation-accuracy"]
 
 
+def memorized(directory):
+    """A memorization plateau: five consecutive observations at >=99% training and <=10% held-out accuracy."""
+    streak = 0
+    with (directory / "loss.csv").open(newline="") as source:
+        for row in csv.DictReader(source):
+            memorizing = float(row["train_accuracy"]) >= .99 and float(row["validation_accuracy"]) <= .1
+            streak = streak + 1 if memorizing else 0
+            if streak == 5:
+                return True
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", type=Path)
@@ -63,6 +75,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--stop-after-miss", action="store_true",
                         help="skip the remaining labels once a run misses its validation target")
+    parser.add_argument("--stop-after-plateau", action="store_true",
+                        help="skip the remaining labels once a run shows a memorization plateau")
     arguments = parser.parse_args()
     study = json.loads(arguments.manifest.read_text())
     subcommand = study.get("command", "grok")
@@ -132,6 +146,10 @@ def main():
         # A ladder of shrinking candidates ends at its first miss.
         if arguments.stop_after_miss and missed(directory, settings):
             print(f"Missed the validation target; skipping the labels after {label}", flush=True)
+            break
+        # A ladder of growing candidates ends at its first memorization plateau.
+        if arguments.stop_after_plateau and memorized(directory):
+            print(f"Memorization plateau; skipping the labels after {label}", flush=True)
             break
 
 
