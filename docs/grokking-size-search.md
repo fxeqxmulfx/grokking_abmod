@@ -979,3 +979,50 @@ meshes' held-out accuracy was less stable: it fell 1.6 to 7.3 points below
 its running peak, against at most 0.4 points for those MLPs. These are
 single runs with seed 7. Summaries and
 histories are in [summary.json](grokking-results/mesh-mlp-width/summary.json).
+
+## Own-channel mesh layers
+
+With `--connectivity own` a mesh unit has no second parent: it scales its
+own activated channel by one learned gain, initialized to 1, and depth `D`
+adds `W(D - 1)` parameters to the one-layer MLP. For ReLU the gains only
+rescale the MLP's readout columns, by products of rectified gains, so these
+meshes keep the depth of the neighbor meshes without mixing channels.
+[div97-mesh-mlp-own.json](../experiments/div97-mesh-mlp-own.json) runs depths
+2, 3, 5 and 9 at width 64 with the depth study's settings, 18,688 to 19,136
+parameters, after repeating neighbor depth 5.
+
+The repeat reproduced the depth study's loss history and final weights
+bitwise. A first build of the one-parent kernels had accumulated the
+two-parent sum across a branch, so the compiler fused the second product
+instead of the first. With that rounding change alone, neighbor depth 5 first
+reached 99% held-out accuracy at epoch 6,350 instead of 7,100. The
+own-channel arithmetic is the same in both builds, and its runs repeated
+bitwise.
+
+| Depth | Parameters | First training 99% | Held-out then | First held-out 99% | Plateau | Final training / held-out |
+| ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 2 | 18,688 | Epoch 850 | 3.8% | Not reached | Epochs 850 to 1,500 | 100% / 98.48% |
+| 3 | 18,752 | Epoch 650 | 3.2% | Not reached | Epochs 650 to 1,500 | 100% / 84.04% |
+| 5 | 18,880 | Epoch 475 | 2.2% | Epoch 8,925 | Epochs 475 to 1,800 | 100% / 99.01% |
+| 9 | 19,136 | Epoch 350 | 2.1% | Epoch 9,475 | Epochs 350 to 1,850 | 100% / 99.14% |
+
+Gains alone moved memorization within one observation of the neighbor
+meshes. Depths 2, 3, 5 and 9 first fitted at epochs 850, 650, 475 and 350,
+against 825, 625, 450 and 350 with neighbors and 1,375 for the one-layer
+MLP. Held-out accuracy at that point was 3.8% to 2.1%, against 4.3% to 2.8%
+with neighbors, and every plateau was longer: 27, 35, 54 and 61 observations
+against 22, 19, 35 and 26.
+
+Depths 5 and 9 also grokked with delay, but later than with neighbors, at
+epochs 8,925 and 9,475 against 7,100 and 5,850. At epoch 5,000 they had
+69.0% and 68.9% held-out accuracy, against 88.6% and 95.0% with neighbors
+and 53.7% for the one-layer MLP. Depth 2 ended at 98.48%, against 98.50% for
+the MLP and 95.62% with neighbors, and depth 3 at 84.04%, against 88.12%
+with neighbors. Depths 3 to 9 fell 3.0 to 7.9 points below their running
+peaks within at most 125 epochs, while depth 2 never lost more than 0.3
+points. The earlier memorization and the instability thus come with depth
+and need no second parent. Mixing neighbors shortened the plateau and
+brought the target 1,825 and 3,625 epochs earlier at depths 5 and 9, more
+than the control's 750-epoch shift from rounding. These are single runs with
+seed 7. Summaries and histories, including the first build's repeat, are in
+[summary.json](grokking-results/mesh-mlp-own/summary.json).

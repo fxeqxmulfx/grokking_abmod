@@ -1,0 +1,29 @@
+{
+  "command": "grok-simple",
+  "study": "Replace the neighbor mesh layers of the width-64 one-hot ReLU MLP with own-channel gains at the same depths, after repeating neighbor depth 5 to check that the one-parent kernels leave two-parent training unchanged",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/mesh-mlp-own",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "model": "mesh-mlp",
+    "activation": "relu",
+    "encoding": "one-hot",
+    "width": 64,
+    "connectivity": "own"
+  },
+  "candidates": [
+    {"label": "mesh-mlp-neighbor-w64-d5", "depth": 5, "connectivity": "neighbor"},
+    {"label": "mesh-mlp-own-w64-d2", "depth": 2},
+    {"label": "mesh-mlp-own-w64-d3", "depth": 3},
+    {"label": "mesh-mlp-own-w64-d5", "depth": 5},
+    {"label": "mesh-mlp-own-w64-d9", "depth": 9}
+  ]
+}
