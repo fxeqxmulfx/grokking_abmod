@@ -664,14 +664,174 @@
       "peak_heldout_accuracy": 0.4737972508591065,
       "final_window_failures": 41,
       "final_window_minimum_heldout_accuracy": 0.36662371134020616
+    },
+    {
+      "run": "/home/misha/lean_projects/transformer/experiments/mod97_size_search/runs/graph-w32-wd02",
+      "family": "dense",
+      "parameters": 32232,
+      "status": "complete",
+      "settings": {
+        "type": "Experiment",
+        "model": {
+          "type": "Transformer",
+          "width": 32,
+          "depth": 2,
+          "block": {
+            "type": "Block",
+            "attention": {
+              "type": "Attention",
+              "heads": 4,
+              "projections": {
+                "type": "FusedQKV",
+                "bias": false
+              },
+              "scores": {
+                "type": "QKNorm",
+                "eps": 1e-06,
+                "initial_scale": null
+              },
+              "weights": {
+                "type": "Softmax",
+                "fused": false
+              },
+              "exclusive": {
+                "type": "XSA",
+                "eps": 1e-06
+              },
+              "output_bias": false
+            },
+            "ffn": {
+              "type": "FFN",
+              "activation": {
+                "type": "ReLU2"
+              },
+              "multiplier": 4,
+              "bias": false
+            },
+            "norm": {
+              "type": "RMSNorm",
+              "eps": 1e-05,
+              "scale": false
+            },
+            "residual": {
+              "type": "PreNorm"
+            }
+          },
+          "positions": {
+            "type": "RoPE",
+            "theta": 10000.0,
+            "interleaved": false
+          },
+          "readout": {
+            "type": "Tied"
+          },
+          "final_norm": {
+            "type": "RMSNorm",
+            "eps": 1e-05,
+            "scale": false
+          },
+          "init": {
+            "type": "Normal",
+            "std": 0.02
+          },
+          "context": 50
+        },
+        "benchmark": {
+          "type": "ModularDivision",
+          "prime": 97,
+          "train_fraction": 0.5,
+          "tail": "short"
+        },
+        "optimizer": {
+          "type": "AdamW",
+          "lr": 0.001,
+          "betas": [
+            0.9,
+            0.98
+          ],
+          "weight_decay": 0.2,
+          "eps": 1e-08,
+          "decay": "all"
+        },
+        "schedule": {
+          "type": "Schedule",
+          "warmup": 10,
+          "anneal": null,
+          "inclusive": false
+        },
+        "budget": {
+          "type": "Budget",
+          "updates": 100000,
+          "batch": 512
+        },
+        "seeds": {
+          "type": "Seeds",
+          "model": 1,
+          "data": 1,
+          "batches": null
+        },
+        "evaluate": {
+          "type": "Evaluate",
+          "every": 250,
+          "batch": 1024
+        },
+        "execution": {
+          "type": "CudaGraph",
+          "device": "cuda",
+          "threads": 1
+        },
+        "diagnostics": {
+          "type": "Diagnostics",
+          "every": 0,
+          "neighbors": false,
+          "gradients": false
+        },
+        "checkpoint": {
+          "type": "Checkpoint",
+          "every": 5000
+        },
+        "stopping": null
+      },
+      "history_sha256": "7cff6985178055b64a4cf16cf53ae9dd59f8a07808e0f1b15fee03d32abdd653",
+      "history_file": "histories/dense-graph-w32-wd02.csv",
+      "plot_history_sha256": "36ae71085ff5fb1a9424324dd02ff3e2a3d13a6ea98d0bf6f277cfdf3f7dfc15",
+      "observations": 401,
+      "epochs": 10000.0,
+      "first_joint_99_epoch": 7675.0,
+      "first_train_99_epoch": 825.0,
+      "generalization": {
+        "onset_step": 76750,
+        "onset_epoch": 7675.0,
+        "confirmed_step": 81500,
+        "confirmed_epoch": 8150.0
+      },
+      "generalization_lag_epochs": 6850.0,
+      "delayed_grokking": {
+        "onset_step": 76750,
+        "onset_epoch": 7675.0,
+        "confirmed_step": 81500,
+        "confirmed_epoch": 8150.0
+      },
+      "memorization_plateau": {
+        "onset_step": 10500,
+        "onset_epoch": 1050.0,
+        "confirmed_step": 11500,
+        "confirmed_epoch": 1150.0
+      },
+      "stable_last_1000_epochs": true,
+      "final_train_accuracy": 1.0,
+      "final_heldout_accuracy": 1.0,
+      "peak_heldout_accuracy": 1.0,
+      "final_window_failures": 0,
+      "final_window_minimum_heldout_accuracy": 0.9997852233676976
     }
   ],
   "smallest_tested_generalizing": {
-    "dense": 113608,
+    "dense": 32232,
     "mesh": null
   },
   "smallest_tested_delayed_grokking": {
-    "dense": null,
+    "dense": 32232,
     "mesh": null
   }
 }

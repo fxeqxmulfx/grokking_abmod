@@ -68,6 +68,7 @@ report every 25 epochs.
 | Dense GPTMini, seed 1 | 113,608 | 64 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 100% / 100% | Sustained generalization; final window stable |
 | Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 99.81% / 96.41% | Below held-out target at the cap |
 | Dense GPTMini, seed 1 | 9,976 | 16 / 2 / 4 | Dense | 0.001 / 0.1 | 10,000 | 61.96% / 37.26% | Neither fitting nor grokking |
+| Dense GPTMini, seed 1 | 32,232 | 32 / 2 / 4 | Dense | 0.001 / 0.2 | 10,000 | 100% / 100% | Delayed grokking; final window stable |
 
 The dense run first fitted training at epoch 725 and first reached joint
 99% accuracy at epoch 2,600. Twenty consecutive qualifying observations
@@ -86,9 +87,14 @@ memorization plateau.
 Width 32 first fitted training at epoch 575 but never reached joint 99%
 within the cap. Its late generalization transition reached 96.41% held-out
 accuracy at epoch 10,000. Width 16 remained below the training threshold.
-These failures leave width 64 as the smallest successful tested model so
-far. A fresh width-32 run with weight decay 0.2 tests whether stronger
-regularization can bring the late transition inside the same budget.
+Changing only weight decay to 0.2 brought width 32's transition inside the
+budget. Training first reached 99% at epoch 825. A near-chance memorization
+plateau began at epoch 1,050 and was confirmed at 1,150. Joint 99% accuracy
+began at epoch 7,675 and satisfied the 20-observation criterion at 8,150.
+The run finished at 100% on both splits; every observation in the final
+1,000 epochs exceeded 99%, with minimum held-out accuracy 99.98%.
+This 32,232-parameter model is the smallest tested delayed-grokking model
+so far. Widths 24 and 16 now test the same stronger-decay recipe.
 
 ## Mesh search settings
 
