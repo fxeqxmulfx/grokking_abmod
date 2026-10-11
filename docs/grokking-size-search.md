@@ -377,3 +377,52 @@ included, was not. Its 2,048 shared weights generate all 99 vectors, so no
 residue's vector can change independently. These arms do not separate the
 responsible property: the number of shared weights, the two-parent layer
 form, the fixed input codes, or tying the head to the generated vectors.
+
+## Embedding geometry trials
+
+[div97-embedding-geometry.json](../experiments/div97-embedding-geometry.json)
+adds 33 arms that use the [embedding geometry](embedding-geometry.md)
+options. Every arm otherwise uses the ablation recipe with neighbor
+connectivity, and the arms run one at a time. The ablation's mesh-neighbor
+and table-neighbor runs serve as parity baselines. One-epoch smoke runs of
+both, made with the binary used here, reproduce the ablation smoke runs
+exactly.
+
+Two settings correct for scale. Geometric codes have unit norm, except
+signed permutations at √30, while parity codes have norm √128. Through the
+embedding mesh at output gain 0.1 they give mean vector norms from 0.009 to
+0.096 after one warmup update, against 0.223 for parity. The mesh's last
+layer is linear, so each mesh-code arm uses the output gain, between 0.232
+and 2.52, that restores a mean norm of 0.223. The final RMSNorm also gives
+the state norm √128 ≈ 11.3, so with the tied head a vector of norm 0.14,
+the scale at which geometric tables start, bounds every logit by 1.6.
+Frozen geometric tables therefore use `--embedding-norm unit`, as does one
+frozen parity table. A second frozen parity table keeps its initial scale.
+
+| Learned table start | Initial mean norm | First training 99% | First held-out 99% | Final training / held-out | Peak held-out |
+| --- | ---: | ---: | ---: | --- | ---: |
+| Parity (ablation) | 0.22 | Epoch 175 | Epoch 375 | 100% / 99.12% | 99.12% |
+| Parity, unit-normalized | 1 | Epoch 100 | Epoch 100 | 99.94% / 99.27% | 99.27% |
+| Antipodal | 0.14 | Epoch 150 | Epoch 325 | 100% / 99.12% | 99.12% |
+| Orthogonal | 0.14 | Epoch 275 | Epoch 500 | 100% / 99.01% | 99.01% |
+| Simplex | 0.14 | Epoch 200 | Epoch 650 | 100% / 99.05% | 99.05% |
+| Sphere | 0.14 | Epoch 175 | Epoch 925 | 100% / 99.16% | 99.16% |
+| Circle | 0.14 | Epoch 175 | Epoch 2,500 | 100% / 99.29% | 99.29% |
+| Hypercube | 0.14 | Epoch 500 | Epoch 3,800 | 100% / 99.05% | 99.05% |
+| Fourier, 8 harmonics | 0.14 | Epoch 300 | Not reached | 100% / 98.39% | 98.73% |
+| Equiangular, overlap 0 | 0.14 | Epoch 625 | Not reached | 100% / 96.46% | 96.82% |
+| Signed permutations | 0.77 | Epoch 350 | Not reached | 100% / 92.89% | 97.32% |
+
+Every learned table fit the training set by epoch 625, without a
+memorization plateau. Seven of the ten reached 99% held-out accuracy, and
+the other three stayed between 96.5% and 98.7% through the cap. The order
+does not follow the starting geometry. The rank-one antipodal start, which
+gives half the tokens one vector and the rest its negative, was the fastest
+geometric start. The simplex and equiangular starts differ only by a 0.5%
+rescale and one coordinate equal to 0.014 for every token, yet the first
+stopped at epoch 650 and the second stayed below 97%. With one seed per
+arm, these differences are not attributed to geometry. The unit-normalized
+parity table reached 99% at epoch 100, 225 epochs before any other learned
+table. Training summaries are in
+[embedding-geometry-summary.json](grokking-results/embedding-geometry-summary.json).
+The mesh, frozen-table and arithmetic-order arms are still running.
