@@ -277,13 +277,14 @@ not settle the larger-model search.
 
 ## Architecture ablations
 
-No completed Mesh run raised held-out accuracy above chance, including the
-runs that fit the training set. Two architectural constraints could explain
-this. The embedding mesh computes each token vector from fixed codes of an
-abstract symbol ID through a depth-`d` neighbor mesh. Channel `c` therefore
-depends only on code channels `c..c+d`, and tokens cannot receive independent
-vectors. Neighbor meshes also mix channels only locally, so the Q/K/V,
-output and feed-forward meshes cannot form global channel combinations.
+Before these ablations, no completed Mesh run raised held-out accuracy above
+chance, including the runs that fit the training set. Two architectural
+constraints could explain this. The embedding mesh computes each token vector
+from fixed codes of an abstract symbol ID through a depth-`d` neighbor mesh.
+Channel `c` therefore depends only on code channels `c..c+d`, and tokens
+cannot receive independent vectors. Neighbor meshes also mix channels only
+locally, so the Q/K/V, output and feed-forward meshes cannot form global
+channel combinations.
 
 The factorial ablation in
 [div97-mesh-ablations.json](../experiments/div97-mesh-ablations.json) crosses
@@ -293,8 +294,7 @@ heads, two blocks, depths 8/16, initialization gain 1.4, embedding-output gain
 0.1, and the dense recipe's learning rate 0.001 and decay 0.1. Mesh arms have
 26,624 learned parameters, and table arms have 37,248. Each table arm starts as
 the same function as its mesh arm, and their one-epoch smoke runs had identical
-initial complete-split losses. Each arm has the 10,000-epoch cap, and the arms
-run concurrently.
+initial complete-split losses. Each arm has the 10,000-epoch cap.
 
 A first launch without a stop rule reached epoch 3,325 in the mesh arms and
 3,575 in the table arms before the stopping rule changed. Its table arms first
@@ -306,3 +306,74 @@ chance, peaking at 6.29% and 22.68% training and 2.38% and 2.36% held-out
 accuracy. All four arms then restarted from the original seed with
 `--stop-validation-accuracy 0.99`. The interrupted runs keep their
 interruption records and checkpoints in their ignored directories.
+
+The restarted arms ran concurrently until both table arms stopped. With one
+GPU, concurrency does not raise total throughput, so the mesh arms then ran
+one at a time. At epoch 375, mesh-butterfly was suspended with `SIGSTOP`
+while mesh-neighbor finished, then resumed with `SIGCONT`. The suspended
+process kept its weights and AdamW moments in memory. `scheduling.json` in
+each mesh run directory records both signals, and recorded elapsed seconds
+include the suspension. Every observation the restarted arms share with the
+interrupted launch matches it exactly: 134 per mesh arm through epoch 3,325,
+and all 16 and 22 table observations. The suspension therefore did not
+change the mesh-butterfly trajectory.
+
+| Arm | Parameters | First training 99% | First held-out 99% | Epochs run | Final training / held-out | Peak held-out |
+| --- | ---: | ---: | ---: | ---: | --- | ---: |
+| Mesh embedding, neighbor | 26,624 | Not reached | Not reached | 10,000 | 5.48% / 1.37% | 2.38% |
+| Table embedding, neighbor | 37,248 | Epoch 175 | Epoch 375 | 375 | 100% / 99.12% | 99.12% |
+| Mesh embedding, butterfly | 26,624 | Not reached | Not reached | 10,000 | 27.64% / 1.87% | 2.38% |
+| Table embedding, butterfly | 37,248 | Epoch 200 | Epoch 525 | 525 | 100% / 99.16% | 99.16% |
+
+Both table arms generalized, 200 and 325 epochs after first fitting the
+training set. Neither had the near-chance memorization plateau, so these are
+generalization events rather than delayed grokking. Both mesh arms used the
+whole budget, and their held-out accuracy never exceeded 2.38%, against 1/97
+or 1.03% for a uniform guess. Butterfly strides raised the mesh arm's
+training fit, to a peak of 28.63% at epoch 9,925 against 6.29% at epoch 400
+with neighbor strides, but not its held-out accuracy. The strides apply to
+every mesh, so in that arm each embedding channel also depends on every code
+channel. Under this recipe a learned table was sufficient for
+generalization. Global channel mixing was neither necessary (table-neighbor)
+nor sufficient (mesh-butterfly). Each arm is a single seed, so the 150-epoch
+gap between the table arms favors neither connectivity.
+
+[analyze-token-vectors.py](../scripts/analyze-token-vectors.py) reads the
+residue vectors each run saves at its end. Division subtracts discrete
+logarithms, so the script orders the 96 nonzero residues by their discrete
+logarithm base 5, a primitive root modulo 97. Along this cycle it measures
+the share of non-constant Fourier power in the five strongest frequencies,
+compared with 1,000 random cycle orders. It also reports the effective rank
+of the centered vectors (the exponential of their spectral entropy), the
+directions holding 99% of their energy, and cosine similarity between
+residues. Results are in
+[ablation-token-vectors.json](grokking-results/ablation-token-vectors.json),
+and the training summaries in
+[ablation-summary.json](grokking-results/ablation-summary.json):
+
+| Residue vectors | Epoch | Top-5 Fourier share (null mean / 99th percentile) | p | Effective rank (99% directions) | Nearest-neighbor cosine, mean (maximum) |
+| --- | ---: | --- | ---: | --- | --- |
+| All four smoke runs | 1 | 0.117–0.120 (0.118–0.119 / 0.123–0.124) | 0.23–0.77 | 76.6–78.0 (92) | 0.415–0.428 (0.496–0.521) |
+| Table, neighbor | 375 | 0.435 (0.143 / 0.158) | 0.001 | 30.0 (63) | 0.515 (0.628) |
+| Table, butterfly | 525 | 0.492 (0.149 / 0.166) | 0.001 | 24.9 (61) | 0.465 (0.549) |
+| Mesh, neighbor | 10,000 | 0.226 (0.203 / 0.247) | 0.100 | 5.0 (15) | 0.918 (0.979) |
+| Mesh, butterfly | 10,000 | 0.200 (0.205 / 0.248) | 0.591 | 4.8 (5) | 0.912 (0.988) |
+
+A p-value of 0.001 is the smallest that 1,000 permutations can report. Both
+tables concentrate significant power in a few discrete-log frequencies:
+17, 27, 33, 47 and 21 with neighbor strides, and 38, 45, 42, 48 and 6 with
+butterfly strides. The two sets do not overlap. The generated vectors
+instead collapse: effective rank falls from about 77 after one epoch to 5,
+and residues become nearly parallel. With so few directions left, random
+orders also concentrate more power, which raises their null, and their
+observed shares stay within it. Because the head is tied, these vectors also
+score every answer, so the head can separate answers only within the few
+remaining directions.
+
+Within this recipe, the generated token embedding is the binding
+constraint. Replacing it with a table that starts as the same function was
+enough to generalize, while global mixing in every mesh, the embedding mesh
+included, was not. Its 2,048 shared weights generate all 99 vectors, so no
+residue's vector can change independently. These arms do not separate the
+responsible property: the number of shared weights, the two-parent layer
+form, the fixed input codes, or tying the head to the generated vectors.
