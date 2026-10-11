@@ -111,7 +111,11 @@ impl Options {
                 "--device" => options.device = value(&mut arguments, &flag)?,
                 "--output" => options.output = value(&mut arguments, &flag)?,
                 "--help" | "-h" => options.help = true,
-                _ => return Err(format!("unknown grok option: {flag}; use grok --help").into()),
+                _ => {
+                    if !super::geometry::parse_option(&mut options.config, &flag, &mut arguments)? {
+                        return Err(format!("unknown grok option: {flag}; use grok --help").into());
+                    }
+                }
             }
         }
         if explicit_steps && options.epochs.is_some() {
@@ -145,18 +149,19 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
             --width N             Channels, 2..1024 (default: 128)\n\
-            --heads N             Heads, 1..8, even channels/head (default: 4)\n\
+            --heads N             Heads, 1..8; even channels/head with RoPE (default: 4)\n\
             --layers N            Transformer blocks, 1..64 (default: 2)\n\
             --attention-depth N   Embedding/Q/K/V/output mesh depth (default: 4)\n\
             --ffn-depth N         Feed-forward mesh depth (default: 6)\n\
-            --embedding NAME      Tied token vectors: mesh (default) or table; a table\n\
-                                  starts from the vectors the seeded mesh generates\n\
+            --embedding NAME      Tied token vectors: mesh (default) or table; the parity\n\
+                                  table starts from the seeded mesh's vectors\n\
             --connectivity NAME   Second mesh parent: neighbor, c+1 (default), or\n\
                                   butterfly, c+2^(layer mod floor(log2 width))\n\
             --seed N              Model, symbol permutation, split, sampling seed (default: 7)\n\
             --device N            CUDA device ordinal (default: 0)\n\
             --output PATH         Artifacts (default: target/mesh-gpt-grokking)"
         );
+        println!("\n{}", super::geometry::HELP);
         return Ok(());
     }
     match options.config.width {
@@ -190,6 +195,10 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         options.seed,
     )?;
     options.config.vocab_size = dataset.tokenizer().vocab_size();
+    if options.config.geometry.order != grokking_abmod::gpt::EmbeddingOrder::Token {
+        options.config.geometry.modulus = options.modulus;
+        options.config.geometry.seed = options.seed;
+    }
     options.config.validate()?;
     let batch = options
         .batch
@@ -250,6 +259,15 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         }
         if options.config.embedding == TokenEmbedding::Table {
             parameters = tabulate_embedding(mesh, &parameters)?;
+            if options.config.geometry.form != grokking_abmod::gpt::EmbeddingForm::Parity {
+                let codes = options.config.fixed_token_codes()?;
+                for (value, code) in parameters[..options.config.embedding_parameter_count()]
+                    .iter_mut()
+                    .zip(codes.into_iter().flatten())
+                {
+                    *value = code * options.initialization_gain * options.embedding_output_gain;
+                }
+            }
         }
         model.set_parameters(&parameters)?;
     }
@@ -258,7 +276,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=mesh_gpt\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\nabstract_symbol_permutation=true\nloss=answer_only\ncontext=4\nwidth={}\nheads={}\nlayers={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nembedding_parameters={}\nall_parameters={}\nattention=xsa\npositions=slice_rope\nnormalization=pre_rmsnorm\nqk_norm=per_head_rmsnorm\nrmsnorm_affine=false\nbias=false\nembeddings={}\nmesh_connectivity={}\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint=weights_only\n",
+            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=mesh_gpt\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\nabstract_symbol_permutation=true\nloss=answer_only\ncontext=4\nwidth={}\nheads={}\nlayers={}\nattention_mesh_depth={}\nffn_mesh_depth={}\nparameters={}\nembedding_parameters={}\nall_parameters={}\nattention={}\npositions={}\nnormalization=pre_rmsnorm\nqk_norm={}\nrmsnorm_affine=false\nbias=false\nembeddings={}\nmesh_connectivity={}\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nweight_decay={}\nwarmup_steps=10\nbatch={}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint=weights_only\n",
             options.operation,
             options.modulus,
             options.train_fraction,
@@ -276,6 +294,17 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
                 TokenEmbedding::Mesh => "mesh_edges",
                 TokenEmbedding::Table => "mesh_edges_and_token_table",
             },
+            if options.config.xsa { "xsa" } else { "softmax" },
+            if options.config.rope {
+                "slice_rope"
+            } else {
+                "none"
+            },
+            if options.config.qk_norm {
+                "per_head_rmsnorm"
+            } else {
+                "none"
+            },
             options.config.embedding,
             options.config.connectivity,
             options.optimizer.learning_rate,
@@ -288,6 +317,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     let mut metadata = OpenOptions::new()
         .append(true)
         .open(options.output.join("run.txt"))?;
+    write!(metadata, "{}", super::geometry::metadata(options.config))?;
     writeln!(
         metadata,
         "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nqk_signs={}\nworkspace_capacity={}",

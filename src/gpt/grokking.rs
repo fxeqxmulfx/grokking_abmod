@@ -139,9 +139,7 @@ impl EquationDataset {
         {
             return Err("train fraction must be finite and strictly between 0 and 1".into());
         }
-        let mut residue_tokens: Vec<_> = (0..modulus as u32).collect();
-        let mut symbols = Random::new(seed ^ 0x73796d626f6c7301);
-        shuffle(&mut residue_tokens, &mut symbols);
+        let residue_tokens = residue_permutation(modulus, seed);
         let mut characters = vec![' '; modulus + 2];
         for (residue, &token) in residue_tokens.iter().enumerate() {
             // Private-use characters give each abstract symbol an exact identity
@@ -252,6 +250,13 @@ impl EquationDataset {
         }
         Ok((inputs, targets))
     }
+}
+
+pub(crate) fn residue_permutation(modulus: usize, seed: u64) -> Vec<u32> {
+    let mut tokens = (0..modulus as u32).collect::<Vec<_>>();
+    let mut symbols = Random::new(seed ^ 0x73796d626f6c7301);
+    shuffle(&mut tokens, &mut symbols);
+    tokens
 }
 
 fn shuffle<T>(values: &mut [T], random: &mut Random) {

@@ -29,6 +29,10 @@ uv run --locked scripts/plot-gpt.py
 ```
 
 See [Mesh GPT architecture, options, and verification](docs/mesh-gpt.md).
+Optional geometric embedding forms, normalization, protected residual features,
+and Gram/Fourier diagnostics are documented in
+[Embedding geometry](docs/embedding-geometry.md), with a standalone
+[Lean proof project](lean/README.md).
 The modular arithmetic experiment from arXiv:2201.02177v1 is available as
 `cargo oxide run --bin mesh-gpt -- grok`; see [Grokking on Mesh GPT](docs/grokking.md)
 for complete-split evaluation, abstract symbol tokens, and the paper's AdamW settings.

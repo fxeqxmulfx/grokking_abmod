@@ -1,8 +1,8 @@
 use crate::{Result, mesh::validate_finite};
 
 use super::{
-    GptConfig, IGNORE_TARGET, MeshConnectivity, RMSNORM_EPSILON, ROPE_BASE, TokenEmbedding,
-    XSA_EPSILON,
+    EmbeddingNorm, GptConfig, IGNORE_TARGET, MeshConnectivity, RMSNORM_EPSILON, ROPE_BASE,
+    TokenEmbedding, XSA_EPSILON,
     config::{Layout, token_codes},
 };
 
@@ -34,6 +34,7 @@ impl ReferenceGpt {
             return Err("parameter count does not match GPT configuration".into());
         }
         validate_finite(&parameters, "parameters")?;
+        layout.validate_constraints(config, &parameters)?;
         Ok(Self {
             config,
             layout,
@@ -47,7 +48,7 @@ impl ReferenceGpt {
 
     pub fn logits(&self, tokens: &[u32], sequence: usize) -> Result<Vec<Vec<f32>>> {
         self.config.validate_tokens(tokens, sequence)?;
-        let (tape, ids) = self.forward(tokens, sequence);
+        let (tape, ids, _) = self.forward(tokens, sequence);
         ids.iter()
             .map(|row| {
                 let values: Vec<_> = row.iter().map(|&id| tape.values[id] as f32).collect();
@@ -64,7 +65,7 @@ impl ReferenceGpt {
         sequence: usize,
     ) -> Result<(f64, Vec<f64>)> {
         let supervised = self.config.validate_batch(tokens, targets, sequence)?;
-        let (mut tape, logits) = self.forward(tokens, sequence);
+        let (mut tape, logits, _) = self.forward(tokens, sequence);
         let mut losses = Vec::new();
         for (row, &target) in logits.iter().zip(targets) {
             if target == IGNORE_TARGET {
@@ -78,20 +79,33 @@ impl ReferenceGpt {
         let sum = tape.sum(&losses);
         let loss_id = tape.scale(sum, 1.0 / supervised as f64);
         let loss = tape.values[loss_id];
-        let gradients = tape.backward(loss_id, self.parameters.len());
+        let mut gradients = tape.backward(loss_id, self.parameters.len());
+        self.layout.mask_gradient(self.config, &mut gradients);
         if !loss.is_finite() || gradients.iter().any(|g| !g.is_finite()) {
             return Err("nonfinite reference loss or gradients".into());
         }
         Ok((loss, gradients))
     }
 
-    fn forward(&self, tokens: &[u32], sequence: usize) -> (Tape, Vec<Vec<usize>>) {
+    /// Effective tied vectors, including normalization and protected code injection.
+    pub fn token_embeddings(&self) -> Result<Vec<Vec<f32>>> {
+        let mut tape = Tape::new(self.parameters.iter().map(|&p| f64::from(p)));
+        let ids = self.embeddings(&mut tape);
+        read_features(&tape, &ids)
+    }
+
+    /// Residual states before the final RMSNorm, where the protected probe is invariant.
+    pub fn hidden_states(&self, tokens: &[u32], sequence: usize) -> Result<Vec<Vec<f32>>> {
+        self.config.validate_tokens(tokens, sequence)?;
+        let (tape, _, ids) = self.forward(tokens, sequence);
+        read_features(&tape, &ids)
+    }
+
+    fn embeddings(&self, tape: &mut Tape) -> Vec<Vec<usize>> {
         let config = self.config;
         let width = config.width;
-        let connectivity = config.connectivity;
-        let mut tape = Tape::new(self.parameters.iter().map(|&p| f64::from(p)));
         let offset = self.layout.groups[self.layout.embedding].offset;
-        let embeddings = match config.embedding {
+        let mut embeddings = match config.embedding {
             TokenEmbedding::Mesh => {
                 let codes: Vec<Vec<_>> = token_codes(config)
                     .iter()
@@ -103,11 +117,11 @@ impl ReferenceGpt {
                     })
                     .collect();
                 mesh(
-                    &mut tape,
+                    tape,
                     &codes,
                     offset,
                     config.attention_mesh_depth,
-                    connectivity,
+                    config.connectivity,
                 )
             }
             // Parameter values are the first tape nodes, so table entries are their IDs.
@@ -115,6 +129,33 @@ impl ReferenceGpt {
                 .map(|token| (0..width).map(|c| offset + token * width + c).collect())
                 .collect(),
         };
+        if config.geometry.normalization != EmbeddingNorm::None {
+            let scale = f64::from(config.geometry.radius(width));
+            for row in &mut embeddings {
+                let squares = tape.dot(row, row);
+                let clamped = tape.clamp_min(squares, f64::from(XSA_EPSILON).powi(2));
+                let inverse = tape.inverse_sqrt(clamped);
+                let inverse = tape.scale(inverse, scale);
+                for id in row {
+                    *id = tape.multiply(*id, inverse);
+                }
+            }
+        }
+        if config.geometry.preserve_features > 0 {
+            for (row, code) in embeddings.iter_mut().zip(token_codes(config)) {
+                for channel in 0..config.geometry.preserve_features {
+                    row[channel] = tape.constant(f64::from(code[channel]));
+                }
+            }
+        }
+        embeddings
+    }
+
+    fn forward(&self, tokens: &[u32], sequence: usize) -> (Tape, Vec<Vec<usize>>, Vec<Vec<usize>>) {
+        let config = self.config;
+        let connectivity = config.connectivity;
+        let mut tape = Tape::new(self.parameters.iter().map(|&p| f64::from(p)));
+        let embeddings = self.embeddings(&mut tape);
         let mut x: Vec<Vec<_>> = tokens
             .iter()
             .map(|&token| embeddings[token as usize].clone())
@@ -130,12 +171,32 @@ impl ReferenceGpt {
                     connectivity,
                 )
             });
-            let query = rmsnorm(&mut tape, &query, config.heads);
-            let key = rmsnorm(&mut tape, &key, config.heads);
-            let query = rotary(&mut tape, &query, sequence, config.heads);
-            let key = rotary(&mut tape, &key, sequence, config.heads);
+            let query = if config.qk_norm {
+                rmsnorm(&mut tape, &query, config.heads)
+            } else {
+                query
+            };
+            let key = if config.qk_norm {
+                rmsnorm(&mut tape, &key, config.heads)
+            } else {
+                key
+            };
+            let query = if config.rope {
+                rotary(&mut tape, &query, sequence, config.heads)
+            } else {
+                query
+            };
+            let key = if config.rope {
+                rotary(&mut tape, &key, sequence, config.heads)
+            } else {
+                key
+            };
             let attended = attention(&mut tape, &query, &key, &value, sequence, config.heads);
-            let attended = exclusive(&mut tape, &attended, &value, config.heads);
+            let attended = if config.xsa {
+                exclusive(&mut tape, &attended, &value, config.heads)
+            } else {
+                attended
+            };
             let projected = mesh(
                 &mut tape,
                 &attended,
@@ -163,8 +224,21 @@ impl ReferenceGpt {
                     .collect()
             })
             .collect();
-        (tape, logits)
+        (tape, logits, x)
     }
+}
+
+fn read_features(tape: &Tape, ids: &[Vec<usize>]) -> Result<Vec<Vec<f32>>> {
+    ids.iter()
+        .map(|row| {
+            let values = row
+                .iter()
+                .map(|&id| tape.values[id] as f32)
+                .collect::<Vec<_>>();
+            validate_finite(&values, "features")?;
+            Ok(values)
+        })
+        .collect()
 }
 
 struct Tape {

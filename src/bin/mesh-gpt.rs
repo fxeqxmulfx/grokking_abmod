@@ -13,12 +13,14 @@ use std::{
 use grokking_abmod::{
     Result,
     gpt::{
-        AdamWOptions, CharacterTokenizer, Checkpoint, GptConfig, GptTrainOptions, GpuMeshGpt,
-        IGNORE_TARGET, MeshConnectivity, ReferenceGpt, SpecializedMeshGpt, TextDataset,
-        TokenEmbedding,
+        AdamWOptions, CharacterTokenizer, Checkpoint, EmbeddingForm, EmbeddingGeometry,
+        EmbeddingNorm, EmbeddingOrder, GptConfig, GptTrainOptions, GpuMeshGpt, IGNORE_TARGET,
+        MeshConnectivity, ReferenceGpt, SpecializedMeshGpt, TextDataset, TokenEmbedding,
     },
 };
 
+#[path = "mesh-gpt/geometry.rs"]
+mod geometry;
 #[path = "mesh-gpt/grokking.rs"]
 mod grokking;
 
@@ -83,7 +85,11 @@ impl Options {
                 "--tokens" => options.tokens = value(&mut arguments, &flag)?,
                 "--temperature" => options.temperature = value(&mut arguments, &flag)?,
                 "--help" | "-h" => options.help = true,
-                _ => return Err(format!("unknown option: {flag}; use --help").into()),
+                _ => {
+                    if !geometry::parse_option(&mut options.config, &flag, &mut arguments)? {
+                        return Err(format!("unknown option: {flag}; use --help").into());
+                    }
+                }
             }
         }
         Ok(options)
@@ -97,14 +103,14 @@ fn main() -> Result<()> {
     let options = Options::parse()?;
     if options.help {
         println!(
-            "Mesh GPT: all learned weights in meshes, with fixed RMSNorm, QK-Norm, slice RoPE, and XSA\n\
+            "Mesh GPT: mesh projections and optional embedding geometry\n\
             Usage: cargo oxide run --bin mesh-gpt -- [train|generate|grok|verify] [options]\n\n\
             grok --help           Modular arithmetic experiments from arXiv:2201.02177v1\n\
             --dataset PATH        UTF-8 training corpus (default: data/mesh-gpt-demo.txt)\n\
             --output PATH         Artifacts (default: target/mesh-gpt)\n\
             --checkpoint PATH     Load for generate; save for train (default: OUTPUT/model.bin)\n\
             --width N             Channels, 2..128 (default: 32)\n\
-            --heads N             Heads, 1..8, divides width, even channels/head (default: 4)\n\
+            --heads N             Heads, 1..8, divides width; even channels/head with RoPE (default: 4)\n\
             --layers N            Transformer blocks, 1..64 (default: 2)\n\
             --context N           Maximum sequence length, 1..128 (default: 32)\n\
             --attention-depth N   Embedding/Q/K/V/output mesh depth, 1..256 (default: 4)\n\
@@ -120,6 +126,7 @@ fn main() -> Result<()> {
             --seed N              Initialization/data/sampling seed (default: 7)\n\
             --device N            CUDA device ordinal (default: 0)"
         );
+        println!("\n{}", geometry::HELP);
         return Ok(());
     }
     if options.command == "verify" {
@@ -171,7 +178,7 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
         dataset.batch(true, options.config.context, options.batch, 101)?;
     let mut model = GpuMeshGpt::new(options.device, options.config, options.seed)?;
     println!(
-        "Mesh GPT (bias-free, fixed RMSNorm + QK-Norm, slice RoPE + XSA): blocks={}, width={}, heads={}, context={}, vocabulary={}, parameters={}",
+        "Mesh GPT: blocks={}, width={}, heads={}, context={}, vocabulary={}, parameters={}",
         options.config.layers,
         options.config.width,
         options.config.heads,
@@ -180,10 +187,22 @@ fn train(mut options: Options, checkpoint: PathBuf) -> Result<()> {
         options.config.parameter_count()?
     );
     println!(
-        "Meshes: token embedding/Q/K/V/output depth={}, FFN depth={}; all weights are mesh edges",
-        options.config.attention_mesh_depth, options.config.ffn_mesh_depth
+        "Meshes: Q/K/V/output depth={}, FFN depth={}; embeddings={}, form={}, norm={}, protected={}; RoPE={}, QK-Norm={}, XSA={}",
+        options.config.attention_mesh_depth,
+        options.config.ffn_mesh_depth,
+        options.config.embedding,
+        options.config.geometry.form,
+        options.config.geometry.normalization,
+        options.config.geometry.preserve_features,
+        options.config.rope,
+        options.config.qk_norm,
+        options.config.xsa
     );
     std::fs::create_dir_all(&options.output)?;
+    std::fs::write(
+        options.output.join("geometry.txt"),
+        geometry::metadata(options.config),
+    )?;
     let mut history = BufWriter::new(File::create(options.output.join("loss.csv"))?);
     writeln!(
         history,
@@ -302,6 +321,13 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
 ) -> Result<()> {
     let reference = ReferenceGpt::new(config, 7)?;
     let mut model = SpecializedMeshGpt::<W, V, C, H>::new(device, config, 7)?;
+    let cpu_embeddings = reference.token_embeddings()?;
+    let gpu_embeddings = model.token_embeddings()?;
+    for (cpu, gpu) in cpu_embeddings.iter().zip(&gpu_embeddings) {
+        for (&a, &b) in cpu.iter().zip(gpu) {
+            close("effective embedding", f64::from(a), f64::from(b), 5e-4)?;
+        }
+    }
     for &(batch, sequence) in cases {
         let x: Vec<_> = (0..batch * sequence)
             .map(|i| (i % config.vocab_size) as u32)
@@ -311,6 +337,16 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
             .collect();
         let expected = reference.logits(&x, sequence)?;
         let actual = model.logits(&x, sequence)?;
+        if config.geometry.preserve_features > 0 {
+            let codes = config.fixed_token_codes()?;
+            for (state, &token) in model.hidden_states(&x, sequence)?.iter().zip(&x) {
+                if state[..config.geometry.preserve_features]
+                    != codes[token as usize][..config.geometry.preserve_features]
+                {
+                    return Err("protected feature changed inside the residual stack".into());
+                }
+            }
+        }
         for (row, (cpu, gpu)) in expected.iter().zip(&actual).enumerate() {
             for (token, (&cpu, &gpu)) in cpu.iter().zip(gpu).enumerate() {
                 close(
@@ -406,9 +442,15 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
             // tiny reduction differences when gradients are near epsilon.
             b1 *= optimizer.beta1;
             b2 *= optimizer.beta2;
-            for ((parameter, moment), gradient) in
-                parameters.iter_mut().zip(&mut moments).zip(gradient)
+            for (index, ((parameter, moment), gradient)) in parameters
+                .iter_mut()
+                .zip(&mut moments)
+                .zip(gradient)
+                .enumerate()
             {
+                if config.geometry.frozen && index < config.embedding_parameter_count() {
+                    continue;
+                }
                 let gradient = gradient as f32;
                 moment[0] = optimizer.beta1 * moment[0] + (1.0 - optimizer.beta1) * gradient;
                 moment[1] =
@@ -443,15 +485,39 @@ fn verify_model<const W: usize, const V: usize, const C: usize, const H: usize>(
             )?;
         }
     }
-    let mut zero_embeddings = vec![0.5; config.parameter_count()?];
-    zero_embeddings[..config.embedding_parameter_count()].fill(0.0);
-    model.set_parameters(&zero_embeddings)?;
-    if model.logits(&x, 3)?.iter().flatten().any(|&x| x != 0.0) {
-        return Err("zero token embeddings produced additive logit offsets".into());
+    if config.geometry.preserve_features == 0 {
+        let mut zero_embeddings = vec![0.5; config.parameter_count()?];
+        zero_embeddings[..config.embedding_parameter_count()].fill(0.0);
+        model.set_parameters(&zero_embeddings)?;
+        if model.logits(&x, 3)?.iter().flatten().any(|&x| x != 0.0) {
+            return Err("zero token embeddings produced additive logit offsets".into());
+        }
+    } else {
+        // The fixed injected code survives even if every learned weight is zero.
+        model.set_parameters(&vec![0.0; config.parameter_count()?])?;
+        let codes = config.fixed_token_codes()?;
+        for (state, &token) in model.hidden_states(&x, 3)?.iter().zip(&x) {
+            if state[..config.geometry.preserve_features]
+                != codes[token as usize][..config.geometry.preserve_features]
+            {
+                return Err("protected code disappeared with zero learned weights".into());
+            }
+        }
     }
     println!(
-        "PASS {} embeddings, {} meshes, RMSNorm/QK-Norm/RoPE/XSA width={} heads={} layers={}: logits, dense/masked gradients, causality, batch tails, AdamW beta2=0.999/0.98/reset, zero-input offsets",
-        config.embedding, config.connectivity, config.width, config.heads, config.layers
+        "PASS {} embeddings, {} meshes, form={} norm={} protected={} frozen={} RoPE={} QK={} XSA={} width={} heads={} layers={}: logits, dense/masked gradients, causality, batch tails, AdamW beta2=0.999/0.98/reset, zero-weight behavior",
+        config.embedding,
+        config.connectivity,
+        config.geometry.form,
+        config.geometry.normalization,
+        config.geometry.preserve_features,
+        config.geometry.frozen,
+        config.rope,
+        config.qk_norm,
+        config.xsa,
+        config.width,
+        config.heads,
+        config.layers
     );
     for oversized in [
         GptConfig {
@@ -549,6 +615,7 @@ fn verify_workspace_cache(device: usize) -> Result<()> {
 }
 
 fn verify(device: usize) -> Result<()> {
+    verify_geometry(device)?;
     verify_workspace_cache(device)?;
     GpuMeshGpt::verify_attention_contracts(device)?;
     println!(
@@ -729,6 +796,7 @@ fn verify(device: usize) -> Result<()> {
                 ffn_mesh_depth: 4,
                 embedding,
                 connectivity,
+                ..GptConfig::default()
             },
             // Depth 8 at width 128 reaches every butterfly stride from 1 to 64;
             // 129 rows exercise the chunked mesh-gradient reductions.
@@ -742,6 +810,7 @@ fn verify(device: usize) -> Result<()> {
                 ffn_mesh_depth: 8,
                 embedding,
                 connectivity,
+                ..GptConfig::default()
             },
         ] {
             verify_model::<128, 256, 128, 8>(device, config, &[(1, 1), (1, 3), (2, 3), (43, 3)])?;
@@ -759,6 +828,7 @@ fn verify(device: usize) -> Result<()> {
             ffn_mesh_depth: 6,
             embedding: TokenEmbedding::Table,
             connectivity: MeshConnectivity::Butterfly,
+            ..GptConfig::default()
         },
         &[(1, 1), (1, 4), (2, 4), (33, 4)],
     )?;
@@ -815,5 +885,120 @@ fn verify(device: usize) -> Result<()> {
     }
     println!("PASS context-dependent learning: CE {initial:.5} -> {loss:.5}");
     println!("CUDA Mesh GPT verification passed");
+    Ok(())
+}
+
+fn verify_geometry(device: usize) -> Result<()> {
+    let base = GptConfig {
+        vocab_size: 7,
+        context: 5,
+        width: 8,
+        heads: 2,
+        layers: 2,
+        attention_mesh_depth: 2,
+        ffn_mesh_depth: 2,
+        ..GptConfig::default()
+    };
+    for form in [
+        EmbeddingForm::Parity,
+        EmbeddingForm::Circle,
+        EmbeddingForm::Fourier,
+        EmbeddingForm::Orthogonal,
+        EmbeddingForm::Simplex,
+        EmbeddingForm::Equiangular,
+        EmbeddingForm::Antipodal,
+        EmbeddingForm::Hypercube,
+        EmbeddingForm::SignedPermutations,
+        EmbeddingForm::Sphere,
+    ] {
+        for embedding in [TokenEmbedding::Mesh, TokenEmbedding::Table] {
+            let config = GptConfig {
+                embedding,
+                geometry: EmbeddingGeometry {
+                    form,
+                    overlap: 0.25,
+                    ..EmbeddingGeometry::default()
+                },
+                ..base
+            };
+            verify_model::<128, 256, 128, 8>(device, config, &[(1, 1), (2, 3)])?;
+        }
+    }
+    for embedding in [TokenEmbedding::Mesh, TokenEmbedding::Table] {
+        for normalization in [EmbeddingNorm::Unit, EmbeddingNorm::Rms] {
+            verify_model::<128, 256, 128, 8>(
+                device,
+                GptConfig {
+                    embedding,
+                    geometry: EmbeddingGeometry {
+                        normalization,
+                        ..EmbeddingGeometry::default()
+                    },
+                    ..base
+                },
+                &[(1, 3), (2, 4)],
+            )?;
+        }
+        verify_model::<128, 256, 128, 8>(
+            device,
+            GptConfig {
+                embedding,
+                geometry: EmbeddingGeometry {
+                    preserve_features: 3,
+                    ..EmbeddingGeometry::default()
+                },
+                ..base
+            },
+            &[(2, 4)],
+        )?;
+        verify_model::<128, 256, 128, 8>(
+            device,
+            GptConfig {
+                embedding,
+                geometry: EmbeddingGeometry {
+                    frozen: true,
+                    ..EmbeddingGeometry::default()
+                },
+                ..base
+            },
+            &[(2, 4)],
+        )?;
+    }
+    for order in [EmbeddingOrder::Residue, EmbeddingOrder::DiscreteLog] {
+        verify_model::<128, 256, 128, 8>(
+            device,
+            GptConfig {
+                geometry: EmbeddingGeometry {
+                    form: EmbeddingForm::Circle,
+                    order,
+                    modulus: 5,
+                    seed: 7,
+                    ..EmbeddingGeometry::default()
+                },
+                ..base
+            },
+            &[(2, 4)],
+        )?;
+    }
+    for (rope, qk_norm, xsa) in [
+        (false, true, true),
+        (true, false, true),
+        (true, true, false),
+        (false, false, false),
+    ] {
+        verify_model::<128, 256, 128, 8>(
+            device,
+            GptConfig {
+                rope,
+                qk_norm,
+                xsa,
+                ..base
+            },
+            &[(2, 4)],
+        )?;
+    }
+    println!(
+        "PASS embedding geometry: all forms, mesh/table, norms and gradients, protected features, frozen AdamW, arithmetic order, operator switches"
+    );
     Ok(())
 }

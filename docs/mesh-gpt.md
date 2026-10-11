@@ -334,6 +334,12 @@ used a directly learned token embedding table. They are rejected
 with a retraining message, so their weights cannot silently run under a
 different architecture or parameter layout.
 
+Optional [embedding geometry](embedding-geometry.md) writes `MSHGPT09`, which
+also stores geometric code options, arithmetic ordering/seed, normalization,
+frozen embeddings, protected residual features, and RoPE/QK-Norm/XSA switches.
+Its reader validates the final output-row constraints. The original `07` and
+`08` formats continue to load and are still written for their configurations.
+
 ## GPU execution and verification
 
 CUDA performs the embedding mesh, input lookup, RMSNorm/QK-Norm, mesh projections, RoPE and its

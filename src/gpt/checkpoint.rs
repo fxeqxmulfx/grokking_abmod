@@ -6,11 +6,15 @@ use std::{
 
 use crate::{Result, mesh::validate_finite};
 
-use super::{CharacterTokenizer, GptConfig, MeshConnectivity, TokenEmbedding};
+use super::{
+    CharacterTokenizer, EmbeddingForm, EmbeddingNorm, EmbeddingOrder, GptConfig, MeshConnectivity,
+    TokenEmbedding, config::Layout,
+};
 
 /// A versioned weights-only checkpoint. Loading resets the AdamW state.
 /// The default architecture keeps the MSHGPT07 layout; MSHGPT08 adds the
-/// token-embedding and mesh-connectivity ablation fields.
+/// token-embedding and mesh-connectivity ablation fields. MSHGPT09 also stores
+/// geometric codes, constraints, and operator switches; older layouts still load.
 pub struct Checkpoint {
     pub config: GptConfig,
     pub tokenizer: CharacterTokenizer,
@@ -25,13 +29,24 @@ impl Checkpoint {
             return Err("checkpoint model, parameters, and tokenizer do not match".into());
         }
         validate_finite(&self.parameters, "checkpoint parameters")?;
+        Layout::new(self.config)?.validate_constraints(self.config, &self.parameters)?;
         let ablation = [
             usize::from(self.config.embedding == TokenEmbedding::Table),
             usize::from(self.config.connectivity == MeshConnectivity::Butterfly),
         ];
-        let default = ablation == [0, 0];
+        let extended = self.config.geometry != super::EmbeddingGeometry::default()
+            || !self.config.rope
+            || !self.config.qk_norm
+            || !self.config.xsa;
+        let default = ablation == [0, 0] && !extended;
         let mut file = File::create(path)?;
-        file.write_all(if default { b"MSHGPT07" } else { b"MSHGPT08" })?;
+        file.write_all(if extended {
+            b"MSHGPT09"
+        } else if default {
+            b"MSHGPT07"
+        } else {
+            b"MSHGPT08"
+        })?;
         let extra: &[usize] = if default { &[] } else { &ablation };
         for &field in [
             self.config.vocab_size,
@@ -46,6 +61,27 @@ impl Checkpoint {
         .chain(extra)
         {
             file.write_all(&(field as u32).to_le_bytes())?;
+        }
+        if extended {
+            let g = self.config.geometry;
+            for field in [
+                g.form as u32,
+                g.order as u32,
+                g.frequency as u32,
+                g.harmonics as u32,
+                g.overlap.to_bits(),
+                g.normalization as u32,
+                u32::from(g.frozen),
+                g.preserve_features as u32,
+                g.modulus as u32,
+                g.seed as u32,
+                (g.seed >> 32) as u32,
+                u32::from(self.config.rope),
+                u32::from(self.config.qk_norm),
+                u32::from(self.config.xsa),
+            ] {
+                file.write_all(&field.to_le_bytes())?;
+            }
         }
         for &character in &self.tokenizer.characters {
             file.write_all(&(character as u32).to_le_bytes())?;
@@ -64,7 +100,7 @@ impl Checkpoint {
     fn read(reader: &mut impl Read) -> Result<Self> {
         let mut magic = [0_u8; 8];
         reader.read_exact(&mut magic)?;
-        if &magic != b"MSHGPT07" && &magic != b"MSHGPT08" {
+        if &magic != b"MSHGPT07" && &magic != b"MSHGPT08" && &magic != b"MSHGPT09" {
             return Err(match &magic {
                 b"MSHGPT01" | b"MSHGPT02" => "checkpoint uses learned position embeddings; retrain Mesh GPT with RoPE",
                 b"MSHGPT03" => "checkpoint uses LayerNorm; retrain Mesh GPT with RMSNorm",
@@ -89,7 +125,7 @@ impl Checkpoint {
             ffn_mesh_depth: u32::from_le_bytes(word()?) as usize,
             ..GptConfig::default()
         };
-        if &magic == b"MSHGPT08" {
+        if &magic == b"MSHGPT08" || &magic == b"MSHGPT09" {
             config.embedding = match u32::from_le_bytes(word()?) {
                 0 => TokenEmbedding::Mesh,
                 1 => TokenEmbedding::Table,
@@ -100,10 +136,34 @@ impl Checkpoint {
                 1 => MeshConnectivity::Butterfly,
                 _ => return Err("unknown checkpoint mesh connectivity".into()),
             };
-            if config.embedding == TokenEmbedding::Mesh
+            if &magic == b"MSHGPT08"
+                && config.embedding == TokenEmbedding::Mesh
                 && config.connectivity == MeshConnectivity::Neighbor
             {
                 return Err("the default architecture must use the MSHGPT07 layout".into());
+            }
+        }
+        if &magic == b"MSHGPT09" {
+            config.geometry.form = EmbeddingForm::from_code(u32::from_le_bytes(word()?))?;
+            config.geometry.order = EmbeddingOrder::from_code(u32::from_le_bytes(word()?))?;
+            config.geometry.frequency = u32::from_le_bytes(word()?) as usize;
+            config.geometry.harmonics = u32::from_le_bytes(word()?) as usize;
+            config.geometry.overlap = f32::from_bits(u32::from_le_bytes(word()?));
+            config.geometry.normalization = EmbeddingNorm::from_code(u32::from_le_bytes(word()?))?;
+            config.geometry.frozen = read_switch(u32::from_le_bytes(word()?))?;
+            config.geometry.preserve_features = u32::from_le_bytes(word()?) as usize;
+            config.geometry.modulus = u32::from_le_bytes(word()?) as usize;
+            let low = u64::from(u32::from_le_bytes(word()?));
+            config.geometry.seed = low | (u64::from(u32::from_le_bytes(word()?)) << 32);
+            config.rope = read_switch(u32::from_le_bytes(word()?))?;
+            config.qk_norm = read_switch(u32::from_le_bytes(word()?))?;
+            config.xsa = read_switch(u32::from_le_bytes(word()?))?;
+            if config.geometry == super::EmbeddingGeometry::default()
+                && config.rope
+                && config.qk_norm
+                && config.xsa
+            {
+                return Err("default geometry must use an older checkpoint layout".into());
             }
         }
         let count = config.parameter_count()?;
@@ -120,6 +180,7 @@ impl Checkpoint {
             parameters.push(f32::from_le_bytes(word()?));
         }
         validate_finite(&parameters, "checkpoint parameters")?;
+        Layout::new(config)?.validate_constraints(config, &parameters)?;
         if reader.read(&mut [0])? != 0 {
             return Err("unexpected trailing checkpoint bytes".into());
         }
@@ -131,10 +192,86 @@ impl Checkpoint {
     }
 }
 
+fn read_switch(code: u32) -> Result<bool> {
+    match code {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err("invalid checkpoint switch".into()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::gpt::ReferenceGpt;
+
+    #[test]
+    fn geometric_checkpoints_preserve_codes_constraints_and_operator_switches() {
+        let tokenizer = CharacterTokenizer::from_text("abcdefg").unwrap();
+        for form in [
+            EmbeddingForm::Circle,
+            EmbeddingForm::Fourier,
+            EmbeddingForm::Simplex,
+            EmbeddingForm::Sphere,
+            EmbeddingForm::Parity,
+        ] {
+            let config = GptConfig {
+                vocab_size: 7,
+                width: 8,
+                heads: 2,
+                embedding: TokenEmbedding::Table,
+                rope: false,
+                qk_norm: false,
+                xsa: false,
+                geometry: super::super::EmbeddingGeometry {
+                    form,
+                    seed: u64::MAX,
+                    preserve_features: 2,
+                    frozen: true,
+                    ..super::super::EmbeddingGeometry::default()
+                },
+                ..GptConfig::default()
+            };
+            let checkpoint = Checkpoint {
+                config,
+                tokenizer: tokenizer.clone(),
+                parameters: config.initial_parameters(7).unwrap(),
+            };
+            let path = std::env::temp_dir().join(format!(
+                "geometric-checkpoint-{}-{form}.bin",
+                std::process::id()
+            ));
+            checkpoint.save(&path).unwrap();
+            let bytes = std::fs::read(&path).unwrap();
+            std::fs::remove_file(&path).unwrap();
+            assert_eq!(&bytes[..8], b"MSHGPT09");
+            let loaded = Checkpoint::read(&mut bytes.as_slice()).unwrap();
+            assert_eq!(loaded.config, config);
+            assert_eq!(loaded.parameters, checkpoint.parameters);
+            assert_eq!(
+                loaded.config.fixed_token_codes().unwrap(),
+                config.fixed_token_codes().unwrap()
+            );
+            for (offset, code) in [(44, 99_u32), (48, 99), (64, 99), (68, 2), (92, 2)] {
+                let mut broken = bytes.clone();
+                broken[offset..offset + 4].copy_from_slice(&code.to_le_bytes());
+                assert!(Checkpoint::read(&mut broken.as_slice()).is_err());
+            }
+            let mut broken = checkpoint.parameters.clone();
+            let layout = Layout::new(config).unwrap();
+            let id = layout.blocks[0].projection;
+            let range = layout.constrained_range(config, id);
+            broken[layout.groups[id].offset + range.start] = 1.0;
+            assert!(
+                Checkpoint {
+                    parameters: broken,
+                    ..checkpoint
+                }
+                .save(&path)
+                .is_err()
+            );
+        }
+    }
 
     #[test]
     fn checkpoint_rejects_corruption_and_round_trips_exact_weights() {

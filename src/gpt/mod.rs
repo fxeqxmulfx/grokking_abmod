@@ -4,6 +4,7 @@
 
 mod checkpoint;
 mod config;
+mod geometry;
 mod gpu;
 mod grokking;
 mod reference;
@@ -13,6 +14,7 @@ pub use checkpoint::Checkpoint;
 pub use config::{
     AdamWOptions, GptConfig, GptTrainOptions, MeshConnectivity, TokenEmbedding, tabulate_embedding,
 };
+pub use geometry::{EmbeddingForm, EmbeddingGeometry, EmbeddingNorm, EmbeddingOrder};
 pub use gpu::{GpuMeshGpt, SpecializedMeshGpt};
 pub use grokking::{
     EQUATION_CONTEXT, Equation, EquationDataset, EquationSampler, ModularOperation,

@@ -1260,6 +1260,111 @@ mod kernels {
 
     #[kernel]
     #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, backward <= 1,
+        gradient.len() == input.len(), out.len() == input.len()))]
+    pub fn gpt_geometry_statistics<const W: usize>(
+        width: usize,
+        backward: usize,
+        radius: f32,
+        input: &[Features<W>],
+        gradient: &[Features<W>],
+        mut out: DisjointSlice<NormStats, thread::WarpIndex>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get() / 32;
+        let lane = index.get() % 32;
+        if row >= input.len() {
+            return;
+        }
+        let squares = attention_dot(0, width, lane, &input[row], &input[row]);
+        let dot = if backward == 1 {
+            attention_dot(0, width, lane, &input[row], &gradient[row])
+        } else {
+            0.0
+        };
+        if let Some(output) = warp_output(&mut out) {
+            *output = [
+                radius / squares.sqrt().max(XSA_EPSILON),
+                if squares >= XSA_EPSILON * XSA_EPSILON {
+                    dot / squares
+                } else {
+                    0.0
+                },
+            ];
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        width >= 2, width <= W, backward <= 1, normalize <= 1, protected <= width,
+        normalize * protected == 0, input.len() == gradient.len(), codes.len() == input.len(),
+        statistics.len() == input.len(), out.len() == input.len() * W))]
+    pub fn gpt_geometry_apply<const W: usize>(
+        width: usize,
+        backward: usize,
+        normalize: usize,
+        protected: usize,
+        input: &[Features<W>],
+        gradient: &[Features<W>],
+        codes: &[Features<W>],
+        statistics: &[NormStats],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get() / W;
+        let channel = index.get() % W;
+        if let Some(output) = out.get_mut(index) {
+            if channel >= width {
+                return;
+            }
+            *output = if channel < protected {
+                if backward == 1 {
+                    0.0
+                } else {
+                    codes[row][channel]
+                }
+            } else if normalize == 0 {
+                if backward == 1 {
+                    gradient[row][channel]
+                } else {
+                    input[row][channel]
+                }
+            } else {
+                let [inverse, projection] = statistics[row];
+                inverse
+                    * if backward == 1 {
+                        gradient[row][channel] - input[row][channel] * projection
+                    } else {
+                        input[row][channel]
+                    }
+            };
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        begin <= end, end <= out.len()))]
+    pub fn gpt_gradient_mask<const W: usize>(
+        begin: usize,
+        end: usize,
+        mut out: DisjointSlice<f32>,
+    ) {
+        let _ = W;
+        let index = thread::index_1d();
+        let offset = index.get();
+        if let Some(output) = out.get_mut(index)
+            && offset >= begin
+            && offset < end
+        {
+            *output = 0.0;
+        }
+    }
+
+    #[kernel]
+    #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (gradient.len() == state.len()))]
     pub fn gpt_adam<const W: usize>(
         learning_rate: f32,
@@ -1354,10 +1459,18 @@ impl Plan {
             let query = plan.mesh(normalized, block.query, config.attention_mesh_depth, None);
             let key = plan.mesh(normalized, block.key, config.attention_mesh_depth, None);
             let value = plan.mesh(normalized, block.value, config.attention_mesh_depth, None);
-            let query = plan.rmsnorm(query, config.heads);
-            let key = plan.rmsnorm(key, config.heads);
-            let query = plan.rope(query);
-            let key = plan.rope(key);
+            let query = if config.qk_norm {
+                plan.rmsnorm(query, config.heads)
+            } else {
+                query
+            };
+            let key = if config.qk_norm {
+                plan.rmsnorm(key, config.heads)
+            } else {
+                key
+            };
+            let query = if config.rope { plan.rope(query) } else { query };
+            let key = if config.rope { plan.rope(key) } else { key };
             let cache = plan.attentions;
             plan.attentions += 1;
             let out = plan.push(Op::Attention {
@@ -1366,7 +1479,11 @@ impl Plan {
                 value,
                 cache,
             });
-            let exclusive = plan.push(Op::Exclusive { input: out, value });
+            let exclusive = if config.xsa {
+                plan.push(Op::Exclusive { input: out, value })
+            } else {
+                out
+            };
             x = plan.mesh(
                 exclusive,
                 block.projection,
@@ -1510,6 +1627,7 @@ struct Workspace<const W: usize, const V: usize, const C: usize, const H: usize>
     features: Vec<DeviceBuffer<Features<W>>>,
     adjoints: Vec<DeviceBuffer<Features<W>>>,
     norm_statistics: DeviceBuffer<NormStats>,
+    embedding_statistics: DeviceBuffer<NormStats>,
     attention_statistics: Vec<DeviceBuffer<NormStats>>,
     attention_output: DeviceBuffer<[f32; 2]>,
     scratch: Vec<DeviceBuffer<Features<W>>>,
@@ -1557,6 +1675,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize> Workspace<W
             features: buffers(stream, plan.ops.len(), rows)?,
             adjoints: buffers(stream, plan.gradient_buffers, rows)?,
             norm_statistics: DeviceBuffer::zeroed(stream, rows * config.heads)?,
+            embedding_statistics: DeviceBuffer::zeroed(stream, config.vocab_size)?,
             attention_statistics: buffers(stream, plan.attentions, slots)?,
             attention_output: DeviceBuffer::zeroed(
                 stream,
@@ -1706,6 +1825,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             .map(DeviceBuffer::num_bytes)
             .sum::<usize>()
                 + w.norm_statistics.num_bytes()
+                + w.embedding_statistics.num_bytes()
                 + w.attention_output.num_bytes()
                 + w.attention_statistics
                     .iter()
@@ -1738,6 +1858,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             return Err("parameter count does not match GPT configuration".into());
         }
         validate_finite(values, "parameters")?;
+        self.layout.validate_constraints(self.config, values)?;
         for (group, parameters) in self.layout.groups.iter().zip(&mut self.parameters) {
             let state: Vec<_> = values[group.offset..group.offset + group.size]
                 .iter()
@@ -1858,7 +1979,10 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         let loss = self.gradients(inputs, targets, sequence)?;
         self.beta1_power *= optimizer.beta1;
         self.beta2_power *= optimizer.beta2;
-        for group in &mut self.parameters {
+        for (id, group) in self.parameters.iter_mut().enumerate() {
+            if self.config.geometry.frozen && id == self.layout.embedding {
+                continue;
+            }
             let launch = self
                 .module
                 .prepare_gpt_adam::<W>(config::<1>(group.state.len())?)?;
@@ -1942,13 +2066,38 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             .collect()
     }
 
+    /// Residual states before the final RMSNorm; protected coordinates equal the codes.
+    pub fn hidden_states(&self, tokens: &[u32], sequence: usize) -> Result<Vec<Vec<f32>>> {
+        self.config.validate_tokens(tokens, sequence)?;
+        let mut workspace = Workspace::new(
+            &self.stream,
+            &self.plan,
+            self.config,
+            tokens.len(),
+            sequence,
+        )?;
+        workspace.tokens.copy_from_host(&self.stream, tokens)?;
+        self.forward(&mut workspace)?;
+        let Op::RmsNorm { input, .. } = self.plan.ops[self.plan.final_features] else {
+            unreachable!("the final vocabulary head always follows RMSNorm")
+        };
+        workspace.features[input]
+            .to_host_vec(&self.stream)?
+            .iter()
+            .map(|row| {
+                validate_finite(&row[..self.config.width], "hidden states")?;
+                Ok(row[..self.config.width].to_vec())
+            })
+            .collect()
+    }
+
     fn forward_embeddings(&self, workspace: &mut Workspace<W, V, C, H>) -> Result<()> {
         let c = self.config;
         // Generate the entire vocabulary once so the input and head share one
         // differentiable set of vectors. Recompute after every weight change.
         let embedding = self.layout.embedding;
         if c.embedding == TokenEmbedding::Table {
-            return workspace.embeddings[0]
+            workspace.embeddings[0]
                 .with_chunks(|output| {
                     let launch = self
                         .module
@@ -1962,34 +2111,46 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                         output,
                     )
                 })?
-                .map_err(Box::<dyn std::error::Error>::from);
+                .map_err(Box::<dyn std::error::Error>::from)?;
+        } else {
+            for layer in 0..c.attention_mesh_depth {
+                let (before, after) = workspace.embeddings.split_at_mut(layer);
+                let input = if layer == 0 {
+                    &self.codes
+                } else {
+                    &before[layer - 1]
+                };
+                after[0].with_chunks(|output| {
+                    let launch = self
+                        .module
+                        .prepare_gpt_mesh::<W, 0>(config::<1>(output.len())?)?;
+                    self.module.gpt_mesh(
+                        &self.stream,
+                        &launch,
+                        c.width,
+                        c.connectivity.stride(c.width, layer),
+                        layer * 2 * c.width,
+                        usize::from(layer + 1 != c.attention_mesh_depth),
+                        0,
+                        input,
+                        input,
+                        input,
+                        &self.parameters[embedding].state,
+                        output,
+                    )
+                })??;
+            }
         }
-        for layer in 0..c.attention_mesh_depth {
-            let (before, after) = workspace.embeddings.split_at_mut(layer);
-            let input = if layer == 0 {
-                &self.codes
-            } else {
-                &before[layer - 1]
-            };
-            after[0].with_chunks(|output| {
-                let launch = self
-                    .module
-                    .prepare_gpt_mesh::<W, 0>(config::<1>(output.len())?)?;
-                self.module.gpt_mesh(
-                    &self.stream,
-                    &launch,
-                    c.width,
-                    c.connectivity.stride(c.width, layer),
-                    layer * 2 * c.width,
-                    usize::from(layer + 1 != c.attention_mesh_depth),
-                    0,
-                    input,
-                    input,
-                    input,
-                    &self.parameters[embedding].state,
-                    output,
-                )
-            })??;
+        if c.geometry.transformed() {
+            let raw = c.raw_embedding_layers();
+            let (before, after) = workspace.embeddings.split_at_mut(raw);
+            self.embedding_transform(
+                0,
+                &before[raw - 1],
+                &before[raw - 1],
+                &mut workspace.embedding_statistics,
+                &mut after[0],
+            )?;
         }
         Ok(())
     }
@@ -2161,6 +2322,7 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
             self.forward(&mut workspace)?;
             let loss = self.loss(&mut workspace)?;
             self.backward(&mut workspace)?;
+            self.mask_gradients()?;
             Ok(loss)
         })();
         self.workspaces.push(workspace);
@@ -2373,6 +2535,17 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
         })??;
         // Combine repeated input lookups with the dense head contribution
         // before traversing the shared embedding mesh exactly once.
+        if c.geometry.transformed() {
+            let raw = c.raw_embedding_layers();
+            let (before, after) = workspace.embedding_adjoints.split_at_mut(raw);
+            self.embedding_transform(
+                1,
+                &workspace.embeddings[raw - 1],
+                &after[0],
+                &mut workspace.embedding_statistics,
+                &mut before[raw - 1],
+            )?;
+        }
         let group = &mut self.parameters[self.layout.embedding];
         if c.embedding == TokenEmbedding::Table {
             let launch = self
@@ -2478,6 +2651,73 @@ impl<const W: usize, const V: usize, const C: usize, const H: usize>
                 )
             })?
             .map_err(Box::<dyn std::error::Error>::from)
+    }
+
+    fn embedding_transform(
+        &self,
+        backward: usize,
+        input: &DeviceBuffer<Features<W>>,
+        gradient: &DeviceBuffer<Features<W>>,
+        statistics: &mut DeviceBuffer<NormStats>,
+        output: &mut DeviceBuffer<Features<W>>,
+    ) -> Result<()> {
+        let g = self.config.geometry;
+        let normalize = usize::from(g.normalization != super::EmbeddingNorm::None);
+        if normalize == 1 {
+            let launch = self
+                .module
+                .prepare_gpt_geometry_statistics::<W>(config::<32>(input.len())?)?;
+            self.module.gpt_geometry_statistics(
+                &self.stream,
+                &launch,
+                self.config.width,
+                backward,
+                g.radius(self.config.width),
+                input,
+                gradient,
+                statistics,
+            )?;
+        }
+        output.with_chunks(|output| {
+            let launch = self
+                .module
+                .prepare_gpt_geometry_apply::<W>(config::<1>(output.len())?)?;
+            self.module.gpt_geometry_apply(
+                &self.stream,
+                &launch,
+                self.config.width,
+                backward,
+                normalize,
+                g.preserve_features,
+                input,
+                gradient,
+                &self.codes,
+                statistics,
+                output,
+            )
+        })??;
+        Ok(())
+    }
+
+    fn mask_gradients(&mut self) -> Result<()> {
+        for (id, group) in self.parameters.iter_mut().enumerate() {
+            let range = if self.config.geometry.frozen && id == self.layout.embedding {
+                0..group.gradient.len()
+            } else {
+                self.layout.constrained_range(self.config, id)
+            };
+            if range.is_empty() {
+                continue;
+            }
+            group.gradient.with_chunks(|output| {
+                let launch = self
+                    .module
+                    .prepare_gpt_gradient_mask::<W>(config::<1>(output.len())?)?;
+                self.module
+                    .gpt_gradient_mask(&self.stream, &launch, range.start, range.end, output)
+            })??;
+        }
+        Ok(())
     }
 
     fn attention<const BACKWARD: usize>(
