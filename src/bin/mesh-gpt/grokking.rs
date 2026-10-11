@@ -8,8 +8,9 @@ use std::{
 use grokking_abmod::{
     Result,
     gpt::{
-        AdamWOptions, Checkpoint, EQUATION_CONTEXT, EquationDataset, EquationSampler, GptConfig,
-        ModularOperation, SpecializedMeshGpt, TokenEmbedding, tabulate_embedding,
+        AdamWOptions, Checkpoint, EQUATION_CONTEXT, EmbeddingNorm, EquationDataset,
+        EquationSampler, GptConfig, ModularOperation, SpecializedMeshGpt, TokenEmbedding,
+        tabulate_embedding,
     },
 };
 
@@ -32,6 +33,7 @@ struct Options {
     workspace_capacity: usize,
     initialization_gain: f32,
     embedding_output_gain: f32,
+    embedding_init_unit: bool,
     qk_signs: usize,
     seed: u64,
     device: usize,
@@ -65,6 +67,7 @@ impl Options {
             workspace_capacity: 1,
             initialization_gain: 1.0,
             embedding_output_gain: 1.0,
+            embedding_init_unit: false,
             qk_signs: 0,
             seed: 7,
             device: 0,
@@ -93,6 +96,7 @@ impl Options {
                 "--embedding-output-gain" => {
                     options.embedding_output_gain = value(&mut arguments, &flag)?
                 }
+                "--embedding-init-unit" => options.embedding_init_unit = true,
                 "--qk-signs" => options.qk_signs = value(&mut arguments, &flag)?,
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--heads" => options.config.heads = value(&mut arguments, &flag)?,
@@ -145,6 +149,8 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --workspace-cache N   Retain 1..3 batch shapes; more uses extra GPU memory (default: 1)\n\
             --init-gain X         Scale every initial mesh edge (default: 1)\n\
             --embedding-output-gain X  Additional gain on the final tied-embedding layer (default: 1)\n\
+            --embedding-init-unit  Normalize table rows once before training; requires\n\
+                                  table embeddings, embedding-norm none, no protected features\n\
             --qk-signs 0|1        Independent seeded signs on final Q/K mesh rows (default: 0)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
@@ -200,6 +206,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         options.config.geometry.seed = options.seed;
     }
     options.config.validate()?;
+    validate_embedding_init_unit(options.config, options.embedding_init_unit)?;
     let batch = options
         .batch
         .unwrap_or_else(|| 512.min(dataset.split(false).len() / 2));
@@ -215,6 +222,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     if options.initialization_gain != 1.0
         || options.embedding_output_gain != 1.0
         || options.qk_signs == 1
+        || options.embedding_init_unit
     {
         // Adjust the mesh-embedding parameterization. A table then stores the
         // adjusted mesh's vectors, so both variants start as the same function.
@@ -269,6 +277,9 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
                 }
             }
         }
+        if options.embedding_init_unit {
+            normalize_table_initialization(options.config, &mut parameters)?;
+        }
         model.set_parameters(&parameters)?;
     }
     std::fs::create_dir_all(&options.output)?;
@@ -320,7 +331,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     write!(metadata, "{}", super::geometry::metadata(options.config))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nqk_signs={}\nworkspace_capacity={}",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nembedding_init_unit={}\nqk_signs={}\nworkspace_capacity={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
@@ -331,6 +342,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         options.evaluation_batch,
         options.initialization_gain,
         options.embedding_output_gain,
+        options.embedding_init_unit,
         options.qk_signs,
         options.workspace_capacity,
     )?;
@@ -369,6 +381,15 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         start.elapsed().as_secs_f64(),
         &mut thresholds,
     )?;
+    std::fs::copy(
+        options.output.join("model.bin"),
+        options.output.join("initial-model.bin"),
+    )?;
+    write_embeddings(
+        &options.output.join("initial-embeddings.csv"),
+        &model,
+        &dataset,
+    )?;
     let (mut step, mut trained_examples) = (0, 0);
     // The stopping rule only sees complete-split evaluations, never training batches.
     while step < options.steps
@@ -399,7 +420,7 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     } else {
         "update_budget"
     };
-    write_embeddings(&options.output, &model, &dataset)?;
+    write_embeddings(&options.output.join("embeddings.csv"), &model, &dataset)?;
     write_predictions(
         &options.output,
         &mut model,
@@ -437,6 +458,45 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
 fn validate_workspace_capacity(capacity: usize) -> Result<()> {
     if !(1..=3).contains(&capacity) {
         return Err("workspace capacity must be in 1..3".into());
+    }
+    Ok(())
+}
+
+fn validate_embedding_init_unit(config: GptConfig, enabled: bool) -> Result<()> {
+    if enabled
+        && (config.embedding != TokenEmbedding::Table
+            || config.geometry.normalization != EmbeddingNorm::None
+            || config.geometry.preserve_features != 0)
+    {
+        return Err("initial unit normalization requires table embeddings, embedding-norm none, and no protected features".into());
+    }
+    Ok(())
+}
+
+fn normalize_table_initialization(config: GptConfig, parameters: &mut [f32]) -> Result<()> {
+    validate_embedding_init_unit(config, true)?;
+    if parameters.len() != config.parameter_count()? {
+        return Err("initial table parameter count does not match the model".into());
+    }
+    let rows = &mut parameters[..config.embedding_parameter_count()];
+    // Validate every row before changing parameters. Only table entries are scaled;
+    // block weights and all vector directions retain the seeded initialization.
+    let norms: Vec<_> = rows
+        .chunks_exact(config.width)
+        .map(|row| {
+            row.iter()
+                .map(|&x| f64::from(x).powi(2))
+                .sum::<f64>()
+                .sqrt()
+        })
+        .collect();
+    if norms.iter().any(|&norm| !norm.is_finite() || norm < 1e-12) {
+        return Err("initial unit normalization requires finite, nonzero table rows".into());
+    }
+    for (row, norm) in rows.chunks_exact_mut(config.width).zip(norms) {
+        for value in row {
+            *value = (f64::from(*value) / norm) as f32;
+        }
     }
     Ok(())
 }
@@ -614,11 +674,11 @@ fn write_dataset(directory: &Path, dataset: &EquationDataset) -> Result<()> {
 }
 
 fn write_embeddings<const W: usize>(
-    directory: &Path,
+    path: &Path,
     model: &GrokModel<W>,
     dataset: &EquationDataset,
 ) -> Result<()> {
-    let mut file = BufWriter::new(File::create(directory.join("embeddings.csv"))?);
+    let mut file = BufWriter::new(File::create(path)?);
     write!(file, "token_id,symbol")?;
     for channel in 0..model.config().width {
         write!(file, ",c{channel}")?;
@@ -687,6 +747,72 @@ fn evaluation_logits<const W: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn initial_unit_normalization_is_an_explicit_table_only_control() {
+        let options = Options::parse(std::iter::empty()).unwrap();
+        assert!(!options.embedding_init_unit);
+        let options = Options::parse(
+            ["--embedding", "table", "--embedding-init-unit"]
+                .map(str::to_owned)
+                .into_iter(),
+        )
+        .unwrap();
+        assert!(options.embedding_init_unit);
+        validate_embedding_init_unit(options.config, true).unwrap();
+        for config in [
+            GptConfig::default(),
+            GptConfig {
+                geometry: grokking_abmod::gpt::EmbeddingGeometry {
+                    normalization: EmbeddingNorm::Unit,
+                    ..options.config.geometry
+                },
+                ..options.config
+            },
+            GptConfig {
+                geometry: grokking_abmod::gpt::EmbeddingGeometry {
+                    preserve_features: 1,
+                    ..options.config.geometry
+                },
+                ..options.config
+            },
+        ] {
+            assert!(validate_embedding_init_unit(config, true).is_err());
+            validate_embedding_init_unit(config, false).unwrap();
+        }
+    }
+
+    #[test]
+    fn initial_unit_normalization_preserves_directions_and_block_weights() {
+        let config = GptConfig {
+            embedding: TokenEmbedding::Table,
+            vocab_size: 3,
+            width: 4,
+            heads: 2,
+            ..GptConfig::default()
+        };
+        let mut parameters = config.initial_parameters(7).unwrap();
+        parameters[..12].copy_from_slice(&[
+            3.0, 4.0, 0.0, 0.0, -2.0, 0.0, 0.0, 0.0, 1.0, -1.0, 1.0, -1.0,
+        ]);
+        let original = parameters.clone();
+        normalize_table_initialization(config, &mut parameters).unwrap();
+        assert_eq!(&parameters[..4], &[0.6, 0.8, 0.0, 0.0]);
+        assert_eq!(&parameters[4..8], &[-1.0, 0.0, 0.0, 0.0]);
+        assert_eq!(&parameters[8..12], &[0.5, -0.5, 0.5, -0.5]);
+        assert_eq!(&parameters[12..], &original[12..]);
+        for invalid in [0.0, 1e-20, f32::INFINITY, f32::NAN] {
+            let mut parameters = original.clone();
+            parameters[8..12].fill(invalid);
+            let before: Vec<_> = parameters.iter().map(|x| x.to_bits()).collect();
+            assert!(normalize_table_initialization(config, &mut parameters).is_err());
+            assert_eq!(
+                parameters.iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
+                before
+            );
+        }
+        assert!(normalize_table_initialization(config, &mut parameters[..12]).is_err());
+    }
 
     #[test]
     fn epoch_budgets_include_short_tail_batches_and_reject_overflow() {

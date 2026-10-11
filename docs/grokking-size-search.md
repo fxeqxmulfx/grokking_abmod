@@ -414,10 +414,10 @@ frozen parity table. A second frozen parity table keeps its initial scale.
 | Signed permutations | 0.77 | Epoch 350 | Not reached | 100% / 92.89% | 97.32% |
 
 Every learned table fit the training set by epoch 625, without a
-memorization plateau. Seven of the ten reached 99% held-out accuracy, and
-the other three stayed between 96.5% and 98.7% through the cap. The order
-does not follow the starting geometry. The rank-one antipodal start, which
-gives half the tokens one vector and the rest its negative, was the fastest
+memorization plateau. Seven of the ten reached 99% held-out accuracy. The
+other three ended between 92.9% and 98.4%, with peaks between 96.8% and
+98.7%. The order does not follow the starting geometry. The rank-one antipodal
+start, which gives half the tokens one vector and the rest its negative, was the fastest
 geometric start. The simplex and equiangular starts differ only by a 0.5%
 rescale and one coordinate equal to 0.014 for every token, yet the first
 stopped at epoch 650 and the second stayed below 97%. With one seed per
@@ -471,3 +471,112 @@ not run: five mesh-code arms, four frozen tables and the three
 arithmetic-order arms. In these trials every learned table fit the training
 set, while every mesh embedding and every frozen table without the
 discrete-log order stayed below 11% training accuracy.
+
+## Initial scale versus continuous unit normalization
+
+[div97-table-unit-control.json](../experiments/div97-table-unit-control.json)
+predefines fifteen trials: three table variants at seeds 7, 8, 9, 10, and 11.
+All use the same binary, 37,248 parameters, parity initialization, neighbor
+meshes, and the preceding geometry-trial optimizer and model settings. Runs
+execute sequentially on one GPU, rotating the variant order across seeds.
+Within a seed, the model initialization, abstract-symbol mapping, train/validation
+split, and minibatch order are shared. A new seed changes all four together.
+
+- **Ordinary table:** the original raw table, with no embedding normalization.
+- **Unit at initialization:** normalize every raw table row once after the
+  initialization gains, using `--embedding-init-unit`; then train unconstrained.
+- **Unit every forward:** retain the original raw parameters and apply
+  `--embedding-norm unit` to the effective tied input/output vectors throughout
+  training, including the normalization derivative.
+
+The last two variants start from matching effective vectors and predictions,
+up to FP32 rounding. Their raw table lengths and optimizer parameterizations
+differ, so this compares the complete normalization methods rather than
+isolating the norm constraint from its gradient scaling. All variants continue
+to train both the table and the Transformer; none supplies arithmetic ordering.
+
+The target remains the first complete-validation observation at 99%, with
+evaluation every 250 updates (25 complete epochs), and a 10,000-epoch cap.
+Crossing times are sampled observations; successful runs do not measure
+post-threshold stability. Group medians use the cap for any unsuccessful run
+and report success counts separately. User-interrupted trials are censored
+at the last recorded observation and excluded from medians. After an early
+stop, medians compare only seeds whose three variants all completed.
+
+Each run retains `initial-model.bin` and `initial-embeddings.csv`, as well as
+the final artifacts. The paired audit checks byte-identical splits, symbol
+maps and initial block weights; identical ordinary/continuous raw tables;
+matching initial effective vectors for the two unit variants; and agreement
+between final exhaustive predictions and recorded accuracies for completed
+runs. Interrupted runs retain their histories and initial artifacts; no final
+prediction audit is claimed for them.
+
+The following runner command describes the original fifteen-trial protocol.
+The analysis command audits the saved execution, including its early stop.
+
+```bash
+cargo oxide build --arch sm_86 -- --release --locked --bin mesh-gpt
+uv run --locked scripts/run-mesh-search.py experiments/div97-table-unit-control.json
+uv run --locked scripts/summarize-grokking.py \
+  target/grok-div97-search/table-unit-control/table-* \
+  --output docs/grokking-results/table-unit-control/summary.json
+uv run --locked scripts/analyze-table-unit-control.py \
+  docs/grokking-results/table-unit-control/summary.json \
+  --execution docs/grokking-results/table-unit-control/execution.json \
+  --output docs/grokking-results/table-unit-control/comparison.json
+```
+
+The user stopped the queue during `table-unit-s10`: eleven trials completed,
+one was interrupted, and none of the seed-11 trials started. The original
+manifest is unchanged; [execution.json](grokking-results/table-unit-control/execution.json)
+records which trials ran and the user-requested interruption. The GPU process
+was stopped, and no further trials were launched.
+
+| Seed | Ordinary table: epochs to 99% | Unit at initialization: epochs to 99% | Unit every forward: epochs to 99% |
+| --- | ---: | ---: | ---: |
+| 7 | 375 | 1,525 | 100 |
+| 8 | 375 | 2,325 | 200 |
+| 9 | 400 | 1,675 | 150 |
+| 10 | 2,725 | 1,275 | >6,850; interrupted |
+
+For the three complete triplets (seeds 7–9), median crossing times are 375,
+1,675, and 150 epochs, respectively. Continuous unit normalization reached
+the target faster on each of these seeds. Normalizing only at initialization
+did not reproduce that acceleration, despite matching the continuous-unit
+variant's initial effective vectors to within `3e-8` and its initial train and
+validation cross-entropies to within `1.96e-7` across all four started seeds.
+On seed 7, the one-time variant's final mean vector length was 2.38, against
+1.00 for continuous unit normalization; one-time normalization did not retain
+the effective scale throughout training.
+
+Seed 10 is a counterexample to uniform acceleration: both unconstrained
+variants reached 99%, whereas continuous unit normalization had not crossed
+the target by its last observation at epoch 6,850. Its peak observed validation
+accuracy was 98.90%, and the last was 98.58%. This trial was stopped by the
+user before the 10,000-epoch cap; it is not a completed failure. The three-seed
+medians exclude this incomplete triplet and do not establish robustness over
+all four started seeds.
+
+These results show that initial effective scale alone does not explain the
+fast unit runs. The continuing norm constraint and its optimizer geometry
+remain joint explanations: the one-time variant starts with raw row lengths
+of 1, whereas continuous normalization starts with the original raw lengths
+(mean approximately 0.22), and their gradients differ. This experiment does
+not isolate those two effects or establish a universal benefit.
+
+The paired initialization audit passed for all four started seeds, and final
+exhaustive predictions agreed with recorded accuracies for all eleven
+completed trials. Implementation validation passed 49 CPU tests, strict
+Clippy, formatting, the locked CUDA release build, and GPU verification,
+including all 35 fused-attention shapes against the f64 reference.
+
+The archived histories and settings are in
+[summary.json](grokking-results/table-unit-control/summary.json); paired checks,
+individual outcomes, norms, and group statistics are in
+[comparison.json](grokking-results/table-unit-control/comparison.json).
+The left plot uses a linear epoch axis up to 100 and a logarithmic axis
+afterward. The triangle on the right marks the interrupted trial's observed
+lower bound, rather than a measured crossing time. An
+[SVG copy](grokking-results/table-unit-control/table-unit-control.svg) is available.
+
+![Initial scale versus continuous unit normalization](grokking-results/table-unit-control/table-unit-control.png)

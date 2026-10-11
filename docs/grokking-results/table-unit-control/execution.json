@@ -1,0 +1,36 @@
+{
+  "reason": "user_requested_stop",
+  "recorded_at_utc": "2026-10-11T14:16:37.125103+00:00",
+  "manifest_sha256": "eb85f4ebe5b7e2e0fde58762b5b594245295b064697d82c082d38f063af8b47d",
+  "completed_labels": [
+    "table-default-s7",
+    "table-init-unit-s7",
+    "table-unit-s7",
+    "table-init-unit-s8",
+    "table-unit-s8",
+    "table-default-s8",
+    "table-unit-s9",
+    "table-default-s9",
+    "table-init-unit-s9",
+    "table-default-s10",
+    "table-init-unit-s10"
+  ],
+  "interrupted_labels": [
+    "table-unit-s10"
+  ],
+  "not_started_labels": [
+    "table-init-unit-s11",
+    "table-unit-s11",
+    "table-default-s11"
+  ],
+  "interrupted_last_observation": {
+    "label": "table-unit-s10",
+    "step": 68500,
+    "epoch": 6850,
+    "train_accuracy": 0.999785223,
+    "validation_accuracy": 0.985824742,
+    "peak_validation_accuracy": 0.989046392,
+    "model_checkpoint_sha256": "7b035388a4136dc91a67fb3512f1235f4bcd50517d7ce1dd9bd78d91ec71d088",
+    "last_observation_is_not_the_exact_interruption_update": true
+  }
+}
