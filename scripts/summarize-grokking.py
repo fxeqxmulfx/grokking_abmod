@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Compare exhaustive dense and Mesh GPT division runs in complete epochs."""
+"""Compare exhaustive dense, Mesh GPT, and attention-free division runs in complete epochs."""
 
 import argparse
 import csv
@@ -18,6 +18,7 @@ def digest(path):
 
 
 def mesh_run(directory):
+    """A `mesh-gpt grok` run, or a `grok-simple` run grouped by its model family."""
     metadata = dict(line.split("=", 1) for line in (directory / "run.txt").read_text().splitlines())
     count, batch = int(metadata["training_equations"]), int(metadata["batch"])
     updates = math.ceil(count / batch)
@@ -30,7 +31,7 @@ def mesh_run(directory):
         seen = int(row.get("training_examples_seen", complete * count + min(partial * batch, count)))
         history.append({"step": step, "epoch": seen / count,
                         "train": float(row["train_accuracy"]), "heldout": float(row["validation_accuracy"])})
-    return {"family": "mesh", "parameters": int(metadata["parameters"]),
+    return {"family": metadata.get("family", "mesh"), "parameters": int(metadata["parameters"]),
             "status": metadata["status"], "settings": metadata, "history": history,
             "history_sha256": digest(directory / "loss.csv")}
 
@@ -85,7 +86,8 @@ def summarize(directory, archive=None):
     if history[-1]["epoch"] > 10_000:
         raise ValueError(f"Run exceeded the 10,000-epoch cap: {directory}")
     if archive:
-        relative = Path("histories") / f"{run['family']}-{directory.name}.csv"
+        prefix = "mesh" if run["family"] == "mesh" else "simple"
+        relative = Path("histories") / f"{prefix}-{directory.name}.csv"
         destination = archive / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         with destination.open("w", newline="") as output:
