@@ -93,6 +93,9 @@ adjusts their memory footprint while still evaluating every equation.
 including each projection's final layer. The default is one and preserves
 the original seeded initialization. This permits an explicit initialization
 search for deeper meshes without changing their connectivity or operators.
+`--embedding-output-gain X` additionally scales only the embedding mesh's
+final linear layer. It scales both the input embeddings and tied output head
+at initialization, independently of the other projections. Its default is one.
 `--workspace-cache 3` retains the full training batch, short tail and evaluation
 batch buffers, avoiding repeated device allocation. It uses more GPU memory;
 the default retains one training batch shape. Every inference and update still

@@ -30,6 +30,7 @@ struct Options {
     evaluation_batch: usize,
     workspace_capacity: usize,
     initialization_gain: f32,
+    embedding_output_gain: f32,
     seed: u64,
     device: usize,
     output: PathBuf,
@@ -60,6 +61,7 @@ impl Options {
             evaluation_batch: 128,
             workspace_capacity: 1,
             initialization_gain: 1.0,
+            embedding_output_gain: 1.0,
             seed: 7,
             device: 0,
             output: PathBuf::from("target/mesh-gpt-grokking"),
@@ -81,6 +83,9 @@ impl Options {
                 "--eval-batch" => options.evaluation_batch = value(&mut arguments, &flag)?,
                 "--workspace-cache" => options.workspace_capacity = value(&mut arguments, &flag)?,
                 "--init-gain" => options.initialization_gain = value(&mut arguments, &flag)?,
+                "--embedding-output-gain" => {
+                    options.embedding_output_gain = value(&mut arguments, &flag)?
+                }
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--heads" => options.config.heads = value(&mut arguments, &flag)?,
                 "--layers" => options.config.layers = value(&mut arguments, &flag)?,
@@ -123,6 +128,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --eval-batch N        Equations per evaluation chunk (default: 128)\n\
             --workspace-cache N   Retain 1..3 batch shapes; more uses extra GPU memory (default: 1)\n\
             --init-gain X         Scale every initial mesh edge (default: 1)\n\
+            --embedding-output-gain X  Additional gain on the final tied-embedding layer (default: 1)\n\
             --learning-rate X     Maximum AdamW rate (default: 0.001; 10-step warmup)\n\
             --weight-decay X      AdamW decay (default: 1; betas fixed at 0.9, 0.98)\n\
             --width N             Channels, 2..1024 (default: 128)\n\
@@ -148,8 +154,11 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     if options.steps == 0 || options.report_every == 0 || options.evaluation_batch == 0 {
         return Err("steps, report interval, and evaluation batch must be positive".into());
     }
-    if !options.initialization_gain.is_finite() || options.initialization_gain <= 0.0 {
-        return Err("initialization gain must be finite and positive".into());
+    if [options.initialization_gain, options.embedding_output_gain]
+        .iter()
+        .any(|gain| !gain.is_finite() || *gain <= 0.0)
+    {
+        return Err("initialization gains must be finite and positive".into());
     }
     validate_workspace_capacity(options.workspace_capacity)?;
     options.optimizer.validate()?;
@@ -173,10 +182,15 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
     let mut sampler = EquationSampler::new(dataset.split(false).len(), options.seed)?;
     let mut model = GrokModel::<W>::new(options.device, options.config, options.seed)?;
     model.set_workspace_capacity(options.workspace_capacity)?;
-    if options.initialization_gain != 1.0 {
+    if options.initialization_gain != 1.0 || options.embedding_output_gain != 1.0 {
         let mut parameters = model.parameters()?;
         for parameter in &mut parameters {
             *parameter *= options.initialization_gain;
+        }
+        // The embedding mesh is the first parameter group; its last layer is linear.
+        let end = 2 * options.config.width * options.config.attention_mesh_depth;
+        for parameter in &mut parameters[end - 2 * options.config.width..end] {
+            *parameter *= options.embedding_output_gain;
         }
         model.set_parameters(&parameters)?;
     }
@@ -210,13 +224,14 @@ fn train<const W: usize>(mut options: Options) -> Result<()> {
         .open(options.output.join("run.txt"))?;
     writeln!(
         metadata,
-        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}\nworkspace_capacity={}",
+        "requested_epochs={}\nsteps_per_epoch={}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nevaluation_batch={}\ninitialization_gain={}\nembedding_output_gain={}\nworkspace_capacity={}",
         options
             .epochs
             .map_or_else(|| "none".into(), |n| n.to_string()),
         dataset.split(false).len().div_ceil(batch),
         options.evaluation_batch,
         options.initialization_gain,
+        options.embedding_output_gain,
         options.workspace_capacity,
     )?;
     println!(

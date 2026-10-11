@@ -118,7 +118,7 @@ The runner saves the exact command, frozen settings, binary SHA-256 and
 console log. It skips a completed identical configuration and refuses to
 overwrite a different or unfinished run. Mesh checkpoints currently hold
 weights only, so an interrupted run needs a separately named fresh attempt.
-Named candidates run serially on the GPU:
+Each runner invocation executes its selected candidates in order:
 
 ```sh
 uv run --locked scripts/run-mesh-search.py experiments/div97-mesh-search.json --dry-run
@@ -140,6 +140,30 @@ binary/checkpoint hashes are in
 The GPU verification suite also checks exact AdamW trajectories across
 full/tail batches, different sequence lengths, cache eviction, invalid
 inputs and shrinking the cache. Independent numerical checks still pass.
+
+The lightweight 12,288-parameter control overlaps the initial large-model
+run. GPU memory fits both independent models; accuracy and complete epochs
+are the comparison measures, not concurrent wall time.
+
+Initialization refinements are in
+[div97-mesh-calibrated-search.json](../experiments/div97-mesh-calibrated-search.json).
+The initial 495,616-parameter run had cross-entropy 15.23, well above the
+uniform 99-token baseline of about 4.60. The new `--embedding-output-gain`
+scales only the final linear embedding layer after the global gain, setting
+both the input and tied output embedding amplitudes. Defaults preserve the
+original initialization. The candidates test gains 0.1 and 0.02, shallower
+mesh projections, learning rates 0.001 and 0.003, and decay 0.01. Results
+apply to each complete configuration because several settings vary.
+
+All four candidates passed a two-update, batch-eight initialization check,
+with exhaustive evaluations and finite losses. Starting training losses
+were 4.6310 (26,624 parameters), 4.5964 (63,488), 4.6765 (495,616), and
+4.6417 (507,904). Zero, negative, NaN and infinite output gains are rejected
+before device creation. Exact settings, commands, losses and the binary
+hash are archived in
+[mesh-initialization-smoke.json](grokking-results/mesh-initialization-smoke.json).
+These checks establish valid execution; the full epoch-budget runs measure
+learning and grokking. The first calibrated search uses 26,624 parameters.
 
 See the [portable results](grokking-results/summary.json) and
 [learning curves](grokking-results/grokking-size-search.svg). The original
