@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f6f1">
+  <meta name="description" content="Compare one shared-embedding Rotate90 Neighbor architecture at widths 128 and 1024. Train locally in your browser with live loss, accuracy and weights.">
+  <title>Rotate90 Grokking Lab</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body data-view="training">
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-mark">g</span><span>GROKKING LAB</span></a>
+    <div class="model-summary"><h1 id="model-name">Rotate90 <span>Square · 2 × 3</span></h1><span class="model-detail" id="model-detail">128 channels · 13,952 parameters · Square · FP32</span><code>a / b mod 97</code></div>
+    <div class="header-tools"><span class="device" id="device">Preparing training engine…</span><button id="about" aria-label="About this experiment" title="About this experiment">?</button></div>
+  </header>
+  <main>
+    <div class="workspace-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="neighbor-rotary" class="active" aria-pressed="true">Rotate90 · 128</button><button data-model-tab="neighbor-rotary-wide" aria-pressed="false">Rotate90 · 1024</button></nav><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Channels</button></nav></div>
+    <div class="dashboard">
+      <div class="visuals">
+        <section class="card chart-card" aria-labelledby="curve-title">
+          <div class="card-heading"><h2 id="curve-title">Learning curves</h2><div class="tabs" aria-label="Chart metric"><button id="loss-tab" class="active" aria-pressed="true">Loss</button><button id="accuracy-tab" aria-pressed="false">Accuracy</button></div></div>
+          <div class="chart-legend"><span><i class="dot orange"></i>Training</span><span><i class="dot blue"></i>Held-out</span><span id="axis-note">Cross-entropy · logarithmic scale</span></div>
+          <canvas id="curve" role="img" aria-label="Live training and held-out learning curves"></canvas>
+          <div class="chart-foot"><span id="cadence">Evaluated every epoch</span><span id="observations">0 observations</span></div>
+        </section>
+
+        <section class="card mesh-card" aria-labelledby="mesh-title">
+          <div class="card-heading"><h2 id="mesh-title">Residual block 1</h2><div class="chart-legend"><span><i class="dot orange"></i>+</span><span><i class="dot blue"></i>−</span></div></div>
+          <p class="helper" id="mesh-helper">4 → 3 → 2 → 1 · edge weights · probe activations · click a node</p>
+          <canvas id="mesh" role="img" aria-label="Selected Neighbor channel ancestors and skip connection"></canvas>
+          <div class="mesh-foot"><label class="channel-select"><span id="selected-channel">Channel</span><input id="channel-select" type="number" min="0" max="127" step="1" value="0" aria-label="Selected mesh channel"></label><span id="gain-info">Block 1 · RMS —</span><span id="scale-info">Contribution: —</span></div>
+        </section>
+
+        <section class="weight-panel" aria-labelledby="weight-title">
+          <div class="weight-heading"><h2 id="weight-title">Weight atlas</h2><div class="weight-options"><select id="weight-group" aria-label="Weight group" hidden><option value="io">Input / output</option><option value="0">Residual block 1</option><option value="1">Residual block 2</option></select><label class="check" title="Center the readout over answer classes"><input id="centered" type="checkbox" checked> Center R</label><label class="weight-view-label"><span>View</span><select id="weight-view" title="Raw weights or change from initialization"><option value="weight">Weights</option><option value="delta">Change</option></select></label></div></div>
+          <div class="atlas">
+            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-a-title">Shared embedding <span>E</span></h3><small id="atlas-a-size">97 × 64</small></div><canvas id="input-a" role="img" aria-label="Shared embedding weights for both operands and readout"></canvas><div class="map-foot"><span id="atlas-a-axis">Residue ↓ · feature →</span><span id="range-a">—</span></div></section>
+            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-b-title">Concat projection <span>A</span></h3><small id="atlas-b-size">128 × 64</small></div><canvas id="input-b" role="img" aria-label="Concatenation projection: operand a above operand b"></canvas><div class="map-foot"><span id="atlas-b-axis">a / b features ↓ · channel →</span><span id="range-b">—</span></div></section>
+            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-r-title">Tied readout <span>Eᵀ</span></h3><small id="atlas-r-size">64 × 97</small></div><canvas id="readout" role="img" aria-label="Readout weights, centered over answer classes"></canvas><div class="map-foot"><span>Answer ↓ · channel →</span><span id="range-r">—</span></div></section>
+          </div>
+        </section>
+
+        <section class="card scale-card"><div class="card-heading"><h3 id="scales-title">Channel scales</h3><span id="concentration">Top 16: —</span></div><canvas id="scales" role="img" aria-label="Centered channel scales for all 64 channels"></canvas></section>
+        <section class="card probe"><div class="card-heading"><h3>Probe the model</h3></div><div class="equation"><input id="probe-a" type="number" min="0" max="96" step="1" value="15" aria-label="Operand a"><span>/</span><input id="probe-b" type="number" min="1" max="96" step="1" value="23" aria-label="Operand b"><span>mod 97 =</span><strong id="prediction">—</strong></div><p id="probe-result" class="helper">Probe this network's current prediction.</p></section>
+      </div>
+
+      <aside class="card controls" aria-label="Training controls">
+        <div class="card-heading"><h2>Training desk</h2><span class="status" id="status" role="status">Loading</span></div>
+        <div class="progress-block"><div class="progress-label"><span>Epoch <strong id="epoch">0</strong></span><span id="budget-label">/ 10,000</span></div><progress id="progress" value="0" max="10000" aria-label="Training epoch progress"></progress></div>
+        <div class="metrics"><div><span>Train accuracy</span><strong id="train-accuracy">—</strong></div><div><span>Held-out accuracy</span><strong id="heldout-accuracy">—</strong></div><div><span>Train loss</span><strong id="train-loss">—</strong></div><div><span>Held-out loss</span><strong id="heldout-loss">—</strong></div></div>
+        <div class="form-row"><label>Seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="11" required></label><label>Epoch limit<input id="limit" type="number" min="1" max="10000" step="1" value="10000" required></label></div>
+        <div class="capture-row engine-select"><label for="backend">Training engine</label><select id="backend"><option value="auto">Automatic</option><option value="wasm">WASM on CPU</option><option value="gpu">WebGPU</option></select></div>
+        <label class="check stop-check"><input id="stop-target" type="checkbox" checked> Stop at 99% held-out accuracy</label>
+        <button id="train" class="primary" disabled>Start training <span>↗</span></button><div class="button-row"><button id="step" disabled>+1 epoch</button><button id="reset">Reset</button></div>
+        <div class="capture-row weight-capture"><label for="capture">Weight updates</label><select id="capture"><option value="1">1 / second</option><option value="5" selected>5 / second</option><option value="10">10 / second</option></select></div>
+        <p class="throughput"><span id="throughput">Ready when you are</span><span id="elapsed">0:00</span></p>
+        <div id="phase" class="phase">Waiting for the first observation</div>
+        <p id="error" class="error" role="alert" hidden></p>
+        <div class="export"><button id="export-metrics">Export metrics</button><button id="export-weights">Save weights</button></div>
+      </aside>
+    </div>
+  </main>
+  <footer><span>Local training · data stays on your device</span><a href="https://writings.stephenwolfram.com/2024/08/whats-really-going-on-in-machine-learning-some-minimal-models/" target="_blank" rel="noreferrer">Wolfram, 2024 ↗</a></footer>
+  <dialog id="about-dialog" aria-labelledby="about-title">
+    <div class="card-heading"><h2 id="about-title">About this experiment</h2><button id="close-about" aria-label="Close experiment information">×</button></div>
+    <p id="model-description">One shared matrix E embeds both operands and reads the answer. Concatenating [E[a], E[b]] and projecting with A preserves operand order, followed by four own-channel ReLU layers. All three roles of E share one AdamW state.</p>
+    <h3>What counts as grokking?</h3><p id="criterion-description">Five consecutive observations with training accuracy ≥99% and held-out accuracy ≤10%, followed by held-out accuracy ≥99%.</p>
+    <p class="helper" id="reference-description">Seed 7, Rust/CUDA: train ≥99% at epoch 425, held-out ≥99% at epoch 1,300. WASM SIMD: held-out ≥99% at epoch 1,275. This is gradual generalization with a delay; it did not meet the strict plateau criterion. Fifty epochs were insufficient. Browser arithmetic and seeds can change the trajectory.</p>
+    <h3>Channel scales</h3><p class="helper" id="scale-formula">‖(EA)꜀‖ × product of rectified gains × ‖centered Eᵀ꜀‖</p>
+    <h3>One architecture, two widths</h3><p class="helper">Both tabs use the same shared-E Rotate90 Square Neighbor residual architecture and default seed 11. Only channel width changes: 128 channels / 13,952 parameters, or 1024 / 111,616. The narrow model generalizes directly; the wide model shows a memorization plateau on all five tested Rust seeds. Tabs retain separate weights, optimizer state and curves; switching pauses the previous model. Training begins from random initialization on your device.</p>
+    <p class="helper"><a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">RoFormer: the rotary position embedding idea ↗</a></p>
+    <p id="backend-note" class="helper" hidden></p><p id="engine-error" class="error" hidden></p>
+  </dialog>
+</body>
+</html>

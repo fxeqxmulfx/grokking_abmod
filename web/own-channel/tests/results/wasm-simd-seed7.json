@@ -1,0 +1,31 @@
+{
+  "model": "own-channel W64 depth 5",
+  "seed": 7,
+  "engine": "handwritten WASM SIMD128",
+  "browser": "Chrome 155.0.8059.39",
+  "os": "Linux x86_64",
+  "cpu": "AMD Ryzen 5 5600H",
+  "worker_threads": 1,
+  "gpu_enabled": false,
+  "memory_bytes": 524288,
+  "observation_interval_epochs": 25,
+  "observations": 395,
+  "first_train_target_epoch": 475,
+  "plateau_onset_epoch": 475,
+  "plateau_confirmed_epoch": 575,
+  "grokking": {
+    "epoch": 9850,
+    "delayed": true
+  },
+  "elapsed_wall_seconds": 163.651598922,
+  "reported_updates_per_second": 635,
+  "final": {
+    "step": 98500,
+    "epoch": 9850,
+    "trainLoss": 2.6217851001320014e-8,
+    "heldoutLoss": 0.033352985978126526,
+    "trainAccuracy": 1,
+    "heldoutAccuracy": 0.9903350472450256,
+    "phase": "Delayed grokking"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "model": "neighbor-rotary",
+  "variant": "simd",
+  "seed": 11,
+  "reportEvery": 10,
+  "elapsedSeconds": 9.315591808999999,
+  "wasmSha256": "1494786939eb4385586527f33b9a381309319628e700204e5be876347ac2bbce",
+  "node": "v24.21.0",
+  "criterion": {
+    "plateau": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "perfect": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 133,
+    "lastLow": 57,
+    "first90": 106,
+    "rise": 49,
+    "event": {
+      "epoch": 133,
+      "delayed": false,
+      "plateauEpochs": 0,
+      "perfectTrainEpochs": 0,
+      "riseEpochs": 49
+    }
+  },
+  "sourceSha256": {
+    "wasm.mjs": "e556bc1351bcd2a80bac6542f2711163f5df44b576fd921977edc0cb0d944d60",
+    "models.mjs": "e8c0d76fe29510838011bc47f11287741d790d0a267a3bf4b7cf71852485fe24",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda"
+  }
+}

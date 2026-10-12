@@ -1,0 +1,14 @@
+{
+  "trainerSha256": "8b84a6f5991667edf6ee2f6577a8a21493e8e24638fc4adec553bcd07660505f",
+  "sourceSha256": {
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb",
+    "src/simple/mod.rs": "b2c8a8cd3b105936a4cdc5367498f26b8aaece74fa1cdda80ecf198ee958e436",
+    "src/simple/reference.rs": "4861104894279e8d831fcba2322065cd52aa4383d4f0ecffb1393ac976c99433",
+    "src/simple/gpu.rs": "616220e0942e19815524fcb47c2a72c6f984bbf80b2b66b67a3fd61da9e94d96",
+    "src/bin/mesh-gpt/simple.rs": "1f16ef0eeeed8e61759f19be1530bf3ebd75a8eb19c78aad64371e137393acba"
+  },
+  "initialModelSha256": "aa73d307b99303a2a7e04eb7e1202c1111d391b686327713600ed43a52558d7b",
+  "finalModelSha256": "f1163fb2585f24de4254154fea0752d735a4dccf75f16d40245ddfae0f4d5700",
+  "lossCsvSha256": "7d92562bdefc3987527dd19f6bd138ce626ff7ea54adfee8f6f885f3c44829ba",
+  "note": "Raw metrics and metadata from the Rust/CUDA trial. The trainer binary is also isolated in the local sharp-mesh-loop directory. Some residual-mesh wall times overlap other GPU trials and are not comparative benchmarks."
+}

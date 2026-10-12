@@ -1,0 +1,26 @@
+{
+  "reference_directory": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/sharp-mesh-loop/trials/000021-residual-mesh-mlp-w128-d2-s7-a01",
+  "replay_trial": "000001-residual-mesh-mlp-w128-d2-s7-a01",
+  "reference_history_sha256": "a9f831f4549fa78a5f2cf57b9332339f6b012155d7d90fb8135a9babb99b3c69",
+  "replay_history_sha256": "63ef309f3fdcb943caacb728fcc8c31410af28f0ea1e8f04e2729f8836a44020",
+  "reference_initial_model_sha256": "586a9cf28bb26ed0a1f58fc67d6b4bf5a2b1918e0a99e32cc0cd2d091cf88ae5",
+  "replay_initial_model_sha256": "586a9cf28bb26ed0a1f58fc67d6b4bf5a2b1918e0a99e32cc0cd2d091cf88ae5",
+  "initial_model_identical": true,
+  "common_observations": 24,
+  "first_common_epoch": 0.0,
+  "last_common_epoch": 575.0,
+  "maximum_absolute_difference": {
+    "step": 0.0,
+    "training_examples_seen": 0.0,
+    "completed_epochs": 0.0,
+    "examples_in_partial_epoch": 0.0,
+    "train_cross_entropy": 0.0,
+    "validation_cross_entropy": 0.0,
+    "train_accuracy": 0.0,
+    "validation_accuracy": 0.0,
+    "weight_l2": 0.0,
+    "learning_rate": 0.0
+  },
+  "scope": "All saved numerical CSV fields at common epochs; elapsed time excluded. CSV precision only.",
+  "passed": true
+}

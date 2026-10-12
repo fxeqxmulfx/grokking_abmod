@@ -1,0 +1,1856 @@
+[
+  {
+    "step": 0,
+    "epoch": 0,
+    "trainLoss": 4.726230144500732,
+    "trainAccuracy": 0.00923539511859417,
+    "heldoutLoss": 4.729783535003662,
+    "heldoutAccuracy": 0.00923539511859417,
+    "phase": "Learning"
+  },
+  {
+    "step": 250,
+    "epoch": 25,
+    "trainLoss": 1.9110479354858398,
+    "trainAccuracy": 0.7545103430747986,
+    "heldoutLoss": 5.646818161010742,
+    "heldoutAccuracy": 0.014604811556637287,
+    "phase": "Learning"
+  },
+  {
+    "step": 500,
+    "epoch": 50,
+    "trainLoss": 0.2819614112377167,
+    "trainAccuracy": 0.9995704889297485,
+    "heldoutLoss": 7.062459945678711,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Learning"
+  },
+  {
+    "step": 750,
+    "epoch": 75,
+    "trainLoss": 0.03823114186525345,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.320018768310547,
+    "heldoutAccuracy": 0.018900344148278236,
+    "phase": "Learning"
+  },
+  {
+    "step": 1000,
+    "epoch": 100,
+    "trainLoss": 0.008192481473088264,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.360328674316406,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Learning"
+  },
+  {
+    "step": 1250,
+    "epoch": 125,
+    "trainLoss": 0.0022537880577147007,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.075116157531738,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Learning"
+  },
+  {
+    "step": 1500,
+    "epoch": 150,
+    "trainLoss": 0.00288091110996902,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.398109436035156,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 1750,
+    "epoch": 175,
+    "trainLoss": 0.0007885641534812748,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.759312629699707,
+    "heldoutAccuracy": 0.016108248382806778,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 2000,
+    "epoch": 200,
+    "trainLoss": 0.0019597792997956276,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.84445858001709,
+    "heldoutAccuracy": 0.01804123818874359,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 2250,
+    "epoch": 225,
+    "trainLoss": 0.0005198795115575194,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.034171104431152,
+    "heldoutAccuracy": 0.018256014212965965,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 2500,
+    "epoch": 250,
+    "trainLoss": 0.027331380173563957,
+    "trainAccuracy": 0.998711347579956,
+    "heldoutLoss": 11.462252616882324,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 2750,
+    "epoch": 275,
+    "trainLoss": 0.0008110637427307665,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.46213150024414,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 3000,
+    "epoch": 300,
+    "trainLoss": 0.00020328277605585754,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.675652503967285,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 3250,
+    "epoch": 325,
+    "trainLoss": 0.013928691856563091,
+    "trainAccuracy": 0.998711347579956,
+    "heldoutLoss": 11.957378387451172,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 3500,
+    "epoch": 350,
+    "trainLoss": 0.0005510789342224598,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.87166976928711,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 3750,
+    "epoch": 375,
+    "trainLoss": 0.00014053321501705796,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.975404739379883,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 4000,
+    "epoch": 400,
+    "trainLoss": 0.010743423365056515,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.222369194030762,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 4250,
+    "epoch": 425,
+    "trainLoss": 0.0004987602005712688,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.088370323181152,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 4500,
+    "epoch": 450,
+    "trainLoss": 0.00011718908353941515,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.1234130859375,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 4750,
+    "epoch": 475,
+    "trainLoss": 0.04666917771100998,
+    "trainAccuracy": 0.9935567378997803,
+    "heldoutLoss": 12.436060905456543,
+    "heldoutAccuracy": 0.01503436453640461,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 5000,
+    "epoch": 500,
+    "trainLoss": 0.0004955860204063356,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.2681303024292,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 5250,
+    "epoch": 525,
+    "trainLoss": 0.00012109165254514664,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.252326965332031,
+    "heldoutAccuracy": 0.015463917516171932,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 5500,
+    "epoch": 550,
+    "trainLoss": 0.36398962140083313,
+    "trainAccuracy": 0.893470823764801,
+    "heldoutLoss": 12.654343605041504,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 5750,
+    "epoch": 575,
+    "trainLoss": 0.0006913141114637256,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.341293334960938,
+    "heldoutAccuracy": 0.015893470495939255,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 6000,
+    "epoch": 600,
+    "trainLoss": 0.00015959460870362818,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.28941822052002,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 6250,
+    "epoch": 625,
+    "trainLoss": 0.00004077449193573557,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.55972957611084,
+    "heldoutAccuracy": 0.016108248382806778,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 6500,
+    "epoch": 650,
+    "trainLoss": 0.0009020839352160692,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.379520416259766,
+    "heldoutAccuracy": 0.018256014212965965,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 6750,
+    "epoch": 675,
+    "trainLoss": 0.0002094650553772226,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.266613960266113,
+    "heldoutAccuracy": 0.01847079023718834,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 7000,
+    "epoch": 700,
+    "trainLoss": 0.000045035303628537804,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.451416969299316,
+    "heldoutAccuracy": 0.01739690825343132,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 7250,
+    "epoch": 725,
+    "trainLoss": 0.0013727117329835892,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.287559509277344,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 7500,
+    "epoch": 750,
+    "trainLoss": 0.0002679654862731695,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.169085502624512,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 7750,
+    "epoch": 775,
+    "trainLoss": 0.00005861942918272689,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.300995826721191,
+    "heldoutAccuracy": 0.01739690825343132,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 8000,
+    "epoch": 800,
+    "trainLoss": 0.010052738711237907,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.369050025939941,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 8250,
+    "epoch": 825,
+    "trainLoss": 0.00041125647840090096,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.247961044311523,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 8500,
+    "epoch": 850,
+    "trainLoss": 0.00009087639773497358,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.257418632507324,
+    "heldoutAccuracy": 0.01804123818874359,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 8750,
+    "epoch": 875,
+    "trainLoss": 0.05053003877401352,
+    "trainAccuracy": 0.9853951930999756,
+    "heldoutLoss": 12.689974784851074,
+    "heldoutAccuracy": 0.018256014212965965,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 9000,
+    "epoch": 900,
+    "trainLoss": 0.0008175219409167767,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.408167839050293,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 9250,
+    "epoch": 925,
+    "trainLoss": 0.00018357718363404274,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.28601360321045,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 9500,
+    "epoch": 950,
+    "trainLoss": 0.00003875981565215625,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.427124977111816,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 9750,
+    "epoch": 975,
+    "trainLoss": 0.0010090261930599809,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.232178688049316,
+    "heldoutAccuracy": 0.016108248382806778,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 10000,
+    "epoch": 1000,
+    "trainLoss": 0.00021944586478639394,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.124954223632812,
+    "heldoutAccuracy": 0.01503436453640461,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 10250,
+    "epoch": 1025,
+    "trainLoss": 0.00004813515624846332,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.266271591186523,
+    "heldoutAccuracy": 0.015463917516171932,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 10500,
+    "epoch": 1050,
+    "trainLoss": 0.0037500932812690735,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.37475299835205,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 10750,
+    "epoch": 1075,
+    "trainLoss": 0.00036884460132569075,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.251992225646973,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 11000,
+    "epoch": 1100,
+    "trainLoss": 0.00007791494863340631,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.236739158630371,
+    "heldoutAccuracy": 0.01911512017250061,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 11250,
+    "epoch": 1125,
+    "trainLoss": 0.21223066747188568,
+    "trainAccuracy": 0.9411512017250061,
+    "heldoutLoss": 12.320807456970215,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 11500,
+    "epoch": 1150,
+    "trainLoss": 0.0006640336359851062,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.243996620178223,
+    "heldoutAccuracy": 0.014390034601092339,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 11750,
+    "epoch": 1175,
+    "trainLoss": 0.0001434192236047238,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.17711353302002,
+    "heldoutAccuracy": 0.01503436453640461,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 12000,
+    "epoch": 1200,
+    "trainLoss": 0.0000281546945188893,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.385475158691406,
+    "heldoutAccuracy": 0.015893470495939255,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 12250,
+    "epoch": 1225,
+    "trainLoss": 0.001761258696205914,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.299309730529785,
+    "heldoutAccuracy": 0.015893470495939255,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 12500,
+    "epoch": 1250,
+    "trainLoss": 0.00028870441019535065,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.185669898986816,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 12750,
+    "epoch": 1275,
+    "trainLoss": 0.00006044566544005647,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.22332763671875,
+    "heldoutAccuracy": 0.01739690825343132,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 13000,
+    "epoch": 1300,
+    "trainLoss": 0.03040200285613537,
+    "trainAccuracy": 0.9978522658348083,
+    "heldoutLoss": 12.19662857055664,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 13250,
+    "epoch": 1325,
+    "trainLoss": 0.0005019764066673815,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.064291000366211,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 13500,
+    "epoch": 1350,
+    "trainLoss": 0.00010811381798703223,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.042813301086426,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 13750,
+    "epoch": 1375,
+    "trainLoss": 0.2370125651359558,
+    "trainAccuracy": 0.930627167224884,
+    "heldoutLoss": 12.21956729888916,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 14000,
+    "epoch": 1400,
+    "trainLoss": 0.0006221875082701445,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.011455535888672,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 14250,
+    "epoch": 1425,
+    "trainLoss": 0.00013469994883053005,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.948785781860352,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 14500,
+    "epoch": 1450,
+    "trainLoss": 0.00002861268694687169,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.236109733581543,
+    "heldoutAccuracy": 0.01739690825343132,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 14750,
+    "epoch": 1475,
+    "trainLoss": 0.0011804659152403474,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.010069847106934,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 15000,
+    "epoch": 1500,
+    "trainLoss": 0.00024074480461422354,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.914395332336426,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 15250,
+    "epoch": 1525,
+    "trainLoss": 0.00004881026325165294,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.05594253540039,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 15500,
+    "epoch": 1550,
+    "trainLoss": 0.07226225733757019,
+    "trainAccuracy": 0.9853951930999756,
+    "heldoutLoss": 12.249911308288574,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 15750,
+    "epoch": 1575,
+    "trainLoss": 0.0004870076372753829,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.108014106750488,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 16000,
+    "epoch": 1600,
+    "trainLoss": 0.00010595411731628701,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.065205574035645,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 16250,
+    "epoch": 1625,
+    "trainLoss": 0.000021092670067446306,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.31635570526123,
+    "heldoutAccuracy": 0.01804123818874359,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 16500,
+    "epoch": 1650,
+    "trainLoss": 0.0009555317228659987,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.191676139831543,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 16750,
+    "epoch": 1675,
+    "trainLoss": 0.00020281535398680717,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.05345344543457,
+    "heldoutAccuracy": 0.015893470495939255,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 17000,
+    "epoch": 1700,
+    "trainLoss": 0.000040679453377379104,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.145795822143555,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 17250,
+    "epoch": 1725,
+    "trainLoss": 0.01282436866313219,
+    "trainAccuracy": 0.9997852444648743,
+    "heldoutLoss": 11.99911880493164,
+    "heldoutAccuracy": 0.014604811556637287,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 17500,
+    "epoch": 1750,
+    "trainLoss": 0.0004167700244579464,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.967317581176758,
+    "heldoutAccuracy": 0.015249141491949558,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 17750,
+    "epoch": 1775,
+    "trainLoss": 0.00008695641736267135,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.966761589050293,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 18000,
+    "epoch": 1800,
+    "trainLoss": 0.26492437720298767,
+    "trainAccuracy": 0.9239690899848938,
+    "heldoutLoss": 12.198530197143555,
+    "heldoutAccuracy": 0.01567869447171688,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 18250,
+    "epoch": 1825,
+    "trainLoss": 0.0007285316241905093,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.946687698364258,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 18500,
+    "epoch": 1850,
+    "trainLoss": 0.00015554027049802244,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.881182670593262,
+    "heldoutAccuracy": 0.018685568124055862,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 18750,
+    "epoch": 1875,
+    "trainLoss": 0.0000303180768241873,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.103738784790039,
+    "heldoutAccuracy": 0.018256014212965965,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 19000,
+    "epoch": 1900,
+    "trainLoss": 0.057619646191596985,
+    "trainAccuracy": 0.9909793734550476,
+    "heldoutLoss": 12.144290924072266,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 19250,
+    "epoch": 1925,
+    "trainLoss": 0.0004708588821813464,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.076297760009766,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 19500,
+    "epoch": 1950,
+    "trainLoss": 0.00009667423000792041,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.075309753417969,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 19750,
+    "epoch": 1975,
+    "trainLoss": 0.000019015726138604805,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.339029312133789,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 20000,
+    "epoch": 2000,
+    "trainLoss": 0.0008952327189035714,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.103046417236328,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 20250,
+    "epoch": 2025,
+    "trainLoss": 0.00018180666666012257,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.026509284973145,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 20500,
+    "epoch": 2050,
+    "trainLoss": 0.00003587831088225357,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.13939380645752,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 20750,
+    "epoch": 2075,
+    "trainLoss": 0.002504154806956649,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.88224983215332,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 21000,
+    "epoch": 2100,
+    "trainLoss": 0.0003713418554980308,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.802884101867676,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 21250,
+    "epoch": 2125,
+    "trainLoss": 0.0000720228927093558,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.88541030883789,
+    "heldoutAccuracy": 0.01503436453640461,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 21500,
+    "epoch": 2150,
+    "trainLoss": 0.28510117530822754,
+    "trainAccuracy": 0.9143041372299194,
+    "heldoutLoss": 12.304548263549805,
+    "heldoutAccuracy": 0.018256014212965965,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 21750,
+    "epoch": 2175,
+    "trainLoss": 0.0007434030412696302,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.866971015930176,
+    "heldoutAccuracy": 0.018900344148278236,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 22000,
+    "epoch": 2200,
+    "trainLoss": 0.00015252993034664541,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.800724029541016,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 22250,
+    "epoch": 2225,
+    "trainLoss": 0.00002905716246459633,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.984917640686035,
+    "heldoutAccuracy": 0.01739690825343132,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 22500,
+    "epoch": 2250,
+    "trainLoss": 0.0025770599022507668,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.858211517333984,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 22750,
+    "epoch": 2275,
+    "trainLoss": 0.00034441304160282016,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.759140968322754,
+    "heldoutAccuracy": 0.016323024407029152,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 23000,
+    "epoch": 2300,
+    "trainLoss": 0.00006824547745054588,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.8052339553833,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 23250,
+    "epoch": 2325,
+    "trainLoss": 0.004986022133380175,
+    "trainAccuracy": 0.9989261031150818,
+    "heldoutLoss": 12.25426197052002,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 23500,
+    "epoch": 2350,
+    "trainLoss": 0.0006728936568833888,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.834686279296875,
+    "heldoutAccuracy": 0.015463917516171932,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 23750,
+    "epoch": 2375,
+    "trainLoss": 0.0001422588829882443,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.762279510498047,
+    "heldoutAccuracy": 0.016967354342341423,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 24000,
+    "epoch": 2400,
+    "trainLoss": 0.00002744558332778979,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.926753997802734,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 24250,
+    "epoch": 2425,
+    "trainLoss": 0.007670836057513952,
+    "trainAccuracy": 0.9997852444648743,
+    "heldoutLoss": 11.90131950378418,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 24500,
+    "epoch": 2450,
+    "trainLoss": 0.00033565281773917377,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.785239219665527,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 24750,
+    "epoch": 2475,
+    "trainLoss": 0.000074133844464086,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.796737670898438,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 25000,
+    "epoch": 2500,
+    "trainLoss": 0.000015701216398156248,
+    "trainAccuracy": 1,
+    "heldoutLoss": 12.115453720092773,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 25250,
+    "epoch": 2525,
+    "trainLoss": 0.0008050103206187487,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.828907012939453,
+    "heldoutAccuracy": 0.016537800431251526,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 25500,
+    "epoch": 2550,
+    "trainLoss": 0.00016467718523927033,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.708887100219727,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 25750,
+    "epoch": 2575,
+    "trainLoss": 0.000032057469070423394,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.824440956115723,
+    "heldoutAccuracy": 0.017182130366563797,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 26000,
+    "epoch": 2600,
+    "trainLoss": 0.06871416419744492,
+    "trainAccuracy": 0.987542986869812,
+    "heldoutLoss": 11.818790435791016,
+    "heldoutAccuracy": 0.019974227994680405,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 26250,
+    "epoch": 2625,
+    "trainLoss": 0.0005093743093311787,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.722145080566406,
+    "heldoutAccuracy": 0.019544674083590508,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 26500,
+    "epoch": 2650,
+    "trainLoss": 0.00010541214578552172,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.675604820251465,
+    "heldoutAccuracy": 0.01911512017250061,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 26750,
+    "epoch": 2675,
+    "trainLoss": 0.00001952410639205482,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.8943452835083,
+    "heldoutAccuracy": 0.018900344148278236,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 27000,
+    "epoch": 2700,
+    "trainLoss": 0.0014140004059299827,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.736345291137695,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 27250,
+    "epoch": 2725,
+    "trainLoss": 0.00023661425802856684,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.624113082885742,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 27500,
+    "epoch": 2750,
+    "trainLoss": 0.00004731216176878661,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.659513473510742,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 27750,
+    "epoch": 2775,
+    "trainLoss": 0.08088521659374237,
+    "trainAccuracy": 0.9838917851448059,
+    "heldoutLoss": 11.612662315368652,
+    "heldoutAccuracy": 0.018685568124055862,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 28000,
+    "epoch": 2800,
+    "trainLoss": 0.0005460269167087972,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.430566787719727,
+    "heldoutAccuracy": 0.01804123818874359,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 28250,
+    "epoch": 2825,
+    "trainLoss": 0.00011910073226317763,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.367964744567871,
+    "heldoutAccuracy": 0.01847079023718834,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 28500,
+    "epoch": 2850,
+    "trainLoss": 0.000023200749637908302,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.59762954711914,
+    "heldoutAccuracy": 0.01804123818874359,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 28750,
+    "epoch": 2875,
+    "trainLoss": 0.0016028187237679958,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.456559181213379,
+    "heldoutAccuracy": 0.01675257831811905,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 29000,
+    "epoch": 2900,
+    "trainLoss": 0.0002552432706579566,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.298712730407715,
+    "heldoutAccuracy": 0.019544674083590508,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 29250,
+    "epoch": 2925,
+    "trainLoss": 0.00005202645843382925,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.370387077331543,
+    "heldoutAccuracy": 0.021692439913749695,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 29500,
+    "epoch": 2950,
+    "trainLoss": 0.20113910734653473,
+    "trainAccuracy": 0.9435137510299683,
+    "heldoutLoss": 11.561370849609375,
+    "heldoutAccuracy": 0.019974227994680405,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 29750,
+    "epoch": 2975,
+    "trainLoss": 0.0005664883065037429,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.248523712158203,
+    "heldoutAccuracy": 0.020403780043125153,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 30000,
+    "epoch": 3000,
+    "trainLoss": 0.00011442412505857646,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.198455810546875,
+    "heldoutAccuracy": 0.021692439913749695,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 30250,
+    "epoch": 3025,
+    "trainLoss": 0.00002137369301635772,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.433444023132324,
+    "heldoutAccuracy": 0.02147766388952732,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 30500,
+    "epoch": 3050,
+    "trainLoss": 0.006833228282630444,
+    "trainAccuracy": 0.9995704889297485,
+    "heldoutLoss": 11.410082817077637,
+    "heldoutAccuracy": 0.017611684277653694,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 30750,
+    "epoch": 3075,
+    "trainLoss": 0.00032848920091055334,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.290386199951172,
+    "heldoutAccuracy": 0.01804123818874359,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 31000,
+    "epoch": 3100,
+    "trainLoss": 0.00006477734859799966,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.291015625,
+    "heldoutAccuracy": 0.017826460301876068,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 31250,
+    "epoch": 3125,
+    "trainLoss": 0.00001337110370513983,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.617341041564941,
+    "heldoutAccuracy": 0.01847079023718834,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 31500,
+    "epoch": 3150,
+    "trainLoss": 0.000846678449306637,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.271822929382324,
+    "heldoutAccuracy": 0.018900344148278236,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 31750,
+    "epoch": 3175,
+    "trainLoss": 0.00016839541785884649,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.161444664001465,
+    "heldoutAccuracy": 0.019974227994680405,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 32000,
+    "epoch": 3200,
+    "trainLoss": 0.00003199479033355601,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.253035545349121,
+    "heldoutAccuracy": 0.01975945010781288,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 32250,
+    "epoch": 3225,
+    "trainLoss": 0.12075627595186234,
+    "trainAccuracy": 0.9716495275497437,
+    "heldoutLoss": 11.143798828125,
+    "heldoutAccuracy": 0.02083333395421505,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 32500,
+    "epoch": 3250,
+    "trainLoss": 0.00047686134348623455,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.12587833404541,
+    "heldoutAccuracy": 0.021048109978437424,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 32750,
+    "epoch": 3275,
+    "trainLoss": 0.00009857297845883295,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.05341625213623,
+    "heldoutAccuracy": 0.020618557929992676,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 33000,
+    "epoch": 3300,
+    "trainLoss": 0.000018594191715237685,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.284942626953125,
+    "heldoutAccuracy": 0.021692439913749695,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 33250,
+    "epoch": 3325,
+    "trainLoss": 0.01467437669634819,
+    "trainAccuracy": 0.9989261031150818,
+    "heldoutLoss": 11.270240783691406,
+    "heldoutAccuracy": 0.019544674083590508,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 33500,
+    "epoch": 3350,
+    "trainLoss": 0.00038061212399043143,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.113027572631836,
+    "heldoutAccuracy": 0.020618557929992676,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 33750,
+    "epoch": 3375,
+    "trainLoss": 0.0000743558703106828,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.118326187133789,
+    "heldoutAccuracy": 0.02147766388952732,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 34000,
+    "epoch": 3400,
+    "trainLoss": 0.19385282695293427,
+    "trainAccuracy": 0.9467353820800781,
+    "heldoutLoss": 11.079177856445312,
+    "heldoutAccuracy": 0.020403780043125153,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 34250,
+    "epoch": 3425,
+    "trainLoss": 0.0006345037254504859,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.822362899780273,
+    "heldoutAccuracy": 0.022336769849061966,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 34500,
+    "epoch": 3450,
+    "trainLoss": 0.00013142844545654953,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.804645538330078,
+    "heldoutAccuracy": 0.02083333395421505,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 34750,
+    "epoch": 3475,
+    "trainLoss": 0.00002373657662246842,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.006391525268555,
+    "heldoutAccuracy": 0.020403780043125153,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 35000,
+    "epoch": 3500,
+    "trainLoss": 0.0029632719233632088,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.861716270446777,
+    "heldoutAccuracy": 0.02255154587328434,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 35250,
+    "epoch": 3525,
+    "trainLoss": 0.0003093059058301151,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.701470375061035,
+    "heldoutAccuracy": 0.022121993824839592,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 35500,
+    "epoch": 3550,
+    "trainLoss": 0.0000599807062826585,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.75418472290039,
+    "heldoutAccuracy": 0.02147766388952732,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 35750,
+    "epoch": 3575,
+    "trainLoss": 0.000010884504263231065,
+    "trainAccuracy": 1,
+    "heldoutLoss": 11.158799171447754,
+    "heldoutAccuracy": 0.022121993824839592,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 36000,
+    "epoch": 3600,
+    "trainLoss": 0.004612155724316835,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.85293197631836,
+    "heldoutAccuracy": 0.025128865614533424,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 36250,
+    "epoch": 3625,
+    "trainLoss": 0.009585438296198845,
+    "trainAccuracy": 0.999355673789978,
+    "heldoutLoss": 10.470718383789062,
+    "heldoutAccuracy": 0.02426975965499878,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 36500,
+    "epoch": 3650,
+    "trainLoss": 0.0003637890622485429,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.320694923400879,
+    "heldoutAccuracy": 0.025128865614533424,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 36750,
+    "epoch": 3675,
+    "trainLoss": 0.00007189098687376827,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.41341781616211,
+    "heldoutAccuracy": 0.02426975965499878,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 37000,
+    "epoch": 3700,
+    "trainLoss": 0.000011722656381607521,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.86980152130127,
+    "heldoutAccuracy": 0.02426975965499878,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 37250,
+    "epoch": 3725,
+    "trainLoss": 0.000767165853176266,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.4431734085083,
+    "heldoutAccuracy": 0.024054983630776405,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 37500,
+    "epoch": 3750,
+    "trainLoss": 0.00014950934564694762,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.34444522857666,
+    "heldoutAccuracy": 0.02426975965499878,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 37750,
+    "epoch": 3775,
+    "trainLoss": 0.000027601661713561043,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.479578018188477,
+    "heldoutAccuracy": 0.024484535679221153,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 38000,
+    "epoch": 3800,
+    "trainLoss": 0.018536079674959183,
+    "trainAccuracy": 0.9952749013900757,
+    "heldoutLoss": 11.052139282226562,
+    "heldoutAccuracy": 0.02555841952562332,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 38250,
+    "epoch": 3825,
+    "trainLoss": 0.0006381234270520508,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.426467895507812,
+    "heldoutAccuracy": 0.02555841952562332,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 38500,
+    "epoch": 3850,
+    "trainLoss": 0.00012203508231323212,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.345024108886719,
+    "heldoutAccuracy": 0.02491408959031105,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 38750,
+    "epoch": 3875,
+    "trainLoss": 0.000021691585061489604,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.489479064941406,
+    "heldoutAccuracy": 0.026202749460935593,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 39000,
+    "epoch": 3900,
+    "trainLoss": 0.06349170953035355,
+    "trainAccuracy": 0.9873281717300415,
+    "heldoutLoss": 10.225296020507812,
+    "heldoutAccuracy": 0.030927835032343864,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 39250,
+    "epoch": 3925,
+    "trainLoss": 0.0004176771908532828,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.91834831237793,
+    "heldoutAccuracy": 0.03006872907280922,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 39500,
+    "epoch": 3950,
+    "trainLoss": 0.00007906935206847265,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.927989959716797,
+    "heldoutAccuracy": 0.03006872907280922,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 39750,
+    "epoch": 3975,
+    "trainLoss": 0.000013634920833283104,
+    "trainAccuracy": 1,
+    "heldoutLoss": 10.224781036376953,
+    "heldoutAccuracy": 0.030283505097031593,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 40000,
+    "epoch": 4000,
+    "trainLoss": 0.0018045316683128476,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.517157554626465,
+    "heldoutAccuracy": 0.03887457028031349,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 40250,
+    "epoch": 4025,
+    "trainLoss": 0.00027202043565921485,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.368735313415527,
+    "heldoutAccuracy": 0.0371563583612442,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 40500,
+    "epoch": 4050,
+    "trainLoss": 0.00005062626223661937,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.483172416687012,
+    "heldoutAccuracy": 0.03608247637748718,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 40750,
+    "epoch": 4075,
+    "trainLoss": 0.000008628130672150292,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.936639785766602,
+    "heldoutAccuracy": 0.03586769849061966,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 41000,
+    "epoch": 4100,
+    "trainLoss": 0.0025290432386100292,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.574390411376953,
+    "heldoutAccuracy": 0.035008590668439865,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 41250,
+    "epoch": 4125,
+    "trainLoss": 0.0002345715183764696,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.388910293579102,
+    "heldoutAccuracy": 0.038015466183423996,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 41500,
+    "epoch": 4150,
+    "trainLoss": 0.00004458918920136057,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.401132583618164,
+    "heldoutAccuracy": 0.04037800803780556,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 41750,
+    "epoch": 4175,
+    "trainLoss": 0.000007830534741515294,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.709789276123047,
+    "heldoutAccuracy": 0.036726806312799454,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 42000,
+    "epoch": 4200,
+    "trainLoss": 0.001192825147882104,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.02224063873291,
+    "heldoutAccuracy": 0.039089348167181015,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 42250,
+    "epoch": 4225,
+    "trainLoss": 0.00020498734374996275,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.888649940490723,
+    "heldoutAccuracy": 0.03994845598936081,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 42500,
+    "epoch": 4250,
+    "trainLoss": 0.00003783604552154429,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.988877296447754,
+    "heldoutAccuracy": 0.040163230150938034,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 42750,
+    "epoch": 4275,
+    "trainLoss": 0.000006671623850706965,
+    "trainAccuracy": 1,
+    "heldoutLoss": 9.381314277648926,
+    "heldoutAccuracy": 0.038015466183423996,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 43000,
+    "epoch": 4300,
+    "trainLoss": 0.0008240204770117998,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.322193145751953,
+    "heldoutAccuracy": 0.05262027680873871,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 43250,
+    "epoch": 4325,
+    "trainLoss": 0.000153896733536385,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.23292064666748,
+    "heldoutAccuracy": 0.05090206116437912,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 43500,
+    "epoch": 4350,
+    "trainLoss": 0.000028495527658378705,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.389140129089355,
+    "heldoutAccuracy": 0.05154639109969139,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 43750,
+    "epoch": 4375,
+    "trainLoss": 0.000004765913672599709,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.906745910644531,
+    "heldoutAccuracy": 0.050042957067489624,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 44000,
+    "epoch": 4400,
+    "trainLoss": 0.0009290266898460686,
+    "trainAccuracy": 1,
+    "heldoutLoss": 7.550252914428711,
+    "heldoutAccuracy": 0.07130584120750427,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 44250,
+    "epoch": 4425,
+    "trainLoss": 0.00016632194456178695,
+    "trainAccuracy": 1,
+    "heldoutLoss": 7.464640140533447,
+    "heldoutAccuracy": 0.07044673711061478,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 44500,
+    "epoch": 4450,
+    "trainLoss": 0.000029696631827391684,
+    "trainAccuracy": 1,
+    "heldoutLoss": 7.648330211639404,
+    "heldoutAccuracy": 0.06743986159563065,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 44750,
+    "epoch": 4475,
+    "trainLoss": 0.000004897412509308197,
+    "trainAccuracy": 1,
+    "heldoutLoss": 8.130916595458984,
+    "heldoutAccuracy": 0.06722508370876312,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 45000,
+    "epoch": 4500,
+    "trainLoss": 0.0007839341997168958,
+    "trainAccuracy": 1,
+    "heldoutLoss": 6.492230415344238,
+    "heldoutAccuracy": 0.09901203215122223,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 45250,
+    "epoch": 4525,
+    "trainLoss": 0.00014527107123285532,
+    "trainAccuracy": 1,
+    "heldoutLoss": 6.444169998168945,
+    "heldoutAccuracy": 0.10244845598936081,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 45500,
+    "epoch": 4550,
+    "trainLoss": 0.000025079012630158104,
+    "trainAccuracy": 1,
+    "heldoutLoss": 6.646356105804443,
+    "heldoutAccuracy": 0.0968642607331276,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 45750,
+    "epoch": 4575,
+    "trainLoss": 0.000004154300313530257,
+    "trainAccuracy": 1,
+    "heldoutLoss": 7.191378593444824,
+    "heldoutAccuracy": 0.09299828112125397,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 46000,
+    "epoch": 4600,
+    "trainLoss": 0.0008058439707383513,
+    "trainAccuracy": 1,
+    "heldoutLoss": 5.362669944763184,
+    "heldoutAccuracy": 0.15442439913749695,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 46250,
+    "epoch": 4625,
+    "trainLoss": 0.0001455856836400926,
+    "trainAccuracy": 1,
+    "heldoutLoss": 5.270195007324219,
+    "heldoutAccuracy": 0.16602234542369843,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 46500,
+    "epoch": 4650,
+    "trainLoss": 0.00002545671486586798,
+    "trainAccuracy": 1,
+    "heldoutLoss": 5.444502353668213,
+    "heldoutAccuracy": 0.16280068457126617,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 46750,
+    "epoch": 4675,
+    "trainLoss": 0.000004227218596497551,
+    "trainAccuracy": 1,
+    "heldoutLoss": 5.870548725128174,
+    "heldoutAccuracy": 0.15463918447494507,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 47000,
+    "epoch": 4700,
+    "trainLoss": 0.00198075408115983,
+    "trainAccuracy": 1,
+    "heldoutLoss": 4.118906021118164,
+    "heldoutAccuracy": 0.25300687551498413,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 47250,
+    "epoch": 4725,
+    "trainLoss": 0.0002027803275268525,
+    "trainAccuracy": 1,
+    "heldoutLoss": 3.8639214038848877,
+    "heldoutAccuracy": 0.2727663218975067,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 47500,
+    "epoch": 4750,
+    "trainLoss": 0.00003614622255554423,
+    "trainAccuracy": 1,
+    "heldoutLoss": 3.8949801921844482,
+    "heldoutAccuracy": 0.27512887120246887,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 47750,
+    "epoch": 4775,
+    "trainLoss": 0.0000058084829106519464,
+    "trainAccuracy": 1,
+    "heldoutLoss": 4.120356559753418,
+    "heldoutAccuracy": 0.2697594463825226,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 48000,
+    "epoch": 4800,
+    "trainLoss": 9.663735909271054e-7,
+    "trainAccuracy": 1,
+    "heldoutLoss": 4.476535320281982,
+    "heldoutAccuracy": 0.25945016741752625,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 48250,
+    "epoch": 4825,
+    "trainLoss": 0.0004202795389574021,
+    "trainAccuracy": 1,
+    "heldoutLoss": 2.190643310546875,
+    "heldoutAccuracy": 0.4800257682800293,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 48500,
+    "epoch": 4850,
+    "trainLoss": 0.00007446607196470723,
+    "trainAccuracy": 1,
+    "heldoutLoss": 2.0361478328704834,
+    "heldoutAccuracy": 0.5135309100151062,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 48750,
+    "epoch": 4875,
+    "trainLoss": 0.000012410875569912605,
+    "trainAccuracy": 1,
+    "heldoutLoss": 2.0300047397613525,
+    "heldoutAccuracy": 0.5285652875900269,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 49000,
+    "epoch": 4900,
+    "trainLoss": 0.000001935614818648901,
+    "trainAccuracy": 1,
+    "heldoutLoss": 2.1128499507904053,
+    "heldoutAccuracy": 0.5307130813598633,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 49250,
+    "epoch": 4925,
+    "trainLoss": 0.1271689087152481,
+    "trainAccuracy": 0.962199330329895,
+    "heldoutLoss": 3.2771692276000977,
+    "heldoutAccuracy": 0.3713487982749939,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 49500,
+    "epoch": 4950,
+    "trainLoss": 0.00021813088096678257,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.8077355027198792,
+    "heldoutAccuracy": 0.7738401889801025,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 49750,
+    "epoch": 4975,
+    "trainLoss": 0.00003892244785674848,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.6353120803833008,
+    "heldoutAccuracy": 0.8140034675598145,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 50000,
+    "epoch": 5000,
+    "trainLoss": 0.000006270162884902675,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.5104199647903442,
+    "heldoutAccuracy": 0.8548110127449036,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 50250,
+    "epoch": 5025,
+    "trainLoss": 8.840331702231197e-7,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.4023422598838806,
+    "heldoutAccuracy": 0.8857388496398926,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 50500,
+    "epoch": 5050,
+    "trainLoss": 0.000002245313226012513,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.27384984493255615,
+    "heldoutAccuracy": 0.9237543344497681,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 50750,
+    "epoch": 5075,
+    "trainLoss": 0.00011945590085815638,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.11101949959993362,
+    "heldoutAccuracy": 0.9652062058448792,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 51000,
+    "epoch": 5100,
+    "trainLoss": 0.00002260879955429118,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.05144175887107849,
+    "heldoutAccuracy": 0.9841065406799316,
+    "phase": "Memorization plateau observed"
+  },
+  {
+    "step": 51250,
+    "epoch": 5125,
+    "trainLoss": 0.0000039011342778394464,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.021786320954561234,
+    "heldoutAccuracy": 0.9933419227600098,
+    "phase": "Delayed grokking"
+  }
+]

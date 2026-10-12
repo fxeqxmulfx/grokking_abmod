@@ -1,0 +1,18 @@
+{
+  "model": "concat",
+  "variant": "simd",
+  "seed": 7,
+  "elapsedSeconds": 24.927804526,
+  "wasmSha256": "17bb47feafe5710d9cb1d3e2ef954273bd1bf76aab545b8132e88a528d8f3193",
+  "node": "v24.21.0",
+  "criterion": {
+    "streak": 0,
+    "plateau": false,
+    "onset": null,
+    "confirmed": null,
+    "event": {
+      "epoch": 1275,
+      "delayed": false
+    }
+  }
+}

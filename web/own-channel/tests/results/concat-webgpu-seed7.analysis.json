@@ -1,0 +1,51 @@
+{
+  "model": "concat",
+  "backend": "webgpu",
+  "seed": 7,
+  "measurementMetadata": "concat-webgpu-seed7.run.json",
+  "history": "concat-webgpu-seed7.history.json",
+  "historySha256": "f50bdefc63d8bbd17900e1cc8bb3e3fa067675788ace6cb26bafaad9f30de654",
+  "initialWeightsSha256": "862a43552934966b36d8337b782701cf554c6ef52672c1f3a68ba8acb146e32b",
+  "parameters": 14656,
+  "observations": 50,
+  "observationIntervalEpochs": 25,
+  "firstTrain99Epoch": 425,
+  "firstConfirmedPlateau": {
+    "onset": null,
+    "confirmed": null,
+    "present": false
+  },
+  "longestPlateauBeforeFirst90Epochs": 0,
+  "lastTestLow": {
+    "step": 3500,
+    "epoch": 350,
+    "trainLoss": 1.1560251712799072,
+    "trainAccuracy": 0.6978092789649963,
+    "heldoutLoss": 6.013855934143066,
+    "heldoutAccuracy": 0.05498281866312027,
+    "phase": "Learning"
+  },
+  "firstTest90": {
+    "step": 10000,
+    "epoch": 1000,
+    "trainLoss": 4.506193196363029e-9,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.351351797580719,
+    "heldoutAccuracy": 0.9136598110198975,
+    "phase": "Learning"
+  },
+  "rise10To90Epochs": 650,
+  "firstTest99Epoch": 1225,
+  "final": {
+    "step": 12250,
+    "epoch": 1225,
+    "trainLoss": 0,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.02596104145050049,
+    "heldoutAccuracy": 0.9905498623847961,
+    "phase": "Generalized"
+  },
+  "elapsedSeconds": 5.4285,
+  "strictMeshSearchRuleSatisfied": false,
+  "analysisNote": "Original measurement metadata and histories are unmodified. Plateau timestamps above are recomputed with the corrected classifier: the first confirmed plateau is retained when later streaks occur. This fixes classification metadata only; logits, gradients, loss, accuracy, optimizer updates, and reported runtime are unchanged."
+}

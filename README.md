@@ -40,8 +40,24 @@ for complete-split evaluation, abstract symbol tokens, and the paper's AdamW set
 residual MLP, and bilinear baselines on the same protocol with one-hot, binary, scalar,
 or discrete-logarithm operand encodings; `grok-simple --verify` checks its CUDA kernels
 against f64 automatic differentiation.
+`target/release/sharp-mesh-search` runs a continuous Rust/CUDA search for mesh
+models with a long memorization plateau followed by a sharp held-out accuracy
+transition. See [search criteria, live results, and stop/resume commands](docs/sharp-mesh-search.md).
+The [short-plateau study](docs/short-mesh-results.md) measures every epoch and
+replicates promising mesh models across seeds; the ReLU butterfly width-384,
+depth-5 model shows a 113–141-epoch test rise on all five tested seeds.
+The [Neighbor residual verification](docs/neighbor-mesh-results.md) checks five
+seeds with an easier mesh visualization; seed 11 has a 34-epoch perfect-train
+plateau and a 241-epoch test rise.
 See [CUDA profiling and measured training performance](docs/cuda-performance.md)
 for the warmed FP32 benchmark, Nsight captures, and CUDA optimizations.
+The local [Rotate90 Grokking Lab](web/own-channel/README.md) trains one shared-embedding
+Square Neighbor residual architecture at widths 128 and 1024 entirely in the
+browser with handwritten WASM SIMD or WebGPU, live weight visualizations, and
+complete-split loss curves. The wider model shows a memorization plateau followed
+by a 74–80-epoch held-out rise on all five tested seeds. See
+[Rotate90 Rust and browser measurements](docs/rotary-neighbor-results.md) and
+[earlier model comparisons](docs/grokking-browser-models.md).
 `SpecializedMeshGpt<W, V, C, H>` compiles tensor capacities from Rust const
 parameters; GPT loading and execution use safe APIs.
 The original scalar example remains available with `cargo oxide run`.

@@ -1,0 +1,26 @@
+{
+  "command": "grok-simple",
+  "study": "Compare shared operand/readout embeddings with ordered concatenation and a 128-to-64 projection against the original own-channel depth-5 model, using the same Rust/CUDA binary, split, sampler, seed and optimizer",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/tied-concat",
+  "common": {
+    "operation": "div",
+    "modulus": 97,
+    "train-fraction": 0.5,
+    "seed": 7,
+    "batch": 512,
+    "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001,
+    "weight-decay": 0.1,
+    "activation": "relu",
+    "encoding": "one-hot",
+    "width": 64,
+    "depth": 5,
+    "connectivity": "own"
+  },
+  "candidates": [
+    {"label": "tied-concat-own-w64-d5-seed7", "model": "tied-concat-mesh-mlp"},
+    {"label": "original-own-w64-d5-seed7", "model": "mesh-mlp"}
+  ]
+}

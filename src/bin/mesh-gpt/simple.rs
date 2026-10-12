@@ -70,6 +70,7 @@ impl Options {
                 "--width" => options.config.width = value(&mut arguments, &flag)?,
                 "--depth" => options.config.depth = value(&mut arguments, &flag)?,
                 "--expansion" => options.config.expansion = value(&mut arguments, &flag)?,
+                "--mesh-depth" => options.config.mesh_depth = value(&mut arguments, &flag)?,
                 "--connectivity" => options.config.connectivity = value(&mut arguments, &flag)?,
                 "--tied-mesh" => options.config.tied_mesh = true,
                 "--decay-factors" => options.config.decay_factors = value(&mut arguments, &flag)?,
@@ -120,7 +121,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         println!(
             "Attention-free baselines on the Mesh GPT grokking protocol\n\
             Usage: cargo oxide run --bin mesh-gpt -- grok-simple [options]\n\n\
-            --model NAME          mlp (default), mesh-mlp, residual-mlp, or bilinear\n\
+            --model NAME          mlp (default), mesh-mlp, tied-concat-mesh-mlp,\n\
+                                  residual-mlp, residual-mesh-mlp,\n\
+                                  tied-concat-residual-mesh-mlp,\n\
+                                  tied-rotary-residual-mesh-mlp, or bilinear\n\
             --encoding NAME       Per operand: one-hot (default), binary (+-1 bits),\n\
                                   scalar ((v-48)/48 for p=97), or discrete-log\n\
                                   ([v==0, centered log to a primitive root]; prime p)\n\
@@ -129,6 +133,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             --depth N             MLP hidden layers or residual blocks, 1..64 (default: 1);\n\
                                   a mesh MLP's layers after the first are mesh layers\n\
             --expansion N         Residual block hidden width / stream width (default: 4)\n\
+            --mesh-depth N        Residual mesh branch layers, 1..64 (default: 4)\n\
             --connectivity NAME   Mesh MLP second parent: neighbor, c+1 (default),\n\
                                   butterfly, c+2^(layer mod floor(log2 width)), or\n\
                                   own, none: each mesh unit scales its own channel\n\
@@ -270,25 +275,44 @@ fn train(mut options: Options) -> Result<()> {
                 config.expansion
             ),
             match config.architecture {
-                Architecture::MeshMlp => config.connectivity.name(),
+                Architecture::MeshMlp
+                | Architecture::TiedConcatMeshMlp
+                | Architecture::TiedConcatResidualMeshMlp
+                | Architecture::TiedRotaryResidualMeshMlp
+                | Architecture::ResidualMeshMlp => config.connectivity.name(),
                 _ => "none",
             },
             config.mesh_layers(),
             match config.architecture {
-                Architecture::MeshMlp => config.tied_mesh.to_string(),
+                Architecture::MeshMlp
+                | Architecture::TiedConcatMeshMlp
+                | Architecture::TiedConcatResidualMeshMlp
+                | Architecture::TiedRotaryResidualMeshMlp
+                | Architecture::ResidualMeshMlp => config.tied_mesh.to_string(),
                 _ => "none".into(),
             },
             match config.architecture {
-                Architecture::ResidualMlp => "pre_rmsnorm_blocks_and_final",
+                Architecture::ResidualMlp
+                | Architecture::ResidualMeshMlp
+                | Architecture::TiedConcatResidualMeshMlp
+                | Architecture::TiedRotaryResidualMeshMlp => "pre_rmsnorm_blocks_and_final",
                 _ => "none",
             },
             match config.architecture {
-                Architecture::MeshMlp => "uniform_fan_in_dense_identity_mesh",
+                Architecture::MeshMlp | Architecture::ResidualMeshMlp =>
+                    "uniform_fan_in_dense_identity_mesh",
+                Architecture::TiedConcatMeshMlp | Architecture::TiedConcatResidualMeshMlp =>
+                    "uniform_fan_in_embedding_projection_identity_mesh",
+                Architecture::TiedRotaryResidualMeshMlp => "uniform_fan_in_embedding_identity_mesh",
                 _ => "uniform_fan_in",
             },
             options.optimizer.learning_rate,
             match config.architecture {
-                Architecture::MeshMlp => config.mesh_learning_rate_multiplier.to_string(),
+                Architecture::MeshMlp
+                | Architecture::TiedConcatMeshMlp
+                | Architecture::TiedConcatResidualMeshMlp
+                | Architecture::TiedRotaryResidualMeshMlp
+                | Architecture::ResidualMeshMlp => config.mesh_learning_rate_multiplier.to_string(),
                 _ => "none".into(),
             },
             options.optimizer.weight_decay,
@@ -299,7 +323,12 @@ fn train(mut options: Options) -> Result<()> {
                 Architecture::MeshMlp if config.tied_mesh => {
                     "raw_f32_le_dense_layers_then_one_tied_mesh_layer"
                 }
-                Architecture::MeshMlp => "raw_f32_le_dense_layers_then_mesh_layers",
+                Architecture::MeshMlp | Architecture::ResidualMeshMlp =>
+                    "raw_f32_le_dense_layers_then_mesh_layers",
+                Architecture::TiedConcatMeshMlp | Architecture::TiedConcatResidualMeshMlp =>
+                    "raw_f32_le_shared_embedding_projection_then_stored_mesh_layers",
+                Architecture::TiedRotaryResidualMeshMlp =>
+                    "raw_f32_le_shared_embedding_then_mesh_layers",
                 _ => "raw_f32_le_layer_order",
             },
             options
@@ -319,6 +348,16 @@ fn train(mut options: Options) -> Result<()> {
         dataset.split(true).len(),
         batch,
     );
+    if config.architecture.residual_mesh() {
+        let mut metadata = OpenOptions::new()
+            .append(true)
+            .open(options.output.join("run.txt"))?;
+        writeln!(metadata, "mesh_depth={}", config.mesh_depth)?;
+        if config.architecture.rotary_embeddings() {
+            writeln!(metadata, "operand_rotation=pairwise_b_plus_90_degrees")?;
+            writeln!(metadata, "embedding_roles=a,b,readout")?;
+        }
+    }
     let stop = options
         .stop_validation_accuracy
         .map_or_else(String::new, |x| format!(" or validation accuracy >={x}"));
@@ -433,18 +472,24 @@ fn train(mut options: Options) -> Result<()> {
 fn family(config: SimpleConfig) -> String {
     match config.architecture {
         Architecture::Bilinear => format!("{}-{}", config.architecture, config.encoding),
-        Architecture::MeshMlp => format!(
-            "{}-{}{}-{}-{}{}",
-            config.architecture,
-            config.connectivity,
-            if config.tied_mesh { "-tied" } else { "" },
-            config.activation,
-            config.encoding,
-            match config.mesh_learning_rate_multiplier {
-                1 => String::new(),
-                k => format!("-mesh-rate-{k}"),
-            }
-        ),
+        Architecture::MeshMlp
+        | Architecture::TiedConcatMeshMlp
+        | Architecture::ResidualMeshMlp
+        | Architecture::TiedConcatResidualMeshMlp
+        | Architecture::TiedRotaryResidualMeshMlp => {
+            format!(
+                "{}-{}{}-{}-{}{}",
+                config.architecture,
+                config.connectivity,
+                if config.tied_mesh { "-tied" } else { "" },
+                config.activation,
+                config.encoding,
+                match config.mesh_learning_rate_multiplier {
+                    1 => String::new(),
+                    k => format!("-mesh-rate-{k}"),
+                }
+            )
+        }
         _ if config.decay_factors != 2 => format!(
             "{}-{}-{}-decay-factors-{}",
             config.architecture, config.activation, config.encoding, config.decay_factors

@@ -1,0 +1,18 @@
+{
+  "model": "residual",
+  "variant": "simd",
+  "seed": 7,
+  "elapsedSeconds": 839.430785237,
+  "wasmSha256": "30de18e8ddd4c8569f0ab8c5608e2601ed6c136e566132581688ac80b5a450a6",
+  "node": "v24.21.0",
+  "criterion": {
+    "streak": 0,
+    "plateau": true,
+    "onset": 4250,
+    "confirmed": 4350,
+    "event": {
+      "epoch": 5125,
+      "delayed": true
+    }
+  }
+}

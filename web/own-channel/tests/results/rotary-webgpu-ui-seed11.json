@@ -1,0 +1,21 @@
+{
+  "neighbor-rotary": {
+    "status": "Target reached",
+    "phase": "Generalized",
+    "epoch": "133",
+    "train": "100.00%",
+    "test": "99.08%",
+    "observations": "134 observations",
+    "error": ""
+  },
+  "neighbor-rotary-wide": {
+    "status": "Grokking reached",
+    "phase": "Short-plateau grokking",
+    "epoch": "186",
+    "train": "100.00%",
+    "test": "99.01%",
+    "observations": "187 observations",
+    "error": ""
+  },
+  "browser": "Chrome/155.0.8059.39"
+}

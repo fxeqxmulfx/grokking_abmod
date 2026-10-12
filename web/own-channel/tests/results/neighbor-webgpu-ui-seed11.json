@@ -1,0 +1,9 @@
+{
+  "check": "complete Neighbor training through the UI",
+  "status": "Grokking reached",
+  "epoch": "577",
+  "train": "100.00%",
+  "test": "99.01%",
+  "observations": "578 observations",
+  "phase": "Short-plateau grokking"
+}

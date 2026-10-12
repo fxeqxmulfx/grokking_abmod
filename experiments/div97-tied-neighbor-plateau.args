@@ -1,0 +1,7 @@
+# Shared-E concatenation and readout, with the Neighbor candidate's residual branches.
+# Same division protocol, seed range, optimizer and per-epoch observations as the untied study.
+grok-simple --model tied-concat-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 7
+grok-simple --model tied-concat-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 8
+grok-simple --model tied-concat-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 9
+grok-simple --model tied-concat-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 10
+grok-simple --model tied-concat-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 11

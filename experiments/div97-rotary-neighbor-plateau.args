@@ -1,0 +1,7 @@
+# Shared E, fixed +90 degree pairwise rotation of b, and a tied E-transpose readout.
+# Match the untied Neighbor study's task, mesh, optimizer, seeds and per-epoch evaluation.
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 7
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 8
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 9
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 10
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --mesh-learning-rate-multiplier 1 --learning-rate 0.001 --weight-decay 0.1 --seed 11

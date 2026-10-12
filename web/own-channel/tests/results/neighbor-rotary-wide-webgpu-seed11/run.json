@@ -1,0 +1,44 @@
+{
+  "model": "neighbor-rotary-wide",
+  "seed": 11,
+  "reportEvery": 10,
+  "backend": "webgpu",
+  "info": {
+    "description": "WebGPU adapter",
+    "backend": "webgpu",
+    "fallback": false
+  },
+  "elapsedSeconds": 13.4005,
+  "criterion": {
+    "plateau": {
+      "start": 15,
+      "end": 56,
+      "epochs": 41
+    },
+    "perfect": {
+      "start": 22,
+      "end": 56,
+      "epochs": 34
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 186,
+    "lastLow": 56,
+    "first90": 135,
+    "rise": 79,
+    "event": {
+      "epoch": 186,
+      "delayed": true,
+      "plateauEpochs": 41,
+      "perfectTrainEpochs": 34,
+      "riseEpochs": 79
+    }
+  },
+  "node": "v24.21.0",
+  "sourceSha256": {
+    "neighbor-rotary-wide.wgsl": "074222402bc225ffa1ec6a433855e8879740121cfc62176d55ec1fe32e2a380b",
+    "gpu.mjs": "0032eb9ff939752d38adb0c10649cb6499bf3e2f9ee486a6dba9bff09e79b1e8",
+    "models.mjs": "ca70f293141db001197061d095c821a6a50adcebf94c70806cc7e3a0d9646302",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "own-channel-grokking-lab",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "test": "node --test --test-isolation=none tests/model.test.mjs tests/wasm.test.mjs tests/models-wasm.test.mjs"
+  },
+  "devDependencies": {"wabt": "1.0.39"}
+}

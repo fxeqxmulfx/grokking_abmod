@@ -1,0 +1,120 @@
+{
+  "model": "neighbor",
+  "seed": 7,
+  "checks": [
+    {
+      "check": "logits 0",
+      "error": 9.832775177409658e-7
+    },
+    {
+      "check": "logits 19",
+      "error": 5.905324912403032e-7
+    },
+    {
+      "check": "logits 4655",
+      "error": 5.253789079340265e-7
+    },
+    {
+      "check": "logits 4656",
+      "error": 9.928285875648868e-7
+    },
+    {
+      "check": "logits 9311",
+      "error": 0.0000011332347372716711
+    },
+    {
+      "check": "parameters 0..24832, batch 1",
+      "error": 0.00006096043594538969,
+      "relativeError": 0.0000020758187490446905
+    },
+    {
+      "check": "parameters 24832..37248, batch 1",
+      "error": 0.00000934405396790794,
+      "relativeError": 9.410889273144055e-7
+    },
+    {
+      "check": "parameters 37248..38784, batch 1",
+      "error": 0.00000769631645658464,
+      "relativeError": 0.000001952199557878812
+    },
+    {
+      "check": "parameters 0..24832, batch 37",
+      "error": 0.0000017760702436483457,
+      "relativeError": 0.0000010407341237459314
+    },
+    {
+      "check": "parameters 24832..37248, batch 37",
+      "error": 2.8621264069883523e-7,
+      "relativeError": 9.87130545082131e-7
+    },
+    {
+      "check": "parameters 37248..38784, batch 37",
+      "error": 2.7328033849749467e-7,
+      "relativeError": 0.000001207638040921412
+    },
+    {
+      "check": "parameters 0..24832, batch 48",
+      "error": 0.0000012485010420504317,
+      "relativeError": 5.468016718820338e-7
+    },
+    {
+      "check": "parameters 24832..37248, batch 48",
+      "error": 1.834441807901932e-7,
+      "relativeError": 6.914509367481237e-7
+    },
+    {
+      "check": "parameters 37248..38784, batch 48",
+      "error": 1.8567729064000726e-7,
+      "relativeError": 5.871020589435108e-7
+    },
+    {
+      "check": "parameters 0..24832, batch 512",
+      "error": 2.6841247519060474e-7,
+      "relativeError": 9.655000006227519e-7
+    },
+    {
+      "check": "parameters 24832..37248, batch 512",
+      "error": 4.407898096178697e-8,
+      "relativeError": 9.715372807089836e-7
+    },
+    {
+      "check": "parameters 37248..38784, batch 512",
+      "error": 7.244050385935008e-8,
+      "relativeError": 0.0000010421904382587823
+    },
+    {
+      "check": "AdamW 1",
+      "error": 6.28463711831867e-7
+    },
+    {
+      "check": "AdamW 2",
+      "error": 6.275920406834112e-7
+    },
+    {
+      "check": "AdamW 3",
+      "error": 6.276887585011937e-7
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 4.725431442260742,
+        "trainAccuracy": 0.008376289159059525,
+        "heldoutLoss": 4.729890823364258,
+        "heldoutAccuracy": 0.009664949029684067
+      }
+    },
+    {
+      "check": "nontrivial independent gains/edges",
+      "error": 0.0000010820382724263666
+    }
+  ],
+  "sourceSha256": {
+    "gpu.mjs": "02b39bff028705c64f2a321462815e49611d717a1e8afe2b12e31f48fbfad698",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda",
+    "models.mjs": "3508c7f8fcc360198a6ae615873544a7ba5923a12372b6fba4fbdfd22b97e038",
+    "neighbor.wgsl": "3114d4864fe0afc57dcea42ab6be4a6fac3a6e9eae65d5d6c260d273bf9a9cff"
+  },
+  "browser": "Chrome/155.0.8059.39"
+}

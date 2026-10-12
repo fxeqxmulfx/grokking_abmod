@@ -1,0 +1,10 @@
+# Targeted size/depth/decay checks after W128 B2 M3 generalized directly on all five seeds.
+# Keep the +90 degree role rotation and shared-E readout unchanged.
+grok-simple --model tied-rotary-residual-mesh-mlp --width 256 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 512 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 3 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 4 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 128 --depth 2 --mesh-depth 4 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 512 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.01 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 512 --depth 2 --mesh-depth 3 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 1.0 --seed 11

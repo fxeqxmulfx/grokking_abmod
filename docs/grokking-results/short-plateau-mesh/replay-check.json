@@ -1,0 +1,30 @@
+[
+  {
+    "coarseRun": "target/grok-div97-search/sharp-mesh-loop/trials/000007-residual-mesh-mlp-w128-d2-s7-a01",
+    "fineRun": "target/grok-div97-search/short-plateau-mesh-loop/trials/000001-residual-mesh-mlp-w128-d2-s7-a01",
+    "sharedEpochs": 19,
+    "maximumLoggedMetricDifference": 0,
+    "metrics": [
+      "train_cross_entropy",
+      "validation_cross_entropy",
+      "train_accuracy",
+      "validation_accuracy",
+      "weight_l2"
+    ],
+    "note": "Only recorded metrics at common epochs are compared. Wall time is excluded."
+  },
+  {
+    "coarseRun": "target/grok-div97-search/sharp-mesh-loop/trials/000014-mesh-mlp-w384-d5-s9-a01",
+    "fineRun": "target/grok-div97-search/short-plateau-mesh-loop/trials/000002-mesh-mlp-w384-d5-s9-a01",
+    "sharedEpochs": 21,
+    "maximumLoggedMetricDifference": 0,
+    "metrics": [
+      "train_cross_entropy",
+      "validation_cross_entropy",
+      "train_accuracy",
+      "validation_accuracy",
+      "weight_l2"
+    ],
+    "note": "Only recorded metrics at common epochs are compared. Wall time is excluded."
+  }
+]

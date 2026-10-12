@@ -1,0 +1,28 @@
+{
+  "command": "grok-simple",
+  "study": "Test whether sparse residual mesh branches retain the long memorization plateau and fast held-out transition observed in the width-64 two-block dense residual MLP",
+  "epochs": 10000,
+  "output": "target/grok-div97-search/residual-mesh",
+  "common": {
+    "operation": "div", "modulus": 97, "train-fraction": 0.5,
+    "seed": 7, "batch": 512, "report-every": 250,
+    "stop-validation-accuracy": 0.99,
+    "learning-rate": 0.001, "weight-decay": 0.1,
+    "model": "residual-mesh-mlp", "activation": "relu", "encoding": "one-hot",
+    "width": 64, "depth": 2, "mesh-depth": 4, "connectivity": "butterfly"
+  },
+  "candidates": [
+    {"label": "butterfly-w64-b2-m4"},
+    {"label": "neighbor-w64-b2-m4", "connectivity": "neighbor"},
+    {"label": "butterfly-w64-b2-m8", "mesh-depth": 8},
+    {"label": "butterfly-w64-b4-m4", "depth": 4},
+    {"label": "butterfly-w64-b2-m4-wd1", "weight-decay": 1.0},
+    {"label": "butterfly-w64-b2-m4-wd05", "weight-decay": 0.5},
+    {"label": "butterfly-w128-b2-m8", "width": 128, "mesh-depth": 8},
+    {"label": "butterfly-w256-b2-m4", "width": 256},
+    {"label": "butterfly-w128-b2-m16", "width": 128, "mesh-depth": 16},
+    {"label": "butterfly-w128-b4-m8", "width": 128, "depth": 4, "mesh-depth": 8},
+    {"label": "butterfly-w128-b2-m8-wd003", "width": 128, "mesh-depth": 8, "weight-decay": 0.03},
+    {"label": "butterfly-w128-b2-m16-wd003", "width": 128, "mesh-depth": 16, "weight-decay": 0.03}
+  ]
+}

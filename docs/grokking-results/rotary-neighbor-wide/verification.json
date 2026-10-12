@@ -1,0 +1,166 @@
+{
+  "date": "2026-10-12",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "driver": "615.71.09",
+    "memory_mib": 4096,
+    "cuda": "13.4",
+    "cpu": "AMD Ryzen 5 5600H"
+  },
+  "build_command": [
+    "cargo",
+    "oxide",
+    "build",
+    "--arch",
+    "sm_86",
+    "--",
+    "--release",
+    "--locked",
+    "--bin",
+    "mesh-gpt"
+  ],
+  "command": [
+    "target/release/mesh-gpt",
+    "grok-simple",
+    "--verify"
+  ],
+  "verification_binary_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742",
+  "verification_log_sha256": "80a80492d66365881c189b0ce38e3107c236783cbcca16f3c30269fbbf1003a1",
+  "source_sha256": {
+    "src/simple/mod.rs": "dc8c65ece7641755c420d1f05752678fe27ce898c355cde21de2d277a2770584",
+    "src/simple/gpu.rs": "ca68e065d5b5aa7b69e844799040e995f45164d0f52f4e891a7da121c623a092",
+    "src/simple/reference.rs": "887010116f5bcc2f15e7af8aa8256adae0e98e32972c03780d8d1d62867f094f",
+    "src/bin/mesh-gpt/simple.rs": "73ca42fc63bbf426118b6a7942f2c5e880a6b13a09816ee735a62d8d80e4ba5a",
+    "src/bin/sharp-mesh-search.rs": "91e8f74af7ae34f34feb26826cc8a7b73e4698c36c1e8821ba7c166f5f825767",
+    "web/own-channel/dist/models.mjs": "ca70f293141db001197061d095c821a6a50adcebf94c70806cc7e3a0d9646302",
+    "web/own-channel/dist/gpu.mjs": "0032eb9ff939752d38adb0c10649cb6499bf3e2f9ee486a6dba9bff09e79b1e8",
+    "web/own-channel/dist/neighbor-rotary.wgsl": "111fde5fdf90fb9dd5cf7c192c6c6acaeb3b5b0420d51d36e5a98378543a05bf",
+    "web/own-channel/dist/neighbor-rotary-wide.wgsl": "e5e7ed3da5fefa9f9ea89b4baaa13a3b6116bf5b69aa82b1ae3aedbaabfcfa25",
+    "web/own-channel/dist/neighbor-rotary-simd.wasm": "1494786939eb4385586527f33b9a381309319628e700204e5be876347ac2bbce",
+    "web/own-channel/dist/neighbor-rotary-wide-simd.wasm": "17c9bb135f9d8bc1f1725000a009826c61fbab2a5b8df5b18ea883e207e00ca6"
+  },
+  "study_trainer_sha256": {
+    "rotary-neighbor": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10",
+    "rotary-neighbor-wide": "5eb95110b1c49dabe6bf1e2e28842d1730ba85a66716d5860c6b0a2491be8bc4",
+    "rotary-neighbor-variants": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10"
+  },
+  "passed_configurations": 42,
+  "validation_passed": true,
+  "candidate_results": [
+    "PASS tied-rotary-residual-mesh-mlp neighbor mesh-depth=3 square one-hot width=128 depth=2 expansion=4 modulus=97: logits (max error 8.4e-7 of max), loss, gradients (max error 7.5e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
+    "PASS tied-rotary-residual-mesh-mlp neighbor mesh-depth=3 square one-hot width=1024 depth=2 expansion=4 modulus=97: logits (max error 1.2e-6 of max), loss, gradients (max error 1.3e-6 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability"
+  ],
+  "verification_build_changes_since_wide_replication": "Adds the exact width-1024 verification fixture; training kernels unchanged.",
+  "cpu_reference_test": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--lib"
+    ],
+    "passed": 56,
+    "failed": 0
+  },
+  "scheduler_tests": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--bin",
+      "sharp-mesh-search"
+    ],
+    "passed": 9,
+    "failed": 0
+  },
+  "clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "passed": true
+  },
+  "formatting": {
+    "command": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "passed": true
+  },
+  "node": "v24.21.0",
+  "wasm_full_suite": {
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "tests/*.test.mjs"
+    ],
+    "cwd": "web/own-channel",
+    "passed": 73,
+    "failed": 0
+  },
+  "added_checkpoint_test": {
+    "command": [
+      "node",
+      "--test",
+      "--test-isolation=none",
+      "--test-name-pattern=Rotary checkpoints",
+      "tests/models-wasm.test.mjs"
+    ],
+    "cwd": "web/own-channel",
+    "passed": 1,
+    "failed": 0,
+    "checkpoints": 4
+  },
+  "webgpu": {
+    "browser": "Chrome/155.0.8059.39",
+    "adapter_description": "WebGPU adapter",
+    "fallback": false,
+    "checks_per_width": {
+      "128": 18,
+      "1024": 18
+    },
+    "results": "../../../web/own-channel/tests/results/rotary-webgpu-verification.json"
+  },
+  "ui": {
+    "passed": true,
+    "viewport_minimum": [
+      320,
+      568
+    ],
+    "viewport_maximum": [
+      1920,
+      1080
+    ],
+    "fresh_training_results": {
+      "neighbor-rotary": {
+        "status": "Target reached",
+        "phase": "Generalized",
+        "epoch": "133",
+        "train": "100.00%",
+        "test": "99.08%",
+        "observations": "134 observations",
+        "error": ""
+      },
+      "neighbor-rotary-wide": {
+        "status": "Grokking reached",
+        "phase": "Short-plateau grokking",
+        "epoch": "186",
+        "train": "100.00%",
+        "test": "99.01%",
+        "observations": "187 observations",
+        "error": ""
+      },
+      "browser": "Chrome/155.0.8059.39"
+    }
+  },
+  "replay": "replay-check.json",
+  "source_note": "Generated SVG and WGSL trailing whitespace was normalized after verification. Shader operations are unchanged; original measured shader hashes remain in browser run metadata."
+}

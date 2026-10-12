@@ -1,0 +1,44 @@
+{
+  "model": "neighbor",
+  "seed": 11,
+  "reportEvery": 10,
+  "backend": "webgpu",
+  "info": {
+    "description": "WebGPU adapter",
+    "backend": "webgpu",
+    "fallback": false
+  },
+  "elapsedSeconds": 4.48990000000596,
+  "criterion": {
+    "plateau": {
+      "start": 96,
+      "end": 158,
+      "epochs": 62
+    },
+    "perfect": {
+      "start": 124,
+      "end": 158,
+      "epochs": 34
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 577,
+    "lastLow": 158,
+    "first90": 401,
+    "rise": 243,
+    "event": {
+      "epoch": 577,
+      "delayed": true,
+      "plateauEpochs": 62,
+      "perfectTrainEpochs": 34,
+      "riseEpochs": 243
+    }
+  },
+  "node": "v24.21.0",
+  "sourceSha256": {
+    "neighbor.wgsl": "3114d4864fe0afc57dcea42ab6be4a6fac3a6e9eae65d5d6c260d273bf9a9cff",
+    "gpu.mjs": "02b39bff028705c64f2a321462815e49611d717a1e8afe2b12e31f48fbfad698",
+    "models.mjs": "3508c7f8fcc360198a6ae615873544a7ba5923a12372b6fba4fbdfd22b97e038",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda"
+  }
+}

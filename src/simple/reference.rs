@@ -173,9 +173,17 @@ fn forward(
                 }
                 hidden
             }
-            Architecture::MeshMlp => {
+            Architecture::MeshMlp | Architecture::TiedConcatMeshMlp => {
                 let (width, parents) = (config.width, config.connectivity.parents());
-                let mut hidden = dense(&mut tape, &x, 0);
+                let tied = config.architecture == Architecture::TiedConcatMeshMlp;
+                let mut hidden = if tied {
+                    let (a, b) = x.split_at(config.operand_features());
+                    let mut joined = dense(&mut tape, a, 0);
+                    joined.extend(dense(&mut tape, b, 0));
+                    dense(&mut tape, &joined, 1)
+                } else {
+                    dense(&mut tape, &x, 0)
+                };
                 for layer in 0..config.mesh_layers() {
                     let activated = activate(&mut tape, &hidden);
                     let stride = config.mesh_stride(layer);
@@ -190,7 +198,83 @@ fn forward(
                         .collect();
                 }
                 let activated = activate(&mut tape, &hidden);
-                dense(&mut tape, &activated, 1)
+                if tied {
+                    (0..config.modulus)
+                        .map(|class| {
+                            let weights: Vec<_> =
+                                (0..width).map(|channel| class * width + channel).collect();
+                            tape.dot(&activated, &weights)
+                        })
+                        .collect()
+                } else {
+                    dense(&mut tape, &activated, 1)
+                }
+            }
+            Architecture::ResidualMeshMlp
+            | Architecture::TiedConcatResidualMeshMlp
+            | Architecture::TiedRotaryResidualMeshMlp => {
+                let width = config.width;
+                let parents = config.connectivity.parents();
+                let tied = config.architecture.tied_embeddings();
+                let mut hidden = if config.architecture.rotary_embeddings() {
+                    let (a, b) = x.split_at(config.operand_features());
+                    let left = dense(&mut tape, a, 0);
+                    let right = dense(&mut tape, b, 0);
+                    (0..width)
+                        .map(|channel| {
+                            let rotated = tape.scale(
+                                right[channel ^ 1],
+                                if channel % 2 == 0 { -1.0 } else { 1.0 },
+                            );
+                            tape.add(left[channel], rotated)
+                        })
+                        .collect()
+                } else if tied {
+                    let (a, b) = x.split_at(config.operand_features());
+                    let mut joined = dense(&mut tape, a, 0);
+                    joined.extend(dense(&mut tape, b, 0));
+                    dense(&mut tape, &joined, 1)
+                } else {
+                    dense(&mut tape, &x, 0)
+                };
+                for block in 0..config.depth {
+                    let normalized = rmsnorm(&mut tape, std::slice::from_ref(&hidden), 1).remove(0);
+                    let mut branch = normalized;
+                    for layer in 0..config.mesh_depth {
+                        if layer > 0 {
+                            branch = activate(&mut tape, &branch);
+                        }
+                        let mesh = block * config.mesh_depth + layer;
+                        let stride = config.mesh_stride(mesh);
+                        branch = (0..width)
+                            .map(|channel| {
+                                let mut inputs = vec![branch[channel]];
+                                if parents == 2 {
+                                    inputs.push(branch[(channel + stride) % width]);
+                                }
+                                let start = mesh_offset + (mesh * width + channel) * parents;
+                                tape.dot(&inputs, &(start..start + parents).collect::<Vec<_>>())
+                            })
+                            .collect();
+                    }
+                    hidden = hidden
+                        .iter()
+                        .zip(&branch)
+                        .map(|(&a, &b)| tape.add(a, b))
+                        .collect();
+                }
+                let normalized = rmsnorm(&mut tape, &[hidden], 1).remove(0);
+                if tied {
+                    (0..config.modulus)
+                        .map(|class| {
+                            let weights: Vec<_> =
+                                (0..width).map(|channel| class * width + channel).collect();
+                            tape.dot(&normalized, &weights)
+                        })
+                        .collect()
+                } else {
+                    dense(&mut tape, &normalized, 1)
+                }
             }
             Architecture::ResidualMlp => {
                 let mut hidden = dense(&mut tape, &x, 0);
@@ -298,6 +382,56 @@ mod tests {
                 encoding,
                 ..base
             });
+        }
+        for activation in [Activation::Relu, Activation::Square] {
+            for connectivity in [Connectivity::Own, Connectivity::Butterfly] {
+                configs.push(SimpleConfig {
+                    architecture: Architecture::TiedConcatMeshMlp,
+                    activation,
+                    connectivity,
+                    depth: 3,
+                    ..base
+                });
+            }
+        }
+        configs.push(SimpleConfig {
+            architecture: Architecture::TiedConcatMeshMlp,
+            depth: 4,
+            tied_mesh: true,
+            ..base
+        });
+        for activation in [Activation::Relu, Activation::Square] {
+            for connectivity in [
+                Connectivity::Own,
+                Connectivity::Neighbor,
+                Connectivity::Butterfly,
+            ] {
+                configs.push(SimpleConfig {
+                    architecture: Architecture::ResidualMeshMlp,
+                    activation,
+                    connectivity,
+                    depth: 2,
+                    mesh_depth: 3,
+                    ..base
+                });
+                configs.push(SimpleConfig {
+                    architecture: Architecture::TiedConcatResidualMeshMlp,
+                    activation,
+                    connectivity,
+                    depth: 2,
+                    mesh_depth: 3,
+                    ..base
+                });
+                configs.push(SimpleConfig {
+                    architecture: Architecture::TiedRotaryResidualMeshMlp,
+                    activation,
+                    connectivity,
+                    width: 6,
+                    depth: 2,
+                    mesh_depth: 3,
+                    ..base
+                });
+            }
         }
         configs
     }

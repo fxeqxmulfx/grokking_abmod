@@ -37,9 +37,22 @@ pub enum Architecture {
     /// Mesh GPT, or only its own channel with `Connectivity::Own`. Depth 1 is
     /// the one-layer MLP.
     MeshMlp,
+    /// Shared operand embeddings, their ordered concatenation projected to
+    /// `width`, `depth - 1` mesh layers, and the shared embedding's transpose
+    /// as readout. The embedding has one optimizer state for all three uses.
+    TiedConcatMeshMlp,
     /// An operand embedding, `depth` pre-RMSNorm feed-forward blocks with
     /// residual connections, a final RMSNorm, and a readout.
     ResidualMlp,
+    /// Pre-RMSNorm residual blocks whose branches are fixed-width mesh
+    /// projections, with `mesh_depth` layers per branch and no dense FFN.
+    ResidualMeshMlp,
+    /// Shared operand embeddings, an ordered concatenation projection,
+    /// pre-RMSNorm residual mesh blocks, and the embedding's transposed readout.
+    TiedConcatResidualMeshMlp,
+    /// Shared operand/readout embedding. Rotate adjacent coordinate pairs of
+    /// operand b by 90 degrees, add operand a, then use residual mesh blocks.
+    TiedRotaryResidualMeshMlp,
     /// The elementwise product of separate `a` and `b` embeddings, read out.
     Bilinear,
 }
@@ -49,7 +62,11 @@ impl fmt::Display for Architecture {
         formatter.write_str(match self {
             Self::Mlp => "mlp",
             Self::MeshMlp => "mesh-mlp",
+            Self::TiedConcatMeshMlp => "tied-concat-mesh-mlp",
             Self::ResidualMlp => "residual-mlp",
+            Self::ResidualMeshMlp => "residual-mesh-mlp",
+            Self::TiedConcatResidualMeshMlp => "tied-concat-residual-mesh-mlp",
+            Self::TiedRotaryResidualMeshMlp => "tied-rotary-residual-mesh-mlp",
             Self::Bilinear => "bilinear",
         })
     }
@@ -62,10 +79,38 @@ impl FromStr for Architecture {
         match value {
             "mlp" => Ok(Self::Mlp),
             "mesh-mlp" => Ok(Self::MeshMlp),
+            "tied-concat-mesh-mlp" => Ok(Self::TiedConcatMeshMlp),
             "residual-mlp" => Ok(Self::ResidualMlp),
+            "residual-mesh-mlp" => Ok(Self::ResidualMeshMlp),
+            "tied-concat-residual-mesh-mlp" => Ok(Self::TiedConcatResidualMeshMlp),
+            "tied-rotary-residual-mesh-mlp" => Ok(Self::TiedRotaryResidualMeshMlp),
             "bilinear" => Ok(Self::Bilinear),
             _ => Err(format!("unknown model: {value}")),
         }
+    }
+}
+
+impl Architecture {
+    pub fn tied_embeddings(self) -> bool {
+        matches!(
+            self,
+            Self::TiedConcatMeshMlp
+                | Self::TiedConcatResidualMeshMlp
+                | Self::TiedRotaryResidualMeshMlp
+        )
+    }
+
+    pub fn residual_mesh(self) -> bool {
+        matches!(
+            self,
+            Self::ResidualMeshMlp
+                | Self::TiedConcatResidualMeshMlp
+                | Self::TiedRotaryResidualMeshMlp
+        )
+    }
+
+    pub fn rotary_embeddings(self) -> bool {
+        self == Self::TiedRotaryResidualMeshMlp
     }
 }
 
@@ -306,6 +351,8 @@ pub struct SimpleConfig {
     pub depth: usize,
     /// Feed-forward width of a residual block, as a multiple of `width`.
     pub expansion: usize,
+    /// Fixed-width mesh layers per residual branch. Only residual mesh MLPs use it.
+    pub mesh_depth: usize,
     /// The parents of each mesh-layer unit. Only mesh MLPs use it.
     pub connectivity: Connectivity,
     /// Every mesh layer uses the first mesh layer's weights, so a mesh MLP
@@ -333,6 +380,7 @@ impl Default for SimpleConfig {
             width: 128,
             depth: 1,
             expansion: 4,
+            mesh_depth: 4,
             connectivity: Connectivity::Neighbor,
             tied_mesh: false,
             decay_factors: 2,
@@ -364,11 +412,37 @@ impl SimpleConfig {
             return Err(format!("residual hidden width must be in 1..={MAX_SIMPLE_WIDTH}").into());
         }
         // A unit's second parent must be another channel.
+        if self.architecture.residual_mesh() && !(1..=MAX_SIMPLE_DEPTH).contains(&self.mesh_depth) {
+            return Err(format!("mesh depth must be in 1..={MAX_SIMPLE_DEPTH}").into());
+        }
         if self.mesh_layers() > 0 && self.connectivity.parents() == 2 && self.width < 2 {
             return Err("a second mesh parent needs a width of at least 2".into());
         }
-        if self.tied_mesh && self.architecture != Architecture::MeshMlp {
+        if self.tied_mesh
+            && !matches!(
+                self.architecture,
+                Architecture::MeshMlp | Architecture::TiedConcatMeshMlp
+            )
+        {
             return Err("only mesh MLPs tie mesh layers".into());
+        }
+        if matches!(
+            self.architecture,
+            Architecture::TiedConcatMeshMlp | Architecture::TiedConcatResidualMeshMlp
+        ) && (self.encoding != Encoding::OneHot || 2 * self.width > MAX_SIMPLE_WIDTH)
+        {
+            return Err(format!(
+                "tied concatenation needs one-hot encoding and width <= {}",
+                MAX_SIMPLE_WIDTH / 2
+            )
+            .into());
+        }
+        if self.architecture.rotary_embeddings()
+            && (self.encoding != Encoding::OneHot
+                || self.width < 2
+                || !self.width.is_multiple_of(2))
+        {
+            return Err("rotary roles need one-hot encoding and a positive even width".into());
         }
         if self.decay_factors < 2 {
             return Err("weight decay imitates at least two factors per channel".into());
@@ -414,9 +488,13 @@ impl SimpleConfig {
                 layers.push(dense(width, classes));
                 layers
             }
-            Architecture::MeshMlp => {
+            Architecture::MeshMlp | Architecture::ResidualMeshMlp => {
                 vec![dense(self.input_features(), width), dense(width, classes)]
             }
+            Architecture::TiedConcatMeshMlp | Architecture::TiedConcatResidualMeshMlp => {
+                vec![dense(classes, width), dense(2 * width, width)]
+            }
+            Architecture::TiedRotaryResidualMeshMlp => vec![dense(classes, width)],
             Architecture::ResidualMlp => {
                 let hidden = width * self.expansion;
                 let mut layers = vec![dense(self.input_features(), width)];
@@ -438,7 +516,10 @@ impl SimpleConfig {
     /// Mesh layers of a mesh MLP, each with one weight per unit and parent.
     pub fn mesh_layers(&self) -> usize {
         match self.architecture {
-            Architecture::MeshMlp => self.depth.saturating_sub(1),
+            Architecture::MeshMlp | Architecture::TiedConcatMeshMlp => self.depth.saturating_sub(1),
+            Architecture::ResidualMeshMlp
+            | Architecture::TiedConcatResidualMeshMlp
+            | Architecture::TiedRotaryResidualMeshMlp => self.depth * self.mesh_depth,
             _ => 0,
         }
     }
@@ -523,6 +604,146 @@ impl SimpleConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn residual_mesh_config_bounds_branch_depth_and_counts_only_edges() {
+        let config = SimpleConfig {
+            architecture: Architecture::ResidualMeshMlp,
+            width: 64,
+            depth: 2,
+            mesh_depth: 4,
+            ..SimpleConfig::default()
+        };
+        config.validate().unwrap();
+        assert_eq!(config.parameter_count(), 19_648);
+        assert_eq!(config.mesh_layers(), 8);
+        for mesh_depth in [0, MAX_SIMPLE_DEPTH + 1] {
+            assert!(
+                SimpleConfig {
+                    mesh_depth,
+                    ..config
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        assert!(
+            SimpleConfig {
+                tied_mesh: true,
+                ..config
+            }
+            .validate()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn rotary_residual_mesh_stores_one_embedding_and_requires_coordinate_pairs() {
+        let config = SimpleConfig {
+            architecture: Architecture::TiedRotaryResidualMeshMlp,
+            activation: Activation::Square,
+            width: 128,
+            depth: 2,
+            mesh_depth: 3,
+            ..SimpleConfig::default()
+        };
+        config.validate().unwrap();
+        assert_eq!(config.parameter_count(), 13_952);
+        assert_eq!(config.groups(), [12_416, 256, 256, 256, 256, 256, 256]);
+        assert_eq!(config.initial_parameters(11).len(), 13_952);
+        for width in [1, 3, 127] {
+            assert!(SimpleConfig { width, ..config }.validate().is_err());
+        }
+        for encoding in [Encoding::Binary, Encoding::Scalar, Encoding::DiscreteLog] {
+            assert!(SimpleConfig { encoding, ..config }.validate().is_err());
+        }
+        for mesh_depth in [0, MAX_SIMPLE_DEPTH + 1] {
+            assert!(
+                SimpleConfig {
+                    mesh_depth,
+                    ..config
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        assert!(
+            SimpleConfig {
+                tied_mesh: true,
+                ..config
+            }
+            .validate()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn tied_residual_mesh_shares_embedding_across_inputs_and_readout() {
+        let config = SimpleConfig {
+            architecture: Architecture::TiedConcatResidualMeshMlp,
+            activation: Activation::Square,
+            width: 128,
+            depth: 2,
+            mesh_depth: 3,
+            connectivity: Connectivity::Neighbor,
+            ..SimpleConfig::default()
+        };
+        config.validate().unwrap();
+        assert_eq!(config.parameter_count(), 46_720);
+        assert_eq!(
+            config.groups(),
+            [12_416, 32_768, 256, 256, 256, 256, 256, 256]
+        );
+        assert_eq!(config.initial_parameters(11).len(), 46_720);
+        assert_eq!(config.mesh_layers(), 6);
+        for encoding in [Encoding::Binary, Encoding::Scalar, Encoding::DiscreteLog] {
+            assert!(SimpleConfig { encoding, ..config }.validate().is_err());
+        }
+        for mesh_depth in [0, MAX_SIMPLE_DEPTH + 1] {
+            assert!(
+                SimpleConfig {
+                    mesh_depth,
+                    ..config
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        assert!(
+            SimpleConfig {
+                tied_mesh: true,
+                ..config
+            }
+            .validate()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn tied_concatenation_stores_shared_embedding_projection_and_mesh_only() {
+        let config = SimpleConfig {
+            architecture: Architecture::TiedConcatMeshMlp,
+            connectivity: Connectivity::Own,
+            width: 64,
+            depth: 5,
+            ..SimpleConfig::default()
+        };
+        config.validate().unwrap();
+        assert_eq!(config.parameter_count(), 14_656);
+        assert_eq!(config.groups(), [97 * 64, 128 * 64, 64, 64, 64, 64]);
+        assert_eq!(config.initial_parameters(7).len(), 14_656);
+        for encoding in [Encoding::Binary, Encoding::Scalar, Encoding::DiscreteLog] {
+            assert!(SimpleConfig { encoding, ..config }.validate().is_err());
+        }
+        assert!(
+            SimpleConfig {
+                width: MAX_SIMPLE_WIDTH,
+                ..config
+            }
+            .validate()
+            .is_err()
+        );
+    }
 
     #[test]
     fn encodings_present_identities_bits_values_and_logarithms() {

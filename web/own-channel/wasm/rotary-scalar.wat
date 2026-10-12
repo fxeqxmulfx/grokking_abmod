@@ -1,0 +1,15 @@
+;; MVP scalar counterpart of the exact pairwise quarter-turn addition.
+(func $rotary_add (param $dst i32) (param $src i32) (param $transpose i32)
+  (local $at i32) (local $even f32) (local $odd f32)
+  (loop $pairs
+    (local.set $even (f32.load offset=4 (i32.add (local.get $src) (local.get $at))))
+    (local.set $odd (f32.load (i32.add (local.get $src) (local.get $at))))
+    (if (local.get $transpose)
+      (then (local.set $odd (f32.neg (local.get $odd))))
+      (else (local.set $even (f32.neg (local.get $even)))))
+    (f32.store (i32.add (local.get $dst) (local.get $at))
+      (f32.add (f32.load (i32.add (local.get $dst) (local.get $at))) (local.get $even)))
+    (f32.store offset=4 (i32.add (local.get $dst) (local.get $at))
+      (f32.add (f32.load offset=4 (i32.add (local.get $dst) (local.get $at))) (local.get $odd)))
+    (local.set $at (i32.add (local.get $at) (i32.const 8)))
+    (br_if $pairs (i32.lt_u (local.get $at) (i32.const 512)))))

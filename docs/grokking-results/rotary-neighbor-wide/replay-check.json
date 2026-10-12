@@ -1,0 +1,26 @@
+{
+  "reference_directory": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-search/rotary-neighbor-variants/trials/000003-tied-rotary-residual-mesh-mlp-w1024-d2-s11-a01",
+  "replay_trial": "000005-tied-rotary-residual-mesh-mlp-w1024-d2-s11-a01",
+  "reference_history_sha256": "2e6cd1c63449fa35ea8bd7a29b7215e24666e39573b060c7ff91f84c08863ddd",
+  "replay_history_sha256": "11ce9a445aedc9a3981e188f41ee5dc1c1ecec17f52bec424c0b768203234a52",
+  "reference_initial_model_sha256": "55680b38cc7b4db7d12b30b12dbe599489f2e8d86927cc224db832001adf5c49",
+  "replay_initial_model_sha256": "55680b38cc7b4db7d12b30b12dbe599489f2e8d86927cc224db832001adf5c49",
+  "initial_model_identical": true,
+  "common_observations": 188,
+  "first_common_epoch": 0.0,
+  "last_common_epoch": 187.0,
+  "maximum_absolute_difference": {
+    "step": 0.0,
+    "training_examples_seen": 0.0,
+    "completed_epochs": 0.0,
+    "examples_in_partial_epoch": 0.0,
+    "train_cross_entropy": 0.0,
+    "validation_cross_entropy": 0.0,
+    "train_accuracy": 0.0,
+    "validation_accuracy": 0.0,
+    "weight_l2": 0.0,
+    "learning_rate": 0.0
+  },
+  "scope": "All saved numerical CSV fields at common epochs; elapsed time excluded. CSV precision only.",
+  "passed": true
+}

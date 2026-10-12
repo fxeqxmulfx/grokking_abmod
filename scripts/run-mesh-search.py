@@ -38,13 +38,29 @@ def simple_parameters(settings):
     model, depth = settings.get("model", "mlp"), settings.get("depth", 1)
     if model == "mlp":
         return 2 * features * width + (depth - 1) * width**2 + width * modulus
-    if model == "mesh-mlp":
+    if model in ("mesh-mlp", "tied-concat-mesh-mlp"):
         parents = 1 if settings.get("connectivity") == "own" else 2
         # Tied mesh layers store one layer's weights.
         stored = min(depth - 1, 1) if settings.get("tied-mesh") else depth - 1
+        if model == "tied-concat-mesh-mlp":
+            if settings.get("encoding", "one-hot") != "one-hot":
+                raise ValueError("tied concatenation requires one-hot encoding")
+            return modulus * width + 2 * width**2 + stored * parents * width
         return 2 * features * width + stored * parents * width + width * modulus
     if model == "residual-mlp":
         return 2 * features * width + 2 * depth * settings.get("expansion", 4) * width**2 + width * modulus
+    if model in ("residual-mesh-mlp", "tied-concat-residual-mesh-mlp"):
+        parents = 1 if settings.get("connectivity") == "own" else 2
+        if model == "tied-concat-residual-mesh-mlp":
+            if settings.get("encoding", "one-hot") != "one-hot":
+                raise ValueError("tied concatenation requires one-hot encoding")
+            return modulus * width + 2 * width**2 + depth * settings.get("mesh-depth", 4) * parents * width
+        return 2 * features * width + width * modulus + depth * settings.get("mesh-depth", 4) * parents * width
+    if model == "tied-rotary-residual-mesh-mlp":
+        if settings.get("encoding", "one-hot") != "one-hot" or width < 2 or width % 2:
+            raise ValueError("rotary roles require one-hot encoding and an even width")
+        parents = 1 if settings.get("connectivity") == "own" else 2
+        return modulus * width + depth * settings.get("mesh-depth", 4) * parents * width
     if model == "bilinear":
         return 2 * features * width + width * modulus
     raise ValueError(f"unknown simple model: {model}")

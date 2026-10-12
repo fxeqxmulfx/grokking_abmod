@@ -1,0 +1,28 @@
+{
+  "model": "residual",
+  "seed": 7,
+  "backend": "webgpu",
+  "info": {
+    "description": "WebGPU adapter",
+    "backend": "webgpu",
+    "fallback": false
+  },
+  "elapsedSeconds": 83.33309999999403,
+  "criterion": {
+    "streak": 0,
+    "plateau": true,
+    "onset": 4550,
+    "confirmed": 4025,
+    "event": {
+      "epoch": 5125,
+      "delayed": true
+    }
+  },
+  "node": "v24.21.0",
+  "sourceSha256": {
+    "residual.wgsl": "af5df735edc1debe49070bb4ee21273437d00d9181053f3e985fc6bf4eb16aa1",
+    "gpu.mjs": "6e9b8240ed4844364e5e437aa616cd8294a4c1a695e87f18467735fd37bf581e",
+    "models.mjs": "1058981e854dad95cd0dba8cc4b3cd0cca3e0a46f92d6eaa91811f5c5e7ef96a",
+    "model.mjs": "2c12f18cb8609319335cdcc1a367e3980d4745de4b8e546da432788370ba4894"
+  }
+}

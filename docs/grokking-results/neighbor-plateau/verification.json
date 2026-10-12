@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-12",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "driver": "615.71.09",
+    "memory_mib": 4096
+  },
+  "command": [
+    "target/release/mesh-gpt",
+    "grok-simple",
+    "--verify"
+  ],
+  "verification_binary_sha256": "baf02d9c87cc8a12d3b4653d63ad200ac158d082b76c36f731ad133301dc1718",
+  "verification_source_sha256": "8f4b544443a3979a379b7da814f7b50b438adc002a6718761bd47b33ccdb53bb",
+  "reference_source_sha256": "ae755c3daa5a4414742b28c5f68404343722b08768ba8893ecb29aa57af8c1c1",
+  "verification_log_sha256": "7dd9cd637b058e7d6c67118b39de55d6595ab0259671c2cadffb6b967dcc379a",
+  "candidate_result": "PASS residual-mesh-mlp neighbor mesh-depth=3 square one-hot width=128 depth=2 expansion=4 modulus=97: logits (max error 1.0e-6 of max), loss, gradients (max error 1.1e-6 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
+  "passed_configurations": 36,
+  "training_binary_sha256": "8b84a6f5991667edf6ee2f6577a8a21493e8e24638fc4adec553bcd07660505f",
+  "training_behavior_changed": false,
+  "cpu_reference_test": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--lib",
+      "reference_gradients_match_central_differences"
+    ],
+    "passed": true
+  },
+  "clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "passed": true
+  }
+}

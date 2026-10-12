@@ -1,0 +1,51 @@
+{
+  "model": "concat",
+  "backend": "wasm-simd",
+  "seed": 7,
+  "measurementMetadata": "concat-wasm-simd-seed7.run.json",
+  "history": "concat-wasm-simd-seed7.history.json",
+  "historySha256": "e8423a89c2612e224be1a3e3451132e8485078698a2c12ce01257d70fa54534d",
+  "initialWeightsSha256": "862a43552934966b36d8337b782701cf554c6ef52672c1f3a68ba8acb146e32b",
+  "parameters": 14656,
+  "observations": 52,
+  "observationIntervalEpochs": 25,
+  "firstTrain99Epoch": 425,
+  "firstConfirmedPlateau": {
+    "onset": null,
+    "confirmed": null,
+    "present": false
+  },
+  "longestPlateauBeforeFirst90Epochs": 0,
+  "lastTestLow": {
+    "step": 3500,
+    "epoch": 350,
+    "trainLoss": 1.1914576292037964,
+    "trainAccuracy": 0.6883590817451477,
+    "heldoutLoss": 6.091812610626221,
+    "heldoutAccuracy": 0.05219072103500366,
+    "phase": "Learning"
+  },
+  "firstTest90": {
+    "step": 10000,
+    "epoch": 1000,
+    "trainLoss": 7.424977299663738e-10,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.3968774378299713,
+    "heldoutAccuracy": 0.9110824465751648,
+    "phase": "Learning"
+  },
+  "rise10To90Epochs": 650,
+  "firstTest99Epoch": 1275,
+  "final": {
+    "step": 12750,
+    "epoch": 1275,
+    "trainLoss": 0,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.020883584395051003,
+    "heldoutAccuracy": 0.9926975965499878,
+    "phase": "Generalized"
+  },
+  "elapsedSeconds": 24.927804526,
+  "strictMeshSearchRuleSatisfied": false,
+  "analysisNote": "Original measurement metadata and histories are unmodified. Plateau timestamps above are recomputed with the corrected classifier: the first confirmed plateau is retained when later streaks occur. This fixes classification metadata only; logits, gradients, loss, accuracy, optimizer updates, and reported runtime are unchanged."
+}

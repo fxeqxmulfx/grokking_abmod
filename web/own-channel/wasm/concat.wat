@@ -1,0 +1,272 @@
+;; Handwritten shared-E concatenation W64 / depth-5 trainer.
+;; E is used for both operands and the output; all three gradients share AdamW. Build-time insertion selects
+;; SIMD128 or MVP scalar vector kernels; both share this exact training logic.
+;; The module has no imports, allocator, threads, memory growth or host callbacks.
+(module
+  (memory (export "memory") 8 8)
+  (global $weights (export "weights") i32 (i32.const 0))
+  (global $gradient (export "gradient") i32 (i32.const 58624))
+  (global $moment1 i32 (i32.const 117248))
+  (global $moment2 i32 (i32.const 175872))
+  (global $data (export "data") i32 (i32.const 234496))
+  (global $samples (export "samples") i32 (i32.const 346240))
+  (global $readout i32 (i32.const 348288))
+  (global $readout_gradient i32 (i32.const 373888))
+  (global $products i32 (i32.const 399488))
+  (global $partials i32 (i32.const 399744))
+  (global $input i32 (i32.const 400768))
+  (global $hidden i32 (i32.const 401024))
+  (global $logits (export "logits") i32 (i32.const 401280))
+  (global $errors i32 (i32.const 401680))
+  (global $gain_base i32 (i32.const 402080))
+  (global $metrics (export "metrics") i32 (i32.const 402336))
+  (global $projected i32 (i32.const 402352))
+  (global $projected_gradient i32 (i32.const 452016))
+  (global $winner (mut i32) (i32.const 0))
+
+  ;; Stable softmax only needs exp(x) for x <= 0. Range reduction followed by
+  ;; the degree-7 Taylor polynomial keeps the relative error near f32 rounding.
+  ;; Values below the smallest normal f32 are flushed to zero.
+  (func $exp (export "exp_negative") (param $x f32) (result f32)
+    (local $n i32) (local $r f32) (local $p f32)
+    (if (f32.ne (local.get $x) (local.get $x)) (then (return (local.get $x))))
+    (if (f32.lt (local.get $x) (f32.const -87.336544)) (then (return (f32.const 0))))
+    (local.set $n (i32.trunc_f32_s (f32.nearest (f32.mul (local.get $x) (f32.const 1.4426950408889634)))))
+    (local.set $r (f32.sub (f32.sub (local.get $x) (f32.mul (f32.convert_i32_s (local.get $n)) (f32.const 0.693359375)))
+      (f32.mul (f32.convert_i32_s (local.get $n)) (f32.const -0.00021219444005469058))))
+    (local.set $p (f32.const 0.0001984126984126984))
+    (local.set $p (f32.add (f32.const 0.001388888888888889) (f32.mul (local.get $r) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.008333333333333333) (f32.mul (local.get $r) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.041666666666666664) (f32.mul (local.get $r) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.16666666666666666) (f32.mul (local.get $r) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.5) (f32.mul (local.get $r) (local.get $p))))
+    (local.set $p (f32.add (f32.const 1) (f32.mul (local.get $r) (local.get $p))))
+    (local.set $p (f32.add (f32.const 1) (f32.mul (local.get $r) (local.get $p))))
+    (f32.mul (local.get $p) (f32.reinterpret_i32 (i32.shl (i32.add (local.get $n) (i32.const 127)) (i32.const 23))))
+  )
+
+  ;; log for the positive softmax denominator (1 <= x <= 97), using the IEEE
+  ;; exponent and 2*atanh((mantissa-1)/(mantissa+1)) through degree 17.
+  (func $log (export "log_positive") (param $x f32) (result f32)
+    (local $bits i32) (local $exponent i32) (local $m f32) (local $y f32) (local $square f32) (local $p f32)
+    (local.set $bits (i32.reinterpret_f32 (local.get $x)))
+    (local.set $exponent (i32.sub (i32.shr_u (local.get $bits) (i32.const 23)) (i32.const 127)))
+    (local.set $m (f32.reinterpret_i32 (i32.or (i32.and (local.get $bits) (i32.const 8388607)) (i32.const 1065353216))))
+    (local.set $y (f32.div (f32.sub (local.get $m) (f32.const 1)) (f32.add (local.get $m) (f32.const 1))))
+    (local.set $square (f32.mul (local.get $y) (local.get $y)))
+    (local.set $p (f32.const 0.058823529411764705))
+    (local.set $p (f32.add (f32.const 0.06666666666666667) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.07692307692307693) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.09090909090909091) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.1111111111111111) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.14285714285714285) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.2) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 0.3333333333333333) (f32.mul (local.get $square) (local.get $p))))
+    (local.set $p (f32.add (f32.const 1) (f32.mul (local.get $square) (local.get $p))))
+    (f32.add (f32.mul (f32.convert_i32_s (local.get $exponent)) (f32.const 0.6931471805599453))
+      (f32.mul (f32.const 2) (f32.mul (local.get $y) (local.get $p))))
+  )
+
+  ;; @VECTOR_KERNELS
+
+
+  ;; E A_a and E A_b are cached once per update. Sparse minibatch gradients
+  ;; are reduced into these tables and then differentiated through E and A.
+  (func $project_inputs
+    (local $operand i32) (local $residue i32) (local $feature i32) (local $row i32)
+    (call $clear (global.get $projected) (i32.const 12416))
+    (loop $operand_loop
+      (local.set $residue (i32.const 0))
+      (loop $residue_loop
+        (local.set $row (i32.add (global.get $projected) (i32.mul (i32.add (i32.mul (local.get $operand) (i32.const 97)) (local.get $residue)) (i32.const 256))))
+        (local.set $feature (i32.const 0))
+        (loop $feature_loop
+          (call $axpy (local.get $row)
+            (i32.add (i32.const 24832) (i32.mul (i32.add (i32.mul (local.get $operand) (i32.const 64)) (local.get $feature)) (i32.const 256)))
+            (i32.const 64)
+            (f32.load (i32.add (i32.mul (local.get $residue) (i32.const 256)) (i32.mul (local.get $feature) (i32.const 4)))))
+          (local.set $feature (i32.add (local.get $feature) (i32.const 1)))
+          (br_if $feature_loop (i32.lt_u (local.get $feature) (i32.const 64))))
+        (local.set $residue (i32.add (local.get $residue) (i32.const 1)))
+        (br_if $residue_loop (i32.lt_u (local.get $residue) (i32.const 97))))
+      (local.set $operand (i32.add (local.get $operand) (i32.const 1)))
+      (br_if $operand_loop (i32.lt_u (local.get $operand) (i32.const 2))))
+  )
+
+  ;; Add the two input-role derivatives to the readout-role derivative of E.
+  ;; A and every gain retain independent weights and optimizer moments.
+  (func $projection_gradient
+    (local $residue i32) (local $feature i32) (local $da i32) (local $db i32)
+    (local $aa i32) (local $ab i32) (local $at i32) (local $value f32)
+    (loop $residue_loop
+      (local.set $da (i32.add (global.get $projected_gradient) (i32.mul (local.get $residue) (i32.const 256))))
+      (local.set $db (i32.add (global.get $projected_gradient) (i32.mul (i32.add (local.get $residue) (i32.const 97)) (i32.const 256))))
+      (local.set $feature (i32.const 0))
+      (loop $feature_loop
+        (local.set $aa (i32.add (i32.const 24832) (i32.mul (local.get $feature) (i32.const 256))))
+        (local.set $ab (i32.add (i32.const 41216) (i32.mul (local.get $feature) (i32.const 256))))
+        (local.set $at (i32.add (i32.mul (local.get $residue) (i32.const 256)) (i32.mul (local.get $feature) (i32.const 4))))
+        (local.set $value (f32.load (local.get $at)))
+        (f32.store (i32.add (global.get $gradient) (local.get $at))
+          (f32.add (f32.load (i32.add (global.get $gradient) (local.get $at)))
+            (f32.add (call $dot (local.get $da) (local.get $aa) (i32.const 64))
+              (call $dot (local.get $db) (local.get $ab) (i32.const 64)))))
+        (call $axpy (i32.add (global.get $gradient) (local.get $aa)) (local.get $da) (i32.const 64) (local.get $value))
+        (call $axpy (i32.add (global.get $gradient) (local.get $ab)) (local.get $db) (i32.const 64) (local.get $value))
+        (local.set $feature (i32.add (local.get $feature) (i32.const 1)))
+        (br_if $feature_loop (i32.lt_u (local.get $feature) (i32.const 64))))
+      (local.set $residue (i32.add (local.get $residue) (i32.const 1)))
+      (br_if $residue_loop (i32.lt_u (local.get $residue) (i32.const 97))))
+  )
+
+  ;; Cache a readout padded from 97 to 100 classes and the four rectified gains
+  ;; and excluded products. Every original gain remains an independent weight.
+  (func $prepare (export "prepare")
+    (local $c i32) (local $k i32) (local $l i32) (local $o i32) (local $gain f32) (local $product f32)
+    (call $project_inputs)
+    (call $clear (global.get $readout) (i32.const 6400))
+    (loop $channel
+      (local.set $k (i32.const 0))
+      (loop $class
+        (f32.store (i32.add (global.get $readout) (i32.mul (i32.add (i32.mul (local.get $c) (i32.const 100)) (local.get $k)) (i32.const 4)))
+          (f32.load (i32.mul (i32.add (i32.mul (local.get $k) (i32.const 64)) (local.get $c)) (i32.const 4))))
+        (local.set $k (i32.add (local.get $k) (i32.const 1))) (br_if $class (i32.lt_u (local.get $k) (i32.const 97))))
+      (local.set $product (f32.const 1)) (local.set $l (i32.const 0))
+      (loop $product_loop
+        (local.set $gain (f32.max (f32.const 0) (f32.load (i32.add (i32.const 57600) (i32.add (i32.mul (local.get $l) (i32.const 256)) (i32.mul (local.get $c) (i32.const 4)))))))
+        (local.set $product (f32.mul (local.get $product) (local.get $gain)))
+        (local.set $l (i32.add (local.get $l) (i32.const 1))) (br_if $product_loop (i32.lt_u (local.get $l) (i32.const 4))))
+      (f32.store (i32.add (global.get $products) (i32.mul (local.get $c) (i32.const 4))) (local.get $product))
+      (local.set $l (i32.const 0))
+      (loop $derivative
+        (local.set $product (f32.const 1)) (local.set $o (i32.const 0))
+        (loop $other
+          (local.set $gain (f32.max (f32.const 0) (f32.load (i32.add (i32.const 57600) (i32.add (i32.mul (local.get $o) (i32.const 256)) (i32.mul (local.get $c) (i32.const 4)))))))
+          (if (i32.eq (local.get $o) (local.get $l))
+            (then (if (f32.le (local.get $gain) (f32.const 0)) (then (local.set $product (f32.const 0)))))
+            (else (local.set $product (f32.mul (local.get $product) (local.get $gain)))))
+          (local.set $o (i32.add (local.get $o) (i32.const 1))) (br_if $other (i32.lt_u (local.get $o) (i32.const 4))))
+        (f32.store (i32.add (global.get $partials) (i32.add (i32.mul (local.get $l) (i32.const 256)) (i32.mul (local.get $c) (i32.const 4)))) (local.get $product))
+        (local.set $l (i32.add (local.get $l) (i32.const 1))) (br_if $derivative (i32.lt_u (local.get $l) (i32.const 4))))
+      (local.set $c (i32.add (local.get $c) (i32.const 1))) (br_if $channel (i32.lt_u (local.get $c) (i32.const 64))))
+  )
+
+  (func $forward (export "forward") (param $id i32)
+    (local $row i32) (local $a i32) (local $b i32) (local $c i32) (local $h f32)
+    (if (i32.ge_u (local.get $id) (i32.const 9312)) (then unreachable))
+    (local.set $row (i32.add (global.get $data) (i32.mul (local.get $id) (i32.const 12))))
+    (local.set $a (i32.load (local.get $row)))
+    (local.set $b (i32.load offset=4 (local.get $row)))
+    (if (i32.or (i32.ge_u (local.get $a) (i32.const 97)) (i32.ge_u (local.get $b) (i32.const 97))) (then unreachable))
+    (call $input_kernel (i32.add (global.get $projected) (i32.mul (local.get $a) (i32.const 256))) (i32.add (global.get $projected) (i32.mul (i32.add (local.get $b) (i32.const 97)) (i32.const 256))))
+    (call $clear (global.get $logits) (i32.const 100))
+    (loop $channel
+      (local.set $h (f32.load (i32.add (global.get $hidden) (i32.mul (local.get $c) (i32.const 4)))))
+      (if (f32.ne (local.get $h) (f32.const 0))
+        (then (call $axpy (global.get $logits) (i32.add (global.get $readout) (i32.mul (local.get $c) (i32.const 400))) (i32.const 100) (local.get $h))))
+      (local.set $c (i32.add (local.get $c) (i32.const 1))) (br_if $channel (i32.lt_u (local.get $c) (i32.const 64))))
+  )
+
+  ;; Return loss, remember argmax, and write the mean cross-entropy derivative.
+  (func $softmax (param $target i32) (param $scale f32) (result f32)
+    (local $k i32) (local $winner i32) (local $maximum f32) (local $value f32) (local $denominator f32)
+    (if (i32.ge_u (local.get $target) (i32.const 97)) (then unreachable))
+    (local.set $maximum (f32.load (global.get $logits))) (local.set $k (i32.const 1))
+    (loop $maximum_loop
+      (local.set $value (f32.load (i32.add (global.get $logits) (i32.mul (local.get $k) (i32.const 4)))))
+      (if (f32.gt (local.get $value) (local.get $maximum)) (then (local.set $maximum (local.get $value)) (local.set $winner (local.get $k))))
+      (local.set $k (i32.add (local.get $k) (i32.const 1))) (br_if $maximum_loop (i32.lt_u (local.get $k) (i32.const 97))))
+    (call $exponentials (local.get $maximum))
+    (local.set $k (i32.const 0))
+    (loop $sum
+      (local.set $denominator (f32.add (local.get $denominator) (f32.load (i32.add (global.get $errors) (i32.mul (local.get $k) (i32.const 4))))))
+      (local.set $k (i32.add (local.get $k) (i32.const 1))) (br_if $sum (i32.lt_u (local.get $k) (i32.const 97))))
+    (if (f32.ne (local.get $scale) (f32.const 0))
+      (then
+        (call $multiply (global.get $errors) (i32.const 100) (f32.div (local.get $scale) (local.get $denominator)))
+        (f32.store (i32.add (global.get $errors) (i32.mul (local.get $target) (i32.const 4)))
+          (f32.sub (f32.load (i32.add (global.get $errors) (i32.mul (local.get $target) (i32.const 4)))) (local.get $scale)))))
+    (global.set $winner (local.get $winner))
+    (f32.sub (f32.add (call $log (local.get $denominator)) (local.get $maximum))
+      (f32.load (i32.add (global.get $logits) (i32.mul (local.get $target) (i32.const 4)))))
+  )
+
+  (func $gradient_batch (export "gradient_batch") (param $rows i32)
+    (local $row i32) (local $id i32) (local $a i32) (local $b i32) (local $target i32)
+    (local $c i32) (local $k i32) (local $l i32) (local $at i32) (local $pointer i32)
+    (local $h f32) (local $dh f32) (local $value f32) (local $scale f32)
+    (if (i32.or (i32.eqz (local.get $rows)) (i32.gt_u (local.get $rows) (i32.const 512))) (then unreachable))
+    (call $clear (global.get $gradient) (i32.const 14656))
+    (call $clear (global.get $projected_gradient) (i32.const 12416))
+    (call $clear (global.get $readout_gradient) (i32.const 6400))
+    (call $clear (global.get $gain_base) (i32.const 64))
+    (local.set $scale (f32.div (f32.const 1) (f32.convert_i32_u (local.get $rows))))
+    (loop $batch
+      (local.set $id (i32.load (i32.add (global.get $samples) (i32.mul (local.get $row) (i32.const 4)))))
+      (if (i32.ge_u (local.get $id) (i32.const 4656)) (then unreachable))
+      (local.set $at (i32.add (global.get $data) (i32.mul (local.get $id) (i32.const 12))))
+      (local.set $a (i32.load (local.get $at))) (local.set $b (i32.add (i32.const 97) (i32.load offset=4 (local.get $at))))
+      (local.set $target (i32.load offset=8 (local.get $at)))
+      (call $forward (local.get $id))
+      (call $softmax (local.get $target) (local.get $scale)) drop
+      (local.set $c (i32.const 0))
+      (loop $channel
+        (local.set $at (i32.mul (local.get $c) (i32.const 4)))
+        (local.set $h (f32.load (i32.add (global.get $hidden) (local.get $at))))
+        ;; A zero hidden channel has zero derivatives throughout the ReLU path.
+        (if (f32.ne (local.get $h) (f32.const 0))
+          (then
+            (local.set $dh (call $dot (i32.add (global.get $readout) (i32.mul (local.get $c) (i32.const 400))) (global.get $errors) (i32.const 100)))
+            (call $axpy (i32.add (global.get $readout_gradient) (i32.mul (local.get $c) (i32.const 400))) (global.get $errors) (i32.const 100) (local.get $h))
+            (local.set $value (f32.mul (local.get $dh) (f32.load (i32.add (global.get $products) (local.get $at)))))
+            (local.set $pointer (i32.add (global.get $projected_gradient) (i32.add (i32.mul (local.get $a) (i32.const 256)) (local.get $at))))
+            (f32.store (local.get $pointer) (f32.add (f32.load (local.get $pointer)) (local.get $value)))
+            (local.set $pointer (i32.add (global.get $projected_gradient) (i32.add (i32.mul (local.get $b) (i32.const 256)) (local.get $at))))
+            (f32.store (local.get $pointer) (f32.add (f32.load (local.get $pointer)) (local.get $value)))
+            (local.set $pointer (i32.add (global.get $gain_base) (local.get $at)))
+            (f32.store (local.get $pointer) (f32.add (f32.load (local.get $pointer)) (f32.mul (local.get $dh) (f32.load (i32.add (global.get $input) (local.get $at))))))))
+        (local.set $c (i32.add (local.get $c) (i32.const 1))) (br_if $channel (i32.lt_u (local.get $c) (i32.const 64))))
+      (local.set $row (i32.add (local.get $row) (i32.const 1))) (br_if $batch (i32.lt_u (local.get $row) (local.get $rows))))
+    (local.set $c (i32.const 0))
+    (loop $scatter_channel
+      (local.set $k (i32.const 0))
+      (loop $scatter_class
+        (f32.store (i32.add (global.get $gradient) (i32.mul (i32.add (i32.mul (local.get $k) (i32.const 64)) (local.get $c)) (i32.const 4)))
+          (f32.load (i32.add (global.get $readout_gradient) (i32.mul (i32.add (i32.mul (local.get $c) (i32.const 100)) (local.get $k)) (i32.const 4)))))
+        (local.set $k (i32.add (local.get $k) (i32.const 1))) (br_if $scatter_class (i32.lt_u (local.get $k) (i32.const 97))))
+      (local.set $l (i32.const 0))
+      (loop $gains
+        (local.set $at (i32.add (i32.mul (local.get $l) (i32.const 256)) (i32.mul (local.get $c) (i32.const 4))))
+        (f32.store (i32.add (global.get $gradient) (i32.add (i32.const 57600) (local.get $at)))
+          (f32.mul (f32.load (i32.add (global.get $gain_base) (i32.mul (local.get $c) (i32.const 4)))) (f32.load (i32.add (global.get $partials) (local.get $at)))))
+        (local.set $l (i32.add (local.get $l) (i32.const 1))) (br_if $gains (i32.lt_u (local.get $l) (i32.const 4))))
+      (local.set $c (i32.add (local.get $c) (i32.const 1))) (br_if $scatter_channel (i32.lt_u (local.get $c) (i32.const 64))))
+    (call $projection_gradient)
+  )
+
+  (func (export "step") (param $rows i32) (param $lr f32) (param $decay f32) (param $correction1 f32) (param $correction2 f32)
+    (call $gradient_batch (local.get $rows))
+    (call $adam (local.get $lr) (local.get $decay) (local.get $correction1) (local.get $correction2))
+    (call $prepare)
+  )
+
+  (func (export "evaluate")
+    (local $id i32) (local $target i32) (local $winner i32) (local $loss f32)
+    (local $train_loss f64) (local $held_loss f64) (local $train_correct i32) (local $held_correct i32)
+    (loop $row
+      (local.set $target (i32.load (i32.add (global.get $data) (i32.add (i32.mul (local.get $id) (i32.const 12)) (i32.const 8)))))
+      (call $forward (local.get $id))
+      (local.set $loss (call $softmax (local.get $target) (f32.const 0)))
+      (local.set $winner (global.get $winner))
+      (if (i32.lt_u (local.get $id) (i32.const 4656))
+        (then (local.set $train_loss (f64.add (local.get $train_loss) (f64.promote_f32 (local.get $loss))))
+          (local.set $train_correct (i32.add (local.get $train_correct) (i32.eq (local.get $winner) (local.get $target)))))
+        (else (local.set $held_loss (f64.add (local.get $held_loss) (f64.promote_f32 (local.get $loss))))
+          (local.set $held_correct (i32.add (local.get $held_correct) (i32.eq (local.get $winner) (local.get $target))))))
+      (local.set $id (i32.add (local.get $id) (i32.const 1))) (br_if $row (i32.lt_u (local.get $id) (i32.const 9312))))
+    (f32.store (global.get $metrics) (f32.demote_f64 (f64.div (local.get $train_loss) (f64.const 4656))))
+    (f32.store offset=4 (global.get $metrics) (f32.div (f32.convert_i32_u (local.get $train_correct)) (f32.const 4656)))
+    (f32.store offset=8 (global.get $metrics) (f32.demote_f64 (f64.div (local.get $held_loss) (f64.const 4656))))
+    (f32.store offset=12 (global.get $metrics) (f32.div (f32.convert_i32_u (local.get $held_correct)) (f32.const 4656)))
+  )
+)

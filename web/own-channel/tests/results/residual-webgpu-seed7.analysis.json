@@ -1,0 +1,51 @@
+{
+  "model": "residual",
+  "backend": "webgpu",
+  "seed": 7,
+  "measurementMetadata": "residual-webgpu-seed7.run.json",
+  "history": "residual-webgpu-seed7.history.json",
+  "historySha256": "300f88d0ab6adc7b5b18b2960a10e6782da88f9401b7a34d8728652f49d07074",
+  "initialWeightsSha256": "24ca4103d5215dd0c4df4bf703c1a3a5bbbe37e43326ef00818747e2834a6248",
+  "parameters": 84160,
+  "observations": 206,
+  "observationIntervalEpochs": 25,
+  "firstTrain99Epoch": 50,
+  "firstConfirmedPlateau": {
+    "onset": 50,
+    "confirmed": 150,
+    "present": true
+  },
+  "longestPlateauBeforeFirst90Epochs": 575,
+  "lastTestLow": {
+    "step": 45750,
+    "epoch": 4575,
+    "trainLoss": 0.000004154300313530257,
+    "trainAccuracy": 1,
+    "heldoutLoss": 7.191378593444824,
+    "heldoutAccuracy": 0.09299828112125397,
+    "phase": "Memorization plateau observed"
+  },
+  "firstTest90": {
+    "step": 50500,
+    "epoch": 5050,
+    "trainLoss": 0.000002245313226012513,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.27384984493255615,
+    "heldoutAccuracy": 0.9237543344497681,
+    "phase": "Memorization plateau observed"
+  },
+  "rise10To90Epochs": 475,
+  "firstTest99Epoch": 5125,
+  "final": {
+    "step": 51250,
+    "epoch": 5125,
+    "trainLoss": 0.0000039011342778394464,
+    "trainAccuracy": 1,
+    "heldoutLoss": 0.021786320954561234,
+    "heldoutAccuracy": 0.9933419227600098,
+    "phase": "Delayed grokking"
+  },
+  "elapsedSeconds": 83.33309999999403,
+  "strictMeshSearchRuleSatisfied": false,
+  "analysisNote": "Original measurement metadata and histories are unmodified. Plateau timestamps above are recomputed with the corrected classifier: the first confirmed plateau is retained when later streaks occur. This fixes classification metadata only; logits, gradients, loss, accuracy, optimizer updates, and reported runtime are unchanged."
+}

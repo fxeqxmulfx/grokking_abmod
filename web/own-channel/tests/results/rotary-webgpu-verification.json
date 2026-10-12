@@ -1,0 +1,186 @@
+{
+  "narrow": [
+    {
+      "check": "logits 0",
+      "error": 0.0000014708321888767806
+    },
+    {
+      "check": "logits 19",
+      "error": 0.000001202514571918556
+    },
+    {
+      "check": "logits 4655",
+      "error": 8.956888939426477e-7
+    },
+    {
+      "check": "logits 4656",
+      "error": 7.549703191500612e-7
+    },
+    {
+      "check": "logits 9311",
+      "error": 8.115438868694369e-7
+    },
+    {
+      "check": "parameters 0..12416, batch 1",
+      "error": 0.000013892795621472942,
+      "relativeError": 4.0593898598138716e-7
+    },
+    {
+      "check": "parameters 12416..13952, batch 1",
+      "error": 0.0000026155007448736,
+      "relativeError": 4.0734045796054824e-7
+    },
+    {
+      "check": "parameters 0..12416, batch 37",
+      "error": 0.000001127385654053903,
+      "relativeError": 6.549488777340343e-7
+    },
+    {
+      "check": "parameters 12416..13952, batch 37",
+      "error": 3.933151551376718e-7,
+      "relativeError": 0.0000012916102733148152
+    },
+    {
+      "check": "parameters 0..12416, batch 48",
+      "error": 8.492219415456859e-7,
+      "relativeError": 6.437709278120546e-7
+    },
+    {
+      "check": "parameters 12416..13952, batch 48",
+      "error": 2.938119386397542e-7,
+      "relativeError": 0.0000010560554045603455
+    },
+    {
+      "check": "parameters 0..12416, batch 512",
+      "error": 2.235504062420013e-7,
+      "relativeError": 7.098207333689591e-7
+    },
+    {
+      "check": "parameters 12416..13952, batch 512",
+      "error": 1.2503221336491316e-7,
+      "relativeError": 0.0000012369220134791169
+    },
+    {
+      "check": "AdamW 1",
+      "error": 1.0744978937160532e-7
+    },
+    {
+      "check": "AdamW 2",
+      "error": 1.0869861107043466e-7
+    },
+    {
+      "check": "AdamW 3",
+      "error": 1.062578832422556e-7
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 4.783024787902832,
+        "trainAccuracy": 0.013316151686012745,
+        "heldoutLoss": 4.798737525939941,
+        "heldoutAccuracy": 0.00923539511859417
+      }
+    },
+    {
+      "check": "nontrivial independent gains/edges",
+      "error": 5.353209844294327e-7
+    }
+  ],
+  "wide": [
+    {
+      "check": "logits 0",
+      "error": 0.000004948489915612697
+    },
+    {
+      "check": "logits 19",
+      "error": 0.000006553002343423486
+    },
+    {
+      "check": "logits 4655",
+      "error": 0.000007032086933644877
+    },
+    {
+      "check": "logits 4656",
+      "error": 0.000004551548677289574
+    },
+    {
+      "check": "logits 9311",
+      "error": 0.000005007745587093382
+    },
+    {
+      "check": "parameters 0..99328, batch 1",
+      "error": 0.00008439613508670618,
+      "relativeError": 0.0000011824884499905265
+    },
+    {
+      "check": "parameters 99328..111616, batch 1",
+      "error": 0.000016092035656001258,
+      "relativeError": 0.0000012023440784411664
+    },
+    {
+      "check": "parameters 0..99328, batch 37",
+      "error": 0.0000049347353932027715,
+      "relativeError": 0.0000010933900632239013
+    },
+    {
+      "check": "parameters 99328..111616, batch 37",
+      "error": 0.0000010122922329824924,
+      "relativeError": 9.639014313681845e-7
+    },
+    {
+      "check": "parameters 0..99328, batch 48",
+      "error": 0.000003552701593356744,
+      "relativeError": 0.0000010235021973664852
+    },
+    {
+      "check": "parameters 99328..111616, batch 48",
+      "error": 7.767171447681243e-7,
+      "relativeError": 9.530555221027971e-7
+    },
+    {
+      "check": "parameters 0..99328, batch 512",
+      "error": 7.299756265427559e-7,
+      "relativeError": 9.209043343892531e-7
+    },
+    {
+      "check": "parameters 99328..111616, batch 512",
+      "error": 1.7250056176185136e-7,
+      "relativeError": 8.953600867383764e-7
+    },
+    {
+      "check": "AdamW 1",
+      "error": 0.0000012205693974347452
+    },
+    {
+      "check": "AdamW 2",
+      "error": 0.0000012206549689370422
+    },
+    {
+      "check": "AdamW 3",
+      "error": 0.0000012207089901240071
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 6.138647556304932,
+        "trainAccuracy": 0.011168384924530983,
+        "heldoutLoss": 6.248993396759033,
+        "heldoutAccuracy": 0.014604811556637287
+      }
+    },
+    {
+      "check": "nontrivial independent gains/edges",
+      "error": 0.000002122368041423961
+    }
+  ],
+  "sourceSha256": {
+    "gpu.mjs": "0032eb9ff939752d38adb0c10649cb6499bf3e2f9ee486a6dba9bff09e79b1e8",
+    "models.mjs": "ca70f293141db001197061d095c821a6a50adcebf94c70806cc7e3a0d9646302",
+    "neighbor-rotary.wgsl": "e39937cad230fa610f1f4efd595fe17552440a789d371ed7969cb01ed015b0a5",
+    "neighbor-rotary-wide.wgsl": "074222402bc225ffa1ec6a433855e8879740121cfc62176d55ec1fe32e2a380b"
+  }
+}
