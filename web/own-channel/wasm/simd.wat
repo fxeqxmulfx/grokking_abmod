@@ -34,14 +34,6 @@
     (v128.store (local.get $dst) (f32x4.mul (v128.load (local.get $dst)) (local.get $factor)))
     (local.set $dst (i32.add (local.get $dst) (i32.const 16))) (br_if $loop (i32.lt_u (local.get $dst) (local.get $end)))))
 
-(func $input_kernel (param $a i32) (param $b i32)
-  (local $at i32) (local $h v128)
-  (loop $loop
-    (local.set $h (f32x4.max (v128.const f32x4 0 0 0 0) (f32x4.add (v128.load (i32.add (local.get $a) (local.get $at))) (v128.load (i32.add (local.get $b) (local.get $at))))))
-    (v128.store (i32.add (global.get $input) (local.get $at)) (local.get $h))
-    (v128.store (i32.add (global.get $hidden) (local.get $at)) (f32x4.mul (local.get $h) (v128.load (i32.add (global.get $products) (local.get $at)))))
-    (local.set $at (i32.add (local.get $at) (i32.const 16))) (br_if $loop (i32.lt_u (local.get $at) (i32.const 256)))))
-
 (func $exponentials (param $maximum f32)
   (local $at i32) (local $x v128) (local $n v128) (local $r v128) (local $p v128) (local $normal v128)
   (loop $loop
@@ -83,4 +75,4 @@
     (v128.store (local.get $at) (f32x4.sub (local.get $w) (f32x4.mul (local.get $rate)
       (f32x4.add (f32x4.div (f32x4.div (local.get $m) (local.get $c1))
         (f32x4.add (f32x4.sqrt (f32x4.div (local.get $v) (local.get $c2))) (f32x4.splat (f32.const 1e-8)))) (f32x4.mul (local.get $dec) (local.get $w))))))
-    (local.set $at (i32.add (local.get $at) (i32.const 16))) (br_if $loop (i32.lt_u (local.get $at) (i32.const 75520)))))
+    (local.set $at (i32.add (local.get $at) (i32.const 16))) (br_if $loop (i32.lt_u (local.get $at) (i32.const @WEIGHT_BYTES)))))

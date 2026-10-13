@@ -1,185 +1,222 @@
-# Rotate90 Grokking Lab
+# Rotate90 Dense Grokking Lab
 
-**Current mode: local only.** Run the preview below. Training executes entirely
-in the browser; Node serves static files on localhost. The previous Sites
-identity remains in the ignored `.openai/hosting.json` for cleanup. Connected
-Sites tools currently provide no deletion or unpublication operation, so the
-previous hosted copy has not been confirmed removed. Do not publish updates
-without a new user request.
+Two local tabs train one Dense + ReLU architecture at widths 128 and 1024.
+Training runs entirely in the browser on handwritten WASM SIMD128 or scalar
+WASM. Training and weight rendering use CPU workers. Node serves static files.
 
-A static frontend trains division-modulo-97 models from scratch and displays
-live loss, accuracy, weights, and probe activations. Both tabs use **one shared-E
-Rotate90 Square Neighbor residual architecture**, differing only in width:
-
-| Tab | Channels | Unique parameters | Five-seed Rust result |
-| --- | ---: | ---: | --- |
-| Rotate90 · 128 | 128 | 13,952 | Fast generalization; no memorization plateau |
-| Rotate90 · 1024 | 1024 | 111,616 | Plateau plus rapid held-out rise on 5/5 seeds |
-
-See [the replicated Rust and browser study](../../docs/rotary-neighbor-results.md).
-Hardware WebGPU is preferred, with handwritten WASM SIMD128 and scalar WASM
-fallbacks. No training backend, model download, Python runtime, or JavaScript
-ML framework is required. Node v24.21.0 was used for checks; `.nvmrc` selects it.
-
-```sh
-node web/own-channel/server.mjs
-```
-
-Open `http://127.0.0.1:8080`. The dashboard fits the viewport without page
-scrolling. Narrow and short windows have Training, Weights, and Channels views.
-Each model retains its own weights, AdamW moments, sampler, and curves;
-switching tabs pauses the previous experiment. Changing engine or seed resets
-the selected model. Switching views preserves training state.
-
-## Shared architecture
-
-One `97 × W` table supplies both operands and the readout. Each adjacent
-channel pair in operand `b` undergoes a fixed +90° rotation:
-
-```text
-J(u, v) = (-v, u)
-x0 = E[a] + J(E[b])
-
-# Two independent residual blocks:
-r = RMSNorm(x)
-z1 = M1(r)
-z2 = M2(z1²)
-x_next = x + M3(z2²)
-
-logits = RMSNorm(x2) Eᵀ
-M(z)[c] = α[c] z[c] + β[c] z[(c + 1) mod W]
-```
-
-The fixed role rotation draws on [RoFormer's pairwise rotations](https://arxiv.org/html/2104.09864v5).
-Its angle depends only on operand role. There is no attention or residue-value
-encoding through rotation. All six mesh layers have independent signed self
-and neighbor weights. RMSNorm uses all channels, epsilon 1e-5, and no learned
-affine parameters. All layers are bias-free. Unique parameters total
-`97W + 6 × 2W = 109W`.
-
-Input roles and readout contribute to the same gradient for `E`, with one
-AdamW state per unique parameter. Initialization uses SplitMix64, `E` uniform
-in `[-1/√97, +1/√97]`, and identity mesh edges (`α=1, β=0`). With Square, an
-initial branch computes `RMSNorm(x)⁴`, which the skip adds to `x`.
-
-The selected channel's ancestors form a **4 → 3 → 2 → 1** diagram: ten nodes,
-twelve learned edges, and the skip connection. Nodes show actual probe
-activations and edges show signed weights. RMSNorm also depends on channels
-outside this local diagram. The block selector exposes all six mesh layers.
-The IO atlas shows shared `E`, derived `J(E)` for operand `b`, and tied `Eᵀ`.
-
-Click nodes, heatmaps, or the channel contribution plot to select a channel;
-the numeric selector reaches any channel, including the final wraparound
-channel 127 or 1023. When multiple channels share one plot pixel, the plot
-shows their maximum contribution and selects its actual channel. Weight,
-change-from-initialization, and centered-readout views remain available.
-
-## Protocol and measurements
-
-Both tabs default to seed 11: 9,312 division pairs, a fixed 50% split, 4,656
-pairs per split, nine batches of 512 plus an exact 48-row tail per epoch,
-AdamW learning rate 0.001, decay 0.1, betas (0.9, 0.98), epsilon 1e-8, ten
-warmup updates, and a 10,000-epoch cap. Both complete splits are evaluated
-**every epoch**. The step button advances one epoch. Optional stopping uses
-first held-out accuracy ≥99%. Curves contain actual observations.
-
-SplitMix64 initialization, dataset, and shuffle order follow Rust. Initial
-weights match Rust byte for byte at both widths for seeds 7 and 11. Reduction
-order and WASM softmax approximations differ from CUDA, so crossing epochs can
-differ between engines.
-
-| Width / seed 11 | Rust test ≥99% | WASM SIMD test ≥99% | WebGPU test ≥99% | WASM training + evaluation | WebGPU training + evaluation |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 128 | 133 epochs | 133 epochs | 133 epochs | 9.32 s | 1.73 s |
-| 1024 | 187 epochs | 187 epochs | 186 epochs | 95.09 s | 13.40 s |
-
-W1024 retains a **34-epoch train =100% / held-out ≤10% interval** (22–56)
-in all three engines. Its train ≥99% plateau lasts 41 epochs (15–56), and its
-held-out ≤10% → ≥90% rise takes 80 epochs on Rust and WASM, 79 on WebGPU.
-W128 has no qualifying memorization plateau and rises over 49 epochs.
-Gray chart shading marks the ≥99%-train interval; violet marks perfect train.
-
-The grokking label requires at least 25 contiguous epochs of train ≥99% /
-held-out ≤10%, then a ≤250-epoch rise to ≥90%, followed by ≥99%. Train dips or
-missing observations break the plateau. Later test dips preserve the first
-90% crossing, and later streaks preserve the first confirmed plateau. The
-compact model reports `Generalized`; the wider model reports
-`Short-plateau grokking` when the criterion is met.
-
-CPU timings use one thread on an AMD Ryzen 5 5600H in Node v24.21.0. WebGPU
-measurements use Chrome 155.0.8059.39 and a hardware adapter (`fallback: false`)
-whose description is hidden. Times exclude engine setup and normal live weight
-readbacks. Raw histories, source hashes, CSV exports, and real UI training
-outcomes are preserved in [`tests/results/`](tests/results/). Earlier
-architectures and measurements remain in
-[the historical comparison](../../docs/grokking-browser-models.md).
-
-## Efficient execution
-
-- Rotate90 uses paired shuffles and signs, with no trigonometry or learned
-  input projection. Readout uses the same embedding table.
-- WebGPU keeps parameters, activations, gradients, and optimizer state on the
-  device. Deterministic reductions avoid floating atomics, readout gradients
-  use tiled matrix products, and the three embedding roles merge before AdamW.
-- Only 512 equations' intermediate states are cached: 4.25 MiB at W128 and
-  34 MiB at W1024. Complete-split evaluation uses workgroup-local branch states.
-  Wide shaders use 128 threads with eight channels each and less than 16 KiB
-  of workgroup storage, within default device limits.
-- Up to 32 updates share a command buffer. Submission size adapts toward 50 ms;
-  CPU workers yield through a MessageChannel so Pause remains responsive.
-- Full-split metrics are reduced to a small result. Weight snapshots cost
-  55,808 bytes at W128 or 446,464 at W1024. Default 5 Hz readbacks transfer
-  about 0.28 or 2.23 MB/s; 1 Hz reduces synchronization overhead.
-- Hidden views do not draw. Heatmaps use pixel buffers, and probe inference
-  uses the latest actual weight snapshot.
-
-The visuals follow the weight/activation diagrams in Stephen Wolfram's
-[2024 minimal-models article](https://writings.stephenwolfram.com/2024/08/whats-really-going-on-in-machine-learning-some-minimal-models/).
-Readout centering removes the class-independent component ignored by softmax.
-
-## Handwritten WebAssembly and checks
-
-`wasm/neighbor-rotary.wat` and `wasm/neighbor-rotary-wide.wat` implement the
-current forward/backward and optimizer kernels. Shared scalar/SIMD matrix and
-rotation routines are inserted at build time. Earlier own-channel, concat,
-untied Neighbor, and dense residual trainers remain as reference baselines.
-No WASM module imports, allocator, threads, shared memory, memory growth, or
-cross-origin isolation headers are needed.
-
-| Width | SIMD binary | Scalar binary | Fixed linear memory |
+| Tab | Channels | Unique parameters | Drawn learned connections |
 | --- | ---: | ---: | ---: |
-| 128 | 3,723 bytes | 3,263 bytes | 448 KiB |
-| 1024 | 3,753 bytes | 3,293 bytes | 2.69 MiB |
+| Rotate90 · 128 | 128 | 28,800 | 53,632 |
+| Rotate90 · 1024 | 1024 | 1,147,904 | 1,346,560 |
 
-Binaries are included in `dist/`. WABT is the only build dependency and is not
-shipped to the browser. Rebuild and test from this directory:
+## Build and run
+
+From the repository root:
 
 ```sh
+cd web/own-channel
 nvm use
-npm ci --ignore-scripts
-npm run build:wasm
+npm ci
+npm run build
+npm start
+```
+
+Open **http://127.0.0.1:8080**. `.nvmrc` selects Node v24.21.0. The preview
+binds to localhost. Training is independent of the static preview server.
+
+The frontend, preview server, build tools and tests are TypeScript. The build
+runs the pinned TypeScript compiler with `strict` and `noEmitOnError` for both
+browser and Node code, then assembles WASM and generates model SVGs. Sources
+live in `src/`; browser JavaScript, declarations and source maps are emitted
+into `dist/`. Node utilities and browser test modules are emitted into ignored
+`build/`. Source maps embed the original TypeScript. There is no runtime
+TypeScript compiler, ML framework or bundler.
+
+```sh
+npm run typecheck
 npm test
 ```
 
-The complete Node suite passed 73 tests; an added four-checkpoint parity test
-also passed separately. Tests cover initialization, data and epoch sampling,
-finite differences, every parameter gradient for batches 1/37/48/512, shared
-embedding accumulation, residual RMSNorm/skip derivatives, signed Square
-inputs, circular edges, scalar/SIMD AdamW, and grokking classification. Both
-current WebGPU kernels passed 18 f64 gradient/optimizer checks each, including
-three AdamW updates. Fresh complete runs reached the reported targets.
+`npm test` builds first and tests the emitted JavaScript and assembled binaries.
+Rebuild after editing sources; `npm run typecheck` checks an existing build
+without emitting code. The fixed dependency versions are in `package-lock.json`.
 
-From the repository root, use a temporary Chrome profile with CDP port 9224:
+Training is the default workspace. Weights and Network provide the other two
+views. Both model tabs preserve their independent weights, AdamW state, sampler
+and curves. Switching tabs pauses training; changing seed or backend resets
+that tab. Retired browser architectures and the Dynamics view are removed from
+active code and build inputs. Native experiment archives remain available in
+[the historical studies](../../docs/grokking-browser-models.md).
 
-```sh
-GROKKING_PREVIEW_ORIGIN=http://127.0.0.1:8080 \
-  node web/own-channel/tests/browser.mjs
+## Architecture and initialization
+
+```text
+E ∈ R^(97 × W), A ∈ R^(W × W), W ∈ {128, 1024}
+J(u, v) = (-v, u) on adjacent coordinate pairs
+x0 = E[a] + J(E[b])
+r = RMSNorm(x0)
+z = r A
+x1 = x0 + ReLU(z)
+h = RMSNorm(x1)
+logits = h Eᵀ
+prediction = smallest class attaining the largest logit
 ```
 
-UI checks cover both models, pause/resume, reset, independent state, curves,
-live weights, channel and block selection, and viewport fit from 320×568 to
-1920×1080, including tablet and landscape layouts.
+RMSNorm is pre-norm inside the branch. The skip carries the original x0; a
+separate final RMSNorm precedes readout. Both use epsilon 1e-5, without learned
+gain. There are no biases. One E supplies the a lookup, rotated b lookup and
+readout; all three gradients share one parameter and one AdamW state.
 
-Downloaded weights are raw little-endian f32: shared `E`, then six mesh
-layers' interleaved self/neighbor weights. Metrics export as CSV. Weight
-exports omit AdamW state and cannot resume an optimizer run.
+E starts **Normal(0, variance 1/W)**; A starts Kaiming normal with variance
+2/W. Class embedding norms have expectation near one and are free to change
+in training. SplitMix64 and Box–Muller match the native initial checkpoints
+byte-for-byte at seed 11:
+
+- W128: `b90448461caff3b6e04bd9ead0a3f7e7f055e8c1cd71ce19f1069186c74ae04b`
+- W1024: `ea659d5b1596d3a019c3d2af55cb4c030244481b73011b0def3572ddc04d1e91`
+
+The initializer consumes the same number of random draws as the old uniform
+E, preserving every A weight. See the
+[paired Rust initialization study](../../docs/rotary-dense-embedding-results.md).
+
+## Task and training
+
+The task is division modulo 97, with a ∈ {0,…,96}, b ∈ {1,…,96} and
+q = a·b⁻¹ mod 97. There are 9,312 equations: 4,656 train and 4,656 test.
+Seed 11 is the default. Every epoch visits all training rows in nine 512-row
+batches and a 48-row tail. AdamW uses lr 0.001, weight decay 0.1, betas
+0.9/0.98, epsilon 1e-8 and ten warmup updates. Both complete splits are
+evaluated every epoch. Step advances one epoch; stopping at 99% test accuracy
+is optional. The limit is 10,000 epochs.
+
+The grokking criterion stays fixed: at least 25 continuous elapsed epochs
+with train ≥99% and test ≤10%, then test ≤10% → ≥90% within 250 epochs and
+a later test ≥99% result. The first 90% crossing is frozen; later dips cannot
+improve that measured rise. Train dips and missing observations break a plateau.
+Beige marks train ≥99%; violet marks perfect train, both with test ≤10%.
+
+## Visualization and languages
+
+Training shows realtime complete-split loss and accuracy. Weights shows E,
+the complete W × W matrix A and the tied readout. Raw values, changes from
+initialization and centered readout are available. Its pink/blue palette uses
+1,024 magnitude levels per sign with the same fixed logarithmic scale as Network,
+including Change ×4. Exactly zero values have a neutral background. Centering
+the readout keeps the initial E scale. The footer reports the current maximum
+magnitude, rather than the color-scale limit. The palette is built once, and
+heatmap rasters are cached until weights or display mode change. Contiguous
+single-pass rasterization reuses its pixel buffers between snapshots.
+
+Network renders every A connection and every E connection in its three shared
+roles with software Canvas 2D in an OffscreenCanvas worker. Magnitude uses `log1p(abs(weight) / initialRMS)`,
+mapped to `strength / (1 + strength)`. E and A have separate initial RMS references
+that stay fixed throughout training. Change ×4 uses one quarter of those references;
+exactly unchanged weights are transparent. Nonzero changes use a single magnitude
+factor for opacity, so small updates stay visible.
+The legend and both views share the same color stops. Network uses
+1,024 magnitude bands per sign. Its software WASM rasterizer accumulates every
+line's scanline spans in an f32 difference buffer, then combines overlaps into
+pixels. Color is a mass-weighted average; opacity is mass / (1 + mass).
+This avoids Canvas path intersection costs and RGBA8 rounding of weak edges.
+Weight classifications and the background raster are cached; highlighting
+reuses the background. Browsers without OffscreenCanvas use the same renderer on
+the main thread. Highlight retains all edges; zoom, drag, Fit and arrow keys
+inspect the network. Channel shows all W inputs to one ReLU output and its skip.
+All uses neutral nodes with stable styling. Channel nodes show probe activations.
+Only visible panels whose inputs changed draw. Rendering is scheduled on demand
+and sleeps while idle or hidden. Metric messages retain every epoch but update
+the UI at most 10 Hz; weight snapshots use the selected 1/5/10 Hz cadence.
+Hover tooltips do not repaint the atlas. Probe predictions and readout scales are
+cached independently of pan, selection and metrics. Unchanged text stays in the
+DOM, and the worker never resends a weight snapshot at the same training step.
+
+Weight capture defaults to 5 Hz, with 1/10 Hz choices. Snapshots are 115,200
+bytes for W128 and 4,591,616 for W1024. Adaptive training submissions target
+50 ms; CPU workers yield between submissions for responsive pause. Metrics
+export as CSV; weight exports contain little-endian f32 E followed by A and
+omit optimizer state.
+
+The startup dialog explains the task, inverse-based solution, eight checked
+examples and the actual model. It includes a local rendered Mermaid SVG and
+native model SVGs, tensor types and quantified equations. The ∑ button reopens
+it. English, Spanish, German, Japanese, French and Russian are available.
+Automatic selection follows browser preference order and regional tags;
+manual choice persists locally. Language changes preserve training.
+
+Translation sources are `scripts/translations.ts`. Model SVGs are generated
+by `scripts/build-model-diagrams.ts`. Mermaid sources and hashes are in
+`diagrams/`; regenerate them with `npm run build:diagrams` using an isolated
+Chrome profile at `GROKKING_CDP_PORT`. Mermaid is not loaded at runtime. The
+128-channel WAT is the source template in `wasm/`; the build specializes it
+for 1024 channels and emits SIMD/scalar binaries with private or shared memory.
+
+The engine selector exposes 1, 2 or 4 CPU threads for both WASM variants.
+Automatic selection uses four threads with at least six logical CPUs, two
+with four or five, and one on smaller devices.
+Parallel training partitions each batch, sums private gradients in fixed slot
+order and performs one AdamW update on shared weights. Evaluation partitions
+the complete split and combines f64 loss sums and integer correct counts.
+Floating-point gradient regrouping can shift convergence epochs compared with
+a single thread. Shared memory requires cross-origin isolation; the local
+server supplies COOP/COEP headers. Without that capability the app uses one
+thread. SIMD support is detected automatically, with scalar fallback.
+
+## Validation and observed convergence
+
+The TypeScript build and 41 Node tests pass: deterministic data and sampling,
+strict grokking classification, native checkpoint hashes, scalar/SIMD logits,
+all parameter gradients, shared E accumulation, finite differences and AdamW.
+Two- and four-thread variants also pass gradient, AdamW and complete-split
+evaluation checks for both widths and batch sizes including 1, 48 and 512.
+Scalar/SIMD raster tests verify actual pixels for all three E roles, Rotate90
+signs, Dense connections, zero changes and offscreen clipping.
+The real UI trains both widths with GPU APIs forbidden,
+pauses/resets, restores independent states, updates weights, and fits all three
+views. Localization checks pass 216 desktop/mobile dialog and workspace layouts.
+
+Historical convergence measurements (GPU engines have since been removed):
+
+| Width / engine, seed 11 | First test ≥90% | First test ≥99% | Memorization plateau | Rise to ≥90% | Grokking |
+| --- | ---: | ---: | --- | ---: | --- |
+| 128 / Rust CUDA | 510 | 605 | None | 203 epochs | No |
+| 128 / Node WASM SIMD | 520 | 617 | None | 214 epochs | No |
+| 128 / Chrome WebGPU | 509 | 606 | None | 207 epochs | No |
+| 1024 / Rust CUDA | 226 | 270 | 18–110: 92 epochs | 116 epochs | Yes |
+| 1024 / Chrome WebGPU | 292 | 406 | 18–111: 93 epochs | 181 epochs | Yes |
+
+These are one-seed measurements. Floating-point reduction and softmax differences
+change crossing epochs despite identical initialization. W1024 WASM passes
+numerical and real UI checks; a complete W1024 WASM convergence run is not measured.
+
+Observed training plus evaluation: W128 WASM 65.45 s, W128 WebGPU 8.19 s,
+W1024 WebGPU 143.10 s. WASM used Node v24.21.0 on a Ryzen 5 5600H; WebGPU used
+Chrome 155 on NVIDIA Ampere with a hardware adapter. These runtimes exclude
+setup and live dashboard rendering; separate CPU/UI checks ran during some
+measurements, so the numbers are not isolated comparative benchmarks.
+Standalone all-edge drawing at 1250×520 measured 3.3 ms GPU median on AMD
+integrated graphics and 115.3 ms Canvas fallback, excluding node overlay and
+training.
+
+Current artifacts and histories:
+
+- [W128 WASM SIMD](tests/results/dense-rotary-normal-width-wasm-simd-seed11/run.json)
+- [W128 WebGPU](tests/results/dense-rotary-normal-width-webgpu-seed11/run.json)
+- [W1024 WebGPU](tests/results/dense-rotary-wide-normal-width-webgpu-seed11/run.json)
+- [Build, numerical and UI checks](tests/results/normal-width-typescript/)
+
+GPU studies preserve the exact measured source files under their `source/`
+directories. Previous uniform-E and Neighbor measurements remain historical;
+[archived Neighbor documentation](../../docs/browser-neighbor-history.md)
+describes the retired frontend.
+
+To rerun browser checks after building, use an isolated Chrome profile on the
+selected CDP port. Hardware acceleration is not required:
+
+```sh
+GROKKING_CDP_PORT=9224 npm run test:browser
+GROKKING_CDP_PORT=9224 npm run test:rendering
+GROKKING_CDP_PORT=9224 npm run test:i18n
+GROKKING_CDP_PORT=9224 node build/tests/measure-topology.js
+node build/scripts/measure-cpu.js /tmp/grokking-cpu-benchmark
+node build/scripts/measure-wasm.js dense-rotary simd tests/results/new-wasm-run 11
+```

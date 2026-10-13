@@ -31,14 +31,6 @@
     (f32.store (local.get $dst) (f32.mul (f32.load (local.get $dst)) (local.get $scale)))
     (local.set $dst (i32.add (local.get $dst) (i32.const 4))) (br_if $loop (i32.lt_u (local.get $dst) (local.get $end)))))
 
-(func $input_kernel (param $a i32) (param $b i32)
-  (local $at i32) (local $h f32)
-  (loop $loop
-    (local.set $h (f32.max (f32.const 0) (f32.add (f32.load (i32.add (local.get $a) (local.get $at))) (f32.load (i32.add (local.get $b) (local.get $at))))))
-    (f32.store (i32.add (global.get $input) (local.get $at)) (local.get $h))
-    (f32.store (i32.add (global.get $hidden) (local.get $at)) (f32.mul (local.get $h) (f32.load (i32.add (global.get $products) (local.get $at)))))
-    (local.set $at (i32.add (local.get $at) (i32.const 4))) (br_if $loop (i32.lt_u (local.get $at) (i32.const 256)))))
-
 (func $exponentials (param $maximum f32)
   (local $at i32)
   (loop $loop
@@ -63,4 +55,4 @@
     (f32.store (local.get $at) (f32.sub (local.get $w) (f32.mul (local.get $lr)
       (f32.add (f32.div (f32.div (local.get $m) (local.get $correction1))
         (f32.add (f32.sqrt (f32.div (local.get $v) (local.get $correction2))) (f32.const 1e-8))) (f32.mul (local.get $decay) (local.get $w))))))
-    (local.set $at (i32.add (local.get $at) (i32.const 4))) (br_if $loop (i32.lt_u (local.get $at) (i32.const 75520)))))
+    (local.set $at (i32.add (local.get $at) (i32.const 4))) (br_if $loop (i32.lt_u (local.get $at) (i32.const @WEIGHT_BYTES)))))

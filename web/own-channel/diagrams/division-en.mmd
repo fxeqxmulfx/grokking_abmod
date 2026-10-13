@@ -1,0 +1,10 @@
+flowchart TB
+accTitle: Mathematical solution
+accDescr: For 10 / 3, the inverse of 3 is 65. The exact answer is 68, and multiplying it by 3 restores remainder 10.
+A["Inputs<br/>a = 10, b = 3"]
+B["Find the inverse<br/>3 · 65 = 2 · 97 + 1"]
+C["Multiply and take the remainder<br/>10 · 65 = 6 · 97 + 68"]
+D["Verify the answer<br/>3 · 68 = 2 · 97 + 10"]
+Q["Answer: q = 68"]
+A --> B --> C --> D --> Q
+style Q fill:#e1efde,stroke:#2d8975,stroke-width:2px

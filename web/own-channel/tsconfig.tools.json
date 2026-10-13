@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": "build",
+    "declaration": false
+  },
+  "include": ["server.ts", "project.ts", "scripts/**/*.ts", "tests/**/*.ts"]
+}

@@ -2,10 +2,27 @@
   "name": "own-channel-grokking-lab",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=22"},
-  "scripts": {
-    "build:wasm": "node scripts/build-wasm.mjs",
-    "test": "node --test --test-isolation=none tests/model.test.mjs tests/wasm.test.mjs tests/models-wasm.test.mjs"
+  "engines": {
+    "node": ">=24.21.0"
   },
-  "devDependencies": {"wabt": "1.0.39"}
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
+    "start": "node build/server.js",
+    "build:wasm": "node build/scripts/build-wasm.js",
+    "build:locales": "node scripts/build-locales.ts",
+    "build:diagrams": "node build/scripts/build-diagrams.js",
+    "build:model-diagrams": "node build/scripts/build-model-diagrams.js",
+    "test": "npm run build && node --test --test-isolation=none build/tests/model.test.js build/tests/models-wasm.test.js build/tests/parallel-wasm.test.js build/tests/raster.test.js build/tests/i18n.test.js",
+    "test:browser": "node build/tests/browser.js",
+    "test:rendering": "node build/tests/rendering.js",
+    "test:i18n": "node build/tests/i18n-browser.js",
+    "bench:cpu": "node build/scripts/measure-cpu.js"
+  },
+  "devDependencies": {
+    "@mermaid-js/tiny": "12.1.0",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "wabt": "1.0.39"
+  }
 }

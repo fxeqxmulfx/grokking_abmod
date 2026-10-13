@@ -1,0 +1,10 @@
+flowchart TB
+accTitle: Solución matemática
+accDescr: Para 10 / 3, el inverso de 3 es 65. La respuesta exacta es 68; al multiplicarla por 3 se obtiene de nuevo el residuo 10.
+A["Entradas<br/>a = 10, b = 3"]
+B["Encontrar el inverso<br/>3 · 65 = 2 · 97 + 1"]
+C["Multiplicar y tomar el residuo<br/>10 · 65 = 6 · 97 + 68"]
+D["Verificar la respuesta<br/>3 · 68 = 2 · 97 + 10"]
+Q["Respuesta: q = 68"]
+A --> B --> C --> D --> Q
+style Q fill:#e1efde,stroke:#2d8975,stroke-width:2px

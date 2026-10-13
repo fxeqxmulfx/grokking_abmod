@@ -1,0 +1,36 @@
+{
+  "renderer": "@mermaid-js/tiny",
+  "version": "12.1.0",
+  "diagrams": {
+    "en": {
+      "sourceSha256": "bdd7d8e037b646adae49f391b82b60cbd523fac5c9fac553c366874a0474eec5",
+      "svgSha256": "4a39d075acacd098ecb0f8d654d41cd45eb553259ac7fab0d50215bc4238c198",
+      "bytes": 21066
+    },
+    "es": {
+      "sourceSha256": "82b25155011703dffde2fe20ba834dab34f56c6ab22dc7f9f643157f56df1d58",
+      "svgSha256": "918c99909681b994824aba0d24560fd1c13f85231ff9fbcec9a081b3478b74bd",
+      "bytes": 21110
+    },
+    "de": {
+      "sourceSha256": "1f3913565d3d2ef0af486c6bfae0d135f46c709eaa3e9e46fe94bda892758cdf",
+      "svgSha256": "487ae5c332c8bb23827feaa9d388f644d6e09149da0232976477073f23be8b22",
+      "bytes": 20727
+    },
+    "ja": {
+      "sourceSha256": "84a5b06231a0eb7e15a7d73c4a0d19b2698ef28a1bec446324b0f73300e82410",
+      "svgSha256": "66227d45acaf7eb9446f0a6c4ee40e05d8daa493f904602f2ec742285599e4d1",
+      "bytes": 20374
+    },
+    "fr": {
+      "sourceSha256": "b0a9f8ca6165125e0ec604abc9c24758f7e27fd9f524721b475a4b80bd9b9398",
+      "svgSha256": "625a8296edfdeb13693b840c14b099c45c1a164d827d05250eb70c0ee671be28",
+      "bytes": 21000
+    },
+    "ru": {
+      "sourceSha256": "bacbdbb7f16e47556ec77433e0bc67f9431ea409232088b6a4a43d6f3e58251a",
+      "svgSha256": "b08750e4776f31bffb3998fc9ac0a5f59f5392922d2f6ffa9d15f89b43fbb33a",
+      "bytes": 21058
+    }
+  }
+}

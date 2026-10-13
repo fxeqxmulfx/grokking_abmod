@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f6f1">
-  <meta name="description" content="Compare one shared-embedding Rotate90 Neighbor architecture at widths 128 and 1024. Train locally in your browser with live loss, accuracy and weights.">
+  <meta name="description" content="Compare one shared-embedding Rotate90 Dense architecture at widths 128 and 1024. Train locally in your browser with live loss, accuracy and weights.">
   <title>Rotate90 Grokking Lab</title>
   <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.mjs"></script>
+  <script type="module" src="./app.js"></script>
 </head>
 <body data-view="training">
   <header class="topbar">
     <a class="brand" href="./"><span class="brand-mark">g</span><span>GROKKING LAB</span></a>
-    <div class="model-summary"><h1 id="model-name">Rotate90 <span>Square · 2 × 3</span></h1><span class="model-detail" id="model-detail">128 channels · 13,952 parameters · Square · FP32</span><code>a / b mod 97</code></div>
-    <div class="header-tools"><span class="device" id="device">Preparing training engine…</span><button id="about" aria-label="About this experiment" title="About this experiment">?</button></div>
+    <div class="model-summary"><h1 id="model-name">Rotate90 <span>Dense + ReLU</span></h1><span class="model-detail" id="model-detail">128 channels · 28,800 parameters · ReLU · FP32</span><code>a / b mod 97</code></div>
+    <div class="header-tools"><span class="device" id="device">Preparing training engine…</span><select id="language" data-language-select aria-label="Language"></select><button id="task-help" aria-label="Task and solution" title="Task and solution">∑</button><button id="about" aria-label="About this experiment" title="About this experiment">?</button></div>
   </header>
   <main>
-    <div class="workspace-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="neighbor-rotary" class="active" aria-pressed="true">Rotate90 · 128</button><button data-model-tab="neighbor-rotary-wide" aria-pressed="false">Rotate90 · 1024</button></nav><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Channels</button></nav></div>
+    <div class="workspace-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="dense-rotary" class="active" aria-pressed="true">Rotate90 · 128</button><button data-model-tab="dense-rotary-wide" aria-pressed="false">Rotate90 · 1024</button></nav><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Network</button></nav></div>
     <div class="dashboard">
       <div class="visuals">
         <section class="card chart-card" aria-labelledby="curve-title">
@@ -26,23 +26,24 @@
           <div class="chart-foot"><span id="cadence">Evaluated every epoch</span><span id="observations">0 observations</span></div>
         </section>
 
+
         <section class="card mesh-card" aria-labelledby="mesh-title">
-          <div class="card-heading"><h2 id="mesh-title">Residual block 1</h2><div class="chart-legend"><span><i class="dot orange"></i>+</span><span><i class="dot blue"></i>−</span></div></div>
-          <p class="helper" id="mesh-helper">4 → 3 → 2 → 1 · edge weights · probe activations · click a node</p>
-          <canvas id="mesh" role="img" aria-label="Selected Neighbor channel ancestors and skip connection"></canvas>
-          <div class="mesh-foot"><label class="channel-select"><span id="selected-channel">Channel</span><input id="channel-select" type="number" min="0" max="127" step="1" value="0" aria-label="Selected mesh channel"></label><span id="gain-info">Block 1 · RMS —</span><span id="scale-info">Contribution: —</span></div>
+          <div class="card-heading"><h2 id="mesh-title">All weights</h2><div class="mesh-tools"><div class="chart-legend"><span><i class="weight-ramp rose" data-weight-gradient="positive" aria-hidden="true"></i>+</span><span><i class="weight-ramp mesh-blue" data-weight-gradient="negative" aria-hidden="true"></i>−</span></div><div class="tabs" aria-label="Network detail"><button id="mesh-topology" class="active" aria-pressed="true">All</button><button id="mesh-channel" aria-pressed="false">Channel</button></div></div></div>
+          <div class="network-row"><p class="helper" id="mesh-helper">Shared E in three roles + Dense A</p><div class="network-options" id="network-options"><select id="network-view" aria-label="Network weight display"><option value="weight">Weights</option><option value="delta">Change ×4</option></select><label class="check" title="Emphasize the selected channel without hiding any connections"><input id="network-highlight" type="checkbox">Highlight</label></div></div>
+          <div class="mesh-canvas"><canvas id="mesh-edges" aria-hidden="true"></canvas><canvas id="mesh" role="img" tabindex="0" aria-label="Live weights of the complete model" aria-describedby="mesh-helper"></canvas><div class="network-zoom" id="network-zoom"><button id="zoom-out" aria-label="Zoom network out">−</button><button id="zoom-reset" title="Fit all weights">Fit</button><button id="zoom-in" aria-label="Zoom network in">+</button></div></div>
+          <div class="mesh-foot"><label class="channel-select"><span id="selected-channel">Channel</span><input id="channel-select" type="number" min="0" max="127" step="1" value="0" aria-label="Selected channel"></label><span id="gain-info">Block 1 · RMS —</span><span id="scale-info">Contribution: —</span></div>
         </section>
 
         <section class="weight-panel" aria-labelledby="weight-title">
-          <div class="weight-heading"><h2 id="weight-title">Weight atlas</h2><div class="weight-options"><select id="weight-group" aria-label="Weight group" hidden><option value="io">Input / output</option><option value="0">Residual block 1</option><option value="1">Residual block 2</option></select><label class="check" title="Center the readout over answer classes"><input id="centered" type="checkbox" checked> Center R</label><label class="weight-view-label"><span>View</span><select id="weight-view" title="Raw weights or change from initialization"><option value="weight">Weights</option><option value="delta">Change</option></select></label></div></div>
+          <div class="weight-heading"><div class="weight-title-group"><h2 id="weight-title">Weight atlas</h2><div class="chart-legend"><span><i class="weight-ramp rose" data-weight-gradient="positive" aria-hidden="true"></i>+</span><span><i class="weight-ramp mesh-blue" data-weight-gradient="negative" aria-hidden="true"></i>−</span></div></div><div class="weight-options"><label class="check" title="Center the readout over answer classes"><input id="centered" type="checkbox" checked> Center R</label><label class="weight-view-label"><span>View</span><select id="weight-view" title="Raw weights or change from initialization"><option value="weight">Weights</option><option value="delta">Change ×4</option></select></label></div></div>
           <div class="atlas">
-            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-a-title">Shared embedding <span>E</span></h3><small id="atlas-a-size">97 × 64</small></div><canvas id="input-a" role="img" aria-label="Shared embedding weights for both operands and readout"></canvas><div class="map-foot"><span id="atlas-a-axis">Residue ↓ · feature →</span><span id="range-a">—</span></div></section>
-            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-b-title">Concat projection <span>A</span></h3><small id="atlas-b-size">128 × 64</small></div><canvas id="input-b" role="img" aria-label="Concatenation projection: operand a above operand b"></canvas><div class="map-foot"><span id="atlas-b-axis">a / b features ↓ · channel →</span><span id="range-b">—</span></div></section>
-            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-r-title">Tied readout <span>Eᵀ</span></h3><small id="atlas-r-size">64 × 97</small></div><canvas id="readout" role="img" aria-label="Readout weights, centered over answer classes"></canvas><div class="map-foot"><span>Answer ↓ · channel →</span><span id="range-r">—</span></div></section>
+            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-a-title">Shared embedding <span>E</span></h3><small id="atlas-a-size">97 × 128</small></div><canvas id="input-a" role="img" aria-label="Shared embedding weights for both operands and readout"></canvas><div class="map-foot"><span id="atlas-a-axis">Residue ↓ · channel →</span><span id="range-a">—</span></div></section>
+            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-b-title">Dense matrix A</h3><small id="atlas-b-size">128 × 128</small></div><canvas id="input-b" role="img" aria-label="Dense matrix weights"></canvas><div class="map-foot"><span id="atlas-b-axis">Input channel ↓ · output channel →</span><span id="range-b">—</span></div></section>
+            <section class="card heatmap-card"><div class="card-heading"><h3 id="atlas-r-title">Tied readout <span>Eᵀ</span></h3><small id="atlas-r-size">128 × 97</small></div><canvas id="readout" role="img" aria-label="Readout weights, centered over answer classes"></canvas><div class="map-foot"><span>Answer ↓ · channel →</span><span id="range-r">—</span></div></section>
           </div>
         </section>
 
-        <section class="card scale-card"><div class="card-heading"><h3 id="scales-title">Channel scales</h3><span id="concentration">Top 16: —</span></div><canvas id="scales" role="img" aria-label="Centered channel scales for all 64 channels"></canvas></section>
+        <section class="card scale-card"><div class="card-heading"><h3 id="scales-title">Channel scales</h3><span id="concentration">Top 16: —</span></div><canvas id="scales" role="img" aria-label="Probe readout contributions"></canvas></section>
         <section class="card probe"><div class="card-heading"><h3>Probe the model</h3></div><div class="equation"><input id="probe-a" type="number" min="0" max="96" step="1" value="15" aria-label="Operand a"><span>/</span><input id="probe-b" type="number" min="1" max="96" step="1" value="23" aria-label="Operand b"><span>mod 97 =</span><strong id="prediction">—</strong></div><p id="probe-result" class="helper">Probe this network's current prediction.</p></section>
       </div>
 
@@ -51,7 +52,7 @@
         <div class="progress-block"><div class="progress-label"><span>Epoch <strong id="epoch">0</strong></span><span id="budget-label">/ 10,000</span></div><progress id="progress" value="0" max="10000" aria-label="Training epoch progress"></progress></div>
         <div class="metrics"><div><span>Train accuracy</span><strong id="train-accuracy">—</strong></div><div><span>Held-out accuracy</span><strong id="heldout-accuracy">—</strong></div><div><span>Train loss</span><strong id="train-loss">—</strong></div><div><span>Held-out loss</span><strong id="heldout-loss">—</strong></div></div>
         <div class="form-row"><label>Seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="11" required></label><label>Epoch limit<input id="limit" type="number" min="1" max="10000" step="1" value="10000" required></label></div>
-        <div class="capture-row engine-select"><label for="backend">Training engine</label><select id="backend"><option value="auto">Automatic</option><option value="wasm">WASM on CPU</option><option value="gpu">WebGPU</option></select></div>
+        <div class="capture-row engine-select"><label for="backend">Training engine</label><select id="backend"><option value="auto">Automatic</option><option value="simd">SIMD · 1 thread</option><option value="simd-2">SIMD · 2 threads</option><option value="simd-4">SIMD · 4 threads</option><option value="scalar">Scalar · 1 thread</option><option value="scalar-2">Scalar · 2 threads</option><option value="scalar-4">Scalar · 4 threads</option></select></div>
         <label class="check stop-check"><input id="stop-target" type="checkbox" checked> Stop at 99% held-out accuracy</label>
         <button id="train" class="primary" disabled>Start training <span>↗</span></button><div class="button-row"><button id="step" disabled>+1 epoch</button><button id="reset">Reset</button></div>
         <div class="capture-row weight-capture"><label for="capture">Weight updates</label><select id="capture"><option value="1">1 / second</option><option value="5" selected>5 / second</option><option value="10">10 / second</option></select></div>
@@ -63,14 +64,97 @@
     </div>
   </main>
   <footer><span>Local training · data stays on your device</span><a href="https://writings.stephenwolfram.com/2024/08/whats-really-going-on-in-machine-learning-some-minimal-models/" target="_blank" rel="noreferrer">Wolfram, 2024 ↗</a></footer>
+  <dialog id="task-dialog" class="task-dialog" aria-labelledby="task-title">
+    <div class="task-heading"><h2 id="task-title">Division modulo 97</h2><div class="task-actions"><select id="task-language" data-language-select aria-label="Language"></select><button id="close-task" aria-label="Close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3 13 13M13 3 3 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div></div>
+    <nav class="task-tabs" role="tablist" aria-label="Task and solution"><button id="task-tab-task" role="tab" aria-controls="task-page-task" data-task-tab="task" class="active" aria-selected="true">Task</button><button id="task-tab-solution" role="tab" aria-controls="task-page-solution" data-task-tab="solution" aria-selected="false">Solution</button><button id="task-tab-examples" role="tab" aria-controls="task-page-examples" data-task-tab="examples" aria-selected="false">Examples</button><button id="task-tab-model" role="tab" aria-controls="task-page-model" data-task-tab="model" aria-selected="false">Model</button></nav>
+    <div class="task-pages">
+      <section id="task-page-task" class="task-page task-definition" role="tabpanel" aria-labelledby="task-tab-task">
+        <div class="task-copy">
+          <p class="task-domain"><code>a ∈ {0,…,96}</code><code>b ∈ {1,…,96}</code></p>
+          <p>Find the unique q ∈ {0,…,96} whose product bq leaves remainder a when divided by 97.</p>
+          <p class="task-formula"><code>bq ≡ a (mod 97)</code><code>⇔ bq = a + 97k</code></p>
+          <p>x mod 97 is the remainder from 0 to 96. In bq = a + 97k, k is an integer.</p>
+          <p>97 is prime, so every nonzero b has an inverse b⁻¹ satisfying b·b⁻¹ ≡ 1 (mod 97).</p>
+          <p class="task-formula"><code>q = (a · b⁻¹) mod 97</code></p>
+          <p class="task-split"><strong>9,312 equations</strong><span>4,656 train · 4,656 test</span></p>
+        </div>
+        <figure class="task-preview"><img data-task-diagram alt="Mathematical solution"><figcaption>Mathematical solution</figcaption></figure>
+      </section>
+      <section id="task-page-solution" class="task-page task-solution" role="tabpanel" aria-labelledby="task-tab-solution" hidden>
+        <div><p>Multiply a by that inverse, then take the remainder modulo 97.</p><p>For 10 / 3, the inverse of 3 is 65. The exact answer is 68, and multiplying it by 3 restores remainder 10.</p>
+          <div class="task-proof"><code>3 · 65 = 195 = 2 · 97 + 1</code><code>10 · 65 = 650 = 6 · 97 + 68</code><code>3 · 68 = 204 = 2 · 97 + 10</code></div>
+          <p class="helper">The inverse rule generates the correct training labels. The network learns to predict q from examples of (a,b).</p>
+        </div>
+        <figure><img data-task-diagram alt="Mathematical solution"><figcaption><code>10 / 3 mod 97 = 68</code></figcaption></figure>
+      </section>
+      <section id="task-page-examples" class="task-page task-examples" role="tabpanel" aria-labelledby="task-tab-examples" hidden>
+        <p>All examples use arithmetic modulo 97. The check multiplies the answer by b and recovers a as the remainder.</p>
+        <table><thead><tr><th scope="col">Equation</th><th scope="col">Check</th></tr></thead><tbody id="task-example-rows"></tbody></table>
+      </section>
+      <section id="task-page-model" class="task-page task-model" role="tabpanel" aria-labelledby="task-tab-model" hidden>
+        <div class="task-model-copy">
+          <div class="task-model-heading"><h3>How the model learns</h3><nav class="tabs task-model-tabs" role="tablist" aria-label="Model presentation"><button id="model-tab-diagram" data-model-explanation="diagram" role="tab" aria-controls="model-page-diagram" aria-selected="true" class="active">Diagram</button><button id="model-tab-types" data-model-explanation="types" role="tab" aria-controls="model-page-types" aria-selected="false">Types</button><button id="model-tab-equations" data-model-explanation="equations" role="tab" aria-controls="model-page-equations" aria-selected="false">Equations</button></nav></div>
+          <p>Rotate90 predicts one of 97 answer classes q from (a,b). One shared E embeds both operands and reads out the answer.</p>
+          <p class="task-width"><span>Width</span> <code>W = 128</code> <span>or</span> <code>1024</code></p>
+        </div>
+        <div class="task-model-panels">
+          <figure id="model-page-diagram" class="task-model-diagram" role="tabpanel" aria-labelledby="model-tab-diagram"><picture><source media="(max-width: 649px)" data-model-diagram-portrait><img data-task-diagram="model" alt="Rotate90 model architecture"></picture><figcaption>Dashed lines reuse E.</figcaption></figure>
+          <section id="model-page-types" class="task-model-types" role="tabpanel" aria-labelledby="model-tab-types" hidden>
+            <div class="task-type-tables">
+              <table><thead><tr><th scope="col">Symbol</th><th scope="col">Type / domain</th></tr></thead><tbody>
+                <tr><th scope="row"><code>a, b</code></th><td><code>a ∈ {0,…,96}</code><code>b ∈ {1,…,96}</code></td></tr>
+                <tr><th scope="row"><code>q, q̂</code></th><td><code>q, q̂ ∈ {0,…,96}</code></td></tr>
+                <tr><th scope="row"><code>W</code></th><td><code>W ∈ {128,1024}</code></td></tr>
+                <tr><th scope="row"><code>ε</code></th><td><code>ε = 10⁻⁵ ∈ ℝ<sub>&gt;0</sub></code></td></tr>
+                <tr><th scope="row"><code>c, i, j, k</code></th><td><code>c, i ∈ {0,…,W−1}</code><code>j ∈ {0,…,W/2−1}</code><code>k ∈ {0,…,96}</code></td></tr>
+              </tbody></table>
+              <table><thead><tr><th scope="col">Symbol</th><th scope="col">Type / domain</th></tr></thead><tbody>
+                <tr><th scope="row"><code>E, Eᵀ</code></th><td><code>E ∈ ℝ<sup>97×W</sup></code><code>Eᵀ ∈ ℝ<sup>W×97</sup></code></td></tr>
+                <tr><th scope="row"><code>A</code></th><td><code>A ∈ ℝ<sup>W×W</sup></code></td></tr>
+                <tr><th scope="row"><code>x₀, r, z, x₁, h, v</code></th><td><code>ℝ<sup>W</sup></code></td></tr>
+                <tr><th scope="row"><code>ℓ</code></th><td><code>ℓ = logits ∈ ℝ<sup>97</sup></code></td></tr>
+                <tr><th scope="row"><code>J, RMSNorm, ReLU</code></th><td><code>ℝ<sup>W</sup> → ℝ<sup>W</sup></code></td></tr>
+              </tbody></table>
+            </div>
+            <p class="helper">ℝ denotes real values; vectors are rows. q is the correct answer, q̂ the prediction. Training uses FP32.</p>
+          </section>
+          <section id="model-page-equations" class="task-model-equations" role="tabpanel" aria-labelledby="model-tab-equations" hidden>
+            <p class="task-index-domains"><code>C = {0,…,W−1}</code><code>K = {0,…,96}</code></p>
+            <div class="task-equation-columns">
+              <div><h4>Forward pass</h4><div class="task-equation-lines">
+                <code>x₀ = E[a] + J(E[b])</code>
+                <code>r = RMSNorm(x₀)</code>
+                <div><code>∀c ∈ C:</code><code>z[c] = ∑<sub>i∈C</sub> r[i]A[i,c]</code></div>
+                <code>∀c ∈ C: x₁[c] = x₀[c] + max(0,z[c])</code>
+                <code>h = RMSNorm(x₁)</code>
+                <div><code>∀k ∈ K:</code><code>ℓ[k] = ∑<sub>c∈C</sub> h[c]E[k,c]</code></div>
+                <code>q̂ = min argmax<sub>k∈K</sub> ℓ[k]</code>
+              </div></div>
+              <div><h4>Fixed operations</h4><div class="task-equation-lines">
+                <code>∀v ∈ ℝ<sup>W</sup>, ∀j ∈ {0,…,W/2−1}:</code>
+                <code>J(v)[2j] = −v[2j+1]</code>
+                <code>J(v)[2j+1] = v[2j]</code>
+                <code>∀v ∈ ℝ<sup>W</sup>:</code>
+                <code>RMSNorm(v) = v / √(ε + W⁻¹∑<sub>c∈C</sub> v[c]²)</code>
+                <code>ε = 10⁻⁵</code>
+              </div></div>
+            </div>
+          </section>
+        </div>
+        <p class="task-model-note">Grokking is late generalization after memorizing the training examples. Watch the held-out accuracy to see when unseen pairs become correct.</p>
+      </section>
+    </div>
+    <div class="task-footer"><div><button id="task-back">Back</button><button id="task-next">Next</button></div><button id="task-open" class="primary" autofocus>Open lab <span>↗</span></button></div>
+  </dialog>
   <dialog id="about-dialog" aria-labelledby="about-title">
     <div class="card-heading"><h2 id="about-title">About this experiment</h2><button id="close-about" aria-label="Close experiment information">×</button></div>
-    <p id="model-description">One shared matrix E embeds both operands and reads the answer. Concatenating [E[a], E[b]] and projecting with A preserves operand order, followed by four own-channel ReLU layers. All three roles of E share one AdamW state.</p>
-    <h3>What counts as grokking?</h3><p id="criterion-description">Five consecutive observations with training accuracy ≥99% and held-out accuracy ≤10%, followed by held-out accuracy ≥99%.</p>
-    <p class="helper" id="reference-description">Seed 7, Rust/CUDA: train ≥99% at epoch 425, held-out ≥99% at epoch 1,300. WASM SIMD: held-out ≥99% at epoch 1,275. This is gradual generalization with a delay; it did not meet the strict plateau criterion. Fifty epochs were insufficient. Browser arithmetic and seeds can change the trajectory.</p>
-    <h3>Channel scales</h3><p class="helper" id="scale-formula">‖(EA)꜀‖ × product of rectified gains × ‖centered Eᵀ꜀‖</p>
-    <h3>One architecture, two widths</h3><p class="helper">Both tabs use the same shared-E Rotate90 Square Neighbor residual architecture and default seed 11. Only channel width changes: 128 channels / 13,952 parameters, or 1024 / 111,616. The narrow model generalizes directly; the wide model shows a memorization plateau on all five tested Rust seeds. Tabs retain separate weights, optimizer state and curves; switching pauses the previous model. Training begins from random initialization on your device.</p>
-    <p class="helper"><a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">RoFormer: the rotary position embedding idea ↗</a></p>
+    <p id="model-description">One shared E embeds a and b and reads out the answer. Input: E[a] + Rotate90(E[b]). One pre-norm residual branch applies RMSNorm → Dense A → ReLU, then adds the original input. Final RMSNorm and Eᵀ produce 97 logits.</p>
+    <h3>What counts as grokking?</h3><p id="criterion-description">At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.</p>
+    <p class="helper" id="reference-description">Seed 11, Rust/CUDA: held-out ≥99% at epoch 605 for 128 channels and 270 for 1024. The wider model has a 92-epoch memorization plateau and a 116-epoch rise to ≥90%. Only one seed verified; browser crossings may differ.</p>
+    <h3>Channel scales</h3><p class="helper" id="scale-formula">|probe hidden꜀| × ‖centered Eᵀ꜀‖</p>
+    <h3>One architecture, two widths</h3><p class="helper">Only width changes: 128 channels / 28,800 parameters, or 1024 / 1,147,904. Switching model tabs pauses the previous model and preserves its weights, optimizer and curves. Training starts from random initialization on your device.</p>
+    <h3>All weights, live</h3><p class="helper">All draws every E connection in its three shared roles and every A connection. Pink is positive; blue is negative. Color shade follows magnitude on a fixed logarithmic scale. Weights shows values; Change ×4 shows changes from initialization with a fixed scale. Highlight emphasizes a channel. Zoom, drag and Fit explore the graph; Channel shows all W inputs to one ReLU output and its skip. All uses neutral nodes. Channel shows probe activations.</p>
+    <p class="helper"><a href="https://content.wolfram.com/sites/43/2024/08/sw08202024topologyimg1.png" target="_blank" rel="noreferrer">Wolfram: mesh topology reference ↗</a> · <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">RoFormer: pairwise rotations ↗</a></p>
     <p id="backend-note" class="helper" hidden></p><p id="engine-error" class="error" hidden></p>
   </dialog>
 </body>

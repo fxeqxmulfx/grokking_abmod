@@ -13,7 +13,9 @@ the cloud copy as removed without a confirmed removal result.
 Run the local server with Node selected by `.nvmrc`:
 
 ```sh
-node web/own-channel/server.mjs
+cd web/own-channel
+npm run build
+npm start
 ```
 
 The preview binds to `127.0.0.1:8080`. Training runs in the browser.
