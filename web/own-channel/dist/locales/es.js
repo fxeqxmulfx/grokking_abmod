@@ -257,6 +257,8 @@ export default {
     "SIMD · 4 threads": "SIMD · 4 hilos",
     "Scalar · 1 thread": "Escalar · 1 hilo",
     "Scalar · 2 threads": "Escalar · 2 hilos",
-    "Scalar · 4 threads": "Escalar · 4 hilos"
+    "Scalar · 4 threads": "Escalar · 4 hilos",
+    "Shared memory is unavailable; using one CPU thread.": "La memoria compartida no está disponible; se usa un hilo de CPU.",
+    "Parallel WASM could not start; using one CPU thread. {error}": "No se pudo iniciar WASM paralelo; se usa un hilo de CPU. {error}"
 };
 //# sourceMappingURL=es.js.map

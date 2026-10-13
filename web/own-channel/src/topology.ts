@@ -21,7 +21,7 @@ export class WeightTopology {
         this.worker.onmessage = ({data}: MessageEvent<TopologyResponse>) => {
           if (data.type === 'error') {this.fallback(data.message); return;}
           const dataset = this.element.dataset;
-          dataset.frame = String(data.job); dataset.pathBuilds = String(data.pathBuilds); dataset.backgroundPaints = String(data.backgroundPaints);
+          dataset.frame = String(data.job); dataset.classifications = String(data.classifications); dataset.backgroundPaints = String(data.backgroundPaints);
           dataset.buildMs = String(data.buildMs); dataset.drawMs = String(data.drawMs);
         };
         this.worker.onerror = event => this.fallback(event.message);
@@ -70,7 +70,7 @@ export class WeightTopology {
       const width = Math.round(layout.width * scale), height = Math.round(layout.height * scale);
       if (this.element.width !== width) this.element.width = width; if (this.element.height !== height) this.element.height = height;
       this.scene!.draw(this.ctx!, layout, weights, selected, view, focus, options, scale);
-      dataset.frame = String(job); dataset.pathBuilds = String(this.scene!.pathBuilds); dataset.backgroundPaints = String(this.scene!.backgroundPaints);
+      dataset.frame = String(job); dataset.classifications = String(this.scene!.classifications); dataset.backgroundPaints = String(this.scene!.backgroundPaints);
       dataset.buildMs = String(this.scene!.buildMs); dataset.drawMs = String(this.scene!.drawMs);
     }
     this.weights = weights; this.initial = initial; dataset.uploads = String(this.uploads);

@@ -13,7 +13,7 @@
     "build:locales": "node scripts/build-locales.ts",
     "build:diagrams": "node build/scripts/build-diagrams.js",
     "build:model-diagrams": "node build/scripts/build-model-diagrams.js",
-    "test": "npm run build && node --test --test-isolation=none build/tests/model.test.js build/tests/models-wasm.test.js build/tests/parallel-wasm.test.js build/tests/raster.test.js build/tests/i18n.test.js",
+    "test": "npm run build && node --test --test-isolation=none build/tests/model.test.js build/tests/models-wasm.test.js build/tests/parallel-wasm.test.js build/tests/raster.test.js build/tests/checkpoint.test.js build/tests/i18n.test.js",
     "test:browser": "node build/tests/browser.js",
     "test:rendering": "node build/tests/rendering.js",
     "test:i18n": "node build/tests/i18n-browser.js",

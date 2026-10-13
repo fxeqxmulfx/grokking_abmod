@@ -27,7 +27,7 @@ onmessage = ({data}: MessageEvent<TopologyRequest>) => {
           if (canvas.width !== width) canvas.width = width; if (canvas.height !== height) canvas.height = height;
           scene.draw(ctx, topologyLayout(request.width, request.height, request.channels), weights, request.selected, request.view, request.focus, {initial, mode: request.mode, highlight: request.highlight}, request.scale);
         }
-        postMessage({type: 'paint', job: request.job, pathBuilds: scene.pathBuilds, backgroundPaints: scene.backgroundPaints, buildMs: scene.buildMs, drawMs: scene.drawMs});
+        postMessage({type: 'paint', job: request.job, classifications: scene.classifications, backgroundPaints: scene.backgroundPaints, buildMs: scene.buildMs, drawMs: scene.drawMs});
       } catch (error) {timer = null; postMessage({type: 'error', message: errorText(error)});}
     }, 0);
   } catch (error) {postMessage({type: 'error', message: errorText(error)});}

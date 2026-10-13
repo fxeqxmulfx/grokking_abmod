@@ -257,5 +257,7 @@ export default {
   "SIMD · 4 threads": "SIMD · 4 Threads",
   "Scalar · 1 thread": "Skalar · 1 Thread",
   "Scalar · 2 threads": "Skalar · 2 Threads",
-  "Scalar · 4 threads": "Skalar · 4 Threads"
+  "Scalar · 4 threads": "Skalar · 4 Threads",
+  "Shared memory is unavailable; using one CPU thread.": "Gemeinsamer Speicher ist nicht verfügbar; ein CPU-Thread wird verwendet.",
+  "Parallel WASM could not start; using one CPU thread. {error}": "Paralleles WASM konnte nicht starten; ein CPU-Thread wird verwendet. {error}"
 };

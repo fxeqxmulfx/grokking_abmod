@@ -35,7 +35,7 @@ export class CPUScene {
     const {instance} = await WebAssembly.instantiate(source);
     return new CPUScene(instance.exports as unknown as RasterExports);
   }
-  pathBuilds = 0; backgroundPaints = 0; buildMs = 0; drawMs = 0;
+  classifications = 0; backgroundPaints = 0; buildMs = 0; drawMs = 0;
   private weights: Weights | null = null; private initial: Weights | null = null; private mode: WeightMode = 'weight';
   private addresses = {columns: 0, residues: 0, answers: 0, palette: 0, codes: 0, scratch: 0, pixels: 0};
   private codes = new Uint16Array(); private palette = new Float32Array(); private coordinates = new Float32Array();
@@ -46,6 +46,7 @@ export class CPUScene {
   private allocate(width: number, height: number, channels: number, parameters: number) {
     const shape = `${width}:${height}:${channels}:${parameters}`;
     if (this.shape === shape) return;
+    const changedLayout = this.codes.length !== parameters || this.coordinates.length !== channels + 3 * P;
     const a = this.addresses;
     a.columns = 0; a.residues = channels * 4; a.answers = (channels + 2 * P) * 4;
     a.palette = Math.ceil((channels + 3 * P) * 4 / 16) * 16;
@@ -58,7 +59,8 @@ export class CPUScene {
     this.palette = new Float32Array(memory.buffer, a.palette, (ZERO + 1) * 4);
     this.codes = new Uint16Array(memory.buffer, a.codes, parameters);
     this.image = new ImageData(new Uint8ClampedArray(memory.buffer, a.pixels, width * height * 4), width, height);
-    this.weights = null; this.shape = shape; this.pose = '';
+    if (changedLayout) this.weights = null;
+    this.shape = shape; this.pose = '';
   }
   private prepare(layout: TopologyLayout, weights: Weights, initial: Weights, mode: WeightMode) {
     if (this.weights === weights && this.initial === initial && this.mode === mode) return;
@@ -80,7 +82,7 @@ export class CPUScene {
     }
     this.palette.set([157 / 4096, 161 / 4096, 150 / 4096, 1 / 4096], ZERO * 4);
     this.weights = weights; this.initial = initial; this.mode = mode; this.pose = '';
-    this.pathBuilds++; this.buildMs = performance.now() - start;
+    this.classifications++; this.buildMs = performance.now() - start;
   }
   draw(ctx: Context, layout: TopologyLayout, weights: Weights, selected: number, view: NetworkView, focus = -1, options: DrawOptions = {}, scale = 1) {
     const start = performance.now(), width = Math.round(layout.width * scale), height = Math.round(layout.height * scale);
@@ -91,7 +93,7 @@ export class CPUScene {
       this.backgroundContext = this.background.getContext('2d', {willReadFrequently: true}) as Context | null;
       if (!this.backgroundContext) throw new Error('Canvas 2D is unavailable.');
     }
-    const pose = `${this.pathBuilds}:${width}:${height}:${view.zoom}:${view.x}:${view.y}`;
+    const pose = `${this.classifications}:${width}:${height}:${view.zoom}:${view.x}:${view.y}`;
     if (this.pose !== pose) {
       if (this.background.width !== width) this.background.width = width; if (this.background.height !== height) this.background.height = height;
       const x = (value: number) => ((value - layout.width / 2) * view.zoom + layout.width / 2 + view.x) * scale;

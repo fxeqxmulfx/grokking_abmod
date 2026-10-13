@@ -6,18 +6,29 @@
   (func $line (param $ax f32) (param $ay f32) (param $bx f32) (param $by f32)
     (param $color i32) (param $scratch i32) (param $width i32) (param $height i32)
     (local $y i32) (local $end i32) (local $left i32) (local $right i32)
-    (local $x f32) (local $step f32) (local $half f32) (local $row i32)
+    (local $x f32) (local $step f32) (local $half f32) (local $padding f32) (local $inside i32) (local $row i32)
     (if (f32.le (local.get $by) (local.get $ay)) (then (return)))
     (local.set $y (i32.trunc_f32_s (f32.max (f32.const 0) (f32.ceil (local.get $ay)))))
     (local.set $end (i32.trunc_f32_s (f32.min (f32.convert_i32_s (local.get $height)) (f32.ceil (local.get $by)))))
     (if (i32.ge_s (local.get $y) (local.get $end)) (then (return)))
     (local.set $step (f32.div (f32.sub (local.get $bx) (local.get $ax)) (f32.sub (local.get $by) (local.get $ay))))
     (local.set $half (f32.add (f32.mul (f32.abs (local.get $step)) (f32.const 0.5)) (f32.const 0.5)))
+    ;; Most fitted connections are entirely inside the viewport. Their spans
+    ;; need no per-row clamping; the padding covers fractional endpoint rows.
+    (local.set $padding (f32.add (f32.abs (local.get $step)) (f32.const 1)))
+    (local.set $inside (i32.and
+      (i32.and (f32.ge (local.get $ax) (local.get $padding)) (f32.ge (local.get $bx) (local.get $padding)))
+      (i32.and (f32.le (local.get $ax) (f32.sub (f32.convert_i32_s (local.get $width)) (local.get $padding)))
+        (f32.le (local.get $bx) (f32.sub (f32.convert_i32_s (local.get $width)) (local.get $padding))))))
     (local.set $x (f32.add (local.get $ax) (f32.mul (local.get $step) (f32.sub (f32.add (f32.convert_i32_s (local.get $y)) (f32.const 0.5)) (local.get $ay)))))
     (local.set $row (i32.add (local.get $scratch) (i32.mul (i32.mul (local.get $y) (i32.add (local.get $width) (i32.const 1))) (i32.const 16))))
     (loop $rows
-      (local.set $left (i32.trunc_f32_s (f32.max (f32.const 0) (f32.ceil (f32.sub (local.get $x) (local.get $half))))))
-      (local.set $right (i32.trunc_f32_s (f32.min (f32.convert_i32_s (i32.sub (local.get $width) (i32.const 1))) (f32.floor (f32.add (local.get $x) (local.get $half))))))
+      (if (local.get $inside) (then
+        (local.set $left (i32.trunc_f32_s (f32.ceil (f32.sub (local.get $x) (local.get $half)))))
+        (local.set $right (i32.trunc_f32_s (f32.floor (f32.add (local.get $x) (local.get $half))))))
+      (else
+        (local.set $left (i32.trunc_f32_s (f32.max (f32.const 0) (f32.ceil (f32.sub (local.get $x) (local.get $half))))))
+        (local.set $right (i32.trunc_f32_s (f32.min (f32.convert_i32_s (i32.sub (local.get $width) (i32.const 1))) (f32.floor (f32.add (local.get $x) (local.get $half))))))))
       (if (i32.le_s (local.get $left) (local.get $right)) (then
         (call $add (i32.add (local.get $row) (i32.mul (local.get $left) (i32.const 16))) (local.get $color))
         (call $subtract (i32.add (local.get $row) (i32.mul (i32.add (local.get $right) (i32.const 1)) (i32.const 16))) (local.get $color))))

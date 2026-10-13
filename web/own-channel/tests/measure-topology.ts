@@ -16,7 +16,7 @@ try {
   await evaluate(`document.getElementById('task-open').click();document.querySelector('[data-model-tab="dense-rotary-wide"]').click();document.querySelector('[data-view-tab="channels"]').click()`);
   await client.wait(`document.getElementById('status')?.textContent==='Ready'`); await paint();
   const initial = await evaluate(`document.getElementById('mesh-edges').toDataURL()`);
-  const builds = await evaluate(`document.getElementById('mesh-edges').dataset.pathBuilds`);
+  const builds = await evaluate(`document.getElementById('mesh-edges').dataset.classifications`);
   await evaluate(`document.getElementById('zoom-in').click();document.getElementById('zoom-in').click()`); await paint();
   const rect = await evaluate<{x: number; y: number}>(`(()=>{const r=document.getElementById('mesh').getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}})()`);
   await client.call('Input.dispatchMouseEvent', {type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', buttons: 1, clickCount: 1});
@@ -24,7 +24,7 @@ try {
   await client.call('Input.dispatchMouseEvent', {type: 'mouseReleased', x: rect.x + 60, y: rect.y, button: 'left', buttons: 0, clickCount: 1});
   await paint();
   if (initial === await evaluate(`document.getElementById('mesh-edges').toDataURL()`)) throw new Error('Pointer pan did not move the graph.');
-  if (builds !== await evaluate(`document.getElementById('mesh-edges').dataset.pathBuilds`)) throw new Error('Pan/zoom rebuilt unchanged paths.');
+  if (builds !== await evaluate(`document.getElementById('mesh-edges').dataset.classifications`)) throw new Error('Pan/zoom rebuilt unchanged classifications.');
   await evaluate(`document.getElementById('zoom-reset').click()`); await paint();
   if (initial !== await evaluate(`document.getElementById('mesh-edges').toDataURL()`)) throw new Error('Fit did not restore the graph.');
   const checks = await evaluate(`(async () => {
@@ -35,12 +35,12 @@ try {
       const ctx=canvas.getContext('2d',{willReadFrequently:true}),layout=topologyLayout(1250,520,width),weights=initialModelWeights(11,width===128?'dense-rotary':'dense-rotary-wide'),scene=await CPUScene.create(),view={zoom:1,x:0,y:0};
       const fresh=[],pan=[];let current=weights;
       for(let i=0;i<7;i++){current=weights.slice();const start=performance.now();scene.draw(ctx,layout,current,32,view,-1,{initial:weights});fresh.push(performance.now()-start)}
-      const pathBuilds=scene.pathBuilds;
+      const classifications=scene.classifications;
       for(let i=0;i<7;i++){const start=performance.now();scene.draw(ctx,layout,current,32,{zoom:1+i*.1,x:i,y:0},-1,{initial:weights});pan.push(performance.now()-start)}
-      if(scene.pathBuilds!==pathBuilds)throw new Error('Pan rebuilt the path cache');
+      if(scene.classifications!==classifications)throw new Error('Pan rebuilt the classification cache');
       scene.draw(ctx,layout,current,32,view,-1,{initial:weights});
       const backgrounds=scene.backgroundPaints,start=performance.now();scene.draw(ctx,layout,current,33,view,-1,{initial:weights,highlight:true});const highlightMs=performance.now()-start;
-      if(scene.backgroundPaints!==backgrounds||scene.pathBuilds!==pathBuilds)throw new Error('Highlight rebuilt the background');
+      if(scene.backgroundPaints!==backgrounds||scene.classifications!==classifications)throw new Error('Highlight rebuilt the background');
       const bandVisibility=()=>{const data=ctx.getImageData(0,0,1250,520).data;return layout.rows.slice(0,3).map((y,i)=>{let n=0;const row=Math.floor((y+layout.rows[i+1])/2);for(let x=0;x<1250;x++)if(data[(row*1250+x)*4+3]>0)n++;return n})};
       if(!bandVisibility().every(n=>n>1250/4))throw new Error('Raw graph omitted connections');
       scene.draw(ctx,layout,weights,32,view,-1,{initial:weights,mode:'delta'});
@@ -52,12 +52,12 @@ try {
       let fallback;await new Promise(resolve=>{fallback=new WeightTopology(fallbackCanvas,resolve)});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
       if(fallbackCanvas.dataset.thread!=='main'||Number(fallbackCanvas.dataset.connections)!==3*97*width+width*width)throw new Error('CPU fallback failed');fallback.destroy();
       const median=values=>values.slice(2).sort((a,b)=>a-b)[Math.floor((values.length-2)/2)];
-      results.push({width,connections:3*97*width+width*width,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,pathReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true});
+      results.push({width,connections:3*97*width+width*width,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,classificationReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true});
     }
     return{viewport:[1250,520],renderer:'CPU Canvas 2D',results};
   })()`);
   if (client.errors.length) throw new Error(JSON.stringify(client.errors));
   await writeFile('/tmp/grokking-cpu-topology.json', JSON.stringify(checks, null, 2) + '\n');
   console.log(JSON.stringify(checks));
-  console.log('PASS: all connections, raw/change, software fallback, cached paths/background, real pointer pan and Fit.');
+  console.log('PASS: all connections, raw/change, software fallback, cached classifications/background, real pointer pan and Fit.');
 } finally {client.close();}

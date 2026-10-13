@@ -1,0 +1,28 @@
+Initial page: {"status":"Ready","error":"","device":"CPU · WASM SIMD128 · 4 threads"}
+Layout fits: 1366 × 768 narrow
+Layout fits: 1280 × 720 narrow
+Layout fits: 1024 × 768 narrow
+Layout fits: 1920 × 1080 narrow
+Layout fits: 1366 × 768 narrow
+Layout fits: 390 × 844 narrow weights
+Layout fits: 390 × 844 narrow channels
+Layout fits: 390 × 844 narrow training
+Layout fits: 1366 × 768 wide training
+Layout fits: 1366 × 768 wide weights
+Layout fits: 1366 × 768 wide channels
+Layout fits: 390 × 844 wide training
+Layout fits: 390 × 844 wide weights
+Layout fits: 390 × 844 wide channels
+Layout fits: 320 × 568 wide training
+Layout fits: 320 × 568 wide weights
+Layout fits: 320 × 568 wide channels
+Layout fits: 768 × 1024 wide training
+Layout fits: 768 × 1024 wide weights
+Layout fits: 768 × 1024 wide channels
+Layout fits: 1366 × 600 wide training
+Layout fits: 1366 × 600 wide weights
+Layout fits: 1366 × 600 wide channels
+Layout fits: 844 × 390 wide training
+Layout fits: 844 × 390 wide weights
+Layout fits: 844 × 390 wide channels
+PASS: both widths and all three views fit, CPU/WASM training with GPU APIs forbidden, off-thread software drawing of all connections including three E roles, fixed-scale live weights and changes, highlighting, zoom, inspection, live atlases, pause/reset, independent states and model information.

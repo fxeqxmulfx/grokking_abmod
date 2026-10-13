@@ -23,7 +23,7 @@ export declare function topologyLayout(width: number, height: number, channels: 
 export declare class CPUScene {
     readonly exports: RasterExports;
     static create(scalar?: boolean, bytes?: Uint8Array<ArrayBuffer>): Promise<CPUScene>;
-    pathBuilds: number;
+    classifications: number;
     backgroundPaints: number;
     buildMs: number;
     drawMs: number;

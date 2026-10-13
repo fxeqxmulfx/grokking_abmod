@@ -23,7 +23,7 @@ export type TopologyRequest = {
 export type TopologyResponse = {
     type: 'paint';
     job: number;
-    pathBuilds: number;
+    classifications: number;
     backgroundPaints: number;
     buildMs: number;
     drawMs: number;

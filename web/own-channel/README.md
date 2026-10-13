@@ -184,15 +184,47 @@ Without `--apply`, the loop writes reports and winner binaries only. A round
 with no confirmed gain stops the search early. Keep other training and rendering
 idle during measurements; repeat on the target device before comparing results.
 
+## CPU measurements (2026-10-14)
+
+Node v24.21.0 on a Ryzen 5 5600H. All engines were measured sequentially,
+with warmup and median timings. The two-pass search evaluated 52 numerically
+identical candidates and confirmed improvements for narrow SIMD and wide scalar.
+
+| Width / variant | Original 1 thread: train / evaluate ms | Final 1 thread: train / evaluate ms | Final 4 threads: train / evaluate ms | Estimated epoch gain, 4 threads |
+| --- | ---: | ---: | ---: | ---: |
+| 128 / simd | 7.2 / 44.5 | 5.8 / 22.6 | 1.7 / 6.0 | 4.97× |
+| 128 / scalar | 23.7 / 123.1 | 20.8 / 64.9 | 6.2 / 18.4 | 4.48× |
+| 1024 / simd | 252.0 / 1233.3 | 229.9 / 1011.0 | 123.0 / 257.7 | 2.52× |
+| 1024 / scalar | 936.4 / 4290.2 | 806.0 / 2530.2 | 230.7 / 673.4 | 4.58× |
+
+Training timings cover one batch of 512, evaluation all 9,312 equations.
+Epoch estimates use ten full batches plus evaluation, slightly overestimating
+the actual 48-row final batch. Floating-point gradient regrouping changes
+parallel checkpoint hashes; single-thread checkpoints remain identical.
+The four-thread wide engine uses 34.1 MiB of shared WASM memory.
+
+Complete software graph drawing at 1250×520 takes about 41 ms for W128 and
+642 ms for W1024, including weight classification and rasterization.
+Highlighting a cached graph takes about 1–2 ms. Dense drawing runs in its own
+worker and coalesces newer requests; the main-thread fallback remains available.
+These full raster timings include work that older Canvas submission timings
+did not wait for, so those historical numbers are not directly comparable.
+
+[Raw timings, search results and validation logs](tests/results/cpu-optimization-2026-10-14/)
+include the original baseline, all 12 final engine combinations and source hashes.
+
 ## Validation and observed convergence
 
-The TypeScript build and 41 Node tests pass: deterministic data and sampling,
+The TypeScript build and 45 Node tests pass: deterministic data and sampling,
 strict grokking classification, native checkpoint hashes, scalar/SIMD logits,
 all parameter gradients, shared E accumulation, finite differences and AdamW.
 Two- and four-thread variants also pass gradient, AdamW and complete-split
 evaluation checks for both widths and batch sizes including 1, 48 and 512.
 Scalar/SIMD raster tests verify actual pixels for all three E roles, Rotate90
 signs, Dense connections, zero changes and offscreen clipping.
+The original five-update single-thread CPU checkpoint, all gradients and probe
+logits remain bit-for-bit identical; their pre-optimization hashes are checked
+for every width and CPU variant.
 The real UI trains both widths with GPU APIs forbidden,
 pauses/resets, restores independent states, updates weights, and fits all three
 views. Localization checks pass 216 desktop/mobile dialog and workspace layouts.

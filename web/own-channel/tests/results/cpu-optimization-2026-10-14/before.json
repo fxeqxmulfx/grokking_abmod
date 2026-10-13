@@ -1,0 +1,112 @@
+{
+  "node": "v24.21.0",
+  "cpu": "AMD Ryzen 5 5600H",
+  "seed": 11,
+  "note": "Pre-optimization classic CPU kernels; two warm updates, three timed batch-512 updates, three full-split evaluations. Engines measured sequentially. The fixture stores binary and checkpoint hashes.",
+  "results": [
+    {
+      "model": "dense-rotary",
+      "variant": "simd",
+      "batch": 512,
+      "trainMilliseconds": [
+        7.417796999999993,
+        7.176174000000003,
+        7.224533999999991
+      ],
+      "evaluateMilliseconds": [
+        44.551176999999996,
+        44.495102,
+        43.719295999999986
+      ],
+      "trainMedian": 7.224533999999991,
+      "evaluateMedian": 44.495102,
+      "metrics": {
+        "step": 5,
+        "epoch": 0.5,
+        "trainLoss": 5.044426441192627,
+        "trainAccuracy": 0.012457044795155525,
+        "heldoutLoss": 5.061202526092529,
+        "heldoutAccuracy": 0.009450172074139118
+      },
+      "memoryBytes": 720896
+    },
+    {
+      "model": "dense-rotary",
+      "variant": "scalar",
+      "batch": 512,
+      "trainMilliseconds": [
+        23.73888199999999,
+        23.25286,
+        24.02517899999998
+      ],
+      "evaluateMilliseconds": [
+        122.28508099999999,
+        123.12696200000005,
+        123.38563699999997
+      ],
+      "trainMedian": 23.73888199999999,
+      "evaluateMedian": 123.12696200000005,
+      "metrics": {
+        "step": 5,
+        "epoch": 0.5,
+        "trainLoss": 5.044426441192627,
+        "trainAccuracy": 0.012457044795155525,
+        "heldoutLoss": 5.061202526092529,
+        "heldoutAccuracy": 0.009450172074139118
+      },
+      "memoryBytes": 720896
+    },
+    {
+      "model": "dense-rotary-wide",
+      "variant": "simd",
+      "batch": 512,
+      "trainMilliseconds": [
+        253.99424099999987,
+        250.38448399999993,
+        251.97367700000018
+      ],
+      "evaluateMilliseconds": [
+        1233.3232070000004,
+        1232.9290699999997,
+        1237.3855460000004
+      ],
+      "trainMedian": 251.97367700000018,
+      "evaluateMedian": 1233.3232070000004,
+      "metrics": {
+        "step": 5,
+        "epoch": 0.5,
+        "trainLoss": 4.806385040283203,
+        "trainAccuracy": 0.048324741423130035,
+        "heldoutLoss": 5.006849765777588,
+        "heldoutAccuracy": 0.018685566261410713
+      },
+      "memoryBytes": 19333120
+    },
+    {
+      "model": "dense-rotary-wide",
+      "variant": "scalar",
+      "batch": 512,
+      "trainMilliseconds": [
+        936.4396939999997,
+        960.2440200000001,
+        928.513164
+      ],
+      "evaluateMilliseconds": [
+        4310.689720999999,
+        4290.151015000001,
+        4284.946341999999
+      ],
+      "trainMedian": 936.4396939999997,
+      "evaluateMedian": 4290.151015000001,
+      "metrics": {
+        "step": 5,
+        "epoch": 0.5,
+        "trainLoss": 4.806385040283203,
+        "trainAccuracy": 0.048324741423130035,
+        "heldoutLoss": 5.006849765777588,
+        "heldoutAccuracy": 0.018685566261410713
+      },
+      "memoryBytes": 19333120
+    }
+  ]
+}

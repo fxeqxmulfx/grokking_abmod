@@ -257,5 +257,7 @@ declare const _default: {
     "Scalar · 1 thread": string;
     "Scalar · 2 threads": string;
     "Scalar · 4 threads": string;
+    "Shared memory is unavailable; using one CPU thread.": string;
+    "Parallel WASM could not start; using one CPU thread. {error}": string;
 };
 export default _default;

@@ -257,5 +257,7 @@ export default {
   "SIMD · 4 threads": "SIMD · 4 потока",
   "Scalar · 1 thread": "Скалярный · 1 поток",
   "Scalar · 2 threads": "Скалярный · 2 потока",
-  "Scalar · 4 threads": "Скалярный · 4 потока"
+  "Scalar · 4 threads": "Скалярный · 4 потока",
+  "Shared memory is unavailable; using one CPU thread.": "Общая память недоступна; используется один поток CPU.",
+  "Parallel WASM could not start; using one CPU thread. {error}": "Параллельный WASM не запустился; используется один поток CPU. {error}"
 };

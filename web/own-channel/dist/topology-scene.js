@@ -26,7 +26,7 @@ export class CPUScene {
         const { instance } = await WebAssembly.instantiate(source);
         return new CPUScene(instance.exports);
     }
-    pathBuilds = 0;
+    classifications = 0;
     backgroundPaints = 0;
     buildMs = 0;
     drawMs = 0;
@@ -49,6 +49,7 @@ export class CPUScene {
         const shape = `${width}:${height}:${channels}:${parameters}`;
         if (this.shape === shape)
             return;
+        const changedLayout = this.codes.length !== parameters || this.coordinates.length !== channels + 3 * P;
         const a = this.addresses;
         a.columns = 0;
         a.residues = channels * 4;
@@ -64,7 +65,8 @@ export class CPUScene {
         this.palette = new Float32Array(memory.buffer, a.palette, (ZERO + 1) * 4);
         this.codes = new Uint16Array(memory.buffer, a.codes, parameters);
         this.image = new ImageData(new Uint8ClampedArray(memory.buffer, a.pixels, width * height * 4), width, height);
-        this.weights = null;
+        if (changedLayout)
+            this.weights = null;
         this.shape = shape;
         this.pose = '';
     }
@@ -95,7 +97,7 @@ export class CPUScene {
         this.initial = initial;
         this.mode = mode;
         this.pose = '';
-        this.pathBuilds++;
+        this.classifications++;
         this.buildMs = performance.now() - start;
     }
     draw(ctx, layout, weights, selected, view, focus = -1, options = {}, scale = 1) {
@@ -108,7 +110,7 @@ export class CPUScene {
             if (!this.backgroundContext)
                 throw new Error('Canvas 2D is unavailable.');
         }
-        const pose = `${this.pathBuilds}:${width}:${height}:${view.zoom}:${view.x}:${view.y}`;
+        const pose = `${this.classifications}:${width}:${height}:${view.zoom}:${view.x}:${view.y}`;
         if (this.pose !== pose) {
             if (this.background.width !== width)
                 this.background.width = width;

@@ -2016,4 +2016,20 @@ export const rows: readonly (readonly string[])[] = [
   ["Scalar · 1 thread","Escalar · 1 hilo","Skalar · 1 Thread","スカラー・1スレッド","Scalaire · 1 thread","Скалярный · 1 поток"],
   ["Scalar · 2 threads","Escalar · 2 hilos","Skalar · 2 Threads","スカラー・2スレッド","Scalaire · 2 threads","Скалярный · 2 потока"],
   ["Scalar · 4 threads","Escalar · 4 hilos","Skalar · 4 Threads","スカラー・4スレッド","Scalaire · 4 threads","Скалярный · 4 потока"],
+  [
+    "Shared memory is unavailable; using one CPU thread.",
+    "La memoria compartida no está disponible; se usa un hilo de CPU.",
+    "Gemeinsamer Speicher ist nicht verfügbar; ein CPU-Thread wird verwendet.",
+    "共有メモリーを利用できないため、CPUスレッドを1つ使います。",
+    "La mémoire partagée est indisponible ; un seul thread CPU est utilisé.",
+    "Общая память недоступна; используется один поток CPU."
+  ],
+  [
+    "Parallel WASM could not start; using one CPU thread. {error}",
+    "No se pudo iniciar WASM paralelo; se usa un hilo de CPU. {error}",
+    "Paralleles WASM konnte nicht starten; ein CPU-Thread wird verwendet. {error}",
+    "並列WASMを起動できないため、CPUスレッドを1つ使います。{error}",
+    "Le WASM parallèle n’a pas pu démarrer ; un seul thread CPU est utilisé. {error}",
+    "Параллельный WASM не запустился; используется один поток CPU. {error}"
+  ],
 ];

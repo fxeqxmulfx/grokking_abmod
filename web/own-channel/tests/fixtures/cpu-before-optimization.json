@@ -1,0 +1,41 @@
+{
+  "seed": 11,
+  "steps": 5,
+  "batch": 512,
+  "sampling": "Repeat the first seed-11 minibatch for every update.",
+  "source": "Original single-thread CPU binaries measured before the 2026-10-14 optimization; normal-width E, Kaiming-normal A, pre-RMSNorm, tied readout and AdamW.",
+  "models": [
+    {
+      "model": "dense-rotary",
+      "variant": "simd",
+      "wasm": "99d52d49c64e685fb12f39c07cd8c99baca6722049b931a0dcb51c85ab25ad48",
+      "weights": "8aaf3ee3da0405544eba46bbe2fdb5c2eb32f977a9a1c1e4d3ec6f771acfeb05",
+      "gradients": "0d703180b604279342ef4231067fdd560ced7e536a2aa84bee5c827d2981e19f",
+      "logits": "2e9810189ea18e65d47dfd55c3003a09906e1d8444e998398723202b684acf9e"
+    },
+    {
+      "model": "dense-rotary",
+      "variant": "scalar",
+      "wasm": "07c65cb3caa1c6b6edd87c53bc3c6359b6d5bedd613e72afc29d451606da7f16",
+      "weights": "d8c7019fc2525088e8fcdee838bdda30192e03e82f8d27116c8b278dc8a87de2",
+      "gradients": "ada8e773ae98be49b84ab0b1ed265d8fb8f4debec29e89567cfe89cff9d37f10",
+      "logits": "4a938375711f959a91892b821a4952e3550680d2b715912fff38b887f503fe95"
+    },
+    {
+      "model": "dense-rotary-wide",
+      "variant": "simd",
+      "wasm": "893b3034f34ce080ec07bf26eb8c52926b9e06affcc9bbce9b96e5032fe43c8b",
+      "weights": "fff85acb5b2a5ff25c6264543c307b8610850106451d1988007fd371bff98ac0",
+      "gradients": "36a6acd771da75cb17b185c39b44bc9b6debae4b51f610602d424a4ba28b567b",
+      "logits": "a79b45d128bb64f25dd25f50515f2feb13b0d36cc4cc40c0061bdee2fcb5eba2"
+    },
+    {
+      "model": "dense-rotary-wide",
+      "variant": "scalar",
+      "wasm": "452f5e0f9426a034653ab5474266f8a6605a7a9641cb38585344c09edd321331",
+      "weights": "8e10cecf8706b59bdb3885748492f08e410798de4902b64bc1d32e8fee2d3ebc",
+      "gradients": "b0a86a6d3c1ddb836cc6b93c37b0a3886209e22b3a3e8f0e9f78b5f80eaf5c04",
+      "logits": "afd86cdc68dfcb0747b016d2e3458d6cf71ce2a63f6ae5ad761ddd0d0f1417dd"
+    }
+  ]
+}

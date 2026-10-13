@@ -1,0 +1,2 @@
+{"selection":{"frames":3,"clears":{"input-a":1,"input-b":1,"readout":1},"rasters":0,"snapshots":[]},"training":{"frames":8,"clears":{"input-a":2,"input-b":2,"readout":2},"rasters":6,"snapshots":[120,200]}}
+PASS: idle, hover, selection, snapshot cadence, complete epoch history, unchanged-weight deduplication and status-only updates.

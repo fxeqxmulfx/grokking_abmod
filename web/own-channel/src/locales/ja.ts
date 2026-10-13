@@ -257,5 +257,7 @@ export default {
   "SIMD · 4 threads": "SIMD・4スレッド",
   "Scalar · 1 thread": "スカラー・1スレッド",
   "Scalar · 2 threads": "スカラー・2スレッド",
-  "Scalar · 4 threads": "スカラー・4スレッド"
+  "Scalar · 4 threads": "スカラー・4スレッド",
+  "Shared memory is unavailable; using one CPU thread.": "共有メモリーを利用できないため、CPUスレッドを1つ使います。",
+  "Parallel WASM could not start; using one CPU thread. {error}": "並列WASMを起動できないため、CPUスレッドを1つ使います。{error}"
 };

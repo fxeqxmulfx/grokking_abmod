@@ -1,0 +1,55 @@
+{
+  "node": "v24.21.0",
+  "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+  "epochEstimate": "10 full batch-512 updates plus one full-split evaluation; the real epoch has a 48-row tail, so this is an approximate comparison.",
+  "results": [
+    {
+      "width": 128,
+      "variant": "simd",
+      "originalTrainMs": 7.224533999999991,
+      "originalEvaluateMs": 44.495102,
+      "finalOneThreadTrainMs": 5.797153999999992,
+      "finalOneThreadEvaluateMs": 22.561569000000006,
+      "finalFourThreadTrainMs": 1.7442080000000146,
+      "finalFourThreadEvaluateMs": 6.0475889999999595,
+      "oneThreadEpochEstimateGain": 1.4495956191136248,
+      "fourThreadEpochEstimateGain": 4.969863219443381
+    },
+    {
+      "width": 128,
+      "variant": "scalar",
+      "originalTrainMs": 23.73888199999999,
+      "originalEvaluateMs": 123.12696200000005,
+      "finalOneThreadTrainMs": 20.780912000000058,
+      "finalOneThreadEvaluateMs": 64.86319600000002,
+      "finalFourThreadTrainMs": 6.213764999999967,
+      "finalFourThreadEvaluateMs": 18.374909000000116,
+      "oneThreadEpochEstimateGain": 1.3221576260055647,
+      "fourThreadEpochEstimateGain": 4.4777583333303435
+    },
+    {
+      "width": 1024,
+      "variant": "simd",
+      "originalTrainMs": 251.97367700000018,
+      "originalEvaluateMs": 1233.3232070000004,
+      "finalOneThreadTrainMs": 229.87161200000037,
+      "finalOneThreadEvaluateMs": 1010.9722189999993,
+      "finalFourThreadTrainMs": 122.95123299999977,
+      "finalFourThreadEvaluateMs": 257.7230559999989,
+      "oneThreadEpochEstimateGain": 1.1339617488376446,
+      "fourThreadEpochEstimateGain": 2.52351444319387
+    },
+    {
+      "width": 1024,
+      "variant": "scalar",
+      "originalTrainMs": 936.4396939999997,
+      "originalEvaluateMs": 4290.151015000001,
+      "finalOneThreadTrainMs": 805.9839569999967,
+      "finalOneThreadEvaluateMs": 2530.213861,
+      "finalFourThreadTrainMs": 230.74050500000158,
+      "finalFourThreadEvaluateMs": 673.3977669999949,
+      "oneThreadEpochEstimateGain": 1.2893747934292212,
+      "fourThreadEpochEstimateGain": 4.580828989132007
+    }
+  ]
+}

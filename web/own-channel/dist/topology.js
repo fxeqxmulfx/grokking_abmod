@@ -27,7 +27,7 @@ export class WeightTopology {
                     }
                     const dataset = this.element.dataset;
                     dataset.frame = String(data.job);
-                    dataset.pathBuilds = String(data.pathBuilds);
+                    dataset.classifications = String(data.classifications);
                     dataset.backgroundPaints = String(data.backgroundPaints);
                     dataset.buildMs = String(data.buildMs);
                     dataset.drawMs = String(data.drawMs);
@@ -118,7 +118,7 @@ export class WeightTopology {
                 this.element.height = height;
             this.scene.draw(this.ctx, layout, weights, selected, view, focus, options, scale);
             dataset.frame = String(job);
-            dataset.pathBuilds = String(this.scene.pathBuilds);
+            dataset.classifications = String(this.scene.classifications);
             dataset.backgroundPaints = String(this.scene.backgroundPaints);
             dataset.buildMs = String(this.scene.buildMs);
             dataset.drawMs = String(this.scene.drawMs);
