@@ -17,7 +17,8 @@
     "test:browser": "node build/tests/browser.js",
     "test:rendering": "node build/tests/rendering.js",
     "test:i18n": "node build/tests/i18n-browser.js",
-    "bench:cpu": "node build/scripts/measure-cpu.js"
+    "bench:cpu": "node build/scripts/measure-cpu.js",
+    "optimize:cpu": "node build/scripts/optimize-cpu.js"
   },
   "devDependencies": {
     "@mermaid-js/tiny": "12.1.0",

@@ -161,6 +161,29 @@ a single thread. Shared memory requires cross-origin isolation; the local
 server supplies COOP/COEP headers. Without that capability the app uses one
 thread. SIMD support is detected automatically, with scalar fallback.
 
+## CPU optimization loop
+
+After building, run a bounded search with exact output checks and repeated
+timings. It tests input blocks, register tiles, vector unrolling and row-based
+matrix multiplication separately for each width and CPU variant:
+
+```sh
+npm run optimize:cpu -- --rounds 2 --apply --output /tmp/grokking-cpu-optimization
+npm test
+npm run bench:cpu -- /tmp/grokking-cpu-benchmark
+```
+
+Candidates are assembled in memory and leave the live site assets untouched.
+Each candidate must match every gradient for batches 1/37/48/512, the checkpoint
+after five updates, probe logits and complete-split metrics byte-for-byte.
+Promotion requires a confirmed 3% epoch-time gain without a training or
+evaluation regression beyond the 3% timing allowance. `--apply` saves confirmed
+choices in `scripts/cpu-config.ts`; rebuild and validate before using them.
+Reports include all rejected trials, binary/source hashes and raw timings.
+Without `--apply`, the loop writes reports and winner binaries only. A round
+with no confirmed gain stops the search early. Keep other training and rendering
+idle during measurements; repeat on the target device before comparing results.
+
 ## Validation and observed convergence
 
 The TypeScript build and 41 Node tests pass: deterministic data and sampling,
