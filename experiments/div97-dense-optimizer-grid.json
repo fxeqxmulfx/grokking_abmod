@@ -1,14 +1,47 @@
 {
-  "widths": [16, 32, 128, 1024],
-  "learningRates": [0.0003, 0.001, 0.003],
-  "weightDecays": [0, 0.01, 0.1, 1],
+  "widths": [
+    16,
+    32,
+    128,
+    1024
+  ],
+  "learningRates": [
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1
+  ],
+  "weightDecays": [
+    0,
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1
+  ],
   "screenSeed": 11,
-  "confirmationSeeds": [11, 17, 23],
+  "confirmationSeeds": [
+    11,
+    17,
+    23
+  ],
   "screenEpochs": 2000,
   "wideScreenEpochs": 1000,
   "confirmationEpochs": 10000,
   "finalistsPerWidth": 2,
-  "selection": "most successful confirmation seeds, then fewest median epochs to 99%",
-  "baseline": {"learningRate": 0.001, "weightDecay": 0.1},
-  "fixed": {"beta1": 0.9, "beta2": 0.98, "epsilon": 1e-8, "batch": 512, "warmupUpdates": 10}
+  "selection": "most successful seeds, then fewest maximum epochs to 99% over seeds 11, 17, 23; median breaks ties",
+  "baseline": {
+    "learningRate": 0.001,
+    "weightDecay": 0.1
+  },
+  "fixed": {
+    "beta1": 0.9,
+    "beta2": 0.98,
+    "epsilon": 1e-8,
+    "batch": 512,
+    "warmupUpdates": 10
+  },
+  "screenRacing": true,
+  "worstSeedSelection": true
 }
