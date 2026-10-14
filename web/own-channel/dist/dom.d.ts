@@ -6,6 +6,7 @@ declare const tags: {
     readonly "task-help": "button";
     readonly about: "button";
     readonly "curve-title": "h2";
+    readonly "chart-help": "button";
     readonly "loss-tab": "button";
     readonly "accuracy-tab": "button";
     readonly "axis-note": "span";
@@ -79,6 +80,8 @@ declare const tags: {
     readonly "task-language": "select";
     readonly "close-task": "button";
     readonly "task-tab-task": "button";
+    readonly "task-tab-intro": "button";
+    readonly "task-page-intro": "section";
     readonly "task-tab-solution": "button";
     readonly "task-tab-examples": "button";
     readonly "task-tab-model": "button";

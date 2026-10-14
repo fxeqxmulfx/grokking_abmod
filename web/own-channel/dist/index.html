@@ -20,7 +20,7 @@
     <div class="dashboard">
       <div class="visuals">
         <section class="card chart-card" aria-labelledby="curve-title">
-          <div class="card-heading"><h2 id="curve-title">Learning curves</h2><div class="tabs" aria-label="Chart metric"><button id="loss-tab" class="active" aria-pressed="true">Loss</button><button id="accuracy-tab" aria-pressed="false">Accuracy</button></div></div>
+          <div class="card-heading"><h2 id="curve-title">Learning curves</h2><button id="chart-help" class="chart-help" aria-label="Explain curves and plateau shading" title="Explain curves and plateau shading">?</button><div class="tabs" aria-label="Chart metric"><button id="loss-tab" class="active" aria-pressed="true">Loss</button><button id="accuracy-tab" aria-pressed="false">Accuracy</button></div></div>
           <div class="chart-legend"><span><i class="dot orange"></i>Training</span><span><i class="dot blue"></i>Held-out</span><span id="axis-note">Cross-entropy · logarithmic scale</span></div>
           <canvas id="curve" role="img" aria-label="Live training and held-out learning curves"></canvas>
           <div class="chart-foot"><span id="cadence">Evaluated every epoch</span><span id="observations">0 observations</span></div>
@@ -66,9 +66,32 @@
   <footer><span>Local training · data stays on your device</span><a href="https://writings.stephenwolfram.com/2024/08/whats-really-going-on-in-machine-learning-some-minimal-models/" target="_blank" rel="noreferrer">Wolfram, 2024 ↗</a></footer>
   <dialog id="task-dialog" class="task-dialog" aria-labelledby="task-title">
     <div class="task-heading"><h2 id="task-title">Division modulo 97</h2><div class="task-actions"><select id="task-language" data-language-select aria-label="Language"></select><button id="close-task" aria-label="Close"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3 13 13M13 3 3 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div></div>
-    <nav class="task-tabs" role="tablist" aria-label="Task and solution"><button id="task-tab-task" role="tab" aria-controls="task-page-task" data-task-tab="task" class="active" aria-selected="true">Task</button><button id="task-tab-solution" role="tab" aria-controls="task-page-solution" data-task-tab="solution" aria-selected="false">Solution</button><button id="task-tab-examples" role="tab" aria-controls="task-page-examples" data-task-tab="examples" aria-selected="false">Examples</button><button id="task-tab-model" role="tab" aria-controls="task-page-model" data-task-tab="model" aria-selected="false">Model</button></nav>
+    <nav class="task-tabs" role="tablist" aria-label="Task and solution"><button id="task-tab-intro" role="tab" aria-controls="task-page-intro" data-task-tab="intro" class="active" aria-selected="true">Start</button><button id="task-tab-task" role="tab" aria-controls="task-page-task" data-task-tab="task" aria-selected="false">Task</button><button id="task-tab-solution" role="tab" aria-controls="task-page-solution" data-task-tab="solution" aria-selected="false">Solution</button><button id="task-tab-examples" role="tab" aria-controls="task-page-examples" data-task-tab="examples" aria-selected="false">Examples</button><button id="task-tab-model" role="tab" aria-controls="task-page-model" data-task-tab="model" aria-selected="false">Model</button></nav>
     <div class="task-pages">
-      <section id="task-page-task" class="task-page task-definition" role="tabpanel" aria-labelledby="task-tab-task">
+      <section id="task-page-intro" class="task-page task-intro" role="tabpanel" aria-labelledby="task-tab-intro">
+        <nav class="tabs intro-tabs" role="tablist" aria-label="Introduction pages"><button id="intro-tab-why" role="tab" aria-controls="intro-page-why" data-intro-tab="why" aria-selected="true" class="active">Idea</button><button id="intro-tab-epoch" role="tab" aria-controls="intro-page-epoch" data-intro-tab="epoch" aria-selected="false">Epochs</button><button id="intro-tab-paper" role="tab" aria-controls="intro-page-paper" data-intro-tab="paper" aria-selected="false">Paper</button><button id="intro-tab-chart" role="tab" aria-controls="intro-page-chart" data-intro-tab="chart" aria-selected="false">Chart</button><button id="intro-tab-grokking" role="tab" aria-controls="intro-page-grokking" data-intro-tab="grokking" aria-selected="false">Grokking</button></nav>
+        <div class="intro-panels">
+          <section id="intro-page-why" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-why">
+            <div><h3>Learning after memorization</h3><p>If you learned to stop within 100 epochs, this experiment invites you to look further. A fixed epoch count is a budget, not a universal stopping rule.</p><p>A network can memorize the training examples while failing on unseen pairs, then generalize much later. That late improvement is called grokking. Width, optimizer and seed influence whether it happens.</p></div>
+          </section>
+          <section id="intro-page-paper" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-paper" hidden>
+            <div><h3>The 2022 paper</h3><p>The paper used small Transformers. In its division-modulo-97 example, training accuracy was nearly perfect before 1,000 optimizer steps; validation approached that level near 1,000,000 steps.</p><a href="https://arxiv.org/abs/2201.02177" target="_blank" rel="noreferrer">Grokking: original paper ↗</a></div>
+            <aside class="intro-paper"><p>This lab uses a Dense model for the same arithmetic task. The paper reports optimizer steps; this lab counts complete epochs.</p></aside>
+          </section>
+          <section id="intro-page-epoch" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-epoch" hidden>
+            <div><h3>What is an epoch?</h3><p>One epoch uses all 4,656 training equations once, in shuffled order.</p><p>One optimizer step updates weights from one batch. Each epoch contains ten steps.</p><p>Test pairs are evaluated after every epoch and never update weights.</p></div>
+            <aside class="intro-epoch"><code>9 × 512 + 48 = 4,656</code><p>10 AdamW updates per epoch</p><p class="helper">Loss measures prediction error; lower is better. Accuracy is the fraction of correct answers; higher is better.</p></aside>
+          </section>
+          <section id="intro-page-chart" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-chart" hidden>
+            <div><h3>Reading the learning curves</h3><p>Orange is training; blue is held-out test data. Compare the curves to see whether the model learns unseen pairs.</p><p class="shading-line"><i class="plateau-key" aria-hidden="true"></i><span>Beige marks the longest continuous interval with train ≥99% and test ≤10%, before the first test ≥90% crossing.</span></p><p class="shading-line"><i class="perfect-key" aria-hidden="true"></i><span>Violet marks the same conditions with exactly 100% train accuracy.</span></p></div>
+            <aside class="intro-paper"><p>Shading describes accuracy conditions, even on the loss view. It does not mean the loss or weights stopped changing.</p></aside>
+          </section>
+          <section id="intro-page-grokking" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-grokking" hidden>
+            <div><h3>When does it count as grokking?</h3><p>A shaded interval shows memorization with poor generalization. It does not by itself establish a later jump.</p><p>This lab requires at least 25 plateau epochs, test ≤10% → ≥90% within 250 epochs, and a later test ≥99% result. These are this lab's thresholds, not a definition imposed by the paper.</p></div>
+          </section>
+        </div>
+      </section>
+      <section id="task-page-task" class="task-page task-definition" role="tabpanel" aria-labelledby="task-tab-task" hidden>
         <div class="task-copy">
           <p class="task-domain"><code>a ∈ {0,…,96}</code><code>b ∈ {1,…,96}</code></p>
           <p>Find the unique q ∈ {0,…,96} whose product bq leaves remainder a when divided by 97.</p>

@@ -1,6 +1,133 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  ["Start", "Inicio", "Start", "導入", "Début", "Начало"],
+  ["Idea", "Idea", "Idee", "狙い", "Idée", "Идея"],
+  ["Epochs", "Épocas", "Epochen", "エポック", "Époques", "Эпохи"],
+  ["Paper", "Artículo", "Artikel", "論文", "Article", "Статья"],
+  ["Chart", "Gráfico", "Kurven", "グラフ", "Courbes", "График"],
+  ["Grokking", "Grokking", "Grokking", "Grokking", "Grokking", "Grokking"],
+  ["Introduction pages", "Páginas de introducción", "Einführungsseiten", "導入ページ", "Pages d’introduction", "Страницы вступления"],
+  ["Explain curves and plateau shading", "Explicar las curvas y las zonas de meseta", "Kurven und Plateauflächen erklären", "曲線と停滞期の色分けを説明", "Expliquer les courbes et les plateaux", "Объяснение кривых и выделенных плато"],
+  ["Learning after memorization", "Aprender después de memorizar", "Lernen nach dem Auswendiglernen", "暗記した後の学習", "Apprendre après avoir mémorisé", "Обучение после запоминания"],
+  [
+    "If you learned to stop within 100 epochs, this experiment invites you to look further. A fixed epoch count is a budget, not a universal stopping rule.",
+    "Si aprendiste a detenerte antes de 100 épocas, este experimento invita a mirar más allá. Un número fijo de épocas es un presupuesto, no una regla universal de parada.",
+    "Wenn du gelernt hast, innerhalb von 100 Epochen zu stoppen, lohnt hier ein längerer Blick. Eine feste Epochenzahl ist ein Budget, keine allgemeine Stoppregel.",
+    "100エポック以内で止めると習ったなら、この実験ではその先を見てください。固定したエポック数は学習予算であり、普遍的な停止基準ではありません。",
+    "Si vous avez appris à arrêter avant 100 époques, cette expérience invite à regarder plus loin. Un nombre fixe d’époques est un budget, pas une règle universelle d’arrêt.",
+    "Если вас учили останавливаться до 100 эпох, этот эксперимент предлагает посмотреть дальше. Фиксированное число эпох — бюджет обучения, а не универсальное правило остановки."
+  ],
+  [
+    "A network can memorize the training examples while failing on unseen pairs, then generalize much later. That late improvement is called grokking. Width, optimizer and seed influence whether it happens.",
+    "Una red puede memorizar el entrenamiento y fallar en pares nuevos, y generalizar mucho después. Esta mejora tardía se llama grokking. La anchura, el optimizador y la semilla influyen en si ocurre.",
+    "Ein Netz kann Trainingsbeispiele auswendig lernen, neue Paare falsch lösen und viel später verallgemeinern. Diese späte Verbesserung heißt Grokking. Breite, Optimierer und Seed beeinflussen, ob sie auftritt.",
+    "学習例を暗記しても、未知の組では間違い続け、ずっと後に汎化する場合があります。この遅い改善をgrokkingと呼びます。幅、最適化手法、シードが発生に影響します。",
+    "Un réseau peut mémoriser l’entraînement, échouer sur des paires nouvelles, puis généraliser bien plus tard. Cette amélioration tardive s’appelle grokking. Largeur, optimiseur et graine influencent son apparition.",
+    "Сеть может запомнить обучающие примеры, ошибаться на новых парах и лишь намного позже обобщить правило. Это позднее улучшение называют grokking. На него влияют ширина, оптимизатор и seed."
+  ],
+  ["The 2022 paper", "El artículo de 2022", "Die Arbeit von 2022", "2022年の論文", "L’article de 2022", "Статья 2022 года"],
+  [
+    "The paper used small Transformers. In its division-modulo-97 example, training accuracy was nearly perfect before 1,000 optimizer steps; validation approached that level near 1,000,000 steps.",
+    "El artículo usó Transformers pequeños. En el ejemplo de división módulo 97, el entrenamiento fue casi perfecto antes de 1.000 pasos; la validación llegó a ese nivel cerca de 1.000.000 de pasos.",
+    "Die Arbeit nutzte kleine Transformer. Beim Teilen modulo 97 war die Trainingsgenauigkeit vor 1.000 Schritten fast perfekt; die Validierung erreichte diesen Bereich erst nahe 1.000.000 Schritten.",
+    "論文では小さなTransformerを使いました。97を法とする除算の例では、学習正解率は1,000更新前にほぼ完全になり、検証正解率は約1,000,000更新で同じ水準に達しました。",
+    "L’article utilisait de petits Transformers. Pour la division modulo 97, l’entraînement était presque parfait avant 1 000 mises à jour ; la validation approchait ce niveau vers 1 000 000.",
+    "Авторы использовали небольшие трансформеры. В примере деления по модулю 97 train стал почти идеальным до 1 000 шагов оптимизатора, а validation достиг сопоставимого уровня около 1 000 000 шагов."
+  ],
+  [
+    "This lab uses a Dense model for the same arithmetic task. The paper reports optimizer steps; this lab counts complete epochs.",
+    "Aquí una red densa aprende la misma tarea. El artículo cuenta pasos del optimizador; este laboratorio cuenta épocas completas.",
+    "Hier lernt ein dichtes Modell dieselbe Aufgabe. Die Arbeit zählt Optimiererschritte; dieses Labor zählt vollständige Epochen.",
+    "ここでは全結合モデルが同じ算術課題を学びます。論文は更新回数、この実験は完全なエポック数を表示します。",
+    "Ici, un modèle dense apprend la même tâche. L’article compte les mises à jour ; ce laboratoire compte les époques complètes.",
+    "Здесь ту же арифметическую задачу изучает плотная модель. В статье считают шаги оптимизатора; здесь — полные эпохи."
+  ],
+  ["What is an epoch?", "¿Qué es una época?", "Was ist eine Epoche?", "エポックとは？", "Qu’est-ce qu’une époque ?", "Что такое эпоха?"],
+  [
+    "One epoch uses all 4,656 training equations once, in shuffled order.",
+    "Una época recorre una vez las 4.656 ecuaciones de entrenamiento, en orden aleatorio.",
+    "Eine Epoche nutzt alle 4.656 Trainingsgleichungen genau einmal in gemischter Reihenfolge.",
+    "1エポックで4,656個の学習例をシャッフルした順に1回ずつ使います。",
+    "Une époque utilise les 4 656 équations d’entraînement une fois, dans un ordre mélangé.",
+    "За одну эпоху все 4 656 обучающих уравнений используются по одному разу, в перемешанном порядке."
+  ],
+  [
+    "One optimizer step updates weights from one batch. Each epoch contains ten steps.",
+    "Un paso del optimizador actualiza los pesos con un lote. Cada época contiene diez pasos.",
+    "Ein Optimiererschritt aktualisiert Gewichte anhand eines Batches. Jede Epoche umfasst zehn Schritte.",
+    "1回の更新で1バッチから重みを更新します。1エポックには10回の更新があります。",
+    "Une mise à jour ajuste les poids à partir d’un lot. Chaque époque comprend dix mises à jour.",
+    "Один шаг оптимизатора обновляет веса по одному батчу. В каждой эпохе десять шагов."
+  ],
+  [
+    "Test pairs are evaluated after every epoch and never update weights.",
+    "Los pares de prueba se evalúan tras cada época y nunca actualizan los pesos.",
+    "Testpaare werden nach jeder Epoche geprüft und aktualisieren niemals die Gewichte.",
+    "テストの組は各エポック後に評価し、重みの更新には使いません。",
+    "Les paires de test sont évaluées après chaque époque sans modifier les poids.",
+    "Тестовые пары проверяются после каждой эпохи и не участвуют в обновлении весов."
+  ],
+  ["1 epoch", "1 época", "1 Epoche", "1エポック", "1 époque", "1 эпоха"],
+  ["10 AdamW updates per epoch", "10 pasos AdamW por época", "10 AdamW-Schritte pro Epoche", "1エポックでAdamWを10回更新", "10 mises à jour AdamW par époque", "10 обновлений AdamW за эпоху"],
+  [
+    "Loss measures prediction error; lower is better. Accuracy is the fraction of correct answers; higher is better.",
+    "La pérdida mide el error: cuanto menor, mejor. La precisión es la proporción de respuestas correctas: cuanto mayor, mejor.",
+    "Loss misst den Vorhersagefehler: kleiner ist besser. Genauigkeit ist der Anteil richtiger Antworten: größer ist besser.",
+    "損失は予測の誤差で、低いほど良好です。正解率は正答の割合で、高いほど良好です。",
+    "La perte mesure l’erreur : plus faible est mieux. L’exactitude est la proportion de bonnes réponses : plus élevée est mieux.",
+    "Loss измеряет ошибку предсказания: меньше — лучше. Точность — доля правильных ответов: больше — лучше."
+  ],
+  ["Reading the learning curves", "Leer las curvas de aprendizaje", "Lernkurven lesen", "学習曲線の見方", "Lire les courbes d’apprentissage", "Как читать график обучения"],
+  [
+    "Orange is training; blue is held-out test data. Compare the curves to see whether the model learns unseen pairs.",
+    "Naranja es entrenamiento; azul son datos de prueba. Compara las curvas para ver si el modelo aprende pares nuevos.",
+    "Orange steht für Training, Blau für zurückgehaltene Testdaten. Vergleiche die Kurven, um das Lernen neuer Paare zu erkennen.",
+    "オレンジは学習、青は未学習のテストデータです。曲線を比べると未知の組への汎化が分かります。",
+    "L’orange représente l’entraînement, le bleu le test. Comparez les courbes pour voir si le modèle apprend les paires nouvelles.",
+    "Оранжевый — обучение; синий — отложенный тест. Сравнивайте кривые, чтобы увидеть, научилась ли модель решать новые пары."
+  ],
+  [
+    "Beige marks the longest continuous interval with train ≥99% and test ≤10%, before the first test ≥90% crossing.",
+    "El beige marca el intervalo continuo más largo con entrenamiento ≥99% y prueba ≤10%, antes del primer resultado de prueba ≥90%.",
+    "Beige markiert das längste durchgehende Intervall mit Training ≥99% und Test ≤10%, bevor der Test erstmals ≥90% erreicht.",
+    "ベージュは、テストが初めて90%以上になる前の、学習99%以上・テスト10%以下が最長で続く区間です。",
+    "Le beige marque le plus long intervalle continu avec entraînement ≥99% et test ≤10%, avant le premier test ≥90%.",
+    "Бежевый выделяет самый длинный непрерывный интервал с train ≥99% и test ≤10% до первого достижения 90% на тесте."
+  ],
+  [
+    "Violet marks the same conditions with exactly 100% train accuracy.",
+    "El violeta marca las mismas condiciones con entrenamiento exactamente al 100%.",
+    "Violett markiert dieselben Bedingungen mit exakt 100% Trainingsgenauigkeit.",
+    "紫は同じ条件で学習正解率がちょうど100%の区間です。",
+    "Le violet marque les mêmes conditions avec exactement 100% à l’entraînement.",
+    "Фиолетовый выделяет те же условия при точности train ровно 100%."
+  ],
+  [
+    "Shading describes accuracy conditions, even on the loss view. It does not mean the loss or weights stopped changing.",
+    "El sombreado indica condiciones de precisión, incluso en la vista de pérdida. No significa que la pérdida o los pesos dejen de cambiar.",
+    "Die Flächen beschreiben Genauigkeitsbedingungen, auch in der Loss-Ansicht. Loss und Gewichte können sich dabei weiter ändern.",
+    "損失の表示中も色分けは正解率の条件を示します。損失や重みの変化が止まったという意味ではありません。",
+    "Les zones décrivent l’exactitude, même dans la vue des pertes. Elles ne signifient pas que les pertes ou les poids ne changent plus.",
+    "Выделение описывает условия по точности даже в режиме loss. Оно не означает, что loss или веса перестали меняться."
+  ],
+  ["When does it count as grokking?", "¿Cuándo cuenta como grokking?", "Wann zählt es als Grokking?", "Grokkingの判定条件", "Quand parle-t-on de grokking ?", "Когда это считается grokking?"],
+  [
+    "A shaded interval shows memorization with poor generalization. It does not by itself establish a later jump.",
+    "Un intervalo sombreado muestra memorización con poca generalización. Por sí solo no demuestra un salto posterior.",
+    "Ein markiertes Intervall zeigt Auswendiglernen bei schwacher Verallgemeinerung. Es allein belegt keinen späteren Sprung.",
+    "色の区間は、暗記しても汎化が弱い状態です。その区間だけでは後の急上昇を証明しません。",
+    "Une zone indique la mémorisation sans bonne généralisation. Elle ne prouve pas à elle seule un bond ultérieur.",
+    "Выделенный интервал показывает запоминание при слабом обобщении. Сам по себе он ещё не доказывает последующий скачок."
+  ],
+  [
+    "This lab requires at least 25 plateau epochs, test ≤10% → ≥90% within 250 epochs, and a later test ≥99% result. These are this lab's thresholds, not a definition imposed by the paper.",
+    "Este laboratorio exige al menos 25 épocas de meseta, prueba ≤10% → ≥90% en 250 épocas y después prueba ≥99%. Son umbrales del laboratorio, no una definición del artículo.",
+    "Dieses Labor verlangt mindestens 25 Plateau-Epochen, Test ≤10% → ≥90% innerhalb von 250 Epochen und später Test ≥99%. Das sind Laborschwellen, keine Definition der Arbeit.",
+    "この実験では25エポック以上の停滞、250エポック以内のテスト10%以下→90%以上、後の99%以上を条件にします。論文の定義ではなく、この実験の判定基準です。",
+    "Ce laboratoire exige au moins 25 époques de plateau, un test ≤10% → ≥90% en 250 époques, puis ≥99%. Ce sont ses propres seuils, pas une définition imposée par l’article.",
+    "Здесь нужны минимум 25 эпох плато, рост test ≤10% → ≥90% за 250 эпох и затем test ≥99%. Эти пороги приняты в лаборатории, а не заданы статьёй."
+  ],
   ["Continue training", "Continuar entrenamiento", "Training fortsetzen", "学習を続ける", "Continuer l’entraînement", "Продолжить обучение"],
   ["Paused at 99% held-out accuracy", "Pausa al 99% de precisión de prueba", "Pause bei 99% Testgenauigkeit", "テスト正解率99%で一時停止", "Pause à 99% d’exactitude de test", "Пауза при 99% на тесте"],
   ["Pauses at 99% test accuracy. Continue to train further.", "Pausa al 99% en prueba. Puedes continuar.", "Pause bei 99% im Test. Fortsetzen ist möglich.", "テスト正解率99%で一時停止。学習を続けられます。", "Pause à 99% au test. Vous pouvez continuer.", "Пауза при 99% на тесте. Можно продолжить обучение."],

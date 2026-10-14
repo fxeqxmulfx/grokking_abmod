@@ -40,7 +40,8 @@ test('all initial accessible labels and titles have translations', async () => {
   const source = (await import('../dist/locales/en.ts')).default;
   for (const match of html.matchAll(/(?:aria-label|title|alt|placeholder)="([^"]+)"/g)) assert.ok(Object.hasOwn(source, match[1]), match[1]);
   assert.ok(!html.includes('EOS') && !html.includes('causal mask'));
-  assert.equal((html.match(/data-task-tab=/g) ?? []).length, 4);
+  assert.equal((html.match(/data-task-tab=/g) ?? []).length, 5);
+  assert.equal((html.match(/data-intro-tab=/g) ?? []).length, 5);
 });
 test('every division diagram is a rendered local Mermaid SVG matching its source manifest', async () => {
   const manifest = JSON.parse(await readFile(new URL('diagrams/manifest.json', root), 'utf8'));

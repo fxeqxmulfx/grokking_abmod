@@ -1,13 +1,23 @@
 import {element as $} from './dom.ts';
 import {t, currentLocale} from './i18n.ts';
 
-const pages = ['task', 'solution', 'examples', 'model'];
+const pages = ['intro', 'task', 'solution', 'examples', 'model'];
+const introPages = ['why', 'epoch', 'paper', 'chart', 'grokking'];
 const modelViews = ['diagram', 'types', 'equations'];
 const examples = [[6,4,50], [10,3,68], [1,2,49], [1,96,96], [96,2,48], [0,7,0], [42,42,1], [7,1,7]];
 
 export function initializeTask() {
   const dialog = $('task-dialog');
-  let page = 0, modelView = 0;
+  let page = 0, modelView = 0, introView = 0;
+  function selectIntro(index: number) {
+    introView = index;
+    for (const [i, name] of introPages.entries()) {
+      $(`intro-page-${name}`).hidden = i !== index;
+      const button = $(`intro-tab-${name}`);
+      button.classList.toggle('active', i === index); button.setAttribute('aria-selected', String(i === index));
+      button.tabIndex = i === index ? 0 : -1;
+    }
+  }
   function selectModel(index: number) {
     modelView = index;
     for (const [i, name] of modelViews.entries()) {
@@ -47,6 +57,13 @@ export function initializeTask() {
     row.append(equation, check); $('task-example-rows').append(row);
   }
   for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-task-tab]')) button.onclick = () => select(pages.indexOf(button.dataset.taskTab ?? ''));
+  for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-intro-tab]')) button.onclick = () => selectIntro(introPages.indexOf(button.dataset.introTab ?? ''));
+  dialog.querySelector<HTMLElement>('.intro-tabs')!.onkeydown = event => {
+    const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    if (!offset && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault(); selectIntro(event.key === 'Home' ? 0 : event.key === 'End' ? introPages.length - 1 : (introView + offset + introPages.length) % introPages.length);
+    $(`intro-tab-${introPages[introView]}`).focus();
+  };
   for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-model-explanation]')) button.onclick = () => selectModel(modelViews.indexOf(button.dataset.modelExplanation ?? ''));
   dialog.querySelector<HTMLElement>('.task-model-tabs')!.onkeydown = event => {
     const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
@@ -63,7 +80,8 @@ export function initializeTask() {
   $('task-back').onclick = () => select(page - 1);
   $('task-next').onclick = () => select(page + 1);
   for (const id of ['close-task', 'task-open'] as const) $(id).onclick = () => dialog.close();
-  $('task-help').onclick = () => { select(0); dialog.showModal(); };
+  $('task-help').onclick = () => { select(0); selectIntro(0); dialog.showModal(); };
+  $('chart-help').onclick = () => { select(0); selectIntro(3); dialog.showModal(); };
   window.addEventListener('localechange', localizeDiagrams);
-  localizeDiagrams(); selectModel(0); select(0); dialog.showModal();
+  localizeDiagrams(); selectModel(0); selectIntro(0); select(0); dialog.showModal();
 }

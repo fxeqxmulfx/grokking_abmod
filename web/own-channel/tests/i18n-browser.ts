@@ -48,9 +48,13 @@ try {
     if (!await evaluate(`document.getElementById('task-language').value===${JSON.stringify(language)}&&document.getElementById('task-title').textContent===${JSON.stringify(expected(language)['Division modulo 97'])}`)) throw new Error(`Startup dialog is not translated: ${language}`);
     for (const [width,height] of [[1366,768],[390,844],[320,568],[844,390]]) {
       await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<650});
-      for (const page of ['task','solution','examples','model']) {
+      for (const page of ['intro','task','solution','examples','model']) {
         await evaluate(`document.querySelector('[data-task-tab="${page}"]').click()`);
         await assertFits(`${language} ${width}×${height} intro ${page}`,true);
+        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','grokking']) {
+          await evaluate(`document.querySelector('[data-intro-tab="${detail}"]').click()`);
+          await assertFits(`${language} ${width}×${height} introduction ${detail}`,true);
+        }
         if (page === 'model') {
           for (const view of ['types','equations']) {
             await evaluate(`document.querySelector('[data-model-explanation="${view}"]').click()`);
@@ -94,7 +98,9 @@ try {
   await evaluate(`Object.defineProperty(navigator,'languages',{configurable:true,get:()=>['ru-KZ','en-US']});window.dispatchEvent(new Event('languagechange'))`);
   await wait(`document.documentElement.lang==='ru'`);
   await evaluate(`document.getElementById('task-open').click();document.getElementById('task-help').click()`);
-  if(!await evaluate(`document.getElementById('task-dialog').open&&document.querySelectorAll('[data-task-tab]').length===4&&!document.getElementById('task-dialog').textContent.includes('EOS')`))throw new Error('Reopening the dialog or reference-free content failed.');
+  if(!await evaluate(`document.getElementById('task-dialog').open&&document.querySelectorAll('[data-task-tab]').length===5&&!document.getElementById('task-dialog').textContent.includes('EOS')`))throw new Error('Reopening the dialog or reference-free content failed.');
+  await evaluate(`document.getElementById('task-open').click();document.getElementById('chart-help').click()`);
+  if(!await evaluate(`document.getElementById('task-dialog').open&&!document.getElementById('task-page-intro').hidden&&!document.getElementById('intro-page-chart').hidden&&document.getElementById('intro-tab-chart').getAttribute('aria-selected')==='true'`))throw new Error('Chart guide did not open the shading explanation.');
   if(errors.length)throw new Error(JSON.stringify(errors));
   await writeFile('/tmp/grokking-i18n-verification.json',JSON.stringify({languages,layouts,automaticRegionalSelection:true,persistedManualChoice:true,browserLanguageChange:true,languageSwitchPreservesTraining:true,startupAndReopen:true,localRenderedSVG:true,errors},null,2)+'\n');
   console.log(`PASS: ${languages.length} languages, ${layouts} layout checks, automatic selection, persisted manual choice, live translations preserve training, real local SVGs, startup and reopen, no reference section.`);
