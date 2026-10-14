@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-14",
+  "device": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "binary": "target/grok-div97-dense-embedding-normal-width/bin/mesh-gpt",
+  "binarySha256": "53419ce2a547980b61ca0bd30c21a97495e816eebd2c1676749c124d4b7c140d",
+  "sourceSha256": {
+    "src/simple/mod.rs": "27f1a1be9ce75835353dbeebeea89b33a23f24eacd2209c20339b0555d80d3ee",
+    "src/simple/gpu.rs": "bcbac2fc2b9bfec7dfe4eee9b9565f2357c522b55209793f417e2849e6446add",
+    "src/simple/reference.rs": "39c9d3786d5239d6388e26e02eeb930fcb398b8a0a3fb47515b8d7469b8ca7fc",
+    "src/bin/mesh-gpt/simple.rs": "d3f9f43769cb6fe14d2f951aad7f0c77cc03a4c6ccc73ec2a9dd8b69ea01ce53",
+    "src/bin/sharp-mesh-search.rs": "ff4cfeedd8317b028c7adf987e07c47c489b2c8db6da7b74afa0d07fc1365d01",
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb"
+  },
+  "runs": [
+    {
+      "width": 16,
+      "seed": 11,
+      "parameters": 1808,
+      "firstTrain99": null,
+      "firstTest90": null,
+      "firstTest99": null,
+      "final": {
+        "step": 100000,
+        "training_examples_seen": 46560000,
+        "completed_epochs": 10000,
+        "examples_in_partial_epoch": 0,
+        "train_cross_entropy": 2.528179783,
+        "validation_cross_entropy": 2.742961681,
+        "train_accuracy": 0.320876289,
+        "validation_accuracy": 0.181056701,
+        "weight_l2": 33.910575862,
+        "learning_rate": 0.001,
+        "elapsed_seconds": 106.38052
+      },
+      "maxTrainAccuracy": 0.33354811,
+      "maxTestAccuracy": 0.191365979,
+      "initialSha256": "2b063d5498dd54fec02097d17561b06fe977a41c6251730e2a424227e382c3c4",
+      "splitSha256": "d3d57d7c547e22c8184736c911e408a2fc7cb2583189f588bb14a26a1ea96faa"
+    },
+    {
+      "width": 32,
+      "seed": 11,
+      "parameters": 4128,
+      "firstTrain99": 931,
+      "firstTest90": 858,
+      "firstTest99": 3690,
+      "final": {
+        "step": 36900,
+        "training_examples_seen": 17180640,
+        "completed_epochs": 3690,
+        "examples_in_partial_epoch": 0,
+        "train_cross_entropy": 0.150798856,
+        "validation_cross_entropy": 0.23817519,
+        "train_accuracy": 0.999785223,
+        "validation_accuracy": 0.990335052,
+        "weight_l2": 63.941456101,
+        "learning_rate": 0.001,
+        "elapsed_seconds": 46.824849
+      },
+      "maxTrainAccuracy": 1,
+      "maxTestAccuracy": 0.990335052,
+      "initialSha256": "e81b4ca9d1d0625cbdcde867a6e22bb3ec84140651dcbe1b355ee1c32c36fe39",
+      "splitSha256": "d3d57d7c547e22c8184736c911e408a2fc7cb2583189f588bb14a26a1ea96faa"
+    },
+    {
+      "width": 64,
+      "seed": 11,
+      "parameters": 10304,
+      "firstTrain99": 460,
+      "firstTest90": 477,
+      "firstTest99": 560,
+      "final": {
+        "step": 5600,
+        "training_examples_seen": 2607360,
+        "completed_epochs": 560,
+        "examples_in_partial_epoch": 0,
+        "train_cross_entropy": 0.146709521,
+        "validation_cross_entropy": 0.295997303,
+        "train_accuracy": 1,
+        "validation_accuracy": 0.990335052,
+        "weight_l2": 39.741789462,
+        "learning_rate": 0.001,
+        "elapsed_seconds": 9.676876
+      },
+      "maxTrainAccuracy": 1,
+      "maxTestAccuracy": 0.990335052,
+      "initialSha256": "4433d6019f75d87ae00108d5befb6474a9e0bd4d2df65ce0358677c1b365ff80",
+      "splitSha256": "d3d57d7c547e22c8184736c911e408a2fc7cb2583189f588bb14a26a1ea96faa"
+    }
+  ]
+}

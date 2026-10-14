@@ -1,0 +1,5 @@
+# Match the local browser Dense + ReLU model, changing only width.
+# All runs use seed 11, a 50/50 split, complete shuffled epochs, and no biases.
+grok-simple --model tied-rotary-residual-dense-mlp --width 16 --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --operation div --modulus 97 --train-fraction 0.5 --learning-rate 0.001 --weight-decay 0.1 --seed 11 --batch 512 --epochs 10000 --report-every 10 --stop-validation-accuracy 0.99
+grok-simple --model tied-rotary-residual-dense-mlp --width 32 --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --operation div --modulus 97 --train-fraction 0.5 --learning-rate 0.001 --weight-decay 0.1 --seed 11 --batch 512 --epochs 10000 --report-every 10 --stop-validation-accuracy 0.99
+grok-simple --model tied-rotary-residual-dense-mlp --width 64 --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --operation div --modulus 97 --train-fraction 0.5 --learning-rate 0.001 --weight-decay 0.1 --seed 11 --batch 512 --epochs 10000 --report-every 10 --stop-validation-accuracy 0.99
