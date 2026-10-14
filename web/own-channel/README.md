@@ -1,13 +1,15 @@
 # Rotate90 Dense Grokking Lab
 
-Two local tabs train one Dense + ReLU architecture at widths 128 and 1024.
+Four local tabs train one Dense + ReLU architecture at widths 16, 32, 128 and 1024.
 Training runs entirely in the browser on handwritten WASM SIMD128 or scalar
 WASM. Training and weight rendering use CPU workers. Node serves static files.
 
 | Tab | Channels | Unique parameters | Drawn learned connections |
 | --- | ---: | ---: | ---: |
-| Rotate90 · 128 | 128 | 28,800 | 53,632 |
-| Rotate90 · 1024 | 1024 | 1,147,904 | 1,346,560 |
+| W16 | 16 | 1,808 | 4,912 |
+| W32 | 32 | 4,128 | 10,336 |
+| W128 | 128 | 28,800 | 53,632 |
+| W1024 | 1024 | 1,147,904 | 1,346,560 |
 
 ## Build and run
 
@@ -42,7 +44,7 @@ Rebuild after editing sources; `npm run typecheck` checks an existing build
 without emitting code. The fixed dependency versions are in `package-lock.json`.
 
 Training is the default workspace. Weights and Network provide the other two
-views. Both model tabs preserve their independent weights, AdamW state, sampler
+views. All model tabs preserve their independent weights, AdamW state, sampler
 and curves. Switching tabs pauses training; changing seed or backend resets
 that tab. Retired browser architectures and the Dynamics view are removed from
 active code and build inputs. Native experiment archives remain available in
@@ -51,7 +53,7 @@ active code and build inputs. Native experiment archives remain available in
 ## Architecture and initialization
 
 ```text
-E ∈ R^(97 × W), A ∈ R^(W × W), W ∈ {128, 1024}
+E ∈ R^(97 × W), A ∈ R^(W × W), W ∈ {16, 32, 128, 1024}
 J(u, v) = (-v, u) on adjacent coordinate pairs
 x0 = E[a] + J(E[b])
 r = RMSNorm(x0)
@@ -72,6 +74,8 @@ E starts **Normal(0, variance 1/W)**; A starts Kaiming normal with variance
 in training. SplitMix64 and Box–Muller match the native initial checkpoints
 byte-for-byte at seed 11:
 
+- W16: `2b063d5498dd54fec02097d17561b06fe977a41c6251730e2a424227e382c3c4`
+- W32: `e81b4ca9d1d0625cbdcde867a6e22bb3ec84140651dcbe1b355ee1c32c36fe39`
 - W128: `b90448461caff3b6e04bd9ead0a3f7e7f055e8c1cd71ce19f1069186c74ae04b`
 - W1024: `ea659d5b1596d3a019c3d2af55cb4c030244481b73011b0def3572ddc04d1e91`
 
@@ -86,8 +90,49 @@ q = a·b⁻¹ mod 97. There are 9,312 equations: 4,656 train and 4,656 test.
 Seed 11 is the default. Every epoch visits all training rows in nine 512-row
 batches and a 48-row tail. AdamW uses lr 0.001, weight decay 0.1, betas
 0.9/0.98, epsilon 1e-8 and ten warmup updates. Both complete splits are
-evaluated every epoch. Step advances one epoch; stopping at 99% test accuracy
-is optional. The limit is 10,000 epochs.
+evaluated every epoch. Step advances one epoch. The first test accuracy ≥99%
+crossing automatically pauses training. Continue resumes the same weights,
+AdamW state and sampler; the target does not pause that experiment again, even
+after an accuracy dip. Reset re-arms it. The limit is 10,000 epochs.
+
+The original paper is [Grokking: Generalization Beyond Overfitting on Small
+Algorithmic Datasets](https://arxiv.org/abs/2201.02177). The browser uses the
+Dense architecture above rather than the paper's Transformer.
+
+[Small-width Rust results](../../docs/rotary-dense-small-width-results.md),
+seed 11: W32 reaches 99% test accuracy at epoch 3690. W16 ends at 32.09% train
+and 18.11% test after 10,000 epochs. W64, tested in Rust, reaches 99% test at
+560, compared with 605 for W128. Width alone changes in these experiments;
+other seeds or floating-point backends can produce different results.
+
+## PyTorch source export
+
+The **PyTorch .py** button exports a standalone CPU training script with the
+selected width, seed and epoch limit. It includes the model, exact initialization,
+dataset split, shuffled epoch sampler, AdamW settings and CSV metrics. Run the
+download with `uv run rotate90-w128-seed11.py`; no project checkout is needed.
+CLI options include `--epochs`, `--seed`, `--width` and `--threads`.
+
+PEP 723 metadata installs pinned PyTorch from its CPU index and NumPy. On
+reaching 99% test accuracy, an interactive run asks whether to continue with
+the same optimizer. Noninteractive runs stop there; `--continue-after-target`
+keeps them running to the epoch limit. The file recreates the experiment from
+its seed. Browser weight/checkpoint downloads are removed. PyTorch's arithmetic
+can shift convergence epochs relative to WASM or Rust/CUDA.
+
+The canonical source is `python/rotate90.py`, with a committed uv lockfile.
+`scripts/build-pytorch.ts` embeds it into the TypeScript exporter during build.
+To validate the repository source and every exported architecture:
+
+```sh
+uv run --locked python/rotate90.py --epochs 1
+node build/tests/pytorch-fixtures.js
+uv run --locked tests/validate-pytorch-export.py
+```
+
+The validator checks exact initial tensors, all data and 21 minibatches, then
+compares logits, every gradient and three AdamW updates with independent f64
+fixtures for all four widths.
 
 The grokking criterion stays fixed: at least 25 continuous elapsed epochs
 with train ≥99% and test ≤10%, then test ≤10% → ≥90% within 250 epochs and
@@ -133,8 +178,7 @@ DOM, and the worker never resends a weight snapshot at the same training step.
 Weight capture defaults to 5 Hz, with 1/10 Hz choices. Snapshots are 115,200
 bytes for W128 and 4,591,616 for W1024. Adaptive training submissions target
 50 ms; CPU workers yield between submissions for responsive pause. Metrics
-export as CSV; weight exports contain little-endian f32 E followed by A and
-omit optimizer state.
+export as CSV; PyTorch exports contain executable source and experiment defaults.
 
 The startup dialog explains the task, inverse-based solution, eight checked
 examples and the actual model. It includes a local rendered Mermaid SVG and
@@ -148,7 +192,7 @@ by `scripts/build-model-diagrams.ts`. Mermaid sources and hashes are in
 `diagrams/`; regenerate them with `npm run build:diagrams` using an isolated
 Chrome profile at `GROKKING_CDP_PORT`. Mermaid is not loaded at runtime. The
 128-channel WAT is the source template in `wasm/`; the build specializes it
-for 1024 channels and emits SIMD/scalar binaries with private or shared memory.
+for the other three widths and emits SIMD/scalar binaries with private or shared memory.
 
 The engine selector exposes 1, 2 or 4 CPU threads for both WASM variants.
 Automatic selection uses four threads with at least six logical CPUs, two
@@ -215,19 +259,28 @@ include the original baseline, all 12 final engine combinations and source hashe
 
 ## Validation and observed convergence
 
-The TypeScript build and 45 Node tests pass: deterministic data and sampling,
+The TypeScript build and 71 Node tests pass: deterministic data and sampling,
 strict grokking classification, native checkpoint hashes, scalar/SIMD logits,
 all parameter gradients, shared E accumulation, finite differences and AdamW.
 Two- and four-thread variants also pass gradient, AdamW and complete-split
-evaluation checks for both widths and batch sizes including 1, 48 and 512.
+evaluation checks for all four widths and batch sizes including 1, 48 and 512.
 Scalar/SIMD raster tests verify actual pixels for all three E roles, Rotate90
 signs, Dense connections, zero changes and offscreen clipping.
 The original five-update single-thread CPU checkpoint, all gradients and probe
 logits remain bit-for-bit identical; their pre-optimization hashes are checked
-for every width and CPU variant.
+for both previously displayed widths and CPU variants.
 The real UI trains both widths with GPU APIs forbidden,
 pauses/resets, restores independent states, updates weights, and fits all three
 views. Localization checks pass 216 desktop/mobile dialog and workspace layouts.
+
+The export integration check trains all four tabs and downloads their actual
+`.py` files before and after learning. Sources remain unchanged by training.
+W128 on Chrome's four-thread WASM reaches 99.08% test accuracy at epoch 600,
+automatically pauses, then continues to epoch 603 (99.18%) with the same worker,
+optimizer and history. Reset restores epoch zero. The downloaded script also
+completes a CPU training epoch through uv without the repository or server.
+[Current export, pause and layout evidence](tests/results/widths-export-2026-10-14/)
+records these checks separately from the historical convergence runs below.
 
 Historical convergence measurements (GPU engines have since been removed):
 
@@ -269,6 +322,7 @@ selected CDP port. Hardware acceleration is not required:
 
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
+GROKKING_CDP_PORT=9224 npm run test:export-browser
 GROKKING_CDP_PORT=9224 npm run test:rendering
 GROKKING_CDP_PORT=9224 npm run test:i18n
 GROKKING_CDP_PORT=9224 node build/tests/measure-topology.js

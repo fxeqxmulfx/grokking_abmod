@@ -1,0 +1,2 @@
+import type { TrainingOptions } from './types.ts';
+export declare function pytorchSource(options: Pick<TrainingOptions, 'model' | 'seed' | 'maxEpochs'>): string;

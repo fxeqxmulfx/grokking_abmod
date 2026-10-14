@@ -1,4 +1,5 @@
-export type ModelId = 'dense-rotary' | 'dense-rotary-wide';
+export declare const MODEL_IDS: readonly ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary', 'dense-rotary-wide'];
+export type ModelId = typeof MODEL_IDS[number];
 export declare const BACKENDS: readonly ['auto', 'simd', 'scalar', 'simd-2', 'simd-4', 'scalar-2', 'scalar-4'];
 export type Backend = typeof BACKENDS[number];
 export type Weights = Float32Array<ArrayBuffer>;
@@ -47,7 +48,6 @@ export interface TrainingOptions {
     backend: Backend;
     maxEpochs: number;
     captureHz: number;
-    stopAtTarget: boolean;
 }
 export interface Interval {
     start: number | null;
@@ -74,7 +74,6 @@ export type WorkerRequest = {
 } | {
     type: 'configure';
     maxEpochs: number;
-    stopAtTarget: boolean;
 } | {
     type: 'capture';
     hz: number;

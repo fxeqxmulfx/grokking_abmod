@@ -10,12 +10,14 @@ function dense(id: ModelId, width: number): ModelInfo {
     reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width};
 }
 export const MODELS: Record<ModelId, ModelInfo> = {
+  'dense-rotary-16': dense('dense-rotary-16', 16),
+  'dense-rotary-32': dense('dense-rotary-32', 32),
   'dense-rotary': dense('dense-rotary', 128),
   'dense-rotary-wide': dense('dense-rotary-wide', 1024),
 };
 export function modelId(id: string): ModelId {
-  if (id !== 'dense-rotary' && id !== 'dense-rotary-wide') throw new Error('Unknown model.');
-  return id;
+  if (!Object.hasOwn(MODELS, id)) throw new Error('Unknown model.');
+  return id as ModelId;
 }
 export function modelInfo(id: ModelId): ModelInfo {return MODELS[id];}
 

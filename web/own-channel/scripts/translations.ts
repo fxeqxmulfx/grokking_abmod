@@ -1,6 +1,53 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  ["Continue training", "Continuar entrenamiento", "Training fortsetzen", "学習を続ける", "Continuer l’entraînement", "Продолжить обучение"],
+  ["Paused at 99% held-out accuracy", "Pausa al 99% de precisión de prueba", "Pause bei 99% Testgenauigkeit", "テスト正解率99%で一時停止", "Pause à 99% d’exactitude de test", "Пауза при 99% на тесте"],
+  ["Pauses at 99% test accuracy. Continue to train further.", "Pausa al 99% en prueba. Puedes continuar.", "Pause bei 99% im Test. Fortsetzen ist möglich.", "テスト正解率99%で一時停止。学習を続けられます。", "Pause à 99% au test. Vous pouvez continuer.", "Пауза при 99% на тесте. Можно продолжить обучение."],
+  ["PyTorch .py", "PyTorch .py", "PyTorch .py", "PyTorch .py", "PyTorch .py", "PyTorch .py"],
+  ["Export PyTorch source; run with uv", "Exportar código PyTorch; ejecutar con uv", "PyTorch-Code exportieren; mit uv starten", "PyTorchコードを出力し、uvで実行", "Exporter le code PyTorch ; lancer avec uv", "Экспорт кода PyTorch; запуск через uv"],
+  ["Grokking: original paper ↗", "Grokking: artículo original ↗", "Grokking: Originalarbeit ↗", "Grokking：原論文 ↗", "Grokking : article original ↗", "Grokking: исходная статья ↗"],
+  [
+    "Export PyTorch source to reproduce this architecture and train from the selected seed with uv run. The file contains training code and data generation.",
+    "Exporta el código PyTorch para reproducir esta arquitectura y entrenar desde la semilla elegida con uv run. El archivo incluye entrenamiento y generación de datos.",
+    "Exportiere PyTorch-Code, um diese Architektur mit dem gewählten Seed über uv run zu trainieren. Die Datei enthält Training und Datengenerierung.",
+    "PyTorchコードを出力して、この構造を選択したシードからuv runで学習できます。学習コードとデータ生成が含まれます。",
+    "Exportez le code PyTorch pour entraîner cette architecture avec la graine choisie via uv run. Le fichier contient l’entraînement et la génération des données.",
+    "Экспортируйте код PyTorch для обучения этой архитектуры с выбранным seed через uv run. Файл содержит обучение и генерацию данных."
+  ],
+  [
+    "Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 128 and 1024. Train locally in your browser with live loss, accuracy and weights.",
+    "Compara una arquitectura Rotate90 densa con embedding compartido y anchuras 16, 32, 128 y 1024. Entrena en tu navegador con pérdida, precisión y pesos en directo.",
+    "Vergleiche eine dichte Rotate90-Architektur mit gemeinsamem Embedding in den Breiten 16, 32, 128 und 1024. Trainiere im Browser mit Verlust, Genauigkeit und Gewichten in Echtzeit.",
+    "共有埋め込みを使う全結合Rotate90を幅16、32、128、1024で比較。ブラウザー内で学習し、損失・正解率・重みをリアルタイムに確認できます。",
+    "Comparez une architecture Rotate90 dense à embedding partagé, de largeurs 16, 32, 128 et 1024. Entraînez-la dans votre navigateur avec pertes, exactitude et poids en direct.",
+    "Сравните плотную архитектуру Rotate90 с общим эмбеддингом на 16, 32, 128 и 1024 канала. Обучение в браузере с loss, точностью и весами в реальном времени."
+  ],
+  ["One architecture, four widths", "Una arquitectura, cuatro anchuras", "Eine Architektur, vier Breiten", "同じ構造、4つの幅", "Une architecture, quatre largeurs", "Одна архитектура, четыре ширины"],
+  [
+    "Widths 16 / 32 / 128 / 1024 share one architecture (1,808 / 4,128 / 28,800 / 1,147,904 parameters). Each tab preserves its weights, optimizer and curves.",
+    "Las anchuras 16 / 32 / 128 / 1024 comparten arquitectura (1.808 / 4.128 / 28.800 / 1.147.904 parámetros). Cada pestaña conserva pesos, optimizador y curvas.",
+    "Breiten 16 / 32 / 128 / 1024 teilen eine Architektur (1.808 / 4.128 / 28.800 / 1.147.904 Parameter). Jeder Tab behält Gewichte, Optimierer und Kurven.",
+    "幅16 / 32 / 128 / 1024は同じ構造です（1,808 / 4,128 / 28,800 / 1,147,904パラメータ）。各タブで重み・最適化状態・曲線を保持します。",
+    "Les largeurs 16 / 32 / 128 / 1024 partagent une architecture (1 808 / 4 128 / 28 800 / 1 147 904 paramètres). Chaque onglet conserve poids, optimiseur et courbes.",
+    "Ширины 16 / 32 / 128 / 1024 используют одну архитектуру (1 808 / 4 128 / 28 800 / 1 147 904 параметра). Каждая вкладка сохраняет веса, оптимизатор и графики."
+  ],
+  [
+    "Seed 11, Rust/CUDA: after 10,000 epochs, train 32.1% and held-out 18.1%; neither reached 99%. Only one seed verified; browser results may differ.",
+    "Semilla 11, Rust/CUDA: tras 10.000 épocas, entrenamiento 32,1% y prueba 18,1%; ninguno llegó al 99%. Solo una semilla verificada; el navegador puede variar.",
+    "Seed 11, Rust/CUDA: nach 10.000 Epochen Training 32,1%, Test 18,1%; beide unter 99%. Nur ein Seed geprüft; Browser-Ergebnisse können abweichen.",
+    "シード11、Rust/CUDA：10,000エポック後、学習32.1%、テスト18.1%。99%には到達しませんでした。検証済みシードは1つで、ブラウザーでは異なる場合があります。",
+    "Graine 11, Rust/CUDA : après 10 000 époques, entraînement 32,1%, test 18,1% ; aucun à 99%. Une seule graine vérifiée ; le navigateur peut différer.",
+    "Seed 11, Rust/CUDA: после 10 000 эпох train 32,1%, тест 18,1%; 99% не достигнуты. Проверен один seed; результаты в браузере могут отличаться."
+  ],
+  [
+    "Seed 11, Rust/CUDA: train ≥99% at epoch 931; held-out ≥99% at 3690. Only one seed verified; browser crossings may differ.",
+    "Semilla 11, Rust/CUDA: entrenamiento ≥99% en la época 931; prueba ≥99% en 3690. Solo una semilla verificada; los umbrales pueden variar en el navegador.",
+    "Seed 11, Rust/CUDA: Training ≥99% in Epoche 931; Test ≥99% bei 3690. Nur ein Seed geprüft; Browser-Schwellen können abweichen.",
+    "シード11、Rust/CUDA：学習99%以上が931エポック、テスト99%以上が3690。検証済みシードは1つで、ブラウザーでは到達時期が異なる場合があります。",
+    "Graine 11, Rust/CUDA : entraînement ≥99% à l’époque 931 ; test ≥99% à 3690. Une seule graine vérifiée ; les seuils peuvent différer dans le navigateur.",
+    "Seed 11, Rust/CUDA: train ≥99% на эпохе 931; тест ≥99% на 3690. Проверен один seed; в браузере моменты пересечения порогов могут отличаться."
+  ],
   [
     "A[{input},{output}] · {input} → {output} · weight {value}",
     "A[{input},{output}] · {input} → {output} · peso {value}",

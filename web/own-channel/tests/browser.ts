@@ -56,7 +56,7 @@ try {
   await waitFor(`document.getElementById('task-dialog').open && [...document.querySelectorAll('[data-task-diagram]')].every(image=>image.complete&&image.naturalWidth>0)`);
   await evaluate(`document.getElementById('task-open').click()`);
   if (!await evaluate(`document.getElementById('model-detail').textContent.includes('128 channels') && document.getElementById('model-detail').textContent.includes('28,800') && document.getElementById('model-name').textContent.includes('Dense + ReLU') && document.getElementById('seed').value==='11' && document.getElementById('step').textContent==='+1 epoch'`)) throw new Error('Incorrect narrow defaults');
-  if (!await evaluate(`document.body.dataset.view==='training' && !document.getElementById('dynamics') && !document.getElementById('weight-group') && document.querySelectorAll('[data-model-tab]').length===2 && document.querySelectorAll('[data-view-tab]').length===3`)) throw new Error('Obsolete workspace or model variants remain.');
+  if (!await evaluate(`document.body.dataset.view==='training' && !document.getElementById('dynamics') && !document.getElementById('weight-group') && document.querySelectorAll('[data-model-tab]').length===4 && document.querySelectorAll('[data-view-tab]').length===3`)) throw new Error('Incorrect model tabs or obsolete workspace variants remain.');
   await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('53632 connections')`);
   await networkPaint();
   const renderer = await evaluate<Record<string, string>>(`({...document.getElementById('mesh-edges').dataset})`);
@@ -91,7 +91,7 @@ try {
   if (networkUploads !== await evaluate(`document.getElementById('mesh-edges').dataset.uploads`)) throw new Error('Zoom uploaded unchanged weights again');
   await evaluate(`document.getElementById('zoom-reset').click()`);
   await waitFor(`document.getElementById('gain-info').textContent.includes('1.0×')`);
-  await evaluate(`document.getElementById('limit').value='100';document.getElementById('limit').dispatchEvent(new Event('change'));document.getElementById('stop-target').click()`);
+  await evaluate(`document.getElementById('limit').value='100';document.getElementById('limit').dispatchEvent(new Event('change'))`);
   if (!await evaluate(`document.getElementById('epoch').textContent==='1' && document.getElementById('observations').textContent==='2 observations'`)) throw new Error('Changing the budget reset training');
   await evaluate(`document.getElementById('loss-tab').click();document.getElementById('weight-view').value='delta';document.getElementById('weight-view').dispatchEvent(new Event('input'))`);
   for (const [width,height] of [[1280,720],[1024,768],[1920,1080],[1366,768]]) {

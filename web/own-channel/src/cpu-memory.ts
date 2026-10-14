@@ -3,7 +3,7 @@ export type CPUAddresses = Record<typeof PRIVATE_ADDRESSES[number], number>;
 export interface SharedCPU {memory: WebAssembly.Memory; addresses: CPUAddresses}
 
 export function cpuMemoryLayout(width: number, threads: number) {
-  if (![128, 1024].includes(width) || !Number.isInteger(threads) || threads < 1 || threads > 8) throw new Error('Invalid CPU memory layout.');
+  if (![16, 32, 128, 1024].includes(width) || !Number.isInteger(threads) || threads < 1 || threads > 8) throw new Error('Invalid CPU memory layout.');
   const weightBytes = (97 * width + width * width) * 4, vectorBytes = width * 4;
   const align = (value: number) => Math.ceil(value / 64) * 64;
   const control = align(3 * weightBytes + 9312 * 12);

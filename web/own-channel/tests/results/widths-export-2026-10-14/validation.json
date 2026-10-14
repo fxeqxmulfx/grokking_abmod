@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-14",
+  "node": "v24.21.0",
+  "site": "http://127.0.0.1:8080",
+  "widths": [
+    16,
+    32,
+    128,
+    1024
+  ],
+  "nodeTests": 71,
+  "additionalNativeInitializerHashCheck": [
+    16,
+    32,
+    128,
+    1024
+  ],
+  "pytorch": {
+    "runner": "uv run --locked tests/validate-pytorch-export.py",
+    "dependency": "torch==2.10.0 from the CPU index",
+    "exactInitialization": true,
+    "exactDataset": true,
+    "exactMinibatches": 21,
+    "allGradientToleranceF64": 2e-12,
+    "adamUpdates": 3,
+    "downloadedSourceStandaloneUVRun": true
+  },
+  "browser": {
+    "allFourDownloads": true,
+    "trainedWeightsExcluded": true,
+    "automaticPause": {
+      "width": 128,
+      "epoch": 600,
+      "testPercent": 99.08
+    },
+    "continuedEpoch": 603,
+    "sameWorkerAndOptimizer": true,
+    "reset": true,
+    "localizedLayoutChecks": 216,
+    "languages": 6
+  },
+  "sourceSha256": {
+    "src/models.ts": "8e682f1d310c81f8ac1ad7cfdacfcedf6588a8fb1ab22da85e1c6195852dd75c",
+    "src/worker.ts": "e76a0d518b062b13802e914a84c209f55bfa2842e9d456277fd1afe6ff147be4",
+    "src/training-control.ts": "e7d223d1cbba454533183d5734793f974189fde027f455cea1c9751715e75f1f",
+    "src/pytorch-export.ts": "bec6acbcaf18b110cef8760604e4ed53b4229f610a8ca2dbbdadd7caffc03e26",
+    "python/rotate90.py": "f0232c8a4ca6dc2917dcb2a6961b4c62a2963d08f8c9eeca2f54a8693d9de437",
+    "python/rotate90.py.lock": "612a565959f51441dc2c2bb97e710b83b70d751c55be629347fce216d6d54959",
+    "tests/validate-pytorch-export.py": "3bc973fd4de178240c5741fa2397a113ef19a117cdf1ef38143e94fe02a79095",
+    "tests/validate-pytorch-export.py.lock": "15462ab2cc962d4300428f3d816044f743dadd78716221d409a82e142447666f"
+  }
+}

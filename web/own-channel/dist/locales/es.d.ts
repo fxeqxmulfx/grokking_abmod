@@ -1,4 +1,16 @@
 declare const _default: {
+    "Continue training": string;
+    "Paused at 99% held-out accuracy": string;
+    "Pauses at 99% test accuracy. Continue to train further.": string;
+    "PyTorch .py": string;
+    "Export PyTorch source; run with uv": string;
+    "Grokking: original paper ↗": string;
+    "Export PyTorch source to reproduce this architecture and train from the selected seed with uv run. The file contains training code and data generation.": string;
+    "Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 128 and 1024. Train locally in your browser with live loss, accuracy and weights.": string;
+    "One architecture, four widths": string;
+    "Widths 16 / 32 / 128 / 1024 share one architecture (1,808 / 4,128 / 28,800 / 1,147,904 parameters). Each tab preserves its weights, optimizer and curves.": string;
+    "Seed 11, Rust/CUDA: after 10,000 epochs, train 32.1% and held-out 18.1%; neither reached 99%. Only one seed verified; browser results may differ.": string;
+    "Seed 11, Rust/CUDA: train ≥99% at epoch 931; held-out ≥99% at 3690. Only one seed verified; browser crossings may differ.": string;
     "A[{input},{output}] · {input} → {output} · weight {value}": string;
     "Dense residual block 1, channel {channel}, {width} to 1 neurons, {width} learned edges, pre-RMSNorm, ReLU and one skip connection": string;
     "All model {kind}, channel {channel}, {connections} connections from {parameters} unique parameters, shared E in a, Rotate90 b and tied readout roles, {width} channels, one Dense matrix, pre-RMSNorm, ReLU and residual skip, fixed color scale{highlight}": string;

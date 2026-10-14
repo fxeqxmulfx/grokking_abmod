@@ -7,6 +7,7 @@ import {modelId} from './models.ts';
 import {P} from './model.ts';
 import {initializeI18n, t, number, runtimeText} from './i18n.ts';
 import {initializeTask} from './task.ts';
+import {pytorchSource} from './pytorch-export.ts';
 import {modelInfo, initialModelWeights, predictModel, inputMatrix} from './models.ts';
 import {WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges} from './topology.ts';
 
@@ -27,7 +28,7 @@ await initializeI18n();
 function experiment(model: ModelId): Experiment {
   const info = modelInfo(model), seed = info.seed, initial = initialModelWeights(seed, model);
   return {model, weights: initial.slice(), initial, history: [], channel: 0, meshView: 'topology', networkMode: 'weight', networkHighlight: false, networkView: {zoom: 1, x: 0, y: 0}, metric: 'accuracy', worker: null, running: false, ready: false, label: 'Loading', step: 0, seed, activeMs: 0, dirty: true, metricsDirty: true,
-    options: {model, seed, backend: 'auto', maxEpochs: 10000, captureHz: 5, stopAtTarget: true}};
+    options: {model, seed, backend: 'auto', maxEpochs: 10000, captureHz: 5}};
 }
 const experiments: Partial<Record<ModelId, Experiment>> = {'dense-rotary': experiment('dense-rotary')};
 let state = experiments['dense-rotary']!;
@@ -323,7 +324,7 @@ function status(label: string, target = state) {
   target.label = label; target.running = label === 'Training' || label === 'Pausing';
   if (target !== state) return;
   ui('status', label);
-  const labelText = t(state.running ? 'Pause training' : 'Start training') + ' ';
+  const labelText = t(state.running ? 'Pause training' : state.step > 0 ? 'Continue training' : 'Start training') + ' ';
   if ($('train').firstChild?.textContent !== labelText) {
     const icon = document.createElement('span'); icon.textContent = state.running ? 'Ⅱ' : '↗';
     $('train').replaceChildren(document.createTextNode(labelText), icon);
@@ -331,7 +332,7 @@ function status(label: string, target = state) {
   $('train').classList.toggle('running', state.running);
   $('train').disabled = !state.ready || label === 'Pausing';
   $('step').disabled = !state.ready || state.running;
-  for (const id of ['seed', 'limit', 'stop-target', 'backend'] as const) $(id).disabled = state.running;
+  for (const id of ['seed', 'limit', 'backend'] as const) $(id).disabled = state.running;
 }
 function refreshMetrics() {
   const options = state.options, row = state.history.at(-1), progressStep = Math.max(state.step, row?.step ?? 0);
@@ -351,7 +352,7 @@ function refresh() {
   const options = state.options, model = modelInfo(state.model);
   W = model.width;
   $('seed').value = String(options.seed); $('limit').value = String(options.maxEpochs); $('backend').value = options.backend;
-  $('capture').value = String(options.captureHz); $('stop-target').checked = options.stopAtTarget;
+  $('capture').value = String(options.captureHz);
   ui('model-name', model.title + ' · ' + t(model.subtitle));
   uiTitle('model-name', $('model-name').textContent);
   ui('model-detail', W + ' channels · ' + number(model.parameters) + ' parameters · ' + t('ReLU') + ' · FP32');
@@ -380,7 +381,11 @@ function refresh() {
   $('scales').setAttribute('aria-label', t('Probe readout contributions for all {width} channels', {width: W}));
   for (const type of ['a', 'b'] as const) $('input-' + type).setAttribute('aria-label', runtimeText($('atlas-' + type + '-title').textContent + ' weights'));
   ui('model-description', t('One shared E (97 × {width}) embeds a and b and reads out the answer. Input: E[a] + Rotate90(E[b]). One pre-norm residual block applies RMSNorm → Dense A → ReLU, then adds the original input. Final RMSNorm and Eᵀ give 97 logits. E starts normal with variance 1/{width}; A is Kaiming normal with variance 2/{width}; there are no biases or learned norm gains.', {width: W}));
-  ui('reference-description', t(W === 1024 ? 'Seed 11, Rust/CUDA: train ≥99% and held-out ≤10% at epochs 18–110 (92 epochs); held-out ≥90% at 226 and ≥99% at 270. The 116-epoch rise meets the grokking criterion. Beige: train ≥99%; violet: perfect train; held-out ≤10% in both. Only one seed verified; browser crossings may differ.' : 'Seed 11, Rust/CUDA: train ≥99% at epoch 315; held-out ≥90% at 510 and ≥99% at 605, without a memorization plateau. Only one seed verified; browser crossings may differ.'));
+  const reference = W === 16 ? 'Seed 11, Rust/CUDA: after 10,000 epochs, train 32.1% and held-out 18.1%; neither reached 99%. Only one seed verified; browser results may differ.'
+    : W === 32 ? 'Seed 11, Rust/CUDA: train ≥99% at epoch 931; held-out ≥99% at 3690. Only one seed verified; browser crossings may differ.'
+    : W === 1024 ? 'Seed 11, Rust/CUDA: train ≥99% and held-out ≤10% at epochs 18–110 (92 epochs); held-out ≥90% at 226 and ≥99% at 270. The 116-epoch rise meets the grokking criterion. Beige: train ≥99%; violet: perfect train; held-out ≤10% in both. Only one seed verified; browser crossings may differ.'
+    : 'Seed 11, Rust/CUDA: train ≥99% at epoch 315; held-out ≥90% at 510 and ≥99% at 605, without a memorization plateau. Only one seed verified; browser crossings may differ.';
+  ui('reference-description', t(reference));
   ui('criterion-description', t('At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.'));
   ui('scale-formula', t('|probe hidden꜀| × ‖centered Eᵀ꜀‖ measures a channel’s readout contribution. If channels share a pixel, its bar shows their maximum and selects that channel. The channel input selects any channel exactly.'));
   status(state.label); invalidate();
@@ -389,7 +394,7 @@ function initialize() {
   if (!$('seed').reportValidity() || !$('limit').reportValidity()) return;
   const target = state;
   target.worker?.terminate();
-  target.options = {model: target.model, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value), stopAtTarget: $('stop-target').checked};
+  target.options = {model: target.model, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value)};
   target.seed = target.options.seed; target.initial = initialModelWeights(target.seed, target.model); target.weights = target.initial.slice();
   target.step = 0; target.activeMs = 0; target.history = []; target.criterion = null; target.ready = false; target.running = false; target.error = null; target.info = null;
   status('Loading', target); refresh();
@@ -421,12 +426,12 @@ $('step').onclick = () => send(state.worker, {type: 'step'});
 $('reset').onclick = initialize;
 $('seed').onchange = initialize;
 $('backend').onchange = initialize;
-for (const id of ['limit', 'stop-target']) $(id).onchange = () => {
+$('limit').onchange = () => {
   if (!$('limit').reportValidity()) return;
   const maxEpochs = Number($('limit').value);
   $('progress').max = maxEpochs; ui('budget-label', `/ ${number(maxEpochs)}`);
-  state.options.maxEpochs = maxEpochs; state.options.stopAtTarget = $('stop-target').checked;
-  send(state.worker, {type: 'configure', maxEpochs, stopAtTarget: state.options.stopAtTarget});
+  state.options.maxEpochs = maxEpochs;
+  send(state.worker, {type: 'configure', maxEpochs});
 };
 $('capture').onchange = () => { state.options.captureHz = Number($('capture').value); send(state.worker, {type: 'capture', hz: state.options.captureHz}); };
 $('channel-select').oninput = () => {
@@ -510,7 +515,7 @@ for (const id of ['input-a', 'input-b', 'readout'] as const) $(id).onmouseleave 
   if (document.body.dataset.view === 'channels' && state.networkHighlight) invalidate();
 };
 function download(content: BlobPart, name: string, type: string) { const url = URL.createObjectURL(new Blob([content], {type})), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-$('export-weights').onclick = () => download(state.weights, `${state.model}-w${W}-seed${state.seed}-step${state.step}.f32`, 'application/octet-stream');
+$('export-pytorch').onclick = () => download(pytorchSource(state.options), `rotate90-w${W}-seed${state.seed}.py`, 'text/x-python');
 $('export-metrics').onclick = () => {
   const keys = ['step', 'epoch', 'trainLoss', 'heldoutLoss', 'trainAccuracy', 'heldoutAccuracy', 'phase'] as const;
   download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');

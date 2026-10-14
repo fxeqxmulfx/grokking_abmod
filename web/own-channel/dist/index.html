@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f6f1">
-  <meta name="description" content="Compare one shared-embedding Rotate90 Dense architecture at widths 128 and 1024. Train locally in your browser with live loss, accuracy and weights.">
+  <meta name="description" content="Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 128 and 1024. Train locally in your browser with live loss, accuracy and weights.">
   <title>Rotate90 Grokking Lab</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
@@ -16,7 +16,7 @@
     <div class="header-tools"><span class="device" id="device">Preparing training engine…</span><select id="language" data-language-select aria-label="Language"></select><button id="task-help" aria-label="Task and solution" title="Task and solution">∑</button><button id="about" aria-label="About this experiment" title="About this experiment">?</button></div>
   </header>
   <main>
-    <div class="workspace-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="dense-rotary" class="active" aria-pressed="true">Rotate90 · 128</button><button data-model-tab="dense-rotary-wide" aria-pressed="false">Rotate90 · 1024</button></nav><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Network</button></nav></div>
+    <div class="workspace-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="dense-rotary-16" aria-pressed="false">W16</button><button data-model-tab="dense-rotary-32" aria-pressed="false">W32</button><button data-model-tab="dense-rotary" class="active" aria-pressed="true">W128</button><button data-model-tab="dense-rotary-wide" aria-pressed="false">W1024</button></nav><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Network</button></nav></div>
     <div class="dashboard">
       <div class="visuals">
         <section class="card chart-card" aria-labelledby="curve-title">
@@ -53,13 +53,13 @@
         <div class="metrics"><div><span>Train accuracy</span><strong id="train-accuracy">—</strong></div><div><span>Held-out accuracy</span><strong id="heldout-accuracy">—</strong></div><div><span>Train loss</span><strong id="train-loss">—</strong></div><div><span>Held-out loss</span><strong id="heldout-loss">—</strong></div></div>
         <div class="form-row"><label>Seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="11" required></label><label>Epoch limit<input id="limit" type="number" min="1" max="10000" step="1" value="10000" required></label></div>
         <div class="capture-row engine-select"><label for="backend">Training engine</label><select id="backend"><option value="auto">Automatic</option><option value="simd">SIMD · 1 thread</option><option value="simd-2">SIMD · 2 threads</option><option value="simd-4">SIMD · 4 threads</option><option value="scalar">Scalar · 1 thread</option><option value="scalar-2">Scalar · 2 threads</option><option value="scalar-4">Scalar · 4 threads</option></select></div>
-        <label class="check stop-check"><input id="stop-target" type="checkbox" checked> Stop at 99% held-out accuracy</label>
+        <p class="helper stop-check">Pauses at 99% test accuracy. Continue to train further.</p>
         <button id="train" class="primary" disabled>Start training <span>↗</span></button><div class="button-row"><button id="step" disabled>+1 epoch</button><button id="reset">Reset</button></div>
         <div class="capture-row weight-capture"><label for="capture">Weight updates</label><select id="capture"><option value="1">1 / second</option><option value="5" selected>5 / second</option><option value="10">10 / second</option></select></div>
         <p class="throughput"><span id="throughput">Ready when you are</span><span id="elapsed">0:00</span></p>
         <div id="phase" class="phase">Waiting for the first observation</div>
         <p id="error" class="error" role="alert" hidden></p>
-        <div class="export"><button id="export-metrics">Export metrics</button><button id="export-weights">Save weights</button></div>
+        <div class="export"><button id="export-metrics">Export metrics</button><button id="export-pytorch" title="Export PyTorch source; run with uv">PyTorch .py</button></div>
       </aside>
     </div>
   </main>
@@ -95,7 +95,7 @@
         <div class="task-model-copy">
           <div class="task-model-heading"><h3>How the model learns</h3><nav class="tabs task-model-tabs" role="tablist" aria-label="Model presentation"><button id="model-tab-diagram" data-model-explanation="diagram" role="tab" aria-controls="model-page-diagram" aria-selected="true" class="active">Diagram</button><button id="model-tab-types" data-model-explanation="types" role="tab" aria-controls="model-page-types" aria-selected="false">Types</button><button id="model-tab-equations" data-model-explanation="equations" role="tab" aria-controls="model-page-equations" aria-selected="false">Equations</button></nav></div>
           <p>Rotate90 predicts one of 97 answer classes q from (a,b). One shared E embeds both operands and reads out the answer.</p>
-          <p class="task-width"><span>Width</span> <code>W = 128</code> <span>or</span> <code>1024</code></p>
+          <p class="task-width"><span>Width</span> <code>W = 16, 32, 128</code> <span>or</span> <code>1024</code></p>
         </div>
         <div class="task-model-panels">
           <figure id="model-page-diagram" class="task-model-diagram" role="tabpanel" aria-labelledby="model-tab-diagram"><picture><source media="(max-width: 649px)" data-model-diagram-portrait><img data-task-diagram="model" alt="Rotate90 model architecture"></picture><figcaption>Dashed lines reuse E.</figcaption></figure>
@@ -104,7 +104,7 @@
               <table><thead><tr><th scope="col">Symbol</th><th scope="col">Type / domain</th></tr></thead><tbody>
                 <tr><th scope="row"><code>a, b</code></th><td><code>a ∈ {0,…,96}</code><code>b ∈ {1,…,96}</code></td></tr>
                 <tr><th scope="row"><code>q, q̂</code></th><td><code>q, q̂ ∈ {0,…,96}</code></td></tr>
-                <tr><th scope="row"><code>W</code></th><td><code>W ∈ {128,1024}</code></td></tr>
+                <tr><th scope="row"><code>W</code></th><td><code>W ∈ {16,32,128,1024}</code></td></tr>
                 <tr><th scope="row"><code>ε</code></th><td><code>ε = 10⁻⁵ ∈ ℝ<sub>&gt;0</sub></code></td></tr>
                 <tr><th scope="row"><code>c, i, j, k</code></th><td><code>c, i ∈ {0,…,W−1}</code><code>j ∈ {0,…,W/2−1}</code><code>k ∈ {0,…,96}</code></td></tr>
               </tbody></table>
@@ -152,9 +152,10 @@
     <h3>What counts as grokking?</h3><p id="criterion-description">At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.</p>
     <p class="helper" id="reference-description">Seed 11, Rust/CUDA: held-out ≥99% at epoch 605 for 128 channels and 270 for 1024. The wider model has a 92-epoch memorization plateau and a 116-epoch rise to ≥90%. Only one seed verified; browser crossings may differ.</p>
     <h3>Channel scales</h3><p class="helper" id="scale-formula">|probe hidden꜀| × ‖centered Eᵀ꜀‖</p>
-    <h3>One architecture, two widths</h3><p class="helper">Only width changes: 128 channels / 28,800 parameters, or 1024 / 1,147,904. Switching model tabs pauses the previous model and preserves its weights, optimizer and curves. Training starts from random initialization on your device.</p>
+    <h3>One architecture, four widths</h3><p class="helper">Widths 16 / 32 / 128 / 1024 share one architecture (1,808 / 4,128 / 28,800 / 1,147,904 parameters). Each tab preserves its weights, optimizer and curves.</p>
     <h3>All weights, live</h3><p class="helper">All draws every E connection in its three shared roles and every A connection. Pink is positive; blue is negative. Color shade follows magnitude on a fixed logarithmic scale. Weights shows values; Change ×4 shows changes from initialization with a fixed scale. Highlight emphasizes a channel. Zoom, drag and Fit explore the graph; Channel shows all W inputs to one ReLU output and its skip. All uses neutral nodes. Channel shows probe activations.</p>
-    <p class="helper"><a href="https://content.wolfram.com/sites/43/2024/08/sw08202024topologyimg1.png" target="_blank" rel="noreferrer">Wolfram: mesh topology reference ↗</a> · <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">RoFormer: pairwise rotations ↗</a></p>
+    <p class="helper">Export PyTorch source to reproduce this architecture and train from the selected seed with uv run. The file contains training code and data generation.</p>
+    <p class="helper"><a href="https://arxiv.org/abs/2201.02177" target="_blank" rel="noreferrer">Grokking: original paper ↗</a> · <a href="https://content.wolfram.com/sites/43/2024/08/sw08202024topologyimg1.png" target="_blank" rel="noreferrer">Wolfram: mesh topology reference ↗</a> · <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">RoFormer: pairwise rotations ↗</a></p>
     <p id="backend-note" class="helper" hidden></p><p id="engine-error" class="error" hidden></p>
   </dialog>
 </body>

@@ -18,6 +18,7 @@ for (const directory of ['dist/', 'build/dist/', 'build/src/', 'build/tests/']) 
   for (const filename of readdirSync(location)) if (filename.endsWith('.wgsl') || /^(gpu|models-gpu|measure-gpu|measure-dense-gpu)\.(js|d\.ts|js\.map)$/.test(filename)) rmSync(new URL(filename, location));
 }
 run(['scripts/build-locales.ts']);
+run(['scripts/build-pytorch.ts']);
 run(['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json']);
 run(['node_modules/typescript/bin/tsc', '-p', 'tsconfig.tools.json']);
 run(['build/scripts/build-wasm.js']);

@@ -4,11 +4,13 @@ function dense(id, width) {
         reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width };
 }
 export const MODELS = {
+    'dense-rotary-16': dense('dense-rotary-16', 16),
+    'dense-rotary-32': dense('dense-rotary-32', 32),
     'dense-rotary': dense('dense-rotary', 128),
     'dense-rotary-wide': dense('dense-rotary-wide', 1024),
 };
 export function modelId(id) {
-    if (id !== 'dense-rotary' && id !== 'dense-rotary-wide')
+    if (!Object.hasOwn(MODELS, id))
         throw new Error('Unknown model.');
     return id;
 }

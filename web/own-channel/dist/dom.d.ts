@@ -64,7 +64,6 @@ declare const tags: {
     readonly seed: "input";
     readonly limit: "input";
     readonly backend: "select";
-    readonly "stop-target": "input";
     readonly train: "button";
     readonly step: "button";
     readonly reset: "button";
@@ -74,7 +73,7 @@ declare const tags: {
     readonly phase: "div";
     readonly error: "p";
     readonly "export-metrics": "button";
-    readonly "export-weights": "button";
+    readonly "export-pytorch": "button";
     readonly "task-dialog": "dialog";
     readonly "task-title": "h2";
     readonly "task-language": "select";

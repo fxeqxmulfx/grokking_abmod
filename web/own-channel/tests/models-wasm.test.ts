@@ -1,5 +1,6 @@
 import {root} from '../project.ts';
 import type {Vector, Weights, ModelId} from '../dist/types.js';
+import {MODEL_IDS} from '../dist/types.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -18,7 +19,7 @@ function close(actual: Vector, expected: Vector, tolerance: number, label: strin
   assert.ok(Number.isFinite(error) && error <= tolerance, `${label}: error ${error} at ${index}, tolerance ${tolerance}`);
 }
 
-for (const model of ['dense-rotary', 'dense-rotary-wide'] as const) for (const variant of ['simd', 'scalar'] as const) {
+for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const) {
   const bytes = await readFile(new URL(`dist/${model}-${variant}.wasm`, root)), info = modelInfo(model);
   const create = (weights?: Weights) => WASMTrainer.create(7, {model, bytes: new Uint8Array(bytes), scalar: variant === 'scalar', weights});
   test(`${model}/${variant} has no imports and matches the seeded initialization`, async () => {
@@ -80,8 +81,10 @@ test('Rotary roles preserve embedding norms and distinguish swapped nonidentical
   assert.notDeepEqual(predictModel(weights, 19, 27, info.id, input).rawInput, predictModel(weights, 27, 19, info.id, input).rawInput);
   assert.equal(info.parameters, 28800);
 });
-test('Normal-E and Kaiming-A checkpoints match Rust byte-for-byte at both displayed widths', () => {
+test('Normal-E and Kaiming-A checkpoints match Rust byte-for-byte at all displayed widths', () => {
   for (const [model, hash] of [
+    ['dense-rotary-16', '2b063d5498dd54fec02097d17561b06fe977a41c6251730e2a424227e382c3c4'],
+    ['dense-rotary-32', 'e81b4ca9d1d0625cbdcde867a6e22bb3ec84140651dcbe1b355ee1c32c36fe39'],
     ['dense-rotary', 'b90448461caff3b6e04bd9ead0a3f7e7f055e8c1cd71ce19f1069186c74ae04b'],
     ['dense-rotary-wide', 'ea659d5b1596d3a019c3d2af55cb4c030244481b73011b0def3572ddc04d1e91'],
   ] as const) assert.equal(createHash('sha256').update(new Uint8Array(initialModelWeights(11, model).buffer)).digest('hex'), hash);

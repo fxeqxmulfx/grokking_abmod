@@ -3,8 +3,10 @@ const post = (message, transfer = []) => postMessage(message, transfer);
 import { Sampler, ShortGrokking } from './model.js';
 import { modelInfo } from './models.js';
 import { createEngine } from './engine.js';
+import { AccuracyPause } from './training-control.js';
 let engine, sampler, criterion;
 let paused = true, running = false;
+let target = new AccuracyPause();
 let options, activeMs = 0, lastSnapshot = 0, lastSnapshotStep = -1, chunk = 2;
 async function snapshot() {
     if (engine.step === lastSnapshotStep)
@@ -44,15 +46,15 @@ async function run(singleReport = false) {
             chunk = Math.max(1, Math.min(32, Math.round(count * 50 / Math.max(elapsed, 1))));
             if (engine.step === boundary) {
                 const row = await report();
-                if (options.stopAtTarget && row.heldoutAccuracy >= .99) {
-                    status = criterion.event?.delayed ? 'Grokking reached' : 'Target reached';
+                if (target.observe(row.heldoutAccuracy)) {
+                    status = 'Paused at 99% held-out accuracy';
                     break;
                 }
             }
             if (performance.now() - lastSnapshot >= 1000 / options.captureHz)
                 await snapshot();
         }
-        if (engine.step >= cap)
+        if (engine.step >= cap && status === 'Paused')
             status = 'Epoch limit reached';
         await snapshot();
         post({ type: 'status', status });
@@ -69,6 +71,7 @@ onmessage = async ({ data: message }) => {
             activeMs = lastSnapshot = 0;
             lastSnapshotStep = -1;
             chunk = 2;
+            target = new AccuracyPause();
             if (!Number.isInteger(options.seed) || options.seed < 0 || options.seed > 0xffffffff)
                 throw new Error('Seed must be an integer between 0 and 4294967295.');
             if (!Number.isInteger(options.maxEpochs) || options.maxEpochs < 1 || options.maxEpochs > 10000)
@@ -96,7 +99,6 @@ onmessage = async ({ data: message }) => {
             if (!Number.isInteger(message.maxEpochs) || message.maxEpochs < 1 || message.maxEpochs > 10000)
                 throw new Error('Epoch limit must be between 1 and 10000.');
             options.maxEpochs = message.maxEpochs;
-            options.stopAtTarget = Boolean(message.stopAtTarget);
         }
         else if (message.type === 'capture') {
             if (![1, 5, 10].includes(message.hz))

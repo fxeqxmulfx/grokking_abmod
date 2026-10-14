@@ -1,6 +1,6 @@
 export const PRIVATE_ADDRESSES = ['gradient', 'samples', 'readout', 'readout_gradient', 'states', 'normalized', 'branches', 'inverse', 'dh', 'dn', 'temporary', 'logits', 'errors', 'metrics', 'statistics', 'input', 'hidden'];
 export function cpuMemoryLayout(width, threads) {
-    if (![128, 1024].includes(width) || !Number.isInteger(threads) || threads < 1 || threads > 8)
+    if (![16, 32, 128, 1024].includes(width) || !Number.isInteger(threads) || threads < 1 || threads > 8)
         throw new Error('Invalid CPU memory layout.');
     const weightBytes = (97 * width + width * width) * 4, vectorBytes = width * 4;
     const align = (value) => Math.ceil(value / 64) * 64;

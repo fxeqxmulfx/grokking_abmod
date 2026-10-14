@@ -1,4 +1,5 @@
-export type ModelId = 'dense-rotary' | 'dense-rotary-wide';
+export const MODEL_IDS = ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary', 'dense-rotary-wide'] as const;
+export type ModelId = typeof MODEL_IDS[number];
 export const BACKENDS = ['auto', 'simd', 'scalar', 'simd-2', 'simd-4', 'scalar-2', 'scalar-4'] as const;
 export type Backend = typeof BACKENDS[number];
 export type Weights = Float32Array<ArrayBuffer>;
@@ -28,7 +29,7 @@ export interface TrainingEngine {
 }
 export interface TrainingOptions {
   model: ModelId; seed: number; backend: Backend; maxEpochs: number;
-  captureHz: number; stopAtTarget: boolean;
+  captureHz: number;
 }
 export interface Interval {start: number | null; end: number | null; epochs: number}
 export interface GrokkingEvent {
@@ -41,7 +42,7 @@ export interface Criterion {
 export type WorkerRequest =
   | {type: 'initialize'; options: TrainingOptions}
   | {type: 'train' | 'step' | 'pause'}
-  | {type: 'configure'; maxEpochs: number; stopAtTarget: boolean}
+  | {type: 'configure'; maxEpochs: number}
   | {type: 'capture'; hz: number};
 export type WorkerResponse =
   | {type: 'ready'; info: EngineInfo}

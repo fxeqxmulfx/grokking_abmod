@@ -2,6 +2,7 @@ import wabtFactory from 'wabt';
 import {readFile} from 'node:fs/promises';
 import {root} from '../project.ts';
 import type {ModelId} from '../src/types.ts';
+import {modelInfo} from '../src/models.ts';
 import {sharedWat} from './build-dense-trainers.ts';
 import type {CPUKernelConfig} from './cpu-config.ts';
 import {matrixKernels, reluKernels, unrollVectorKernels} from './cpu-kernels.ts';
@@ -13,7 +14,7 @@ function read(name: string) {
   return sources.get(name)!;
 }
 export async function assembleCPU(model: ModelId, variant: 'simd' | 'scalar', config: CPUKernelConfig, shared = false): Promise<Uint8Array<ArrayBuffer>> {
-  const width = model === 'dense-rotary' ? 128 : 1024, simd = variant === 'simd', weightBytes = (97 * width + width * width) * 4;
+  const width = modelInfo(model).width, simd = variant === 'simd', weightBytes = (97 * width + width * width) * 4;
   const [common, vectorSource, rotarySource, wabt] = await Promise.all([read(model), read(variant), read(`rotary-${variant}`), factory]);
   const kernels = unrollVectorKernels(vectorSource.replaceAll('@WEIGHT_BYTES', String(weightBytes)), simd, config.unroll);
   const rotary = rotarySource.replaceAll('(i32.const 512)', `(i32.const ${width * 4})`);

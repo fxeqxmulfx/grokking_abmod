@@ -1,0 +1,6 @@
+PASS dense-rotary-16: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-32: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-wide: real .py download, one browser epoch, correct width and preserved source.
+PASS auto-pause: epoch 600, test 99.08%.
+PASS: mandatory target pause, Continue preserves worker/optimizer/history, three more epochs complete without re-pausing, and Reset restores the initial state.

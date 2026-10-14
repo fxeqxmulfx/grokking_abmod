@@ -40,7 +40,7 @@ try {
   const injected = await call('Page.addScriptToEvaluateOnNewDocument', {source:`Object.defineProperty(navigator,'languages',{configurable:true,get:()=>['es-MX','en-US']});try{localStorage.removeItem('grokking.locale')}catch{}`});
   await call('Emulation.setDeviceMetricsOverride',{width:1366,height:768,deviceScaleFactor:1,mobile:false});
   await call('Page.navigate',{url:origin});
-  await wait(`document.documentElement.lang==='es'&&document.getElementById('task-dialog')?.open&&[...document.querySelectorAll('[data-task-diagram]')].every(image=>image.complete&&image.naturalWidth>0)`);
+  await wait(`document.documentElement?.lang==='es'&&document.getElementById('task-dialog')?.open&&[...document.querySelectorAll('[data-task-diagram]')].every(image=>image.complete&&image.naturalWidth>0)`);
   await call('Page.removeScriptToEvaluateOnNewDocument',{identifier:injected.identifier});
   if (!await evaluate(`document.getElementById('task-title').textContent===${JSON.stringify(expected('es')['Division modulo 97'])}&&document.getElementById('language').value==='auto'`)) throw new Error('Browser language was not selected automatically.');
   for (const language of languages) {
@@ -87,7 +87,7 @@ try {
   await call('Emulation.setDeviceMetricsOverride',{width:1366,height:768,deviceScaleFactor:1,mobile:false});
   await writeFile('/tmp/grokking-training-ja.png',Buffer.from((await call<{data: string}>('Page.captureScreenshot')).data,'base64'));
   await call('Page.navigate',{url:origin});
-  await wait(`document.documentElement.lang==='ja'&&document.getElementById('task-dialog')?.open`);
+  await wait(`document.documentElement?.lang==='ja'&&document.getElementById('task-dialog')?.open`);
   if(!await evaluate(`document.getElementById('language').value==='ja'`))throw new Error('Manual language was not persisted.');
   await evaluate(`document.getElementById('task-language').value='auto';document.getElementById('task-language').dispatchEvent(new Event('change'))`);
   await wait(`document.documentElement.lang==='en'&&document.getElementById('language').value==='auto'`);

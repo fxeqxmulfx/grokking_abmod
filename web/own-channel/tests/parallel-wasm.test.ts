@@ -8,6 +8,7 @@ import {Sampler, dataset} from '../dist/model.js';
 import {modelInfo, initialModelWeights} from '../dist/models.js';
 import {cpuMemoryLayout} from '../dist/cpu-memory.js';
 import type {Vector} from '../dist/types.js';
+import {MODEL_IDS} from '../dist/types.js';
 import {modelLossAndGradient} from './models-reference.ts';
 import {adamStep} from './reference.ts';
 import {nodeCPUThread} from './node-cpu.ts';
@@ -21,7 +22,7 @@ function close(actual: Vector, expected: Vector, tolerance: number, label: strin
   assert.ok(maximum <= tolerance, `${label}: ${maximum} at ${at}, tolerance ${tolerance}`);
 }
 test('Shared CPU buffers are aligned, disjoint and bounded', () => {
-  for (const width of [128, 1024]) for (const count of [1, 2, 4, 8]) {
+  for (const width of [16, 32, 128, 1024]) for (const count of [1, 2, 4, 8]) {
     const layout = cpuMemoryLayout(width, count);
     assert.equal(layout.slots.length, count); assert.equal(layout.control % 64, 0);
     for (let slot = 0; slot < count; slot++) {
@@ -36,7 +37,7 @@ test('Shared CPU buffers are aligned, disjoint and bounded', () => {
   assert.throws(() => cpuMemoryLayout(256, 2)); assert.throws(() => cpuMemoryLayout(128, 0));
 });
 
-for (const model of ['dense-rotary', 'dense-rotary-wide'] as const) for (const variant of ['simd', 'scalar'] as const) for (const threads of [2, 4]) {
+for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const) for (const threads of [2, 4]) {
   test(`${model}/${variant}/${threads} threads: full gradients, shared AdamW and evaluation`, async () => {
     const bytes = new Uint8Array(await readFile(new URL(`dist/${model}-${variant}-shared.wasm`, root)));
     const serialBytes = new Uint8Array(await readFile(new URL(`dist/${model}-${variant}.wasm`, root)));

@@ -1,6 +1,7 @@
 import {readFile, writeFile} from 'node:fs/promises';
 import {root} from '../project.ts';
 import {PRIVATE_ADDRESSES} from '../src/cpu-memory.ts';
+import {MODELS} from '../src/models.ts';
 
 // The 128-channel handwritten Dense trainer is the source. Specialize only
 // widths, byte strides, addresses and parameter counts; the math is identical.
@@ -37,8 +38,7 @@ ${globals.join('\n')}
 
 ${source}`;
 }
-for (const width of [128, 1024]) {
-  const name = `dense-rotary${width === 1024 ? '-wide' : ''}`;
+for (const {width, id: name} of Object.values(MODELS)) {
   if (width !== 128) await writeFile(new URL(`wasm/${name}.wat`, root), denseWat(width));
 }
 
