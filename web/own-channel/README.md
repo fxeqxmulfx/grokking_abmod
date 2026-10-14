@@ -111,7 +111,9 @@ The **PyTorch .py** button exports a standalone CPU training script with the
 selected width, seed and epoch limit. It includes the model, exact initialization,
 dataset split, shuffled epoch sampler, AdamW settings and CSV metrics. Run the
 download with `uv run rotate90-w128-seed11.py`; no project checkout is needed.
-CLI options include `--epochs`, `--seed`, `--width` and `--threads`.
+CLI options include `--epochs`, `--seed`, `--width`, `--threads`,
+`--learning-rate` and `--weight-decay`. Each export takes its optimizer defaults
+from the selected tab's model profile, also used by every CPU/WASM engine.
 
 PEP 723 metadata installs pinned PyTorch from its CPU index and NumPy. On
 reaching 99% test accuracy, an interactive run asks whether to continue with

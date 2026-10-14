@@ -9,6 +9,8 @@ export interface ModelInfo {
     parameters: number;
     embedding: number;
     gain: number;
+    learningRate: number;
+    weightDecay: number;
 }
 export declare const MODELS: Record<ModelId, ModelInfo>;
 export declare function modelId(id: string): ModelId;

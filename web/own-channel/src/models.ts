@@ -4,9 +4,11 @@ import type {ModelId, Vector, Weights} from './types.ts';
 export interface ModelInfo {
   id: ModelId; title: string; subtitle: string; width: number; seed: number;
   reportEvery: number; parameters: number; embedding: number; gain: number;
+  learningRate: number; weightDecay: number;
 }
 function dense(id: ModelId, width: number): ModelInfo {
   return {id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
+    learningRate: .001, weightDecay: .1,
     reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width};
 }
 export const MODELS: Record<ModelId, ModelInfo> = {

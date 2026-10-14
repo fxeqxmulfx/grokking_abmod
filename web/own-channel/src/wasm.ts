@@ -42,7 +42,7 @@ export class WASMTrainer {
     this.instance = instance; this.exports = instance.exports as unknown as TrainerExports; this.scalar = options.scalar;
     this.model = modelInfo(options.model); const parameters = this.model.parameters;
     this.step = 0; this.b1 = 1; this.b2 = 1;
-    this.learningRate = options.learningRate ?? .001; this.decay = options.decay ?? .1;
+    this.learningRate = options.learningRate ?? this.model.learningRate; this.decay = options.decay ?? this.model.weightDecay;
     for (const name of ['prepare', 'gradient_batch', 'step', 'evaluate', 'forward'] as const) if (typeof this.exports[name] !== 'function') throw new Error('Invalid WASM trainer exports.');
     if (!(this.exports.memory instanceof WebAssembly.Memory)) throw new Error('Invalid WASM trainer memory.');
     type Address = 'weights' | 'gradient' | 'samples' | 'metrics' | 'logits' | 'data';

@@ -32,6 +32,8 @@ from torch.nn import functional as F
 DEFAULT_WIDTH = 128
 DEFAULT_SEED = 11
 DEFAULT_EPOCHS = 10000
+DEFAULT_LEARNING_RATE = 0.001
+DEFAULT_WEIGHT_DECAY = 0.1
 P = 97
 TRAIN = P * (P - 1) // 2
 BATCH = 512
@@ -135,13 +137,15 @@ def evaluate(model: Rotate90, rows: torch.Tensor) -> tuple[float, float]:
     return loss / len(rows), correct / len(rows)
 
 
-def train(width: int, seed: int, epochs: int, continue_after_target: bool = False) -> Rotate90:
+def train(width: int, seed: int, epochs: int, continue_after_target: bool = False,
+          learning_rate: float = DEFAULT_LEARNING_RATE,
+          weight_decay: float = DEFAULT_WEIGHT_DECAY) -> Rotate90:
     model = Rotate90(width, seed)
     rows = dataset(seed)
     sampler = Sampler(seed)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001,
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                                  betas=(0.9, 0.98), eps=1e-8,
-                                 weight_decay=0.1, foreach=False)
+                                 weight_decay=weight_decay, foreach=False)
     writer = csv.writer(sys.stdout)
     writer.writerow(("epoch", "step", "train_loss", "train_accuracy", "test_loss", "test_accuracy"))
     step, target_reached = 0, False
@@ -152,7 +156,7 @@ def train(width: int, seed: int, epochs: int, continue_after_target: bool = Fals
                 optimizer.zero_grad(set_to_none=True)
                 F.cross_entropy(model(batch[:, 0], batch[:, 1]), batch[:, 2]).backward()
                 step += 1
-                optimizer.param_groups[0]["lr"] = 0.001 * min(step / 10, 1)
+                optimizer.param_groups[0]["lr"] = learning_rate * min(step / 10, 1)
                 optimizer.step()
         train_loss, train_accuracy = evaluate(model, rows[:TRAIN])
         test_loss, test_accuracy = evaluate(model, rows[TRAIN:])
@@ -175,6 +179,8 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=DEFAULT_WIDTH)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
+    parser.add_argument("--learning-rate", type=float, default=DEFAULT_LEARNING_RATE)
+    parser.add_argument("--weight-decay", type=float, default=DEFAULT_WEIGHT_DECAY)
     parser.add_argument("--threads", type=int, default=min(4, os.cpu_count() or 1))
     parser.add_argument("--continue-after-target", action="store_true",
                         help="Keep training after the first 99%% test accuracy crossing.")
@@ -183,8 +189,11 @@ def main() -> None:
         parser.error("Width must be even and at least 2; seed must be an unsigned 32-bit integer.")
     if not 1 <= args.epochs <= 10000 or args.threads < 1:
         parser.error("Epochs must be between 1 and 10000; threads must be at least 1.")
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0 or not math.isfinite(args.weight_decay) or args.weight_decay < 0:
+        parser.error("Learning rate must be finite and positive; weight decay must be finite and nonnegative.")
     torch.set_num_threads(args.threads)
-    train(args.width, args.seed, args.epochs, args.continue_after_target)
+    train(args.width, args.seed, args.epochs, args.continue_after_target,
+          args.learning_rate, args.weight_decay)
 
 
 if __name__ == "__main__":

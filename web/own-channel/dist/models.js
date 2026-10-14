@@ -1,6 +1,7 @@
 import { P, Random } from './model.js';
 function dense(id, width) {
     return { id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
+        learningRate: .001, weightDecay: .1,
         reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width };
 }
 export const MODELS = {

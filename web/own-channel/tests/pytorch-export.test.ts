@@ -15,7 +15,9 @@ test('all four model exports contain the selected width, seed and budget with st
     assert.ok(source.includes(`DEFAULT_WIDTH = ${modelInfo(model).width}\n`));
     assert.ok(source.includes('DEFAULT_SEED = 4294967295\n'));
     assert.ok(source.includes('DEFAULT_EPOCHS = 17\n'));
-    assert.equal(source.replace(/^DEFAULT_(WIDTH|SEED|EPOCHS) = \d+$/gm, ''), canonical.replace(/^DEFAULT_(WIDTH|SEED|EPOCHS) = \d+$/gm, ''));
+    assert.ok(source.includes(`DEFAULT_LEARNING_RATE = ${modelInfo(model).learningRate}\n`));
+    assert.ok(source.includes(`DEFAULT_WEIGHT_DECAY = ${modelInfo(model).weightDecay}\n`));
+    assert.equal(source.replace(/^DEFAULT_(WIDTH|SEED|EPOCHS|LEARNING_RATE|WEIGHT_DECAY) = [\d.]+$/gm, ''), canonical.replace(/^DEFAULT_(WIDTH|SEED|EPOCHS|LEARNING_RATE|WEIGHT_DECAY) = [\d.]+$/gm, ''));
     assert.ok(!/torch\.save|pickle|base64/.test(source));
   }
   for (const seed of [-1, .5, NaN, 0x100000000]) assert.throws(() => pytorchSource({model: 'dense-rotary', seed, maxEpochs: 1}));

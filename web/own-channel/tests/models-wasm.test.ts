@@ -62,7 +62,7 @@ for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const
     try {
       for (let step = 1; step <= 3; step++) {
         const sample = sampler.sample().slice(0, info.width === 1024 ? 48 : 512);
-        adamStep(expected, modelLossAndGradient(expected, data, sample, model).gradient, moments, step);
+        adamStep(expected, modelLossAndGradient(expected, data, sample, model).gradient, moments, step, info);
         await engine.train([sample]); close(await engine.readWeights(), expected, 2e-5, `AdamW step ${step}`);
       }
       const row = await engine.evaluate();

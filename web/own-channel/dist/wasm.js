@@ -52,8 +52,8 @@ export class WASMTrainer {
         this.step = 0;
         this.b1 = 1;
         this.b2 = 1;
-        this.learningRate = options.learningRate ?? .001;
-        this.decay = options.decay ?? .1;
+        this.learningRate = options.learningRate ?? this.model.learningRate;
+        this.decay = options.decay ?? this.model.weightDecay;
         for (const name of ['prepare', 'gradient_batch', 'step', 'evaluate', 'forward'])
             if (typeof this.exports[name] !== 'function')
                 throw new Error('Invalid WASM trainer exports.');

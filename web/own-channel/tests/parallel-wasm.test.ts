@@ -58,7 +58,7 @@ for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const
       const expected = Float64Array.from(weights), moments = new Float64Array(info.parameters * 2);
       for (let step = 1; step <= 3; step++) {
         const sample = sampler.sample().slice(0, info.width === 1024 ? 48 : 512);
-        adamStep(expected, modelLossAndGradient(expected, data, sample, model).gradient, moments, step);
+        adamStep(expected, modelLossAndGradient(expected, data, sample, model).gradient, moments, step, info);
         await parallel.train([sample]); await serial.train([sample]);
         close(await parallel.readWeights(), expected, 2e-5, `f64 AdamW step ${step}`);
         close(await parallel.readWeights(), await serial.readWeights(), 2e-5, `serial AdamW step ${step}`);

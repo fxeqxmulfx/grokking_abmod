@@ -42,6 +42,7 @@ for location in sorted(directory.iterdir()):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert (module.DEFAULT_WIDTH, module.DEFAULT_SEED, module.DEFAULT_EPOCHS) == (reference["width"], 11, 17)
+    assert (module.DEFAULT_LEARNING_RATE, module.DEFAULT_WEIGHT_DECAY) == (reference["learningRate"], reference["weightDecay"])
     model = module.Rotate90()
     assert list(dict(model.named_parameters())) == ["E", "A"]
     assert sum(parameter.numel() for parameter in model.parameters()) == reference["parameters"]
@@ -60,12 +61,12 @@ for location in sorted(directory.iterdir()):
     assert abs(loss.item() - reference["loss"]) < 2e-12
     loss.backward()
     torch.testing.assert_close(flat(model, True), floats(location / "gradient.f64", torch.float64), rtol=0, atol=2e-12)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, betas=(0.9, 0.98),
-                                 eps=1e-8, weight_decay=0.1, foreach=False)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=module.DEFAULT_LEARNING_RATE, betas=(0.9, 0.98),
+                                 eps=1e-8, weight_decay=module.DEFAULT_WEIGHT_DECAY, foreach=False)
     for step in range(1, 4):
         optimizer.zero_grad(set_to_none=True)
         F.cross_entropy(model(batch[:, 0], batch[:, 1]), batch[:, 2]).backward()
-        optimizer.param_groups[0]["lr"] = 0.001 * min(step / 10, 1)
+        optimizer.param_groups[0]["lr"] = module.DEFAULT_LEARNING_RATE * min(step / 10, 1)
         optimizer.step()
     torch.testing.assert_close(flat(model), floats(location / "adam.f64", torch.float64), rtol=0, atol=2e-12)
     print(f"PASS {location.name}: exact initialization/data/21 batches; logits, all gradients and three AdamW updates match f64.")
