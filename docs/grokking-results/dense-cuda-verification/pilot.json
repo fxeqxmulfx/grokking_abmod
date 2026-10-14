@@ -1,0 +1,13 @@
+{
+  "verified": true,
+  "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/cuda-build/release/mesh-gpt",
+  "binarySha256": "a0023655f9ca33098143295104310a00012edc5cc9b05ec6fd78497fa14e7b0e",
+  "verification": "15 large/offset/tail matrix cases, all forward/input-gradient/weight-gradient cells against f64; existing model/AdamW verification passes",
+  "pilot": {
+    "epochs": 10,
+    "baselineSeconds": 28.647765,
+    "tiledSeconds": 3.320558,
+    "checkpointSha256": "6af3f235dd462d89b4bf5920c7ee077433e510c357f04855e31e9fa073879bb4",
+    "bitwiseMatchesOriginal": true
+  }
+}

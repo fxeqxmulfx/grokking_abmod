@@ -1,0 +1,20 @@
+PASS tiled CUDA A=0, 1x97x1024, stride=103, offset=3: all outputs and both gradients match f64
+PASS tiled CUDA A=1, 1x97x1024, stride=103, offset=3: all outputs and both gradients match f64
+PASS tiled CUDA A=2, 1x97x1024, stride=103, offset=3: all outputs and both gradients match f64
+PASS tiled CUDA A=0, 7x513x97, stride=519, offset=4: all outputs and both gradients match f64
+PASS tiled CUDA A=1, 7x513x97, stride=519, offset=4: all outputs and both gradients match f64
+PASS tiled CUDA A=2, 7x513x97, stride=519, offset=4: all outputs and both gradients match f64
+PASS tiled CUDA A=0, 48x1024x97, stride=1024, offset=0: all outputs and both gradients match f64
+PASS tiled CUDA A=1, 48x1024x97, stride=1024, offset=0: all outputs and both gradients match f64
+PASS tiled CUDA A=2, 48x1024x97, stride=1024, offset=0: all outputs and both gradients match f64
+PASS tiled CUDA A=0, 37x1024x1024, stride=1024, offset=0: all outputs and both gradients match f64
+PASS tiled CUDA A=1, 37x1024x1024, stride=1024, offset=0: all outputs and both gradients match f64
+PASS tiled CUDA A=2, 37x1024x1024, stride=1024, offset=0: all outputs and both gradients match f64
+PASS tiled CUDA A=0, 512x128x129, stride=134, offset=5: all outputs and both gradients match f64
+PASS tiled CUDA A=1, 512x128x129, stride=134, offset=5: all outputs and both gradients match f64
+PASS tiled CUDA A=2, 512x128x129, stride=134, offset=5: all outputs and both gradients match f64
+PASS tied-rotary-residual-dense-mlp embedding-init=normal-width relu one-hot width=6 depth=2 expansion=4 modulus=7: logits (max error 2.0e-7 of max), loss, gradients (max error 6.1e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS tied-rotary-residual-dense-mlp embedding-init=normal-width relu one-hot width=128 depth=1 expansion=4 modulus=97: logits (max error 4.4e-7 of max), loss, gradients (max error 4.0e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS tied-rotary-residual-dense-mlp embedding-init=uniform-fan-in relu one-hot width=6 depth=2 expansion=4 modulus=7: logits (max error 2.1e-7 of max), loss, gradients (max error 1.2e-6 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS tied-rotary-residual-dense-mlp embedding-init=uniform-fan-in square one-hot width=32 depth=1 expansion=4 modulus=97: logits (max error 2.7e-7 of max), loss, gradients (max error 3.4e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS simple-model validation: tables, indices, minibatch ranges, parameters, launch contracts

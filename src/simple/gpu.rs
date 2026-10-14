@@ -22,6 +22,9 @@ const PRODUCT: usize = 1;
 /// Training alternates full and tail minibatches; evaluation uses complete splits.
 const WORKSPACE_CAPACITY: usize = 4;
 
+#[path = "dense_tiled.rs"]
+mod dense_tiled;
+
 #[cuda_module]
 // Flat row-major tensors keep every index explicit.
 #[allow(clippy::too_many_arguments)]
@@ -828,6 +831,7 @@ fn buffer_widths(config: SimpleConfig) -> (Vec<usize>, Vec<usize>) {
 struct Kernels {
     stream: Arc<CudaStream>,
     module: kernels::LoadedModule,
+    tiled: dense_tiled::Kernels,
 }
 
 // Launch wrappers mirror their kernels' argument lists.
@@ -869,6 +873,11 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [stride, offset] = columns;
+        if layer.inputs >= 512 || layer.outputs >= 512 {
+            return self
+                .tiled
+                .forward::<ACTIVATION>(layer, rows, input, columns, weights, out);
+        }
         let launch = self
             .module
             .prepare_simple_dense::<ACTIVATION>(config::<1>(out.len())?)?;
@@ -897,6 +906,11 @@ impl Kernels {
         before: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
+        if layer.inputs >= 512 || layer.outputs >= 512 {
+            return self
+                .tiled
+                .input_gradient::<ACTIVATION>(layer, rows, gradient, weights, before, out);
+        }
         let launch = self
             .module
             .prepare_simple_dense_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
@@ -924,6 +938,11 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [stride, offset] = columns;
+        if layer.inputs >= 512 || layer.outputs >= 512 {
+            return self
+                .tiled
+                .weight_gradient::<ACTIVATION>(layer, rows, input, columns, gradient, out);
+        }
         let launch = self
             .module
             .prepare_simple_dense_weight_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
@@ -1369,6 +1388,7 @@ impl GpuSimpleModel {
         let context = CudaContext::new(device)?;
         let stream = context.default_stream();
         let module = kernels::load(&context)?;
+        let tiled = dense_tiled::Kernels::new(&context, &stream)?;
         let layers = config.layers();
         let initial = config.initial_parameters(seed);
         let groups = config.groups();
@@ -1400,7 +1420,11 @@ impl GpuSimpleModel {
         Ok(Self {
             config,
             layers,
-            kernels: Kernels { stream, module },
+            kernels: Kernels {
+                stream,
+                module,
+                tiled,
+            },
             parameters,
             mesh_gradients,
             channel_decay,
@@ -2387,6 +2411,7 @@ mod verification {
         /// minibatches with repeated rows, AdamW steps, bitwise repeatability,
         /// input validation, and launch contracts.
         pub fn verify(device: usize) -> Result<()> {
+            dense_tiled::verify(device)?;
             for config in configurations() {
                 let [logits, gradients] = verify_model(device, config)?;
                 let model = match config.architecture {
