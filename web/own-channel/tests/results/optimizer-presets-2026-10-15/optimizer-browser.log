@@ -1,0 +1,22 @@
+PASS dense-rotary-16 fast: auto-pause at epoch 996, test 99.01%.
+PASS dense-rotary-16 fast: test 99.01% at epoch 996; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-16 slow: auto-pause at epoch 5118, test 99.05%.
+PASS dense-rotary-16 slow: test 99.05% at epoch 5118; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-32 fast: auto-pause at epoch 39, test 99.14%.
+PASS dense-rotary-32 fast: test 99.14% at epoch 39; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-32 slow: auto-pause at epoch 5382, test 99.03%.
+PASS dense-rotary-32 slow: test 99.03% at epoch 5382; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-64 fast: auto-pause at epoch 21, test 99.57%.
+PASS dense-rotary-64 fast: test 99.57% at epoch 21; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-64 slow: auto-pause at epoch 6426, test 99.01%.
+PASS dense-rotary-64 slow: test 99.01% at epoch 6426; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary plateau: auto-pause at epoch 3729, test 99.01%.
+PASS dense-rotary plateau: test 99.01% at epoch 3729; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary slow: auto-pause at epoch 8189, test 99.01%.
+PASS dense-rotary slow: test 99.01% at epoch 8189; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-256 fast: auto-pause at epoch 32, test 99.38%.
+PASS dense-rotary-256 fast: test 99.38% at epoch 32; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-256 plateau: auto-pause at epoch 366, test 99.08%.
+PASS dense-rotary-256 plateau: test 99.08% at epoch 366; Continue keeps optimizer and completes three more epochs.
+PASS dense-rotary-256 slow: auto-pause at epoch 7737, test 99.01%.
+PASS dense-rotary-256 slow: test 99.01% at epoch 7737; Continue keeps optimizer and completes three more epochs.

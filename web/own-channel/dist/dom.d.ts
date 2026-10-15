@@ -1,7 +1,9 @@
 declare const tags: {
     readonly "model-name": "h1";
     readonly "model-detail": "span";
+    readonly "model-optimizer": "code";
     readonly device: "span";
+    readonly "preset-nav": "nav";
     readonly language: "select";
     readonly "task-help": "button";
     readonly about: "button";

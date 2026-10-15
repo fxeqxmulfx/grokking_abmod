@@ -2,9 +2,11 @@
 
 The later [short-plateau study](short-mesh-results.md) relaxes the minimum
 plateau to 25 epochs and identifies replicated sparse mesh candidates.
-Both current browser tabs use the [Dense + ReLU architecture with Normal(0, 1/W) E](rotary-dense-embedding-results.md)
-at widths 128 and 1024, with one pre-norm residual block and shared E.
-The native seed-11 W1024 run has a 92-epoch memorization plateau and qualifies
+The five current browser tabs use the [Dense + ReLU architecture with Normal(0, 1/W) E](rotary-dense-embedding-results.md)
+at widths 16, 32, 64, 128 and 256, with one pre-norm residual block and
+shared E. Their optimizer presets come from the
+[Rust/CUDA searches](dense-cuda-kernels.md#optimizer-search). W1024 has left the
+site; its native seed-11 run has a 92-epoch memorization plateau and qualifies
 under the short-study criterion. The [Neighbor study](rotary-neighbor-results.md)
 retains its five-seed experiments and earlier browser measurements.
 The earlier-model comparisons below retain the original longer-plateau rule.

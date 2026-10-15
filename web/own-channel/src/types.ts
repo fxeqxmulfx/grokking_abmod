@@ -1,5 +1,9 @@
-export const MODEL_IDS = ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary', 'dense-rotary-wide'] as const;
+export const MODEL_IDS = ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary-64', 'dense-rotary', 'dense-rotary-256'] as const;
 export type ModelId = typeof MODEL_IDS[number];
+// Optimizer presets: fast generalizes earliest on every native seed, plateau
+// memorizes longest before generalizing, slow generalizes latest.
+export const PRESETS = ['fast', 'plateau', 'slow'] as const;
+export type Preset = typeof PRESETS[number];
 export const BACKENDS = ['auto', 'simd', 'scalar', 'simd-2', 'simd-4', 'scalar-2', 'scalar-4'] as const;
 export type Backend = typeof BACKENDS[number];
 export type Weights = Float32Array<ArrayBuffer>;
@@ -28,7 +32,7 @@ export interface TrainingEngine {
   destroy(): void;
 }
 export interface TrainingOptions {
-  model: ModelId; seed: number; backend: Backend; maxEpochs: number;
+  model: ModelId; preset: Preset; seed: number; backend: Backend; maxEpochs: number;
   captureHz: number;
 }
 export interface Interval {start: number | null; end: number | null; epochs: number}
@@ -56,6 +60,10 @@ export interface NetworkNode extends Point {channel: number; value?: number; lab
 export interface NetworkEdge {from: Point; to: Point; weight: number; label: string}
 export const errorText = (error: unknown): string => error instanceof Error ? error.message : String(error);
 export function send(worker: Worker | null, message: WorkerRequest): void {worker?.postMessage(message);}
+export function preset(value: string): Preset {
+  if (!PRESETS.includes(value as Preset)) throw new Error('Unknown optimizer preset.');
+  return value as Preset;
+}
 export function backend(value: string): Backend {
   if (!BACKENDS.includes(value as Backend)) throw new Error('Unknown training engine.');
   return value as Backend;

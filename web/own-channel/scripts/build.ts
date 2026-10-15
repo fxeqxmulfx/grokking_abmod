@@ -11,12 +11,13 @@ function run(args: string[]): void {
 // Node 24 runs this small bootstrap and the catalog generator. All runtime,
 // server, test and build-tool TypeScript is compiled with strict checking.
 // TypeScript does not remove outputs of deleted sources. Retire only known
-// obsolete GPU assets, leaving historical experiment checkpoints intact.
+// obsolete GPU and W1024 assets, leaving historical experiment checkpoints intact.
 for (const directory of ['dist/', 'build/dist/', 'build/src/', 'build/tests/']) {
   const location = new URL(directory, root);
   if (!existsSync(location)) continue;
-  for (const filename of readdirSync(location)) if (filename.endsWith('.wgsl') || /^(gpu|models-gpu|measure-gpu|measure-dense-gpu)\.(js|d\.ts|js\.map)$/.test(filename)) rmSync(new URL(filename, location));
+  for (const filename of readdirSync(location)) if (filename.endsWith('.wgsl') || /^(gpu|models-gpu|measure-gpu|measure-dense-gpu)\.(js|d\.ts|js\.map)$/.test(filename) || /^dense-rotary-wide-(simd|scalar)(-shared)?\.wasm$/.test(filename)) rmSync(new URL(filename, location));
 }
+rmSync(new URL('wasm/dense-rotary-wide.wat', root), {force: true});
 run(['scripts/build-locales.ts']);
 run(['scripts/build-pytorch.ts']);
 run(['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json']);

@@ -1,0 +1,54 @@
+Pre-change binaries (rows 1), SHA-256:
+6d5ced7cd2be9526a749e9aac963288f47e36e24592e0349fec01efbca27adc1  dense-rotary-16-scalar-shared.wasm
+9d112fd329e15c62b333594390fa6117c67d06fb0f04b603201bf6c799c4a7d2  dense-rotary-16-scalar.wasm
+fedd6d10a573b35e3330b5701902210f190e0f6dad52ad9436869bbb849babb4  dense-rotary-16-simd-shared.wasm
+29a2357a251e8327f36e9a1b04d0946b182ac5da2c20b2c83210ca37dea750f0  dense-rotary-16-simd.wasm
+ea416ffac65b1bb055fae08ed2d7d75425a64b5ee958168064bab6bbc268ce47  dense-rotary-256-scalar-shared.wasm
+b54adf0c6142695311629fe5fce6e28eb4f748e823badce51ca06e68af538d1f  dense-rotary-256-scalar.wasm
+31c8088f4f7cd72d4ced9419c11edd7ac8bb18abfe3c83ab847228cb5474e15d  dense-rotary-256-simd-shared.wasm
+78983b95af1a5e60ae17d9d9b806d2eaffb07425553b72acd546444946ca9305  dense-rotary-256-simd.wasm
+7dd9eee28b10f2211a832afd8b5d754a7d72744ccdf2d03cad64ced08dbcf275  dense-rotary-32-scalar-shared.wasm
+ec4460e92a95f0871b252aa884838f40b5fcd73370a912e44d716f5d88ac0d9e  dense-rotary-32-scalar.wasm
+9ad37cf6c9700e7f3c303604babba4a1d8066e577a1c2e5151fddaa205966ba1  dense-rotary-32-simd-shared.wasm
+bfc09e0f2ae2bc18a429d7edc03e6e4442369d18d637b4b97f2c0988087ea75e  dense-rotary-32-simd.wasm
+137058c2a65cc985c12703cdbd22795cb55f1c9798900b5c449fb2c0f2aee524  dense-rotary-64-scalar-shared.wasm
+f5b8ebf80ed093f5dc933bfff30bcaccb8273e50c903b8a48dd2f137751c948c  dense-rotary-64-scalar.wasm
+4e7816553db303dfec14427e19d3a0e771b4b8a79fa49550da57c309229fcb08  dense-rotary-64-simd-shared.wasm
+141603e3faa0ef7907213348d1e9d2575db89c19f7f83bdfad026b7209e20ef1  dense-rotary-64-simd.wasm
+6cca2d101eaea6d62cb13680b9a5e759e39c4695788e033af5b41cb0d8b7f913  dense-rotary-scalar-shared.wasm
+90391b3910c1608a31c4bc7e6233ce9a27362e8a1fb085f3abac5ff1e91387b0  dense-rotary-scalar.wasm
+fb45286d3577e78e9ae7099fd05f3328ca654397afb3796a8d07abb855c3b412  dense-rotary-simd-shared.wasm
+91061965ac95c96fbf90680f071a467b4fbed741200735f35a9cbd687ddd5b70  dense-rotary-simd.wasm
+Built binaries, SHA-256:
+044aece5cf0f6efe29f8dc615c66286edc068ecd39f0bddc5f66b9091008aaef  dense-rotary-16-scalar-shared.wasm
+b452f70b0e27fa4f52e3eb47d79f09030a9c4d5a5908530795390829022ba45d  dense-rotary-16-scalar.wasm
+0a91ebd25765671001bb73c5629ba4baa5dfb93d208edaf9660e001d14a97893  dense-rotary-16-simd-shared.wasm
+10838e860a154181e3f6b0c25039ad4eef1b40034ea238e606f8cd9370cd2d28  dense-rotary-16-simd.wasm
+1c831c3fc67f6639a0be63f37444c0099a3932fd0b026458cae94d05a3ac0d6d  dense-rotary-256-scalar-shared.wasm
+396240fe665a12bcf9b7f5c5e758f9248a4a84c2d89455337e7f1e8d6835e4cd  dense-rotary-256-scalar.wasm
+4b661b928b6a14abceacfd905473b1e53fe7f27dafceab1451f2a744bfe07e2f  dense-rotary-256-simd-shared.wasm
+f5d4bfa809a091170b5da6308edad1f9c3e1094c6f6e0e76b3966a7c837314fc  dense-rotary-256-simd.wasm
+790f23f1a69677d719b09702c935e42db27a2590a481b95d401d1a305aaf52bc  dense-rotary-32-scalar-shared.wasm
+e7a4da59805cc8fb86732db7b97b89a57c2cf5d1305005e5b9b8c90ab390d3dc  dense-rotary-32-scalar.wasm
+a092fc8edd5bf50bb3ac2e904771a60e4c23b347681e0b0e711d16901794b6b5  dense-rotary-32-simd-shared.wasm
+7794e5e0c6a66d69a54cb8f4f4b8a0d78cbba62cc99569016fc4f589c846aa28  dense-rotary-32-simd.wasm
+cbd62d34fe0968b614cb564392ad0e321c2e156889157f85f54b18e960716576  dense-rotary-64-scalar-shared.wasm
+79e4562f643a8126cdc08351c303abac09cc01eeecbe2d86994a7248ede4a51e  dense-rotary-64-scalar.wasm
+2defaf7d1a2accdaa103cf15653a1ae43fb2bb70980fda346e72e5d549dd937e  dense-rotary-64-simd-shared.wasm
+5920483bdfed83972118f62a2746ab1741fe723b108a2f2b8e2f85097d909f42  dense-rotary-64-simd.wasm
+4a1e97df1a1faecdee94857660583966c387cf2c98762f53de361e711704e7ff  dense-rotary-scalar-shared.wasm
+9fb6224723872744161c4f7377be9e6e12d7f31aaa78d447395ca6b6dd454b2b  dense-rotary-scalar.wasm
+5ddda7c0cf1c63d46355d6d58c906b3828806a3d0cab391928c0089d8561ed0b  dense-rotary-simd-shared.wasm
+295121affc4947f6c96074196195adcce031f43bf407491161986ba54995c576  dense-rotary-simd.wasm
+
+dense-rotary-16/simd {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (0.4 s)
+dense-rotary-16/scalar {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (0.5 s)
+dense-rotary-32/simd {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (0.4 s)
+dense-rotary-32/scalar {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (0.7 s)
+dense-rotary-64/simd {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (0.5 s)
+dense-rotary-64/scalar {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (1.1 s)
+dense-rotary/simd {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (0.9 s)
+dense-rotary/scalar {"registers":8,"block":32,"rowThreshold":null,"unroll":4,"rows":4}: identical (2.3 s)
+dense-rotary-256/simd {"registers":8,"block":16,"rowThreshold":null,"unroll":4,"rows":4}: identical (2.3 s)
+dense-rotary-256/scalar {"registers":8,"block":16,"rowThreshold":null,"unroll":4,"rows":4}: identical (6.5 s)
+1270 bitwise checks passed; 320 of them contained NaN.

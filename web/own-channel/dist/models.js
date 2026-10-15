@@ -1,14 +1,17 @@
 import { P, Random } from './model.js';
+import { OPTIMIZER_PROFILES } from './optimizer-profiles.js';
+import { PRESETS } from './types.js';
 function dense(id, width) {
     return { id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
-        learningRate: .001, weightDecay: .1,
+        ...OPTIMIZER_PROFILES[width].fast,
         reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width };
 }
 export const MODELS = {
     'dense-rotary-16': dense('dense-rotary-16', 16),
     'dense-rotary-32': dense('dense-rotary-32', 32),
+    'dense-rotary-64': dense('dense-rotary-64', 64),
     'dense-rotary': dense('dense-rotary', 128),
-    'dense-rotary-wide': dense('dense-rotary-wide', 1024),
+    'dense-rotary-256': dense('dense-rotary-256', 256),
 };
 export function modelId(id) {
     if (!Object.hasOwn(MODELS, id))
@@ -16,6 +19,13 @@ export function modelId(id) {
     return id;
 }
 export function modelInfo(id) { return MODELS[id]; }
+export function modelPresets(id) { return PRESETS.filter(preset => OPTIMIZER_PROFILES[modelInfo(id).width][preset]); }
+export function optimizerProfile(id, preset = 'fast') {
+    const profile = OPTIMIZER_PROFILES[modelInfo(id).width][preset];
+    if (!profile)
+        throw new Error('Unknown optimizer preset.');
+    return profile;
+}
 // Box–Muller uses the native SplitMix64 stream and rounds each stored value to
 // f32. E consumes the same number of draws as the old uniform initializer,
 // leaving every Kaiming-normal A parameter unchanged.

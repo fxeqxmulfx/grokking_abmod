@@ -1,0 +1,5 @@
+
+> test:i18n
+> node build/tests/i18n-browser.js
+
+PASS: 6 languages, 378 layout checks, automatic selection, persisted manual choice, live translations preserve training, real local SVGs, startup and reopen, no reference section.

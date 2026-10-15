@@ -60,15 +60,18 @@ plateau and a 241-epoch test rise.
 See [CUDA profiling and measured training performance](docs/cuda-performance.md)
 for the warmed FP32 benchmark, Nsight captures, and CUDA optimizations.
 The local [Rotate90 Grokking Lab](web/own-channel/README.md) trains one shared-embedding
-Dense + ReLU residual architecture at widths 128 and 1024 entirely in the
-browser with handwritten WASM SIMD or WebGPU, realtime loss/accuracy,
-all-weight visualizations, and complete-split loss curves. Pre-RMSNorm remains
-inside the single residual branch, with final RMSNorm before the tied readout.
+Dense + ReLU residual architecture at widths 16, 32, 64, 128 and 256 entirely in
+the browser with handwritten WASM SIMD, realtime loss/accuracy,
+all-weight visualizations, and complete-split loss curves. Its Fast, Plateau and
+Slow optimizer presets come from [Rust/CUDA searches](docs/dense-cuda-kernels.md#optimizer-search).
+Pre-RMSNorm remains inside the single residual branch, with final RMSNorm
+before the tied readout.
 The frontend, local preview server and validation tools use strict TypeScript.
 Shared E now starts Normal(0, variance 1/W); A uses Kaiming normal (2/W).
-On native seed 11, W1024 has a 92-epoch memorization plateau, a 116-epoch rise
-to 90%, and reaches held-out accuracy of 99% at epoch 270. W128 reaches 99%
-at epoch 605 without a qualifying plateau. See
+With the earlier lr 0.001 and weight decay 0.1, on native seed 11, W1024 has a
+92-epoch memorization plateau, a 116-epoch rise to 90%, and reaches held-out
+accuracy of 99% at epoch 270. W128 reaches 99% at epoch 605 without a
+qualifying plateau. See
 [initialization comparison](docs/rotary-dense-embedding-results.md),
 [Dense Rust measurements](docs/rotary-dense-results.md),
 [earlier Neighbor measurements](docs/rotary-neighbor-results.md), and

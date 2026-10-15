@@ -1,9 +1,11 @@
 import { BACKENDS, errorText } from './types.js';
+import { optimizerProfile } from './models.js';
 import { WASMTrainer } from './wasm.js';
 import { ParallelWASMTrainer } from './parallel-wasm.js';
-export async function createEngine(seed, backend = 'auto', model = 'dense-rotary') {
+export async function createEngine(seed, backend = 'auto', model = 'dense-rotary', preset = 'fast') {
     if (!BACKENDS.includes(backend))
         throw new Error('Unknown training engine.');
+    const { learningRate, weightDecay: decay } = optimizerProfile(model, preset);
     const scalar = backend.startsWith('scalar'), requireSIMD = backend.startsWith('simd');
     const available = globalThis.crossOriginIsolated && typeof SharedArrayBuffer === 'function' && typeof Worker === 'function';
     const cores = typeof navigator === 'object' ? navigator.hardwareConcurrency || 1 : 1;
@@ -13,7 +15,7 @@ export async function createEngine(seed, backend = 'auto', model = 'dense-rotary
     let note;
     if (requested > 1 && available) {
         try {
-            return await ParallelWASMTrainer.create(seed, { model, scalar, requireSIMD, threads: requested });
+            return await ParallelWASMTrainer.create(seed, { model, scalar, requireSIMD, threads: requested, learningRate, decay });
         }
         catch (error) {
             note = `Parallel WASM could not start; using one CPU thread. ${errorText(error)}`;
@@ -21,7 +23,7 @@ export async function createEngine(seed, backend = 'auto', model = 'dense-rotary
     }
     else if (requested > 1)
         note = 'Shared memory is unavailable; using one CPU thread.';
-    const engine = await WASMTrainer.create(seed, { model, scalar, requireSIMD });
+    const engine = await WASMTrainer.create(seed, { model, scalar, requireSIMD, learningRate, decay });
     if (note) {
         const info = engine.info();
         engine.info = () => ({ ...info, note });

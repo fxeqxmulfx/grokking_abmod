@@ -62,7 +62,7 @@ onmessage = async ({data: message}: MessageEvent<WorkerRequest>) => {
       if (!Number.isInteger(options.seed) || options.seed < 0 || options.seed > 0xffffffff) throw new Error('Seed must be an integer between 0 and 4294967295.');
       if (!Number.isInteger(options.maxEpochs) || options.maxEpochs < 1 || options.maxEpochs > 10000) throw new Error('Epoch limit must be between 1 and 10000.');
       if (![1, 5, 10].includes(options.captureHz)) throw new Error('Snapshot rate must be 1, 5 or 10 Hz.');
-      engine = await createEngine(options.seed, options.backend, options.model);
+      engine = await createEngine(options.seed, options.backend, options.model, options.preset);
       sampler = new Sampler(options.seed); criterion = new ShortGrokking();
       await report(); await snapshot(); post({type: 'ready', info: engine.info()});
       post({type: 'status', status: 'Ready'});

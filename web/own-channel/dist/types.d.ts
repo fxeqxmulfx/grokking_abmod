@@ -1,5 +1,7 @@
-export declare const MODEL_IDS: readonly ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary', 'dense-rotary-wide'];
+export declare const MODEL_IDS: readonly ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary-64', 'dense-rotary', 'dense-rotary-256'];
 export type ModelId = typeof MODEL_IDS[number];
+export declare const PRESETS: readonly ['fast', 'plateau', 'slow'];
+export type Preset = typeof PRESETS[number];
 export declare const BACKENDS: readonly ['auto', 'simd', 'scalar', 'simd-2', 'simd-4', 'scalar-2', 'scalar-4'];
 export type Backend = typeof BACKENDS[number];
 export type Weights = Float32Array<ArrayBuffer>;
@@ -44,6 +46,7 @@ export interface TrainingEngine {
 }
 export interface TrainingOptions {
     model: ModelId;
+    preset: Preset;
     seed: number;
     backend: Backend;
     maxEpochs: number;
@@ -117,4 +120,5 @@ export interface NetworkEdge {
 }
 export declare const errorText: (error: unknown) => string;
 export declare function send(worker: Worker | null, message: WorkerRequest): void;
+export declare function preset(value: string): Preset;
 export declare function backend(value: string): Backend;

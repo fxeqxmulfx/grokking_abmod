@@ -23,18 +23,21 @@ h1 { font-size: 14px; font-weight: 600; margin: 0; white-space: nowrap; min-widt
 h1 span { color: var(--muted); font-weight: 400; margin-left: 6px; }
 .model-detail { color: var(--muted); font-size: 10px; white-space: nowrap; }
 .model-summary code { font: 11px var(--mono); white-space: nowrap; }
+.model-task { display: flex; gap: 12px; min-width: 0; }
 .header-tools { display: flex; align-items: center; gap: 12px; min-width: 0; flex-shrink: 0; }
 .device { font: 10px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .device::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 7px; background: var(--orange); border-radius: 100%; }
 #about { width: 26px; height: 26px; padding: 0; flex-shrink: 0; border-radius: 50%; }
 #task-help { width: 26px; height: 26px; padding: 0; flex-shrink: 0; font: 15px Georgia, serif; }
 #language { width: 105px; max-width: 105px; font-size: 9px; flex-shrink: 0; }
-main { min-height: 0; min-width: 0; padding: 12px 16px; display: grid; grid-template-rows: 30px minmax(0, 1fr); gap: 8px; }
-.workspace-nav { display: flex; justify-content: space-between; align-items: stretch; min-width: 0; gap: 8px; }
+main { min-height: 0; min-width: 0; padding: 12px 16px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+/* Navigation groups wrap onto further rows when one row cannot hold them. */
+.workspace-nav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: stretch; min-width: 0; min-height: 30px; gap: 4px 8px; }
+.experiment-nav { display: flex; flex-wrap: wrap; gap: 4px 12px; min-width: 0; }
 .model-nav { display: flex; gap: 4px; min-width: 0; }
 .model-nav button { padding: 5px 12px; font-size: 10px; white-space: nowrap; }
 .model-nav button.active { background: var(--ink); color: var(--card); border-color: var(--ink); }
-.view-nav { display: flex; align-items: stretch; gap: 4px; }
+.view-nav { display: flex; align-items: stretch; gap: 4px; margin-left: auto; }
 .view-nav button { padding: 5px 12px; border-color: transparent; font-size: 10px; }
 .view-nav button.active { background: var(--ink); color: var(--card); }
 .dashboard { min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 258px; gap: 12px; }
@@ -98,6 +101,7 @@ body[data-view="channels"] .weight-panel { display: none; }
 .heatmap-card small { color: var(--muted); font: 9px var(--mono); white-space: nowrap; }
 .map-foot { display: flex; justify-content: space-between; gap: 6px; font: 9px var(--mono); color: var(--muted); }
 .map-foot > span { white-space: nowrap; }
+.map-foot > span:first-child { white-space: normal; }
 .scale-card { grid-area: scales; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 7px; }
 #concentration { color: var(--muted); font: 9px var(--mono); text-align: right; }
 .probe { grid-area: probe; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
@@ -162,7 +166,7 @@ dialog h3 { margin-top: 14px; }
 .task-page p { margin: 0 0 12px; }
 .task-intro { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 16px; }
 .intro-tabs { width: fit-content; }
-.intro-tabs button { padding: 6px 12px; }
+.intro-tabs button { padding: 6px 12px; white-space: nowrap; }
 .intro-panels, .intro-page { min-height: 0; min-width: 0; }
 .intro-page { height: 100%; }
 .intro-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: center; }
@@ -171,6 +175,7 @@ dialog h3 { margin-top: 14px; }
 .intro-paper a { color: var(--blue); font-size: 12px; }
 .intro-page a { color: var(--blue); font-size: 12px; }
 .intro-columns > div:only-child { grid-column: 1 / -1; max-width: 650px; justify-self: center; }
+.intro-page p:last-child { margin-bottom: 0; }
 .intro-epoch { padding: 20px; border: 1px solid var(--line); border-radius: 8px; text-align: center; }
 .intro-epoch > code { display: block; margin: 0 0 16px; padding: 12px 8px; border-radius: 6px; background: #efeee5; }
 .shading-line { display: flex; gap: 10px; align-items: flex-start; }
@@ -252,7 +257,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
 
 @media (max-width: 979px), (max-height: 639px) {
   body { grid-template-rows: 48px minmax(0, 1fr) 24px; }
-  main { grid-template-rows: 30px minmax(0, 1fr); gap: 10px; padding: 10px 12px; }
+  main { grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 10px 12px; }
   .view-nav { display: flex; align-items: stretch; gap: 4px; }
   .view-nav button { padding: 5px 14px; border-color: transparent; font-size: 11px; }
   .view-nav button.active { background: var(--ink); color: var(--card); }
@@ -272,16 +277,28 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .mesh-foot { font-size: 9px; }
 }
 
+/* The model name and its task line stack, so the optimizer settings keep their room. */
+@media (min-width: 650px) and (max-width: 979px) {
+  .brand > span:last-child { display: none; }
+  .model-summary { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .model-summary code { font-size: 10px; }
+}
+
 @media (max-width: 649px) {
-  main { grid-template-rows: 57px minmax(0, 1fr); }
-  .workspace-nav { flex-direction: column; gap: 4px; }
+  main { grid-template-rows: auto minmax(0, 1fr); }
+  /* Width tabs fill the first row; presets and views share the next when they fit. */
+  .workspace-nav { gap: 4px 6px; }
+  .experiment-nav { display: contents; }
+  .experiment-nav > .model-nav:first-child { flex: 1 1 100%; }
   .model-nav button { flex: 1; padding: 4px 8px; }
+  .preset-nav button { padding: 4px 6px; }
   .topbar { gap: 12px; padding: 0 12px; }
   .brand > span:last-child { display: none; }
   .model-summary { flex-direction: column; align-items: flex-start; gap: 2px; }
   h1 { font-size: 12px; }
   h1 span { margin-left: 3px; }
   .model-summary code { font-size: 9px; color: var(--muted); }
+  .model-task { flex-wrap: wrap; gap: 0 8px; }
   .header-tools { gap: 8px; }
   .device { max-width: 135px; font-size: 8px; }
   .device::before { width: 5px; height: 5px; margin-right: 4px; }
@@ -290,7 +307,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   #language { max-width: 101px; width: 101px; font-size: 8px; }
   #task-help { width: 23px; height: 23px; }
   main { padding: 8px; gap: 8px; }
-  .view-nav { justify-content: center; }
+  .view-nav { flex: 1 1 auto; justify-content: center; margin-left: 0; }
   .view-nav button { flex: 1; }
   .dashboard { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
   .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
@@ -397,7 +414,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
 }
 @media (max-width: 649px) and (max-height: 700px) {
   body { grid-template-rows: 44px minmax(0, 1fr) 22px; }
-  main { grid-template-rows: 55px minmax(0, 1fr); gap: 6px; padding: 6px; }
+  main { grid-template-rows: auto minmax(0, 1fr); gap: 6px; padding: 6px; }
   .dashboard { gap: 6px; }
   .controls { gap: 5px 10px; padding: 8px; }
   .controls > .card-heading { min-height: 20px; }
@@ -452,4 +469,13 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
 
 @media (max-width: 649px), (max-height: 639px) {
   .view-nav button { padding-left: 6px; padding-right: 6px; }
+}
+
+@media (max-width: 359px) {
+  .workspace-nav button { font-size: 9px; }
+  .preset-nav button, .view-nav button { padding-left: 4px; padding-right: 4px; }
+}
+
+@media (max-width: 379px) {
+  .intro-tabs button { padding-left: 2px; padding-right: 2px; }
 }

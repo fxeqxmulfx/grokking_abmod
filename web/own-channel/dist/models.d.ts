@@ -1,5 +1,6 @@
-import type { ModelId, Vector, Weights } from './types.ts';
-export interface ModelInfo {
+import type { OptimizerProfile } from './optimizer-profiles.ts';
+import type { ModelId, Preset, Vector, Weights } from './types.ts';
+export interface ModelInfo extends OptimizerProfile {
     id: ModelId;
     title: string;
     subtitle: string;
@@ -9,12 +10,12 @@ export interface ModelInfo {
     parameters: number;
     embedding: number;
     gain: number;
-    learningRate: number;
-    weightDecay: number;
 }
 export declare const MODELS: Record<ModelId, ModelInfo>;
 export declare function modelId(id: string): ModelId;
 export declare function modelInfo(id: ModelId): ModelInfo;
+export declare function modelPresets(id: ModelId): Preset[];
+export declare function optimizerProfile(id: ModelId, preset?: Preset): OptimizerProfile;
 export declare function initialModelWeights(seed?: number, id?: ModelId): Weights;
 export declare function inputMatrix(weights: Vector, id?: ModelId): Float64Array<ArrayBuffer>;
 export declare function readoutIndex(id: ModelId, channel: number, answer: number): number;

@@ -1,0 +1,4 @@
+PASS: 6 languages, 402 layout checks, automatic selection, persisted manual choice, live translations preserve training, real local SVGs, startup and reopen, no reference section.
+node: tests 84
+node: pass 84
+node: fail 0

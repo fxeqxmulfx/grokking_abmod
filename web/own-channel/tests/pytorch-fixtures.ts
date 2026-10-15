@@ -26,4 +26,4 @@ for (const model of MODEL_IDS) {
   ];
   for (const [name, value] of sources) await writeFile(join(location, name), value);
 }
-console.log(`Exported all four sources and independent f64 fixtures to ${directory}.`);
+console.log(`Exported all ${MODEL_IDS.length} sources and independent f64 fixtures to ${directory}.`);

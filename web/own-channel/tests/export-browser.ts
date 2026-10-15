@@ -3,7 +3,7 @@ import {join} from 'node:path';
 import assert from 'node:assert/strict';
 import {CDP} from './cdp.ts';
 import {MODEL_IDS} from '../dist/types.js';
-import {modelInfo} from '../dist/models.js';
+import {modelInfo, modelPresets} from '../dist/models.js';
 import {pytorchSource} from '../dist/pytorch-export.js';
 
 const origin = process.env.GROKKING_PREVIEW_ORIGIN ?? 'http://127.0.0.1:8080';
@@ -13,8 +13,8 @@ const client = await CDP.connect(Number(process.env.GROKKING_CDP_PORT ?? 9224));
 const evaluate = client.evaluate.bind(client), wait = client.wait.bind(client);
 const row = `({epoch:Number(document.getElementById('epoch').textContent.replaceAll(',','')), accuracy:parseFloat(document.getElementById('heldout-accuracy').textContent), observations:document.getElementById('observations').textContent, workers:window.__labWorkers.length})`;
 const records: unknown[] = [];
-async function download(width: number) {
-  const path = join(directory, `rotate90-w${width}-seed11.py`);
+async function download(name: string) {
+  const path = join(directory, name);
   await unlink(path).catch(error => {if (error.code !== 'ENOENT') throw error;});
   await evaluate(`document.getElementById('export-pytorch').click()`);
   const start = Date.now();
@@ -32,23 +32,25 @@ try {
   await wait(`document.documentElement?.lang==='en'&&document.getElementById('task-dialog')?.open`);
   await evaluate(`document.getElementById('task-open').click()`);
   await wait(`document.getElementById('status').textContent==='Ready'`);
-  assert.equal(await evaluate(`document.querySelectorAll('[data-model-tab]').length`), 4);
+  assert.equal(await evaluate(`document.querySelectorAll('[data-model-tab]').length`), MODEL_IDS.length);
   assert.ok(await evaluate(`!document.getElementById('export-weights')&&!document.getElementById('stop-target')&&!!document.querySelector('a[href="https://arxiv.org/abs/2201.02177"]')`));
-  for (const model of MODEL_IDS) {
-    const {width, parameters} = modelInfo(model);
+  for (const model of MODEL_IDS) for (const preset of modelPresets(model)) {
+    const {width, parameters} = modelInfo(model), name = `rotate90-w${width}${preset === 'fast' ? '' : '-' + preset}-seed11.py`;
     await evaluate(`document.querySelector('[data-model-tab="${model}"]').click()`);
-    await wait(`document.getElementById('status').textContent==='Ready'&&document.getElementById('model-detail').textContent.includes('${width} channels')`);
+    if (modelPresets(model).length > 1) await evaluate(`document.querySelector('[data-preset-tab="${preset}"]').click()`);
+    await wait(`document.getElementById('status').textContent==='Ready'&&document.getElementById('model-detail').textContent.includes('${width} channels')&&document.querySelector('[data-preset-tab="${preset}"]').getAttribute('aria-pressed')==='true'`);
     await evaluate(`document.getElementById('limit').value='3';document.getElementById('limit').dispatchEvent(new Event('change'))`);
-    const source = await download(width);
-    assert.equal(source, pytorchSource({model, seed: 11, maxEpochs: 3}));
+    const source = await download(name);
+    assert.equal(source, pytorchSource({model, preset, seed: 11, maxEpochs: 3}));
     await evaluate(`document.getElementById('step').click()`);
     await wait(`document.getElementById('status').textContent==='Paused'&&document.getElementById('epoch').textContent==='1'`);
     assert.ok(await evaluate(`document.getElementById('train').textContent.includes('Continue training')&&document.getElementById('channel-select').max==='${width - 1}'&&document.getElementById('model-detail').textContent.includes('${parameters.toLocaleString('en-US')}')`));
-    assert.equal(await download(width), source, 'Learning must not put trained weights in the source export.');
-    records.push({model, width, parameters, sourceDownload: true, sourceUnchangedAfterTraining: true, firstEpoch: await evaluate(row)});
-    console.log(`PASS ${model}: real .py download, one browser epoch, correct width and preserved source.`);
+    assert.equal(await download(name), source, 'Learning must not put trained weights in the source export.');
+    records.push({model, preset, width, parameters, sourceDownload: true, sourceUnchangedAfterTraining: true, firstEpoch: await evaluate(row)});
+    console.log(`PASS ${model} ${preset}: real .py download, one browser epoch, correct width and preserved source.`);
   }
-  await evaluate(`document.querySelector('[data-model-tab="dense-rotary"]').click()`);
+  // The fast W128 preset reaches 99% in a few dozen epochs.
+  await evaluate(`document.querySelector('[data-model-tab="dense-rotary"]').click();document.querySelector('[data-preset-tab="fast"]').click()`);
   await wait(`document.getElementById('epoch').textContent==='1'&&document.getElementById('status').textContent==='Paused'`);
   await evaluate(`document.getElementById('limit').value='10000';document.getElementById('limit').dispatchEvent(new Event('change'));document.getElementById('capture').value='1';document.getElementById('capture').dispatchEvent(new Event('change'));document.getElementById('train').click()`);
   await wait(`document.getElementById('status').textContent==='Paused at 99% held-out accuracy'`, 300000);

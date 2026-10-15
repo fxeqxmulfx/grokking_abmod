@@ -1,20 +1,21 @@
 import { element as $ } from './dom.js';
-import { send, backend } from './types.js';
+import { send, backend, preset } from './types.js';
 import { modelId } from './models.js';
 import { P } from './model.js';
 import { initializeI18n, t, number, runtimeText } from './i18n.js';
 import { initializeTask } from './task.js';
 import { pytorchSource } from './pytorch-export.js';
-import { modelInfo, initialModelWeights, predictModel, inputMatrix } from './models.js';
+import { modelInfo, modelPresets, optimizerProfile, initialModelWeights, predictModel, inputMatrix } from './models.js';
 import { WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges } from './topology.js';
 await initializeI18n();
-function experiment(model) {
+function experiment(model, preset) {
     const info = modelInfo(model), seed = info.seed, initial = initialModelWeights(seed, model);
-    return { model, weights: initial.slice(), initial, history: [], channel: 0, meshView: 'topology', networkMode: 'weight', networkHighlight: false, networkView: { zoom: 1, x: 0, y: 0 }, metric: 'accuracy', worker: null, running: false, ready: false, label: 'Loading', step: 0, seed, activeMs: 0, dirty: true, metricsDirty: true,
-        options: { model, seed, backend: 'auto', maxEpochs: 10000, captureHz: 5 } };
+    return { model, preset, weights: initial.slice(), initial, history: [], channel: 0, meshView: 'topology', networkMode: 'weight', networkHighlight: false, networkView: { zoom: 1, x: 0, y: 0 }, metric: 'accuracy', worker: null, running: false, ready: false, label: 'Loading', step: 0, seed, activeMs: 0, dirty: true, metricsDirty: true,
+        options: { model, preset, seed, backend: 'auto', maxEpochs: 10000, captureHz: 5 } };
 }
-const experiments = { 'dense-rotary': experiment('dense-rotary') };
-let state = experiments['dense-rotary'];
+// Every width and optimizer preset keeps its own experiment.
+const experiments = new Map([['dense-rotary/fast', experiment('dense-rotary', 'fast')]]);
+let state = experiments.get('dense-rotary/fast'), preferredPreset = 'fast';
 let W = 128;
 const renderInputs = new Map();
 let pendingFrame = null, metricsTimer = null, lastMetricsPaint = 0;
@@ -528,6 +529,14 @@ function refresh() {
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
     }
+    const presets = modelPresets(state.model);
+    $('preset-nav').hidden = presets.length < 2;
+    for (const button of document.querySelectorAll('[data-preset-tab]')) {
+        const active = button.dataset.presetTab === state.preset;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+        button.hidden = !presets.includes(preset(button.dataset.presetTab ?? ''));
+    }
     ui('atlas-a-title', 'Shared embedding E');
     ui('atlas-b-title', 'Dense matrix A');
     ui('atlas-r-title', 'Tied readout Eᵀ');
@@ -543,11 +552,15 @@ function refresh() {
     for (const type of ['a', 'b'])
         $('input-' + type).setAttribute('aria-label', runtimeText($('atlas-' + type + '-title').textContent + ' weights'));
     ui('model-description', t('One shared E (97 × {width}) embeds a and b and reads out the answer. Input: E[a] + Rotate90(E[b]). One pre-norm residual block applies RMSNorm → Dense A → ReLU, then adds the original input. Final RMSNorm and Eᵀ give 97 logits. E starts normal with variance 1/{width}; A is Kaiming normal with variance 2/{width}; there are no biases or learned norm gains.', { width: W }));
-    const reference = W === 16 ? 'Seed 11, Rust/CUDA: after 10,000 epochs, train 32.1% and held-out 18.1%; neither reached 99%. Only one seed verified; browser results may differ.'
-        : W === 32 ? 'Seed 11, Rust/CUDA: train ≥99% at epoch 931; held-out ≥99% at 3690. Only one seed verified; browser crossings may differ.'
-            : W === 1024 ? 'Seed 11, Rust/CUDA: train ≥99% and held-out ≤10% at epochs 18–110 (92 epochs); held-out ≥90% at 226 and ≥99% at 270. The 116-epoch rise meets the grokking criterion. Beige: train ≥99%; violet: perfect train; held-out ≤10% in both. Only one seed verified; browser crossings may differ.'
-                : 'Seed 11, Rust/CUDA: train ≥99% at epoch 315; held-out ≥90% at 510 and ≥99% at 605, without a memorization plateau. Only one seed verified; browser crossings may differ.';
-    ui('reference-description', t(reference));
+    const profile = optimizerProfile(state.model, state.preset);
+    const reference = t('Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.', {
+        seeds: profile.nativeSeeds.join(' / '), epochs: profile.nativeTest99Epochs.map(epoch => epoch === null ? '—' : number(epoch)).join(' / '), budget: number(profile.nativeBudget),
+    });
+    const plateau = profile.nativePlateauEpochs ? ' ' + t('Memorization plateau: {epochs} epochs.', { epochs: profile.nativePlateauEpochs.map(epochs => number(epochs)).join(' / ') }) : '';
+    ui('reference-description', `AdamW · lr=${profile.learningRate} · wd=${profile.weightDecay} · β=0.9/0.98 · ε=1e-8 · warmup=10. ${reference}${plateau}`);
+    $('reference-description').dataset.learningRate = String(profile.learningRate);
+    $('reference-description').dataset.weightDecay = String(profile.weightDecay);
+    ui('model-optimizer', `lr=${profile.learningRate} · wd=${profile.weightDecay}`);
     ui('criterion-description', t('At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.'));
     ui('scale-formula', t('|probe hidden꜀| × ‖centered Eᵀ꜀‖ measures a channel’s readout contribution. If channels share a pixel, its bar shows their maximum and selects that channel. The channel input selects any channel exactly.'));
     status(state.label);
@@ -558,7 +571,7 @@ function initialize() {
         return;
     const target = state;
     target.worker?.terminate();
-    target.options = { model: target.model, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value) };
+    target.options = { model: target.model, preset: target.preset, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value) };
     target.seed = target.options.seed;
     target.initial = initialModelWeights(target.seed, target.model);
     target.weights = target.initial.slice();
@@ -608,23 +621,34 @@ function initialize() {
         refresh(); };
     send(worker, { type: 'initialize', options: target.options });
 }
+function select(model, chosen) {
+    if (model === state.model && chosen === state.preset)
+        return;
+    if (state.running) {
+        send(state.worker, { type: 'pause' });
+        status('Pausing');
+    }
+    const previous = state.options, key = `${model}/${chosen}`;
+    if (!experiments.has(key))
+        experiments.set(key, experiment(model, chosen));
+    state = experiments.get(key);
+    refresh();
+    if (!state.worker) {
+        state.options.backend = previous.backend;
+        $('backend').value = previous.backend;
+        initialize();
+    }
+}
+// Widths without the preferred preset open their fast preset.
 for (const button of document.querySelectorAll('[data-model-tab]'))
     button.onclick = () => {
         const id = modelId(button.dataset.modelTab ?? '');
-        if (id === state.model)
-            return;
-        if (state.running) {
-            send(state.worker, { type: 'pause' });
-            status('Pausing');
-        }
-        const previous = state.options;
-        state = experiments[id] ??= experiment(id);
-        refresh();
-        if (!state.worker) {
-            state.options.backend = previous.backend;
-            $('backend').value = previous.backend;
-            initialize();
-        }
+        select(id, modelPresets(id).includes(preferredPreset) ? preferredPreset : 'fast');
+    };
+for (const button of document.querySelectorAll('[data-preset-tab]'))
+    button.onclick = () => {
+        preferredPreset = preset(button.dataset.presetTab ?? '');
+        select(state.model, preferredPreset);
     };
 $('train').onclick = () => { if (state.ready)
     send(state.worker, { type: state.running ? 'pause' : 'train' }); };
@@ -775,10 +799,11 @@ for (const id of ['input-a', 'input-b', 'readout'])
             invalidate();
     };
 function download(content, name, type) { const url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-$('export-pytorch').onclick = () => download(pytorchSource(state.options), `rotate90-w${W}-seed${state.seed}.py`, 'text/x-python');
+const presetSuffix = () => state.preset === 'fast' ? '' : '-' + state.preset;
+$('export-pytorch').onclick = () => download(pytorchSource(state.options), `rotate90-w${W}${presetSuffix()}-seed${state.seed}.py`, 'text/x-python');
 $('export-metrics').onclick = () => {
     const keys = ['step', 'epoch', 'trainLoss', 'heldoutLoss', 'trainAccuracy', 'heldoutAccuracy', 'phase'];
-    download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
+    download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}${presetSuffix()}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
 };
 const resizeObserver = new ResizeObserver(() => { invalidate(); });
 for (const element of document.querySelectorAll('main, canvas'))

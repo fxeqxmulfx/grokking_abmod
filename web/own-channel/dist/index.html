@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f6f1">
-  <meta name="description" content="Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 128 and 1024. Train locally in your browser with live loss, accuracy and weights.">
+  <meta name="description" content="Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 64, 128 and 256. Train locally in your browser with live loss, accuracy and weights.">
   <title>Rotate90 Grokking Lab</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
@@ -12,11 +12,11 @@
 <body data-view="training">
   <header class="topbar">
     <a class="brand" href="./"><span class="brand-mark">g</span><span>GROKKING LAB</span></a>
-    <div class="model-summary"><h1 id="model-name">Rotate90 <span>Dense + ReLU</span></h1><span class="model-detail" id="model-detail">128 channels · 28,800 parameters · ReLU · FP32</span><code>a / b mod 97</code></div>
+    <div class="model-summary"><h1 id="model-name">Rotate90 <span>Dense + ReLU</span></h1><span class="model-detail" id="model-detail">128 channels · 28,800 parameters · ReLU · FP32</span><span class="model-task"><code>a / b mod 97</code><code id="model-optimizer">lr=0.01 · wd=1</code></span></div>
     <div class="header-tools"><span class="device" id="device">Preparing training engine…</span><select id="language" data-language-select aria-label="Language"></select><button id="task-help" aria-label="Task and solution" title="Task and solution">∑</button><button id="about" aria-label="About this experiment" title="About this experiment">?</button></div>
   </header>
   <main>
-    <div class="workspace-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="dense-rotary-16" aria-pressed="false">W16</button><button data-model-tab="dense-rotary-32" aria-pressed="false">W32</button><button data-model-tab="dense-rotary" class="active" aria-pressed="true">W128</button><button data-model-tab="dense-rotary-wide" aria-pressed="false">W1024</button></nav><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Network</button></nav></div>
+    <div class="workspace-nav"><div class="experiment-nav"><nav class="model-nav" aria-label="Model"><button data-model-tab="dense-rotary-16" aria-pressed="false">W16</button><button data-model-tab="dense-rotary-32" aria-pressed="false">W32</button><button data-model-tab="dense-rotary-64" aria-pressed="false">W64</button><button data-model-tab="dense-rotary" class="active" aria-pressed="true">W128</button><button data-model-tab="dense-rotary-256" aria-pressed="false">W256</button></nav><nav class="model-nav preset-nav" id="preset-nav" aria-label="Optimizer preset"><button data-preset-tab="fast" class="active" aria-pressed="true" title="Fast optimizer: reaches 99% held-out accuracy earliest on every Rust/CUDA seed">Fast</button><button data-preset-tab="plateau" aria-pressed="false" title="Plateau optimizer: the longest memorization plateau before 99% held-out accuracy on every Rust/CUDA seed; where Slow has it, the longest followed by grokking">Plateau</button><button data-preset-tab="slow" aria-pressed="false" title="Slow optimizer: reaches 99% held-out accuracy latest, yet on every Rust/CUDA seed">Slow</button></nav></div><nav class="view-nav" aria-label="Workspace view"><button data-view-tab="training" class="active" aria-pressed="true">Training</button><button data-view-tab="weights" aria-pressed="false">Weights</button><button data-view-tab="channels" aria-pressed="false">Network</button></nav></div>
     <div class="dashboard">
       <div class="visuals">
         <section class="card chart-card" aria-labelledby="curve-title">
@@ -69,10 +69,10 @@
     <nav class="task-tabs" role="tablist" aria-label="Task and solution"><button id="task-tab-intro" role="tab" aria-controls="task-page-intro" data-task-tab="intro" class="active" aria-selected="true">Start</button><button id="task-tab-task" role="tab" aria-controls="task-page-task" data-task-tab="task" aria-selected="false">Task</button><button id="task-tab-solution" role="tab" aria-controls="task-page-solution" data-task-tab="solution" aria-selected="false">Solution</button><button id="task-tab-examples" role="tab" aria-controls="task-page-examples" data-task-tab="examples" aria-selected="false">Examples</button><button id="task-tab-model" role="tab" aria-controls="task-page-model" data-task-tab="model" aria-selected="false">Model</button></nav>
     <div class="task-pages">
       <section id="task-page-intro" class="task-page task-intro" role="tabpanel" aria-labelledby="task-tab-intro">
-        <nav class="tabs intro-tabs" role="tablist" aria-label="Introduction pages"><button id="intro-tab-why" role="tab" aria-controls="intro-page-why" data-intro-tab="why" aria-selected="true" class="active">Idea</button><button id="intro-tab-epoch" role="tab" aria-controls="intro-page-epoch" data-intro-tab="epoch" aria-selected="false">Epochs</button><button id="intro-tab-paper" role="tab" aria-controls="intro-page-paper" data-intro-tab="paper" aria-selected="false">Paper</button><button id="intro-tab-chart" role="tab" aria-controls="intro-page-chart" data-intro-tab="chart" aria-selected="false">Chart</button><button id="intro-tab-grokking" role="tab" aria-controls="intro-page-grokking" data-intro-tab="grokking" aria-selected="false">Grokking</button></nav>
+        <nav class="tabs intro-tabs" role="tablist" aria-label="Introduction pages"><button id="intro-tab-why" role="tab" aria-controls="intro-page-why" data-intro-tab="why" aria-selected="true" class="active">Idea</button><button id="intro-tab-epoch" role="tab" aria-controls="intro-page-epoch" data-intro-tab="epoch" aria-selected="false">Epochs</button><button id="intro-tab-paper" role="tab" aria-controls="intro-page-paper" data-intro-tab="paper" aria-selected="false">Paper</button><button id="intro-tab-chart" role="tab" aria-controls="intro-page-chart" data-intro-tab="chart" aria-selected="false">Chart</button><button id="intro-tab-grokking" role="tab" aria-controls="intro-page-grokking" data-intro-tab="grokking" aria-selected="false">Grokking</button><button id="intro-tab-findings" role="tab" aria-controls="intro-page-findings" data-intro-tab="findings" aria-selected="false">Findings</button></nav>
         <div class="intro-panels">
           <section id="intro-page-why" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-why">
-            <div><h3>Learning after memorization</h3><p>If you learned to stop within 100 epochs, this experiment invites you to look further. A fixed epoch count is a budget, not a universal stopping rule.</p><p>A network can memorize the training examples while failing on unseen pairs, then generalize much later. That late improvement is called grokking. Width, optimizer and seed influence whether it happens.</p></div>
+            <div><h3>Learning after memorization</h3><p>In 2022, OpenAI researchers trained small Transformers on arithmetic tables such as division modulo 97. The networks memorized the training examples early but solved unseen pairs only much later. They called this late generalization grokking.</p><p>This lab is an attempt to find out in detail how it works. Train the same task in your browser, change width, learning rate (lr), weight decay (wd) and seed, and follow accuracy, loss and every weight epoch by epoch.</p><p class="helper">The Findings tab summarizes what the experiments have shown so far.</p></div>
           </section>
           <section id="intro-page-paper" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-paper" hidden>
             <div><h3>The 2022 paper</h3><p>The paper used small Transformers. In its division-modulo-97 example, training accuracy was nearly perfect before 1,000 optimizer steps; validation approached that level near 1,000,000 steps.</p><a href="https://arxiv.org/abs/2201.02177" target="_blank" rel="noreferrer">Grokking: original paper ↗</a></div>
@@ -88,6 +88,11 @@
           </section>
           <section id="intro-page-grokking" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-grokking" hidden>
             <div><h3>When does it count as grokking?</h3><p>A shaded interval shows memorization with poor generalization. It does not by itself establish a later jump.</p><p>This lab requires at least 25 plateau epochs, test ≤10% → ≥90% within 250 epochs, and a later test ≥99% result. These are this lab's thresholds, not a definition imposed by the paper.</p></div>
+            <aside class="intro-paper"><p>In Rust/CUDA runs, W16–W64 never held a 25-epoch plateau. W128 held one when weight decay was weak, but test accuracy then rose over hundreds of epochs. Only W256 met all three conditions, at some settings.</p></aside>
+          </section>
+          <section id="intro-page-findings" class="intro-page intro-columns" role="tabpanel" aria-labelledby="intro-tab-findings" hidden>
+            <div><h3>lr and wd at W128</h3><p>Up to lr=0.003, the learning rate only sets the time scale: halving it roughly doubles every epoch count.</p><p>Weight decay sets how far the test lags behind training: at lr=0.001, test reaches 99% after about 240 epochs with wd=1, 400 with wd=0.3, 600 with wd=0.1 and 860–1,290 with wd ≤ 0.01.</p></div>
+            <aside class="intro-paper"><p>Too large steps break training: every setting with lr × wd ≥ 0.1 failed, and lr=1 is unstable. Fastest: lr=0.01, wd=1, 99% in 30–32 epochs (the Fast preset).</p><p class="helper">Rust/CUDA: lr 0.00003–1 × wd 0–1, seeds 11/17/23, up to 10,000 epochs.</p></aside>
           </section>
         </div>
       </section>
@@ -118,7 +123,7 @@
         <div class="task-model-copy">
           <div class="task-model-heading"><h3>How the model learns</h3><nav class="tabs task-model-tabs" role="tablist" aria-label="Model presentation"><button id="model-tab-diagram" data-model-explanation="diagram" role="tab" aria-controls="model-page-diagram" aria-selected="true" class="active">Diagram</button><button id="model-tab-types" data-model-explanation="types" role="tab" aria-controls="model-page-types" aria-selected="false">Types</button><button id="model-tab-equations" data-model-explanation="equations" role="tab" aria-controls="model-page-equations" aria-selected="false">Equations</button></nav></div>
           <p>Rotate90 predicts one of 97 answer classes q from (a,b). One shared E embeds both operands and reads out the answer.</p>
-          <p class="task-width"><span>Width</span> <code>W = 16, 32, 128</code> <span>or</span> <code>1024</code></p>
+          <p class="task-width"><span>Width</span> <code>W = 16, 32, 64, 128</code> <span>or</span> <code>256</code></p>
         </div>
         <div class="task-model-panels">
           <figure id="model-page-diagram" class="task-model-diagram" role="tabpanel" aria-labelledby="model-tab-diagram"><picture><source media="(max-width: 649px)" data-model-diagram-portrait><img data-task-diagram="model" alt="Rotate90 model architecture"></picture><figcaption>Dashed lines reuse E.</figcaption></figure>
@@ -127,7 +132,7 @@
               <table><thead><tr><th scope="col">Symbol</th><th scope="col">Type / domain</th></tr></thead><tbody>
                 <tr><th scope="row"><code>a, b</code></th><td><code>a ∈ {0,…,96}</code><code>b ∈ {1,…,96}</code></td></tr>
                 <tr><th scope="row"><code>q, q̂</code></th><td><code>q, q̂ ∈ {0,…,96}</code></td></tr>
-                <tr><th scope="row"><code>W</code></th><td><code>W ∈ {16,32,128,1024}</code></td></tr>
+                <tr><th scope="row"><code>W</code></th><td><code>W ∈ {16,32,64,128,256}</code></td></tr>
                 <tr><th scope="row"><code>ε</code></th><td><code>ε = 10⁻⁵ ∈ ℝ<sub>&gt;0</sub></code></td></tr>
                 <tr><th scope="row"><code>c, i, j, k</code></th><td><code>c, i ∈ {0,…,W−1}</code><code>j ∈ {0,…,W/2−1}</code><code>k ∈ {0,…,96}</code></td></tr>
               </tbody></table>
@@ -173,9 +178,9 @@
     <div class="card-heading"><h2 id="about-title">About this experiment</h2><button id="close-about" aria-label="Close experiment information">×</button></div>
     <p id="model-description">One shared E embeds a and b and reads out the answer. Input: E[a] + Rotate90(E[b]). One pre-norm residual branch applies RMSNorm → Dense A → ReLU, then adds the original input. Final RMSNorm and Eᵀ produce 97 logits.</p>
     <h3>What counts as grokking?</h3><p id="criterion-description">At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.</p>
-    <p class="helper" id="reference-description">Seed 11, Rust/CUDA: held-out ≥99% at epoch 605 for 128 channels and 270 for 1024. The wider model has a 92-epoch memorization plateau and a 116-epoch rise to ≥90%. Only one seed verified; browser crossings may differ.</p>
+    <p class="helper" id="reference-description">Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.</p>
     <h3>Channel scales</h3><p class="helper" id="scale-formula">|probe hidden꜀| × ‖centered Eᵀ꜀‖</p>
-    <h3>One architecture, four widths</h3><p class="helper">Widths 16 / 32 / 128 / 1024 share one architecture (1,808 / 4,128 / 28,800 / 1,147,904 parameters). Each tab preserves its weights, optimizer and curves.</p>
+    <h3>One architecture, five widths</h3><p class="helper">Widths 16 / 32 / 64 / 128 / 256 share one architecture (1,808 / 4,128 / 10,304 / 28,800 / 90,368 parameters). On every Rust/CUDA seed, Fast reaches 99% held-out accuracy earliest and Slow latest. Plateau memorizes longest before it; where Slow does, Plateau has the longest plateau followed by grokking. Only widths from 128 have a memorization plateau. Each width and preset preserves its weights, optimizer and curves.</p>
     <h3>All weights, live</h3><p class="helper">All draws every E connection in its three shared roles and every A connection. Pink is positive; blue is negative. Color shade follows magnitude on a fixed logarithmic scale. Weights shows values; Change ×4 shows changes from initialization with a fixed scale. Highlight emphasizes a channel. Zoom, drag and Fit explore the graph; Channel shows all W inputs to one ReLU output and its skip. All uses neutral nodes. Channel shows probe activations.</p>
     <p class="helper">Export PyTorch source to reproduce this architecture and train from the selected seed with uv run. The file contains training code and data generation.</p>
     <p class="helper"><a href="https://arxiv.org/abs/2201.02177" target="_blank" rel="noreferrer">Grokking: original paper ↗</a> · <a href="https://content.wolfram.com/sites/43/2024/08/sw08202024topologyimg1.png" target="_blank" rel="noreferrer">Wolfram: mesh topology reference ↗</a> · <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noreferrer">RoFormer: pairwise rotations ↗</a></p>

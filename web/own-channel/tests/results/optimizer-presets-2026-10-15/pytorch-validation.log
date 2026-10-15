@@ -1,0 +1,6 @@
+Exported all 5 sources and independent f64 fixtures to /tmp/claude-1000/-home-misha-rust-projects-grokking-abmod/c59c6907-833b-4928-bb9a-68b7008917ae/scratchpad/pytorch-fixtures.
+PASS dense-rotary: exact initialization/data/21 batches; logits, all gradients and three AdamW updates match f64.
+PASS dense-rotary-16: exact initialization/data/21 batches; logits, all gradients and three AdamW updates match f64.
+PASS dense-rotary-256: exact initialization/data/21 batches; logits, all gradients and three AdamW updates match f64.
+PASS dense-rotary-32: exact initialization/data/21 batches; logits, all gradients and three AdamW updates match f64.
+PASS dense-rotary-64: exact initialization/data/21 batches; logits, all gradients and three AdamW updates match f64.

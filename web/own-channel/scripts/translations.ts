@@ -1,30 +1,47 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  [
+    "Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.",
+    "Rust/CUDA, semillas {seeds}: épocas hasta ≥99% en prueba: {epochs}. Un guion indica que no se alcanzó en {budget} épocas. En el navegador puede variar.",
+    "Rust/CUDA, Seeds {seeds}: Epochen bis ≥99% Testgenauigkeit: {epochs}. Ein Strich bedeutet: in {budget} Epochen nicht erreicht. Browser-Schwellen können abweichen.",
+    "Rust/CUDA、シード{seeds}：テスト99%以上までのエポック数は{epochs}。ダッシュは{budget}エポック以内に未達を示します。ブラウザーでは到達時期が異なる場合があります。",
+    "Rust/CUDA, graines {seeds} : époques jusqu’à ≥99% au test : {epochs}. Un tiret signifie non atteint en {budget} époques. Le navigateur peut différer.",
+    "Rust/CUDA, seed {seeds}: эпохи до ≥99% на тесте: {epochs}. Прочерк означает, что порог не достигнут за {budget} эпох. В браузере моменты достижения могут отличаться."
+  ],
   ["Start", "Inicio", "Start", "導入", "Début", "Начало"],
   ["Idea", "Idea", "Idee", "狙い", "Idée", "Идея"],
   ["Epochs", "Épocas", "Epochen", "エポック", "Époques", "Эпохи"],
   ["Paper", "Artículo", "Artikel", "論文", "Article", "Статья"],
   ["Chart", "Gráfico", "Kurven", "グラフ", "Courbes", "График"],
   ["Grokking", "Grokking", "Grokking", "Grokking", "Grokking", "Grokking"],
+  ["Findings", "Hallazgos", "Befunde", "観察結果", "Constats", "Наблюдения"],
   ["Introduction pages", "Páginas de introducción", "Einführungsseiten", "導入ページ", "Pages d’introduction", "Страницы вступления"],
   ["Explain curves and plateau shading", "Explicar las curvas y las zonas de meseta", "Kurven und Plateauflächen erklären", "曲線と停滞期の色分けを説明", "Expliquer les courbes et les plateaux", "Объяснение кривых и выделенных плато"],
   ["Learning after memorization", "Aprender después de memorizar", "Lernen nach dem Auswendiglernen", "暗記した後の学習", "Apprendre après avoir mémorisé", "Обучение после запоминания"],
   [
-    "If you learned to stop within 100 epochs, this experiment invites you to look further. A fixed epoch count is a budget, not a universal stopping rule.",
-    "Si aprendiste a detenerte antes de 100 épocas, este experimento invita a mirar más allá. Un número fijo de épocas es un presupuesto, no una regla universal de parada.",
-    "Wenn du gelernt hast, innerhalb von 100 Epochen zu stoppen, lohnt hier ein längerer Blick. Eine feste Epochenzahl ist ein Budget, keine allgemeine Stoppregel.",
-    "100エポック以内で止めると習ったなら、この実験ではその先を見てください。固定したエポック数は学習予算であり、普遍的な停止基準ではありません。",
-    "Si vous avez appris à arrêter avant 100 époques, cette expérience invite à regarder plus loin. Un nombre fixe d’époques est un budget, pas une règle universelle d’arrêt.",
-    "Если вас учили останавливаться до 100 эпох, этот эксперимент предлагает посмотреть дальше. Фиксированное число эпох — бюджет обучения, а не универсальное правило остановки."
+    "In 2022, OpenAI researchers trained small Transformers on arithmetic tables such as division modulo 97. The networks memorized the training examples early but solved unseen pairs only much later. They called this late generalization grokking.",
+    "En 2022, investigadores de OpenAI entrenaron Transformers pequeños con tablas aritméticas como la división módulo 97. Las redes memorizaban pronto los ejemplos de entrenamiento, pero resolvían pares nuevos mucho después. Llamaron grokking a esta generalización tardía.",
+    "2022 trainierten Forschende von OpenAI kleine Transformer auf Rechentabellen wie der Division modulo 97. Die Netze lernten die Trainingsbeispiele früh auswendig, lösten neue Paare aber erst viel später. Diese späte Verallgemeinerung nannten sie Grokking.",
+    "2022年、OpenAIの研究者たちは、97を法とする除算などの演算表で小さなTransformerを学習させました。ネットワークは学習例を早く暗記しましたが、未知の組を解けるようになったのはずっと後でした。この遅れて起こる汎化はgrokkingと名付けられました。",
+    "En 2022, des chercheurs d’OpenAI ont entraîné de petits Transformers sur des tables arithmétiques comme la division modulo 97. Les réseaux mémorisaient vite les exemples d’entraînement, mais ne résolvaient les paires nouvelles que bien plus tard. Ils ont appelé grokking cette généralisation tardive.",
+    "В 2022 году исследователи OpenAI обучали небольшие трансформеры на арифметических таблицах, например на делении по модулю 97. Сети быстро запоминали обучающие примеры, но новые пары начинали решать лишь намного позже. Это позднее обобщение назвали grokking."
   ],
   [
-    "A network can memorize the training examples while failing on unseen pairs, then generalize much later. That late improvement is called grokking. Width, optimizer and seed influence whether it happens.",
-    "Una red puede memorizar el entrenamiento y fallar en pares nuevos, y generalizar mucho después. Esta mejora tardía se llama grokking. La anchura, el optimizador y la semilla influyen en si ocurre.",
-    "Ein Netz kann Trainingsbeispiele auswendig lernen, neue Paare falsch lösen und viel später verallgemeinern. Diese späte Verbesserung heißt Grokking. Breite, Optimierer und Seed beeinflussen, ob sie auftritt.",
-    "学習例を暗記しても、未知の組では間違い続け、ずっと後に汎化する場合があります。この遅い改善をgrokkingと呼びます。幅、最適化手法、シードが発生に影響します。",
-    "Un réseau peut mémoriser l’entraînement, échouer sur des paires nouvelles, puis généraliser bien plus tard. Cette amélioration tardive s’appelle grokking. Largeur, optimiseur et graine influencent son apparition.",
-    "Сеть может запомнить обучающие примеры, ошибаться на новых парах и лишь намного позже обобщить правило. Это позднее улучшение называют grokking. На него влияют ширина, оптимизатор и seed."
+    "This lab is an attempt to find out in detail how it works. Train the same task in your browser, change width, learning rate (lr), weight decay (wd) and seed, and follow accuracy, loss and every weight epoch by epoch.",
+    "Este laboratorio intenta averiguar en detalle cómo funciona. Entrena la misma tarea en el navegador, cambia la anchura, la tasa de aprendizaje (lr), el decaimiento de pesos (wd) y la semilla, y sigue la precisión, la pérdida y cada peso época a época.",
+    "Dieses Labor versucht herauszufinden, wie das im Detail funktioniert. Trainiere dieselbe Aufgabe im Browser, ändere Breite, Lernrate (lr), Weight Decay (wd) und Seed und verfolge Genauigkeit, Loss und jedes Gewicht Epoche für Epoche.",
+    "この実験は、その仕組みを詳しく調べる試みです。同じ課題をブラウザーで学習させ、幅、学習率（lr）、重み減衰（wd）、シードを変えながら、正解率、損失、すべての重みをエポックごとに追えます。",
+    "Ce laboratoire tente de comprendre en détail comment cela fonctionne. Entraînez la même tâche dans le navigateur, changez la largeur, le taux d’apprentissage (lr), la décroissance des poids (wd) et la graine, et suivez exactitude, perte et chaque poids, époque après époque.",
+    "Эта лаборатория — попытка подробно разобраться, как это работает. Обучайте ту же задачу в браузере, меняйте ширину, скорость обучения (lr), weight decay (wd) и seed и следите за точностью, loss и каждым весом от эпохи к эпохе."
+  ],
+  [
+    "The Findings tab summarizes what the experiments have shown so far.",
+    "La pestaña Hallazgos resume lo que han mostrado los experimentos hasta ahora.",
+    "Der Reiter Befunde fasst zusammen, was die Experimente bisher zeigen.",
+    "これまでの実験でわかったことは「観察結果」にまとめています。",
+    "L’onglet Constats résume ce que les expériences ont montré jusqu’ici.",
+    "Что уже показали эксперименты — во вкладке «Наблюдения»."
   ],
   ["The 2022 paper", "El artículo de 2022", "Die Arbeit von 2022", "2022年の論文", "L’article de 2022", "Статья 2022 года"],
   [
@@ -128,6 +145,47 @@ export const rows: readonly (readonly string[])[] = [
     "Ce laboratoire exige au moins 25 époques de plateau, un test ≤10% → ≥90% en 250 époques, puis ≥99%. Ce sont ses propres seuils, pas une définition imposée par l’article.",
     "Здесь нужны минимум 25 эпох плато, рост test ≤10% → ≥90% за 250 эпох и затем test ≥99%. Эти пороги приняты в лаборатории, а не заданы статьёй."
   ],
+  [
+    "In Rust/CUDA runs, W16–W64 never held a 25-epoch plateau. W128 held one when weight decay was weak, but test accuracy then rose over hundreds of epochs. Only W256 met all three conditions, at some settings.",
+    "En las ejecuciones Rust/CUDA, W16–W64 nunca mantuvieron una meseta de 25 épocas. W128 la mantuvo con un decaimiento de pesos débil, pero después la precisión de prueba subió durante cientos de épocas. Solo W256 cumplió las tres condiciones, con algunos ajustes.",
+    "In den Rust/CUDA-Läufen hatten W16–W64 nie ein Plateau von 25 Epochen. W128 hatte eines bei schwachem Weight Decay, doch die Testgenauigkeit stieg danach über Hunderte Epochen. Nur W256 erfüllte alle drei Bedingungen, bei einigen Einstellungen.",
+    "Rust/CUDAでの実行では、W16〜W64に25エポックの停滞期は一度も現れませんでした。W128は重み減衰が弱いと停滞期を示しましたが、その後のテスト正解率の上昇には数百エポックかかりました。3つの条件をすべて満たしたのは、一部の設定のW256だけです。",
+    "Dans les essais Rust/CUDA, W16–W64 n’ont jamais tenu un plateau de 25 époques. W128 en a tenu un avec une faible décroissance des poids, mais l’exactitude au test a ensuite monté sur des centaines d’époques. Seul W256 a rempli les trois conditions, pour certains réglages.",
+    "В прогонах Rust/CUDA у W16–W64 ни разу не было плато в 25 эпох. У W128 оно появлялось при слабом weight decay, но затем точность на тесте росла сотни эпох. Все три условия выполнила только W256, при некоторых настройках."
+  ],
+  ["lr and wd at W128", "lr y wd en W128", "lr und wd bei W128", "W128でのlrとwd", "lr et wd à W128", "lr и wd на W128"],
+  [
+    "Up to lr=0.003, the learning rate only sets the time scale: halving it roughly doubles every epoch count.",
+    "Hasta lr=0.003, la tasa de aprendizaje solo fija la escala de tiempo: al reducirla a la mitad, cada número de épocas casi se duplica.",
+    "Bis lr=0.003 bestimmt die Lernrate nur die Zeitskala: Halbiert man sie, verdoppelt sich jede Epochenzahl ungefähr.",
+    "lr=0.003までは、学習率は時間の尺度を決めるだけです。半分にすると、どのエポック数もほぼ2倍になります。",
+    "Jusqu’à lr=0.003, le taux d’apprentissage ne fixe que l’échelle de temps : le diviser par deux double à peu près chaque nombre d’époques.",
+    "До lr=0.003 скорость обучения задаёт лишь масштаб времени: уменьшите её вдвое — и все сроки примерно удвоятся."
+  ],
+  [
+    "Weight decay sets how far the test lags behind training: at lr=0.001, test reaches 99% after about 240 epochs with wd=1, 400 with wd=0.3, 600 with wd=0.1 and 860–1,290 with wd ≤ 0.01.",
+    "El decaimiento de pesos fija cuánto se retrasa la prueba: con lr=0.001, llega al 99% tras unas 240 épocas con wd=1, 400 con wd=0.3, 600 con wd=0.1 y 860–1.290 con wd ≤ 0.01.",
+    "Weight Decay bestimmt, wie weit der Test dem Training hinterherläuft: Bei lr=0.001 erreicht er 99% nach etwa 240 Epochen mit wd=1, 400 mit wd=0.3, 600 mit wd=0.1 und 860–1.290 mit wd ≤ 0.01.",
+    "重み減衰は、テストが学習にどれだけ遅れるかを決めます。lr=0.001では、テストが99%に達するのはwd=1で約240エポック、wd=0.3で400、wd=0.1で600、wd ≤ 0.01で860〜1,290エポックです。",
+    "La décroissance des poids fixe le retard du test sur l’entraînement : à lr=0.001, il atteint 99% après environ 240 époques avec wd=1, 400 avec wd=0.3, 600 avec wd=0.1 et 860–1 290 avec wd ≤ 0.01.",
+    "Weight decay задаёт отставание теста от обучения: при lr=0.001 тест достигает 99% примерно за 240 эпох при wd=1, 400 при wd=0.3, 600 при wd=0.1 и 860–1 290 при wd ≤ 0.01."
+  ],
+  [
+    "Too large steps break training: every setting with lr × wd ≥ 0.1 failed, and lr=1 is unstable. Fastest: lr=0.01, wd=1, 99% in 30–32 epochs (the Fast preset).",
+    "Los pasos demasiado grandes rompen el entrenamiento: todos los ajustes con lr × wd ≥ 0.1 fallaron, y lr=1 es inestable. Lo más rápido: lr=0.01, wd=1, 99% en 30–32 épocas (el ajuste Rápido).",
+    "Zu große Schritte zerstören das Training: Jede Einstellung mit lr × wd ≥ 0.1 schlug fehl, und lr=1 ist instabil. Am schnellsten: lr=0.01, wd=1, 99% nach 30–32 Epochen (Voreinstellung Schnell).",
+    "大きすぎるステップは学習を壊します。lr × wd ≥ 0.1の設定はすべて失敗し、lr=1は不安定です。最速はlr=0.01、wd=1で、30〜32エポックで99%（「高速」設定）。",
+    "Des pas trop grands cassent l’entraînement : tous les réglages avec lr × wd ≥ 0.1 ont échoué, et lr=1 est instable. Le plus rapide : lr=0.01, wd=1, 99% en 30–32 époques (le réglage Rapide).",
+    "Большие шаги ломают обучение: провалились все настройки с lr × wd ≥ 0.1, а lr=1 нестабилен. Быстрее всех lr=0.01, wd=1: 99% за 30–32 эпохи (режим «Быстрый»)."
+  ],
+  [
+    "Rust/CUDA: lr 0.00003–1 × wd 0–1, seeds 11/17/23, up to 10,000 epochs.",
+    "Rust/CUDA: lr 0.00003–1 × wd 0–1, semillas 11/17/23, hasta 10.000 épocas.",
+    "Rust/CUDA: lr 0.00003–1 × wd 0–1, Seeds 11/17/23, bis zu 10.000 Epochen.",
+    "Rust/CUDA：lr 0.00003〜1 × wd 0〜1、シード11/17/23、最大10,000エポック。",
+    "Rust/CUDA : lr 0.00003–1 × wd 0–1, graines 11/17/23, jusqu’à 10 000 époques.",
+    "Rust/CUDA: lr 0.00003–1 × wd 0–1, seed 11/17/23, до 10 000 эпох."
+  ],
   ["Continue training", "Continuar entrenamiento", "Training fortsetzen", "学習を続ける", "Continuer l’entraînement", "Продолжить обучение"],
   ["Paused at 99% held-out accuracy", "Pausa al 99% de precisión de prueba", "Pause bei 99% Testgenauigkeit", "テスト正解率99%で一時停止", "Pause à 99% d’exactitude de test", "Пауза при 99% на тесте"],
   ["Pauses at 99% test accuracy. Continue to train further.", "Pausa al 99% en prueba. Puedes continuar.", "Pause bei 99% im Test. Fortsetzen ist möglich.", "テスト正解率99%で一時停止。学習を続けられます。", "Pause à 99% au test. Vous pouvez continuer.", "Пауза при 99% на тесте. Можно продолжить обучение."],
@@ -143,21 +201,21 @@ export const rows: readonly (readonly string[])[] = [
     "Экспортируйте код PyTorch для обучения этой архитектуры с выбранным seed через uv run. Файл содержит обучение и генерацию данных."
   ],
   [
-    "Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 128 and 1024. Train locally in your browser with live loss, accuracy and weights.",
-    "Compara una arquitectura Rotate90 densa con embedding compartido y anchuras 16, 32, 128 y 1024. Entrena en tu navegador con pérdida, precisión y pesos en directo.",
-    "Vergleiche eine dichte Rotate90-Architektur mit gemeinsamem Embedding in den Breiten 16, 32, 128 und 1024. Trainiere im Browser mit Verlust, Genauigkeit und Gewichten in Echtzeit.",
-    "共有埋め込みを使う全結合Rotate90を幅16、32、128、1024で比較。ブラウザー内で学習し、損失・正解率・重みをリアルタイムに確認できます。",
-    "Comparez une architecture Rotate90 dense à embedding partagé, de largeurs 16, 32, 128 et 1024. Entraînez-la dans votre navigateur avec pertes, exactitude et poids en direct.",
-    "Сравните плотную архитектуру Rotate90 с общим эмбеддингом на 16, 32, 128 и 1024 канала. Обучение в браузере с loss, точностью и весами в реальном времени."
+    "Compare one shared-embedding Rotate90 Dense architecture at widths 16, 32, 64, 128 and 256. Train locally in your browser with live loss, accuracy and weights.",
+    "Compara una arquitectura Rotate90 densa con embedding compartido y anchuras 16, 32, 64, 128 y 256. Entrena en tu navegador con pérdida, precisión y pesos en directo.",
+    "Vergleiche eine dichte Rotate90-Architektur mit gemeinsamem Embedding in den Breiten 16, 32, 64, 128 und 256. Trainiere im Browser mit Verlust, Genauigkeit und Gewichten in Echtzeit.",
+    "共有埋め込みを使う全結合Rotate90を幅16、32、64、128、256で比較。ブラウザー内で学習し、損失・正解率・重みをリアルタイムに確認できます。",
+    "Comparez une architecture Rotate90 dense à embedding partagé, de largeurs 16, 32, 64, 128 et 256. Entraînez-la dans votre navigateur avec pertes, exactitude et poids en direct.",
+    "Сравните плотную архитектуру Rotate90 с общим эмбеддингом на 16, 32, 64, 128 и 256 каналов. Обучение в браузере с loss, точностью и весами в реальном времени."
   ],
-  ["One architecture, four widths", "Una arquitectura, cuatro anchuras", "Eine Architektur, vier Breiten", "同じ構造、4つの幅", "Une architecture, quatre largeurs", "Одна архитектура, четыре ширины"],
+  ["One architecture, five widths", "Una arquitectura, cinco anchuras", "Eine Architektur, fünf Breiten", "同じ構造、5つの幅", "Une architecture, cinq largeurs", "Одна архитектура, пять ширин"],
   [
-    "Widths 16 / 32 / 128 / 1024 share one architecture (1,808 / 4,128 / 28,800 / 1,147,904 parameters). Each tab preserves its weights, optimizer and curves.",
-    "Las anchuras 16 / 32 / 128 / 1024 comparten arquitectura (1.808 / 4.128 / 28.800 / 1.147.904 parámetros). Cada pestaña conserva pesos, optimizador y curvas.",
-    "Breiten 16 / 32 / 128 / 1024 teilen eine Architektur (1.808 / 4.128 / 28.800 / 1.147.904 Parameter). Jeder Tab behält Gewichte, Optimierer und Kurven.",
-    "幅16 / 32 / 128 / 1024は同じ構造です（1,808 / 4,128 / 28,800 / 1,147,904パラメータ）。各タブで重み・最適化状態・曲線を保持します。",
-    "Les largeurs 16 / 32 / 128 / 1024 partagent une architecture (1 808 / 4 128 / 28 800 / 1 147 904 paramètres). Chaque onglet conserve poids, optimiseur et courbes.",
-    "Ширины 16 / 32 / 128 / 1024 используют одну архитектуру (1 808 / 4 128 / 28 800 / 1 147 904 параметра). Каждая вкладка сохраняет веса, оптимизатор и графики."
+    "Widths 16 / 32 / 64 / 128 / 256 share one architecture (1,808 / 4,128 / 10,304 / 28,800 / 90,368 parameters). On every Rust/CUDA seed, Fast reaches 99% held-out accuracy earliest and Slow latest. Plateau memorizes longest before it; where Slow does, Plateau has the longest plateau followed by grokking. Only widths from 128 have a memorization plateau. Each width and preset preserves its weights, optimizer and curves.",
+    "Las anchuras 16 / 32 / 64 / 128 / 256 comparten arquitectura (1.808 / 4.128 / 10.304 / 28.800 / 90.368 parámetros). En todas las semillas de Rust/CUDA, Rápido alcanza el 99% en prueba antes y Lento más tarde. Meseta memoriza más tiempo antes de lograrlo; si eso le toca a Lento, Meseta tiene la meseta más larga seguida de grokking. Solo las anchuras desde 128 tienen meseta de memorización. Cada anchura y ajuste conserva pesos, optimizador y curvas.",
+    "Breiten 16 / 32 / 64 / 128 / 256 teilen eine Architektur (1.808 / 4.128 / 10.304 / 28.800 / 90.368 Parameter). Bei jedem Rust/CUDA-Seed erreicht Schnell 99% Testgenauigkeit am frühesten und Langsam am spätesten. Plateau lernt davor am längsten auswendig; tut das Langsam, hat Plateau das längste Plateau mit anschließendem Grokking. Nur Breiten ab 128 haben ein Auswendiglernplateau. Jede Breite und Voreinstellung behält Gewichte, Optimierer und Kurven.",
+    "幅16 / 32 / 64 / 128 / 256は同じ構造です（1,808 / 4,128 / 10,304 / 28,800 / 90,368パラメータ）。Rust/CUDAのどのシードでも、高速はテスト99%に最も早く、低速は最も遅く到達します。停滞期はその前の暗記が最も長く、それが低速の場合は、grokkingが続く停滞期のうち最も長いものです。暗記停滞期があるのは幅128以上だけです。幅と設定ごとに重み・最適化状態・曲線を保持します。",
+    "Les largeurs 16 / 32 / 64 / 128 / 256 partagent une architecture (1 808 / 4 128 / 10 304 / 28 800 / 90 368 paramètres). Sur chaque graine Rust/CUDA, Rapide atteint 99% au test le plus tôt et Lent le plus tard. Plateau mémorise le plus longtemps avant ; si c’est le cas de Lent, Plateau a le plus long plateau suivi d’un grokking. Seules les largeurs à partir de 128 ont un plateau de mémorisation. Chaque largeur et réglage conserve poids, optimiseur et courbes.",
+    "Ширины 16 / 32 / 64 / 128 / 256 используют одну архитектуру (1 808 / 4 128 / 10 304 / 28 800 / 90 368 параметров). На каждом seed в Rust/CUDA «Быстрый» раньше всех достигает 99% на тесте, а «Медленный» — позже всех. «Плато» дольше всех запоминает перед этим; если это «Медленный», у «Плато» самое долгое плато, за которым следует grokking. Плато запоминания есть только у ширин от 128. Каждая ширина и режим сохраняют веса, оптимизатор и графики."
   ],
   [
     "Seed 11, Rust/CUDA: after 10,000 epochs, train 32.1% and held-out 18.1%; neither reached 99%. Only one seed verified; browser results may differ.",
@@ -1374,6 +1432,70 @@ export const rows: readonly (readonly string[])[] = [
     "モデル",
     "Modèle",
     "Модель"
+  ],
+  [
+    "Optimizer preset",
+    "Ajuste del optimizador",
+    "Optimierer-Voreinstellung",
+    "最適化の設定",
+    "Réglage de l’optimiseur",
+    "Режим оптимизатора"
+  ],
+  [
+    "Fast",
+    "Rápido",
+    "Schnell",
+    "高速",
+    "Rapide",
+    "Быстрый"
+  ],
+  [
+    "Slow",
+    "Lento",
+    "Langsam",
+    "低速",
+    "Lent",
+    "Медленный"
+  ],
+  [
+    "Fast optimizer: reaches 99% held-out accuracy earliest on every Rust/CUDA seed",
+    "Optimizador rápido: alcanza el 99% en prueba antes que ningún otro en todas las semillas de Rust/CUDA",
+    "Schneller Optimierer: erreicht 99% Testgenauigkeit am frühesten bei jedem Rust/CUDA-Seed",
+    "高速な最適化：Rust/CUDAのどのシードでもテスト99%に最も早く到達",
+    "Optimiseur rapide : atteint 99% au test le plus tôt sur chaque graine Rust/CUDA",
+    "Быстрый оптимизатор: раньше всех достигает 99% на тесте на каждом seed в Rust/CUDA"
+  ],
+  [
+    "Slow optimizer: reaches 99% held-out accuracy latest, yet on every Rust/CUDA seed",
+    "Optimizador lento: alcanza el 99% en prueba más tarde, pero en todas las semillas de Rust/CUDA",
+    "Langsamer Optimierer: erreicht 99% Testgenauigkeit am spätesten, aber bei jedem Rust/CUDA-Seed",
+    "低速な最適化：テスト99%への到達は最も遅いが、Rust/CUDAのどのシードでも到達",
+    "Optimiseur lent : atteint 99% au test le plus tard, mais sur chaque graine Rust/CUDA",
+    "Медленный оптимизатор: позже всех достигает 99% на тесте, но на каждом seed в Rust/CUDA"
+  ],
+  [
+    "Plateau",
+    "Meseta",
+    "Plateau",
+    "停滞期",
+    "Plateau",
+    "Плато"
+  ],
+  [
+    "Plateau optimizer: the longest memorization plateau before 99% held-out accuracy on every Rust/CUDA seed; where Slow has it, the longest followed by grokking",
+    "Optimizador de meseta: la meseta de memorización más larga antes del 99% en prueba en todas las semillas de Rust/CUDA; si es la de Lento, la más larga seguida de grokking",
+    "Plateau-Optimierer: das längste Auswendiglernplateau vor 99% Testgenauigkeit bei jedem Rust/CUDA-Seed; hat Langsam es, das längste mit anschließendem Grokking",
+    "停滞期の最適化：Rust/CUDAのどのシードでもテスト99%到達前の暗記停滞期が最も長い。それが低速の場合は、grokkingが続く停滞期のうち最も長い",
+    "Optimiseur plateau : le plus long plateau de mémorisation avant 99% au test sur chaque graine Rust/CUDA ; si c’est celui de Lent, le plus long suivi d’un grokking",
+    "Оптимизатор с плато: самое долгое плато запоминания перед 99% на тесте на каждом seed в Rust/CUDA; если оно у «Медленного», то самое долгое из тех, за которыми следует grokking"
+  ],
+  [
+    "Memorization plateau: {epochs} epochs.",
+    "Meseta de memorización: {epochs} épocas.",
+    "Auswendiglernplateau: {epochs} Epochen.",
+    "暗記停滞期のエポック数：{epochs}。",
+    "Plateau de mémorisation : {epochs} époques.",
+    "Длина плато запоминания в эпохах: {epochs}."
   ],
   [
     "Width",

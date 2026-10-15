@@ -1,0 +1,363 @@
+{
+  "date": "2026-10-15",
+  "node": "v24.21.0",
+  "chrome": "Chrome/155.0.8059.39 headless, isolated profile",
+  "site": "http://127.0.0.1:8080",
+  "presets": {
+    "16": {
+      "fast": {
+        "learningRate": 0.1,
+        "weightDecay": 0,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          1033,
+          407,
+          163
+        ]
+      },
+      "slow": {
+        "learningRate": 0.2,
+        "weightDecay": 0.001,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          5182,
+          1333,
+          7117
+        ]
+      }
+    },
+    "32": {
+      "fast": {
+        "learningRate": 0.1,
+        "weightDecay": 0.0001,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          39,
+          43,
+          27
+        ]
+      },
+      "slow": {
+        "learningRate": 0.0003,
+        "weightDecay": 0.1,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          5199,
+          3885,
+          5462
+        ]
+      }
+    },
+    "64": {
+      "fast": {
+        "learningRate": 0.1,
+        "weightDecay": 0.1,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          21,
+          33,
+          29
+        ]
+      },
+      "slow": {
+        "learningRate": 0.0001,
+        "weightDecay": 0.0001,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          6513,
+          6583,
+          8501
+        ]
+      }
+    },
+    "128": {
+      "fast": {
+        "learningRate": 0.01,
+        "weightDecay": 1,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          30,
+          32,
+          30
+        ]
+      },
+      "plateau": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          3375,
+          3770,
+          2880
+        ],
+        "rustCudaPlateauEpochs": [
+          166,
+          150,
+          210
+        ]
+      },
+      "slow": {
+        "learningRate": 0.00005,
+        "weightDecay": 0.3,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          8151,
+          7931,
+          8899
+        ]
+      }
+    },
+    "256": {
+      "fast": {
+        "learningRate": 0.01,
+        "weightDecay": 1,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          32,
+          33,
+          27
+        ]
+      },
+      "plateau": {
+        "learningRate": 0.001,
+        "weightDecay": 0.3,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          368,
+          346,
+          336
+        ],
+        "rustCudaPlateauEpochs": [
+          76,
+          69,
+          58
+        ]
+      },
+      "slow": {
+        "learningRate": 0.00005,
+        "weightDecay": 0.3,
+        "rustCudaSeeds": [
+          11,
+          17,
+          23
+        ],
+        "rustCudaFirstTest99": [
+          7632,
+          6777,
+          6593
+        ],
+        "rustCudaPlateauEpochs": [
+          1644,
+          1403,
+          1362
+        ]
+      }
+    }
+  },
+  "nodeTests": {
+    "passed": 84,
+    "failed": 0
+  },
+  "pytorch": {
+    "runner": "uv run --locked tests/validate-pytorch-export.py",
+    "allWidths": true,
+    "downloadedW16SlowStandaloneUVRun": true
+  },
+  "browser": {
+    "uiTest": "PASS",
+    "exportDownloads": [
+      "dense-rotary-16/fast",
+      "dense-rotary-16/slow",
+      "dense-rotary-32/fast",
+      "dense-rotary-32/slow",
+      "dense-rotary-64/fast",
+      "dense-rotary-64/slow",
+      "dense-rotary/fast",
+      "dense-rotary/plateau",
+      "dense-rotary/slow",
+      "dense-rotary-256/fast",
+      "dense-rotary-256/plateau",
+      "dense-rotary-256/slow"
+    ],
+    "trainedWeightsExcluded": true,
+    "automaticPause": {
+      "model": "dense-rotary",
+      "preset": "fast",
+      "epoch": 30,
+      "testPercent": 99.27,
+      "continuedEpoch": 33,
+      "reset": true
+    },
+    "presetsToTarget": [
+      {
+        "model": "dense-rotary-16",
+        "preset": "fast",
+        "epoch": 996,
+        "testPercent": 99.01,
+        "continuedEpoch": 999,
+        "sameWorker": true,
+        "wallSeconds": 2
+      },
+      {
+        "model": "dense-rotary-16",
+        "preset": "slow",
+        "epoch": 5118,
+        "testPercent": 99.05,
+        "continuedEpoch": 5121,
+        "sameWorker": true,
+        "wallSeconds": 13
+      },
+      {
+        "model": "dense-rotary-32",
+        "preset": "fast",
+        "epoch": 39,
+        "testPercent": 99.14,
+        "continuedEpoch": 42,
+        "sameWorker": true,
+        "wallSeconds": 0
+      },
+      {
+        "model": "dense-rotary-32",
+        "preset": "slow",
+        "epoch": 5382,
+        "testPercent": 99.03,
+        "continuedEpoch": 5385,
+        "sameWorker": true,
+        "wallSeconds": 17
+      },
+      {
+        "model": "dense-rotary-64",
+        "preset": "fast",
+        "epoch": 21,
+        "testPercent": 99.57,
+        "continuedEpoch": 24,
+        "sameWorker": true,
+        "wallSeconds": 0
+      },
+      {
+        "model": "dense-rotary-64",
+        "preset": "slow",
+        "epoch": 6426,
+        "testPercent": 99.01,
+        "continuedEpoch": 6429,
+        "sameWorker": true,
+        "wallSeconds": 35
+      },
+      {
+        "model": "dense-rotary",
+        "preset": "plateau",
+        "epoch": 3729,
+        "testPercent": 99.01,
+        "continuedEpoch": 3732,
+        "sameWorker": true,
+        "wallSeconds": 49
+      },
+      {
+        "model": "dense-rotary",
+        "preset": "slow",
+        "epoch": 8189,
+        "testPercent": 99.01,
+        "continuedEpoch": 8192,
+        "sameWorker": true,
+        "wallSeconds": 99
+      },
+      {
+        "model": "dense-rotary-256",
+        "preset": "fast",
+        "epoch": 32,
+        "testPercent": 99.38,
+        "continuedEpoch": 35,
+        "sameWorker": true,
+        "wallSeconds": 1
+      },
+      {
+        "model": "dense-rotary-256",
+        "preset": "plateau",
+        "epoch": 366,
+        "testPercent": 99.08,
+        "continuedEpoch": 369,
+        "sameWorker": true,
+        "wallSeconds": 13
+      },
+      {
+        "model": "dense-rotary-256",
+        "preset": "slow",
+        "epoch": 7737,
+        "testPercent": 99.01,
+        "continuedEpoch": 7740,
+        "sameWorker": true,
+        "wallSeconds": 267
+      }
+    ],
+    "localizedLayoutChecks": 378,
+    "languages": 6,
+    "errors": []
+  },
+  "sourceSha256": {
+    "src/optimizer-profiles.ts": "4f9e5c8b9dc5fa8530630155e059cac0c9bf42f8214b0f60fbaa4fd8447e61ae",
+    "src/models.ts": "0092e318f4861c1bebb5512556dd5447d46433917c7aa66ba859ba64764ebb6c",
+    "src/types.ts": "1a553888e71431df5eee58bf7e5fe3dbd28ae87497f3b11f9a82b074a9c71aaf",
+    "src/app.ts": "1652017fa0a317ca4a77a3569a2e6bda9345e17caeaaa4eaf5f05f0d5b2bdae4",
+    "src/engine.ts": "939351457fe3d0da23060bdf13fea1d071a5560690d597281d3549b87d165531",
+    "src/worker.ts": "a3eb4c0a2d4ae68b2deec039ec08a13c579781cc96300fb423c75e578c8250a7",
+    "src/pytorch-export.ts": "599c0b51a80c4ba4dfc5a427c29897f266285383f09ebf4c64d2c921fa7a16a6",
+    "python/rotate90.py": "4c47127e42d5014147ae82129002a857eefa98a52cf928fb91eadec834eb25e2",
+    "python/rotate90.py.lock": "612a565959f51441dc2c2bb97e710b83b70d751c55be629347fce216d6d54959",
+    "dist/index.html": "3cbb1e607cb6d99660b2ea91415b6d7b09497381f40729e36545b4c93a32af0b",
+    "dist/style.css": "2e740c143f1fe40207eed18a2a3ff91b4f8bdadea52c99d16c2afd0940dfebe9",
+    "scripts/translations.ts": "4125f27cdb39d0803f196270894de54b0cd3adfa1bf947ab4f9ef967ea3d8d8f",
+    "scripts/cpu-config.ts": "5343eab12c6f75ee43d76f7199e3cb4182c6ead42330269406f4e05c0b5b4f7f",
+    "tests/optimizer-profiles.test.ts": "e5d078214c52d664dc3df9e6ad51b7b0116787c5e6a10bf08c4ebef1c07da70a",
+    "tests/parallel-wasm.test.ts": "854014a9700082ff3d79578f170efec16b3240c151377b35ac2cc7156008832e",
+    "tests/pytorch-export.test.ts": "94a6b19c20eec77a352c97bc6ee9ff5294e6069cadfc59ae5bac01b4a0b29f92",
+    "tests/browser.ts": "8580d53284464b454e44e03ce4376d1d11083a0af388da3d15778b42c3cede2c",
+    "tests/export-browser.ts": "a2d06121bc14c9a56251a4084b9a9dbafe2eeb0945836331b5e458d95af1dd76",
+    "tests/optimizer-browser.ts": "c499de70d71da440bb76ae398e2cd736b16ad61e1e4486653201c86abb17c06b",
+    "tests/i18n-browser.ts": "232d3907b320d89b7df9aa6b5612c49de970ef3e8e0e4750f7c35199cf0382cb",
+    "tests/validate-pytorch-export.py": "ee6615b51b45609e06efb9ef66e8b055b6decd1012a98f0f6844d6b40b2366e8"
+  }
+}

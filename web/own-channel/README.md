@@ -1,6 +1,8 @@
 # Rotate90 Dense Grokking Lab
 
-Four local tabs train one Dense + ReLU architecture at widths 16, 32, 128 and 1024.
+Five local tabs train one Dense + ReLU architecture at widths 16, 32, 64, 128
+and 256. Every width has a fast and a slow optimizer preset; W128 and W256 add a
+plateau preset.
 Training runs entirely in the browser on handwritten WASM SIMD128 or scalar
 WASM. Training and weight rendering use CPU workers. Node serves static files.
 
@@ -8,8 +10,9 @@ WASM. Training and weight rendering use CPU workers. Node serves static files.
 | --- | ---: | ---: | ---: |
 | W16 | 16 | 1,808 | 4,912 |
 | W32 | 32 | 4,128 | 10,336 |
+| W64 | 64 | 10,304 | 22,720 |
 | W128 | 128 | 28,800 | 53,632 |
-| W1024 | 1024 | 1,147,904 | 1,346,560 |
+| W256 | 256 | 90,368 | 140,032 |
 
 ## Build and run
 
@@ -44,16 +47,17 @@ Rebuild after editing sources; `npm run typecheck` checks an existing build
 without emitting code. The fixed dependency versions are in `package-lock.json`.
 
 Training is the default workspace. Weights and Network provide the other two
-views. All model tabs preserve their independent weights, AdamW state, sampler
-and curves. Switching tabs pauses training; changing seed or backend resets
-that tab. Retired browser architectures and the Dynamics view are removed from
-active code and build inputs. Native experiment archives remain available in
+views. Every width and optimizer preset preserves its independent weights,
+AdamW state, sampler and curves. Switching tabs or presets pauses training;
+changing seed or backend resets that experiment. Retired browser architectures
+and the Dynamics view are removed from active code and build inputs. Native
+experiment archives remain available in
 [the historical studies](../../docs/grokking-browser-models.md).
 
 ## Architecture and initialization
 
 ```text
-E ∈ R^(97 × W), A ∈ R^(W × W), W ∈ {16, 32, 128, 1024}
+E ∈ R^(97 × W), A ∈ R^(W × W), W ∈ {16, 32, 64, 128, 256}
 J(u, v) = (-v, u) on adjacent coordinate pairs
 x0 = E[a] + J(E[b])
 r = RMSNorm(x0)
@@ -76,8 +80,9 @@ byte-for-byte at seed 11:
 
 - W16: `2b063d5498dd54fec02097d17561b06fe977a41c6251730e2a424227e382c3c4`
 - W32: `e81b4ca9d1d0625cbdcde867a6e22bb3ec84140651dcbe1b355ee1c32c36fe39`
+- W64: `4433d6019f75d87ae00108d5befb6474a9e0bd4d2df65ce0358677c1b365ff80`
 - W128: `b90448461caff3b6e04bd9ead0a3f7e7f055e8c1cd71ce19f1069186c74ae04b`
-- W1024: `ea659d5b1596d3a019c3d2af55cb4c030244481b73011b0def3572ddc04d1e91`
+- W256: `a2b331ff08b75dbb3c397e85b94769f3f4ab973baa9877c24217046652263468`
 
 The initializer consumes the same number of random draws as the old uniform
 E, preserving every A weight. See the
@@ -88,32 +93,78 @@ E, preserving every A weight. See the
 The task is division modulo 97, with a ∈ {0,…,96}, b ∈ {1,…,96} and
 q = a·b⁻¹ mod 97. There are 9,312 equations: 4,656 train and 4,656 test.
 Seed 11 is the default. Every epoch visits all training rows in nine 512-row
-batches and a 48-row tail. AdamW uses lr 0.001, weight decay 0.1, betas
-0.9/0.98, epsilon 1e-8 and ten warmup updates. Both complete splits are
-evaluated every epoch. Step advances one epoch. The first test accuracy ≥99%
-crossing automatically pauses training. Continue resumes the same weights,
-AdamW state and sampler; the target does not pause that experiment again, even
-after an accuracy dip. Reset re-arms it. The limit is 10,000 epochs.
+batches and a 48-row tail. AdamW takes its learning rate and weight decay from
+the [selected preset](#optimizer-presets), with betas 0.9/0.98, epsilon 1e-8
+and ten warmup updates. Both complete splits are evaluated every epoch. Step
+advances one epoch. The first test accuracy ≥99% crossing automatically pauses
+training. Continue resumes the same weights, AdamW state and sampler; the target
+does not pause that experiment again, even after an accuracy dip. Reset re-arms
+it. The limit is 10,000 epochs.
 
 The original paper is [Grokking: Generalization Beyond Overfitting on Small
 Algorithmic Datasets](https://arxiv.org/abs/2201.02177). The browser uses the
 Dense architecture above rather than the paper's Transformer.
 
-[Small-width Rust results](../../docs/rotary-dense-small-width-results.md),
-seed 11: W32 reaches 99% test accuracy at epoch 3690. W16 ends at 32.09% train
-and 18.11% test after 10,000 epochs. W64, tested in Rust, reaches 99% test at
-560, compared with 605 for W128. Width alone changes in these experiments;
-other seeds or floating-point backends can produce different results.
+[Small-width Rust results](../../docs/rotary-dense-small-width-results.md)
+with the earlier lr 0.001 and weight decay 0.1, seed 11: W32 reaches 99% test
+accuracy at epoch 3690. W16 ends at 32.09% train and 18.11% test after 10,000
+epochs. W64, tested in Rust, reaches 99% test at 560, compared with 605 for
+W128. Width alone changes in these experiments; other seeds or floating-point
+backends can produce different results.
+
+## Optimizer presets
+
+**Fast**, at every width, is the winner of the native Rust/CUDA optimizer grid:
+the earliest 99% test accuracy over seeds 11, 17 and 23. **Slow** comes from a
+late-generalization search. Of the configurations that reach 99% on all three
+seeds within 10,000 epochs, it is the one whose earliest crossing comes latest.
+**Plateau** is the one among them with the longest memorization plateau, by the
+grokking criterion below, on its shortest seed. At W256 that is the slow
+configuration, so Plateau takes the longest plateau followed by grokking on
+every seed instead. No configuration up to W64 holds a plateau on every seed.
+[CUDA Dense products](../../docs/dense-cuda-kernels.md#optimizer-search)
+describes the searches and their archives. The header shows the selected
+preset's learning rate and weight decay next to the task.
+
+| Tab | Preset | lr | Weight decay | Rust/CUDA first test ≥99%, seeds 11 / 17 / 23 | Rust/CUDA plateau, seeds 11 / 17 / 23 | Node WASM, seed 11: first test ≥99% (plateau) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| W16 | Fast | 0.1 | 0 | 1,033 / 407 / 163 | None | 996 |
+| W16 | Slow | 0.2 | 0.001 | 5,182 / 1,333 / 7,117 | None | 5,118 |
+| W32 | Fast | 0.1 | 0.0001 | 39 / 43 / 27 | None | 39 |
+| W32 | Slow | 0.0003 | 0.1 | 5,199 / 3,885 / 5,462 | None | 5,382 |
+| W64 | Fast | 0.1 | 0.1 | 21 / 33 / 29 | None | 21 |
+| W64 | Slow | 0.0001 | 0.0001 | 6,513 / 6,583 / 8,501 | None | 6,426 |
+| W128 | Fast | 0.01 | 1 | 30 / 32 / 30 | None | 30 |
+| W128 | Plateau | 0.0003 | 0 | 3,375 / 3,770 / 2,880 | 166 / 150 / 210 | 3,729 (173) |
+| W128 | Slow | 0.00005 | 0.3 | 8,151 / 7,931 / 8,899 | None | 8,189 |
+| W256 | Fast | 0.01 | 1 | 32 / 33 / 27 | None | 32 |
+| W256 | Plateau | 0.001 | 0.3 | 368 / 346 / 336 | 76 / 69 / 58 | 366 (82) |
+| W256 | Slow | 0.00005 | 0.3 | 7,632 / 6,777 / 6,593 | 1,644 / 1,403 / 1,362 | 7,737 (1,664) |
+
+The W256 Plateau rises from its plateau to 90% test accuracy within 115–129
+epochs on every seed, which the criterion counts as delayed grokking. The W128
+Plateau and W256 Slow rise over 892–1,362 and 2,126–2,721 epochs.
+
+The Node column ran the browser's four-thread WASM SIMD engine to the first
+99% crossing. Thread partitioning regroups floating-point sums and can shift
+that epoch; with one thread, W16 fast crosses at 1,033, as on CUDA. The high
+learning rates make W16 sensitive to such differences. W16 slow crosses at
+5,070–6,930 on seed 11 with one, two or four threads, and at 5,391 and 6,643 on
+seed 23 with one and four. Seed 17, which crosses at 1,333 on CUDA, stays below
+99% for all 10,000 epochs with one, two and four threads. W128 Plateau crosses
+354 epochs after CUDA on seed 11.
 
 ## PyTorch source export
 
 The **PyTorch .py** button exports a standalone CPU training script with the
-selected width, seed and epoch limit. It includes the model, exact initialization,
-dataset split, shuffled epoch sampler, AdamW settings and CSV metrics. Run the
-download with `uv run rotate90-w128-seed11.py`; no project checkout is needed.
+selected width, optimizer preset, seed and epoch limit. It includes the model,
+exact initialization, dataset split, shuffled epoch sampler, AdamW settings and
+CSV metrics. Run the
+download with `uv run rotate90-w128-seed11.py` (Plateau and Slow presets add
+`-plateau` or `-slow` to the name); no project checkout is needed.
 CLI options include `--epochs`, `--seed`, `--width`, `--threads`,
 `--learning-rate` and `--weight-decay`. Each export takes its optimizer defaults
-from the selected tab's model profile, also used by every CPU/WASM engine.
+from the selected width and preset, as every CPU/WASM engine does.
 
 PEP 723 metadata installs pinned PyTorch from its CPU index and NumPy. On
 reaching 99% test accuracy, an interactive run asks whether to continue with
@@ -134,7 +185,7 @@ uv run --locked tests/validate-pytorch-export.py
 
 The validator checks exact initial tensors, all data and 21 minibatches, then
 compares logits, every gradient and three AdamW updates with independent f64
-fixtures for all four widths.
+fixtures for all five widths.
 
 The grokking criterion stays fixed: at least 25 continuous elapsed epochs
 with train ≥99% and test ≤10%, then test ≤10% → ≥90% within 250 epochs and
@@ -178,7 +229,7 @@ cached independently of pan, selection and metrics. Unchanged text stays in the
 DOM, and the worker never resends a weight snapshot at the same training step.
 
 Weight capture defaults to 5 Hz, with 1/10 Hz choices. Snapshots are 115,200
-bytes for W128 and 4,591,616 for W1024. Adaptive training submissions target
+bytes for W128 and 361,472 for W256. Adaptive training submissions target
 50 ms; CPU workers yield between submissions for responsive pause. Metrics
 export as CSV; PyTorch exports contain executable source and experiment defaults.
 
@@ -194,7 +245,7 @@ by `scripts/build-model-diagrams.ts`. Mermaid sources and hashes are in
 `diagrams/`; regenerate them with `npm run build:diagrams` using an isolated
 Chrome profile at `GROKKING_CDP_PORT`. Mermaid is not loaded at runtime. The
 128-channel WAT is the source template in `wasm/`; the build specializes it
-for the other three widths and emits SIMD/scalar binaries with private or shared memory.
+for the other four widths and emits SIMD/scalar binaries with private or shared memory.
 
 The engine selector exposes 1, 2 or 4 CPU threads for both WASM variants.
 Automatic selection uses four threads with at least six logical CPUs, two
@@ -210,8 +261,8 @@ thread. SIMD support is detected automatically, with scalar fallback.
 ## CPU optimization loop
 
 After building, run a bounded search with exact output checks and repeated
-timings. It tests input blocks, register tiles, vector unrolling and row-based
-matrix multiplication separately for each width and CPU variant:
+timings. It tests input blocks, register tiles, vector unrolling, row-based
+matrix multiplication and row groups separately for each width and CPU variant:
 
 ```sh
 npm run optimize:cpu -- --rounds 2 --apply --output /tmp/grokking-cpu-optimization
@@ -226,63 +277,100 @@ Promotion requires a confirmed 3% epoch-time gain without a training or
 evaluation regression beyond the 3% timing allowance. `--apply` saves confirmed
 choices in `scripts/cpu-config.ts`; rebuild and validate before using them.
 Reports include all rejected trials, binary/source hashes and raw timings.
-Without `--apply`, the loop writes reports and winner binaries only. A round
-with no confirmed gain stops the search early. Keep other training and rendering
+Without `--apply`, the loop writes reports and winner binaries only. W16 to W64
+reuse the W128 choices; `--widths 256` limits the search to the listed
+widths. A round with no confirmed gain stops the search early. Keep other training and rendering
 idle during measurements; repeat on the target device before comparing results.
 
-## CPU measurements (2026-10-14)
+## CPU measurements (2026-10-15)
 
 Node v24.21.0 on a Ryzen 5 5600H. All engines were measured sequentially,
-with warmup and median timings. The two-pass search evaluated 52 numerically
-identical candidates and confirmed improvements for narrow SIMD and wide scalar.
+with warmup and median timings.
 
-| Width / variant | Original 1 thread: train / evaluate ms | Final 1 thread: train / evaluate ms | Final 4 threads: train / evaluate ms | Estimated epoch gain, 4 threads |
-| --- | ---: | ---: | ---: | ---: |
-| 128 / simd | 7.2 / 44.5 | 5.8 / 22.6 | 1.7 / 6.0 | 4.97× |
-| 128 / scalar | 23.7 / 123.1 | 20.8 / 64.9 | 6.2 / 18.4 | 4.48× |
-| 1024 / simd | 252.0 / 1233.3 | 229.9 / 1011.0 | 123.0 / 257.7 | 2.52× |
-| 1024 / scalar | 936.4 / 4290.2 | 806.0 / 2530.2 | 230.7 / 673.4 | 4.58× |
+Training and evaluation process equations in groups of four. Every matrix
+value loaded from memory serves all four rows, and the softmax sums and
+RMSNorm dot products of a group run side by side. Each output keeps its
+single-row summation order and each gradient element receives the rows in
+batch order, so results stay bit-identical. A group with an exact zero in a
+normalized input or hidden vector takes the single-row kernels, which skip
+zero inputs. The softmax maximum comes from SIMD lane maxima and a
+first-index scan. ReLU uses a mask instead of WebAssembly's NaN-aware max,
+which V8 compiles to long or branchy code, and the exponentials keep their
+constants in registers. W256 walks the Dense
+matrix in 16-input blocks: with 1,024-byte rows, longer column walks evict
+each other from L1.
+
+The search promoted four-row groups for every width and variant, 1.9–2.1×
+faster per epoch, then 16-input blocks for W256, another 7%. An earlier
+search without row groups had not confirmed those blocks. All 102 candidates
+matched their references byte for byte. The rebuilt binaries for all five
+widths also match the previous ones in 1,270 checks: gradients for batches
+1–9, 37, 48 and 512, AdamW checkpoints, logits, metrics, partial evaluation
+ranges, mixed exact zeros, an infinite weight, and the 2- and 4-thread
+engines. NaN payloads count as equal because WebAssembly leaves them
+unspecified.
+
+| Width / variant | 1 thread: train / evaluate ms | 2 threads: train / evaluate ms | 4 threads: train / evaluate ms | Estimated epoch, 4 threads | Previous kernels, 4 threads |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 128 / simd | 2.6 / 14.3 | 1.6 / 7.3 | 1.0 / 3.8 | 13.8 ms | 24.1 ms |
+| 128 / scalar | 8.2 / 52.0 | 4.4 / 28.0 | 2.4 / 14.5 | 38.4 ms | 73.5 ms |
+| 256 / simd | 7.1 / 43.5 | 4.0 / 22.5 | 2.5 / 11.1 | 35.8 ms | 70.8 ms |
+| 256 / scalar | 25.0 / 151.6 | 13.0 / 79.2 | 7.0 / 40.9 | 110.6 ms | 225.7 ms |
 
 Training timings cover one batch of 512, evaluation all 9,312 equations.
 Epoch estimates use ten full batches plus evaluation, slightly overestimating
 the actual 48-row final batch. Floating-point gradient regrouping changes
-parallel checkpoint hashes; single-thread checkpoints remain identical.
-The four-thread wide engine uses 34.1 MiB of shared WASM memory.
+parallel checkpoint hashes. Every engine also reproduces the trained weight
+hashes of the earlier benchmark. The four-thread W256 engine uses 3.5 MiB of
+shared WASM memory, up from 3.4 MiB for the four row slots.
 
-Complete software graph drawing at 1250×520 takes about 41 ms for W128 and
-642 ms for W1024, including weight classification and rasterization.
-Highlighting a cached graph takes about 1–2 ms. Dense drawing runs in its own
+Complete software graph drawing at 1250×520 takes about 39 ms for W128 and
+79 ms for W256, including weight classification and rasterization.
+Highlighting a cached graph takes about 1 ms. Dense drawing runs in its own
 worker and coalesces newer requests; the main-thread fallback remains available.
 These full raster timings include work that older Canvas submission timings
 did not wait for, so those historical numbers are not directly comparable.
 
-[Raw timings, search results and validation logs](tests/results/cpu-optimization-2026-10-14/)
-include the original baseline, all 12 final engine combinations and source hashes.
+[Raw timings of both kernel generations, both searches, the bitwise comparison
+and drawing measurements](tests/results/cpu-optimization-2026-10-15/) include
+binary and source hashes. The
+[2026-10-14 measurements](tests/results/cpu-optimization-2026-10-14/) cover
+W128 and the retired W1024 engine, whose four-thread SIMD variant took
+123.0 / 257.7 ms per batch / evaluation and drew its graph in 642 ms.
 
 ## Validation and observed convergence
 
-The TypeScript build and 71 Node tests pass: deterministic data and sampling,
+The TypeScript build and 84 Node tests pass: deterministic data and sampling,
 strict grokking classification, native checkpoint hashes, scalar/SIMD logits,
 all parameter gradients, shared E accumulation, finite differences and AdamW.
 Two- and four-thread variants also pass gradient, AdamW and complete-split
-evaluation checks for all four widths and batch sizes including 1, 48 and 512.
+evaluation checks for all five widths and batch sizes including 1, 48 and 512.
 Scalar/SIMD raster tests verify actual pixels for all three E roles, Rotate90
 signs, Dense connections, zero changes and offscreen clipping.
 The original five-update single-thread CPU checkpoint, all gradients and probe
 logits remain bit-for-bit identical; their pre-optimization hashes are checked
 for both previously displayed widths and CPU variants.
-The real UI trains both widths with GPU APIs forbidden,
-pauses/resets, restores independent states, updates weights, and fits all three
-views. Localization checks pass 216 desktop/mobile dialog and workspace layouts.
+The real UI trains W128 and W256 with GPU APIs forbidden,
+pauses/resets, restores independent states, switches the W128 Fast, Plateau
+and Slow presets, updates weights, and fits all three views. Localization
+checks pass 378 desktop/mobile dialog and workspace layouts.
 
-The export integration check trains all four tabs and downloads their actual
-`.py` files before and after learning. Sources remain unchanged by training.
-W128 on Chrome's four-thread WASM reaches 99.08% test accuracy at epoch 600,
-automatically pauses, then continues to epoch 603 (99.18%) with the same worker,
-optimizer and history. Reset restores epoch zero. The downloaded script also
-completes a CPU training epoch through uv without the repository or server.
-[Current export, pause and layout evidence](tests/results/widths-export-2026-10-14/)
-records these checks separately from the historical convergence runs below.
+The export integration check trains every width and preset and downloads their
+actual `.py` files before and after learning. Sources remain unchanged by training.
+With the fast preset, W128 on Chrome's four-thread WASM reaches 99.27% test
+accuracy at epoch 30, automatically pauses, then continues to epoch 33 (99.96%)
+with the same worker, optimizer and history. Reset restores epoch zero. The
+downloaded W16 slow script also completes a CPU training epoch through uv
+without the repository or server. The preset check trains the other eleven
+presets in Chrome at seed 11 to their automatic pause and three more epochs.
+Each pauses at the epoch of the Node column above, from W64 Fast at 21 to W128
+Slow at 8,189. Four-thread wall time was 49 s for W128 Plateau, 99 s for W128
+Slow and 267 s for W256 Slow, down from 88, 194 and 558 s before the row-group
+kernels, which reproduced every pause epoch and accuracy.
+[Export, pause, preset and layout evidence](tests/results/optimizer-presets-2026-10-15/)
+records these checks separately from the historical convergence runs below. The
+[2026-10-14 checks](tests/results/widths-export-2026-10-14/) used lr 0.001 and
+weight decay 0.1.
 
 Historical convergence measurements (GPU engines have since been removed):
 
@@ -325,9 +413,12 @@ selected CDP port. Hardware acceleration is not required:
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
 GROKKING_CDP_PORT=9224 npm run test:export-browser
+GROKKING_CDP_PORT=9224 node build/tests/optimizer-browser.js
 GROKKING_CDP_PORT=9224 npm run test:rendering
 GROKKING_CDP_PORT=9224 npm run test:i18n
 GROKKING_CDP_PORT=9224 node build/tests/measure-topology.js
 node build/scripts/measure-cpu.js /tmp/grokking-cpu-benchmark
-node build/scripts/measure-wasm.js dense-rotary simd tests/results/new-wasm-run 11
+node build/scripts/measure-wasm.js dense-rotary simd tests/results/new-wasm-run 11 slow
 ```
+
+`measure-wasm` takes an optional seed and preset (`fast` by default).

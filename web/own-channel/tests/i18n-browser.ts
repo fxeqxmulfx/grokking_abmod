@@ -24,6 +24,10 @@ async function assertFits(label: string, modal = false) {
       if(${modal}&&!element.matches('#task-dialog')){const panel=document.getElementById('task-dialog').getBoundingClientRect();if(rect.left<panel.left||rect.right>panel.right||rect.top<panel.top||rect.bottom>panel.bottom)issues.push(name+' leaves dialog');}
       if(element.tagName==='IMG'&&(!element.complete||!element.naturalWidth))issues.push('SVG missing');
     }
+    // Header text and navigation buttons must not overlap one another.
+    const controls=${modal}?[]:[...document.querySelectorAll('h1, .model-task code, .device, .header-tools > *, .workspace-nav button')].filter(element=>!element.closest('[hidden]')&&element.getClientRects().length);
+    const boxes=controls.map(element=>element.getBoundingClientRect());
+    boxes.forEach((box,i)=>{for(let j=0;j<i;j++)if(box.left<boxes[j].right-.5&&boxes[j].left<box.right-.5&&box.top<boxes[j].bottom-.5&&boxes[j].top<box.bottom-.5)issues.push((controls[i].id||controls[i].textContent)+' overlaps '+(controls[j].id||controls[j].textContent));});
     return issues;
   })()`);
   if (issues.length) throw new Error(`${label}: ${issues.join('; ')}`);
@@ -51,7 +55,7 @@ try {
       for (const page of ['intro','task','solution','examples','model']) {
         await evaluate(`document.querySelector('[data-task-tab="${page}"]').click()`);
         await assertFits(`${language} ${width}×${height} intro ${page}`,true);
-        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','grokking']) {
+        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','grokking','findings']) {
           await evaluate(`document.querySelector('[data-intro-tab="${detail}"]').click()`);
           await assertFits(`${language} ${width}×${height} introduction ${detail}`,true);
         }
@@ -79,7 +83,7 @@ try {
     if (!await evaluate(`document.getElementById('reset').textContent===${JSON.stringify(expected(language).Reset)}&&document.getElementById('status').textContent===${JSON.stringify(expected(language).Paused)}&&document.getElementById('task-language').value===${JSON.stringify(language)}`)) throw new Error(`Live UI is not translated: ${language}`);
     // Locale-specific number formatting differs; a reset would change epoch 1.
     if (!await evaluate(`document.getElementById('epoch').textContent==='1'`)) throw new Error(`Language switch reset training: ${language}`);
-    for (const [width,height] of [[1366,768],[390,844],[320,568],[844,390]]) {
+    for (const [width,height] of [[1366,768],[700,800],[390,844],[320,568],[844,390]]) {
       await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<650});
       for(const view of ['training','weights','channels']) {
         await evaluate(`document.querySelector('[data-view-tab="${view}"]').click()`);

@@ -13,7 +13,7 @@ if (!Number.isInteger(repetitions) || repetitions < 3 || repetitions > 31) throw
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 await mkdir(directory, {recursive: true});
 const results = [];
-for (const model of ['dense-rotary', 'dense-rotary-wide'] as const) for (const variant of ['simd', 'scalar'] as const) for (const threads of [1, 2, 4]) {
+for (const model of ['dense-rotary', 'dense-rotary-256'] as const) for (const variant of ['simd', 'scalar'] as const) for (const threads of [1, 2, 4]) {
   const bytes = new Uint8Array(await readFile(new URL(`dist/${model}-${variant}${threads === 1 ? '' : '-shared'}.wasm`, root)));
   const options = {model, scalar: variant === 'scalar', bytes};
   const engine = threads === 1 ? await WASMTrainer.create(11, options) : await ParallelWASMTrainer.create(11, {...options, threads, workerFactory: nodeCPUThread});

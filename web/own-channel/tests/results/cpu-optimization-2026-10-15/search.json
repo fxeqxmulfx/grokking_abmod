@@ -1,0 +1,448 @@
+{
+  "node": "v24.21.0",
+  "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+  "seed": 11,
+  "rounds": 3,
+  "apply": true,
+  "sourceHashes": {
+    "wasm/dense-rotary.wat": "89a54305bd1b4f5902a39a6cecb10eae985bc2cc302e6316f8a4bb81979d19a0",
+    "wasm/simd.wat": "647dfc0dd3d8e57049c8af8f6011f9d71a1f46b99e820a51ac999e86f990f828",
+    "wasm/scalar.wat": "c2cb4b7f92057333ba19365e4b067b33b38bf7dfc9c1fc3498dddbac7d498c77",
+    "scripts/cpu-kernels.ts": "d3432c1739f3337be7159d7837e1ca2a608f8e913432d3870676f13ff8cce70f"
+  },
+  "config": {
+    "128-simd": {
+      "registers": 8,
+      "block": 32,
+      "rowThreshold": null,
+      "unroll": 4
+    },
+    "128-scalar": {
+      "registers": 8,
+      "block": 32,
+      "rowThreshold": null,
+      "unroll": 4
+    },
+    "256-simd": {
+      "registers": 8,
+      "block": 32,
+      "rowThreshold": null,
+      "unroll": 4
+    },
+    "256-scalar": {
+      "registers": 8,
+      "block": 32,
+      "rowThreshold": null,
+      "unroll": 4
+    }
+  },
+  "trials": [
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 8,
+        "block": 16,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "acf7b639aaf026508a03e01f78c4aa9aa53c592c473d8624993392d90d897225",
+      "timing": {
+        "trainMs": [
+          17.704776000000038,
+          17.38324799999998,
+          17.661023999999998,
+          17.483919000000014,
+          17.450956000000133
+        ],
+        "evaluateMs": [
+          63.23488199999997,
+          63.894919999999956,
+          63.54264400000011
+        ],
+        "train": 17.483919000000014,
+        "evaluate": 63.54264400000011,
+        "epoch": 238.38183400000025
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 8,
+        "block": 64,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "9db1109fc6b30400e1b3f79f86e76fe7f831bd9ed03bc041f041b5340f505d85",
+      "timing": {
+        "trainMs": [
+          17.618542999999818,
+          17.761132999999973,
+          17.729031000000077,
+          17.68170299999997,
+          17.67564100000004
+        ],
+        "evaluateMs": [
+          70.26158099999998,
+          70.22723599999995,
+          69.89065000000028
+        ],
+        "train": 17.68170299999997,
+        "evaluate": 70.22723599999995,
+        "epoch": 247.04426599999965
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 2,
+        "block": 32,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "b470833a86e224dc1542374b8b01bb026cb711707da26c13cf1a85b92c91e94f",
+      "timing": {
+        "trainMs": [
+          19.680889999999636,
+          20.360533999999916,
+          19.506039999999757,
+          19.678746000000046,
+          20.552036000000044
+        ],
+        "evaluateMs": [
+          110.2560370000001,
+          110.40264400000024,
+          111.25772899999993
+        ],
+        "train": 19.680889999999636,
+        "evaluate": 110.40264400000024,
+        "epoch": 307.2115439999966
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 4,
+        "block": 32,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "df319e0ee272fe04642283ae54dde465b43b1ee6430afabaea2dc3617f60b116",
+      "timing": {
+        "trainMs": [
+          18.226681999999983,
+          18.241911000000073,
+          18.242482999999993,
+          18.348191999999926,
+          18.30218500000001
+        ],
+        "evaluateMs": [
+          79.42405499999995,
+          77.05208300000004,
+          78.3607149999998
+        ],
+        "train": 18.242482999999993,
+        "evaluate": 78.3607149999998,
+        "epoch": 260.78554499999973
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 8,
+        "block": 32,
+        "rowThreshold": null,
+        "unroll": 2
+      },
+      "correct": true,
+      "sha256": "51def6475d112495e7ad33009952b3bd74c10a25d6095db682e3dfe3c7c91e52",
+      "timing": {
+        "trainMs": [
+          18.875198000000637,
+          18.139658000000054,
+          18.19908099999975,
+          18.067080000000715,
+          18.40592100000049
+        ],
+        "evaluateMs": [
+          71.39266800000041,
+          71.12931099999969,
+          71.77321699999993
+        ],
+        "train": 18.19908099999975,
+        "evaluate": 71.39266800000041,
+        "epoch": 253.38347799999792
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 8,
+        "block": 32,
+        "rowThreshold": 256,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "36a58ad56c736064c6b44cd9c12a4a04823a83eb9469549f1bd54205c61f34fd",
+      "timing": {
+        "trainMs": [
+          18.67274499999985,
+          18.601439999999457,
+          19.20567299999948,
+          18.41146200000003,
+          18.712870999999723
+        ],
+        "evaluateMs": [
+          82.80738800000017,
+          82.61736000000019,
+          82.65410900000006
+        ],
+        "train": 18.67274499999985,
+        "evaluate": 82.65410900000006,
+        "epoch": 269.38155899999856
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-simd",
+      "config": {
+        "registers": 8,
+        "block": 32,
+        "rowThreshold": 0,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "4ff3229c99522b3c40d2733978075ae20194dc66f518edc332b65ecc9c67db17",
+      "timing": {
+        "trainMs": [
+          18.75168500000018,
+          19.94265500000074,
+          19.53823999999986,
+          18.750492000000122,
+          18.780808999999863
+        ],
+        "evaluateMs": [
+          91.79586400000062,
+          92.40609700000005,
+          92.8616379999994
+        ],
+        "train": 18.780808999999863,
+        "evaluate": 92.40609700000005,
+        "epoch": 280.2141869999987
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 8,
+        "block": 16,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "de08e1ca4d126813df8aae5ecd9bb91737aba0a3e50e665738460801285579c6",
+      "timing": {
+        "trainMs": [
+          63.76643800000056,
+          63.21441400000003,
+          63.48272200000065,
+          63.32979299999897,
+          63.36908600000061
+        ],
+        "evaluateMs": [
+          187.57258999999976,
+          189.70558100000017,
+          188.1848370000007
+        ],
+        "train": 63.36908600000061,
+        "evaluate": 188.1848370000007,
+        "epoch": 821.8756970000068
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 8,
+        "block": 64,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "b6d9513b0ae5c66b0c9ddde6888fa5c9b7c5ba7351fb3df14a65d4f5e5432d33",
+      "timing": {
+        "trainMs": [
+          64.23135600000023,
+          63.5861470000018,
+          63.97943999999916,
+          64.26912700000139,
+          63.91514900000038
+        ],
+        "evaluateMs": [
+          199.3537639999995,
+          193.82737000000088,
+          193.7365580000005
+        ],
+        "train": 63.97943999999916,
+        "evaluate": 193.82737000000088,
+        "epoch": 833.6217699999925
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 4,
+        "block": 32,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "61748e728d999322a10aa9cd03343d20e5d609c9805039211fafafdbc407cc36",
+      "timing": {
+        "trainMs": [
+          66.5950529999991,
+          66.89074199999959,
+          65.9038870000004,
+          67.300306000001,
+          66.07869700000083
+        ],
+        "evaluateMs": [
+          250.19078900000022,
+          249.14007400000264,
+          250.0849190000008
+        ],
+        "train": 66.5950529999991,
+        "evaluate": 250.0849190000008,
+        "epoch": 916.0354489999918
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 16,
+        "block": 32,
+        "rowThreshold": null,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "99bed0e9af4529716f7ceda57b085388c3df0b33d7da0883785ca7aede2ee22f",
+      "timing": {
+        "trainMs": [
+          63.79373000000123,
+          63.578912999997556,
+          64.0246049999987,
+          63.209616000000096,
+          65.06068400000004
+        ],
+        "evaluateMs": [
+          199.31322799999907,
+          198.36114899999666,
+          196.69346699999733
+        ],
+        "train": 63.79373000000123,
+        "evaluate": 198.36114899999666,
+        "epoch": 836.298449000009
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 8,
+        "block": 32,
+        "rowThreshold": null,
+        "unroll": 2
+      },
+      "correct": true,
+      "sha256": "3da5ca6e01cb0581e662c0a244997586784816d180695971c63c797116d73351",
+      "timing": {
+        "trainMs": [
+          63.596536999997625,
+          64.25224499999968,
+          64.40891199999896,
+          64.26201500000025,
+          63.68412199999875
+        ],
+        "evaluateMs": [
+          195.55349299999943,
+          195.98080100000152,
+          195.20548599999893
+        ],
+        "train": 64.25224499999968,
+        "evaluate": 195.55349299999943,
+        "epoch": 838.0759429999962
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 8,
+        "block": 32,
+        "rowThreshold": 256,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "0d3c5d0e7f576d356ccc10ee83e430437f9209775b35dd7c7cc38fb5f0fa13a0",
+      "timing": {
+        "trainMs": [
+          69.31324999999924,
+          70.05062299999918,
+          69.42471999999907,
+          69.76799899999969,
+          69.6276140000009
+        ],
+        "evaluateMs": [
+          308.28496000000086,
+          307.9596850000016,
+          306.98657599999933
+        ],
+        "train": 69.6276140000009,
+        "evaluate": 307.9596850000016,
+        "epoch": 1004.2358250000107
+      }
+    },
+    {
+      "round": 1,
+      "profile": "256-scalar",
+      "config": {
+        "registers": 8,
+        "block": 32,
+        "rowThreshold": 0,
+        "unroll": 4
+      },
+      "correct": true,
+      "sha256": "2e47893ed8397cd657ed9e0eb4dec26b9e254957ad24b9bfdc5b984a2c446dfc",
+      "timing": {
+        "trainMs": [
+          72.8693400000011,
+          72.64939400000003,
+          72.21423200000208,
+          73.06411800000205,
+          73.07659200000126
+        ],
+        "evaluateMs": [
+          360.9474259999988,
+          359.9829839999984,
+          361.41422899999816
+        ],
+        "train": 72.8693400000011,
+        "evaluate": 360.9474259999988,
+        "epoch": 1089.6408260000098
+      }
+    }
+  ],
+  "promotions": []
+}

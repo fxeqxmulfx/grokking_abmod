@@ -13,7 +13,7 @@ try {
   await client.call('Emulation.setDeviceMetricsOverride', {width: 1366, height: 768, deviceScaleFactor: 1, mobile: false});
   await client.call('Page.navigate', {url: origin + '?lang=en'});
   await client.wait(`document.getElementById('status')?.textContent==='Ready' && document.getElementById('task-dialog').open`);
-  await evaluate(`document.getElementById('task-open').click();document.querySelector('[data-model-tab="dense-rotary-wide"]').click();document.querySelector('[data-view-tab="channels"]').click()`);
+  await evaluate(`document.getElementById('task-open').click();document.querySelector('[data-model-tab="dense-rotary-256"]').click();document.querySelector('[data-view-tab="channels"]').click()`);
   await client.wait(`document.getElementById('status')?.textContent==='Ready'`); await paint();
   const initial = await evaluate(`document.getElementById('mesh-edges').toDataURL()`);
   const builds = await evaluate(`document.getElementById('mesh-edges').dataset.classifications`);
@@ -30,9 +30,9 @@ try {
   const checks = await evaluate(`(async () => {
     const {CPUScene,topologyLayout}=await import('/topology-scene.js'),{WeightTopology}=await import('/topology.js'),{initialModelWeights}=await import('/models.js');
     const results=[];
-    for(const width of [128,1024]){
+    for(const width of [128,256]){
       const canvas=document.createElement('canvas');canvas.width=1250;canvas.height=520;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true}),layout=topologyLayout(1250,520,width),weights=initialModelWeights(11,width===128?'dense-rotary':'dense-rotary-wide'),scene=await CPUScene.create(),view={zoom:1,x:0,y:0};
+      const ctx=canvas.getContext('2d',{willReadFrequently:true}),layout=topologyLayout(1250,520,width),weights=initialModelWeights(11,width===128?'dense-rotary':'dense-rotary-256'),scene=await CPUScene.create(),view={zoom:1,x:0,y:0};
       const fresh=[],pan=[];let current=weights;
       for(let i=0;i<7;i++){current=weights.slice();const start=performance.now();scene.draw(ctx,layout,current,32,view,-1,{initial:weights});fresh.push(performance.now()-start)}
       const classifications=scene.classifications;

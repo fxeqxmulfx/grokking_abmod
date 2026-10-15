@@ -5,7 +5,7 @@ import type {ModelId} from '../src/types.ts';
 import {modelInfo} from '../src/models.ts';
 import {sharedWat} from './build-dense-trainers.ts';
 import type {CPUKernelConfig} from './cpu-config.ts';
-import {matrixKernels, reluKernels, unrollVectorKernels} from './cpu-kernels.ts';
+import {matrixKernels, reluKernels, rowKernels, unrollVectorKernels} from './cpu-kernels.ts';
 
 const factory = wabtFactory();
 const sources = new Map<string, Promise<string>>();
@@ -19,7 +19,8 @@ export async function assembleCPU(model: ModelId, variant: 'simd' | 'scalar', co
   const kernels = unrollVectorKernels(vectorSource.replaceAll('@WEIGHT_BYTES', String(weightBytes)), simd, config.unroll);
   const rotary = rotarySource.replaceAll('(i32.const 512)', `(i32.const ${width * 4})`);
   const source = common.replace(';; @VECTOR_KERNELS', kernels).replace(';; @ROTARY_KERNELS', rotary)
-    .replace(';; @MATRIX_KERNELS', matrixKernels(simd, width, config)).replace(';; @RELU_KERNELS', reluKernels(simd, width));
+    .replace(';; @MATRIX_KERNELS', matrixKernels(simd, width, config)).replace(';; @RELU_KERNELS', reluKernels(simd, width))
+    .replace(';; @ROW_KERNELS', rowKernels(simd, width, config.rows, config.block));
   const name = `${model}-${variant}${shared ? '-shared' : ''}`, module = wabt.parseWat(`${name}.wat`, shared ? sharedWat(source, width) : source, {simd, threads: shared});
   try {
     module.resolveNames();

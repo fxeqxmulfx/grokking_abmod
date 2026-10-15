@@ -22,7 +22,7 @@ function close(actual: Vector, expected: Vector, tolerance: number, label: strin
   assert.ok(maximum <= tolerance, `${label}: ${maximum} at ${at}, tolerance ${tolerance}`);
 }
 test('Shared CPU buffers are aligned, disjoint and bounded', () => {
-  for (const width of [16, 32, 128, 1024]) for (const count of [1, 2, 4, 8]) {
+  for (const width of [16, 32, 64, 128, 256]) for (const count of [1, 2, 4, 8]) {
     const layout = cpuMemoryLayout(width, count);
     assert.equal(layout.slots.length, count); assert.equal(layout.control % 64, 0);
     for (let slot = 0; slot < count; slot++) {
@@ -32,9 +32,9 @@ test('Shared CPU buffers are aligned, disjoint and bounded', () => {
       assert.equal(addresses.hidden - addresses.input, width * 4);
       if (slot) assert.ok(addresses.gradient >= layout.slots[slot - 1].statistics + 32);
     }
-    if (width === 1024 && count === 4) assert.ok(layout.pages * 65536 < 40 * 1024 * 1024);
+    if (width === 256 && count === 4) assert.ok(layout.pages * 65536 < 4 * 1024 * 1024);
   }
-  assert.throws(() => cpuMemoryLayout(256, 2)); assert.throws(() => cpuMemoryLayout(128, 0));
+  assert.throws(() => cpuMemoryLayout(512, 2)); assert.throws(() => cpuMemoryLayout(128, 0));
 });
 
 for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const) for (const threads of [2, 4]) {
@@ -55,13 +55,22 @@ for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const
         close(await parallel.readGradients(), await serial.readGradients(), 8e-6, `serial gradient batch ${size}`);
         if (size === 7 || size === 48) close(await parallel.readGradients(), modelLossAndGradient(weights, data, sample, model).gradient, 8e-6, `f64 gradient batch ${size}`);
       }
-      const expected = Float64Array.from(weights), moments = new Float64Array(info.parameters * 2);
+      const moments = new Float64Array(info.parameters * 2), suppliedMoments = new Float64Array(info.parameters * 2);
       for (let step = 1; step <= 3; step++) {
-        const sample = sampler.sample().slice(0, info.width === 1024 ? 48 : 512);
+        const sample = sampler.sample().slice();
+        await parallel.train([sample], {gradientsOnly: true});
+        // Both oracles step from the current f32 weights. A separate f64 trajectory
+        // crosses ReLU kinks at other steps; at W1024 and lr 0.01 it did by step 3.
+        const supplied = Float64Array.from(await parallel.readWeights()), expected = supplied.slice();
+        adamStep(supplied, Float64Array.from(await parallel.readGradients()), suppliedMoments, step, info);
         adamStep(expected, modelLossAndGradient(expected, data, sample, model).gradient, moments, step, info);
         await parallel.train([sample]); await serial.train([sample]);
-        close(await parallel.readWeights(), expected, 2e-5, `f64 AdamW step ${step}`);
-        close(await parallel.readWeights(), await serial.readWeights(), 2e-5, `serial AdamW step ${step}`);
+        const actual = await parallel.readWeights(), accumulatedTolerance = 2e-5 * Math.max(1, info.learningRate / .001);
+        close(actual, supplied, 2e-7, `AdamW supplied f32 gradient, step ${step}`);
+        // The independent model includes small f32 gradient differences;
+        // the separate supplied-gradient oracle checks AdamW itself tightly.
+        close(actual, expected, accumulatedTolerance, `f64 model and AdamW step ${step}`);
+        close(actual, await serial.readWeights(), accumulatedTolerance, `serial model and AdamW step ${step}`);
       }
       const row = await parallel.evaluate(), reference = await serial.evaluate();
       assert.equal(row.step, 3); assert.equal(row.epoch, .3);

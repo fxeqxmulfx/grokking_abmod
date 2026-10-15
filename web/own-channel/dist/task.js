@@ -1,7 +1,7 @@
 import { element as $ } from './dom.js';
 import { t, currentLocale } from './i18n.js';
 const pages = ['intro', 'task', 'solution', 'examples', 'model'];
-const introPages = ['why', 'epoch', 'paper', 'chart', 'grokking'];
+const introPages = ['why', 'epoch', 'paper', 'chart', 'grokking', 'findings'];
 const modelViews = ['diagram', 'types', 'equations'];
 const examples = [[6, 4, 50], [10, 3, 68], [1, 2, 49], [1, 96, 96], [96, 2, 48], [0, 7, 0], [42, 42, 1], [7, 1, 7]];
 export function initializeTask() {

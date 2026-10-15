@@ -1,0 +1,69 @@
+{
+  "viewport": [
+    1250,
+    520
+  ],
+  "renderer": "CPU Canvas 2D",
+  "results": [
+    {
+      "width": 128,
+      "connections": 53632,
+      "freshMs": [
+        48.189999997615814,
+        41.14000000059605,
+        38.899999998509884,
+        40.020000003278255,
+        41.32000000029802,
+        39.38499999791384,
+        39.125
+      ],
+      "freshMedianMs": 39.38499999791384,
+      "panMs": [
+        0.06999999284744263,
+        40.38000000268221,
+        38.40999999642372,
+        38.54000000655651,
+        42.65500000119209,
+        39.524999998509884,
+        40.61500000208616
+      ],
+      "panMedianMs": 39.524999998509884,
+      "highlightMs": 1.005000002682209,
+      "classificationReuse": true,
+      "backgroundReuse": true,
+      "allBandsVisible": true,
+      "weakChangesVisible": true,
+      "fallbackWorks": true
+    },
+    {
+      "width": 256,
+      "connections": 140032,
+      "freshMs": [
+        84.67999999970198,
+        78.43500000238419,
+        82.34000000357628,
+        77.85500000417233,
+        76.53999999910593,
+        80.86500000208616,
+        79.1550000011921
+      ],
+      "freshMedianMs": 79.1550000011921,
+      "panMs": [
+        0.02499999850988388,
+        78.85999999940395,
+        83.625,
+        86.95000000298023,
+        84.57500000298023,
+        88.73999999463558,
+        88.00500000268221
+      ],
+      "panMedianMs": 86.95000000298023,
+      "highlightMs": 0.8599999994039536,
+      "classificationReuse": true,
+      "backgroundReuse": true,
+      "allBandsVisible": true,
+      "weakChangesVisible": true,
+      "fallbackWorks": true
+    }
+  ]
+}

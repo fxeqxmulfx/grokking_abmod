@@ -1,10 +1,12 @@
 import {BACKENDS, errorText} from './types.ts';
-import type {Backend, ModelId, TrainingEngine} from './types.ts';
+import type {Backend, ModelId, Preset, TrainingEngine} from './types.ts';
+import {optimizerProfile} from './models.ts';
 import {WASMTrainer} from './wasm.ts';
 import {ParallelWASMTrainer} from './parallel-wasm.ts';
 
-export async function createEngine(seed: number, backend: Backend = 'auto', model: ModelId = 'dense-rotary'): Promise<TrainingEngine> {
+export async function createEngine(seed: number, backend: Backend = 'auto', model: ModelId = 'dense-rotary', preset: Preset = 'fast'): Promise<TrainingEngine> {
   if (!BACKENDS.includes(backend)) throw new Error('Unknown training engine.');
+  const {learningRate, weightDecay: decay} = optimizerProfile(model, preset);
   const scalar = backend.startsWith('scalar'), requireSIMD = backend.startsWith('simd');
   const available = globalThis.crossOriginIsolated && typeof SharedArrayBuffer === 'function' && typeof Worker === 'function';
   const cores = typeof navigator === 'object' ? navigator.hardwareConcurrency || 1 : 1;
@@ -13,10 +15,10 @@ export async function createEngine(seed: number, backend: Backend = 'auto', mode
   const requested = backend === 'auto' ? (cores >= 6 ? 4 : cores >= 4 ? 2 : 1) : Number(backend.split('-')[1] ?? 1);
   let note: string | undefined;
   if (requested > 1 && available) {
-    try {return await ParallelWASMTrainer.create(seed, {model, scalar, requireSIMD, threads: requested});}
+    try {return await ParallelWASMTrainer.create(seed, {model, scalar, requireSIMD, threads: requested, learningRate, decay});}
     catch (error) {note = `Parallel WASM could not start; using one CPU thread. ${errorText(error)}`;}
   } else if (requested > 1) note = 'Shared memory is unavailable; using one CPU thread.';
-  const engine = await WASMTrainer.create(seed, {model, scalar, requireSIMD});
+  const engine = await WASMTrainer.create(seed, {model, scalar, requireSIMD, learningRate, decay});
   if (note) {const info = engine.info(); engine.info = () => ({...info, note});}
   return engine;
 }

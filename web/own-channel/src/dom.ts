@@ -1,7 +1,9 @@
 const tags = {
   "model-name": "h1",
   "model-detail": "span",
+  "model-optimizer": "code",
   "device": "span",
+  "preset-nav": "nav",
   "language": "select",
   "task-help": "button",
   "about": "button",

@@ -1,27 +1,36 @@
 import {P, Random} from './model.ts';
-import type {ModelId, Vector, Weights} from './types.ts';
+import {OPTIMIZER_PROFILES} from './optimizer-profiles.ts';
+import type {OptimizerProfile} from './optimizer-profiles.ts';
+import {PRESETS} from './types.ts';
+import type {ModelId, Preset, Vector, Weights} from './types.ts';
 
-export interface ModelInfo {
+export interface ModelInfo extends OptimizerProfile {
   id: ModelId; title: string; subtitle: string; width: number; seed: number;
   reportEvery: number; parameters: number; embedding: number; gain: number;
-  learningRate: number; weightDecay: number;
 }
 function dense(id: ModelId, width: number): ModelInfo {
   return {id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
-    learningRate: .001, weightDecay: .1,
+    ...OPTIMIZER_PROFILES[width].fast,
     reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width};
 }
 export const MODELS: Record<ModelId, ModelInfo> = {
   'dense-rotary-16': dense('dense-rotary-16', 16),
   'dense-rotary-32': dense('dense-rotary-32', 32),
+  'dense-rotary-64': dense('dense-rotary-64', 64),
   'dense-rotary': dense('dense-rotary', 128),
-  'dense-rotary-wide': dense('dense-rotary-wide', 1024),
+  'dense-rotary-256': dense('dense-rotary-256', 256),
 };
 export function modelId(id: string): ModelId {
   if (!Object.hasOwn(MODELS, id)) throw new Error('Unknown model.');
   return id as ModelId;
 }
 export function modelInfo(id: ModelId): ModelInfo {return MODELS[id];}
+export function modelPresets(id: ModelId): Preset[] {return PRESETS.filter(preset => OPTIMIZER_PROFILES[modelInfo(id).width][preset]);}
+export function optimizerProfile(id: ModelId, preset: Preset = 'fast'): OptimizerProfile {
+  const profile = OPTIMIZER_PROFILES[modelInfo(id).width][preset];
+  if (!profile) throw new Error('Unknown optimizer preset.');
+  return profile;
+}
 
 // Box–Muller uses the native SplitMix64 stream and rounds each stored value to
 // f32. E consumes the same number of draws as the old uniform initializer,

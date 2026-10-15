@@ -1,6 +1,8 @@
 import {CDP} from './cdp.ts';
 import {root} from '../project.ts';
 import {writeFile} from 'node:fs/promises';
+import {optimizerProfile} from '../dist/models.js';
+import {MODEL_IDS} from '../dist/types.js';
 
 // Dependency-free CDP smoke test. Run against the local static server and a
 // temporary Chrome profile; this never connects to an existing user profile.
@@ -56,7 +58,7 @@ try {
   await waitFor(`document.getElementById('task-dialog').open && [...document.querySelectorAll('[data-task-diagram]')].every(image=>image.complete&&image.naturalWidth>0)`);
   await evaluate(`document.getElementById('task-open').click()`);
   if (!await evaluate(`document.getElementById('model-detail').textContent.includes('128 channels') && document.getElementById('model-detail').textContent.includes('28,800') && document.getElementById('model-name').textContent.includes('Dense + ReLU') && document.getElementById('seed').value==='11' && document.getElementById('step').textContent==='+1 epoch'`)) throw new Error('Incorrect narrow defaults');
-  if (!await evaluate(`document.body.dataset.view==='training' && !document.getElementById('dynamics') && !document.getElementById('weight-group') && document.querySelectorAll('[data-model-tab]').length===4 && document.querySelectorAll('[data-view-tab]').length===3`)) throw new Error('Incorrect model tabs or obsolete workspace variants remain.');
+  if (!await evaluate(`document.body.dataset.view==='training' && !document.getElementById('dynamics') && !document.getElementById('weight-group') && document.querySelectorAll('[data-model-tab]').length===${MODEL_IDS.length} && document.querySelectorAll('[data-view-tab]').length===3`)) throw new Error('Incorrect model tabs or obsolete workspace variants remain.');
   await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('53632 connections')`);
   await networkPaint();
   const renderer = await evaluate<Record<string, string>>(`({...document.getElementById('mesh-edges').dataset})`);
@@ -117,30 +119,30 @@ try {
   await evaluate(`document.getElementById('train').click()`);
   await waitFor(`document.getElementById('status').textContent==='Paused'`);
   const previous = await evaluate(`({epoch:document.getElementById('epoch').textContent,observations:document.getElementById('observations').textContent,loss:document.getElementById('train-loss').textContent})`);
-  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-wide"]').click()`);
+  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-256"]').click()`);
   await waitFor(`document.getElementById('status').textContent==='Ready' && document.getElementById('epoch').textContent==='0'`);
-  if (!await evaluate(`document.getElementById('model-detail').textContent.includes('1024 channels') && document.getElementById('model-detail').textContent.includes('1,147,904') && document.getElementById('seed').value==='11' && document.getElementById('channel-select').max==='1023' && document.getElementById('device').textContent.includes('WASM')`)) throw new Error('Incorrect wide defaults');
+  if (!await evaluate(`document.getElementById('model-detail').textContent.includes('256 channels') && document.getElementById('model-detail').textContent.includes('90,368') && document.getElementById('seed').value==='11' && document.getElementById('channel-select').max==='255' && document.getElementById('device').textContent.includes('WASM')`)) throw new Error('Incorrect wide defaults');
   await evaluate(`document.querySelector('[data-view-tab="weights"]').click()`);
   const initialMap = await evaluate(`document.getElementById('input-a').toDataURL()`);
   await evaluate(`document.querySelector('[data-view-tab="training"]').click();document.getElementById('step').click()`);
   await waitFor(`document.getElementById('epoch').textContent==='1' && document.getElementById('status').textContent==='Paused' && document.getElementById('observations').textContent==='2 observations'`);
   await evaluate(`document.querySelector('[data-view-tab="weights"]').click();new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))`);
   if (initialMap === await evaluate(`document.getElementById('input-a').toDataURL()`)) throw new Error('Shared embedding visualization did not update with training');
-  if (!await evaluate(`document.getElementById('atlas-a-title').textContent==='Shared embedding E' && document.getElementById('atlas-b-title').textContent.includes('Dense matrix A') && document.getElementById('atlas-r-title').textContent==='Tied readout Eᵀ' && document.getElementById('atlas-a-size').textContent==='97 × 1024' && document.getElementById('atlas-b-size').textContent==='1024 × 1024' && document.getElementById('atlas-r-size').textContent==='1024 × 97'`)) throw new Error('Incorrect shared-E and rotated-E atlases');
-  if (!await evaluate(`document.getElementById('atlas-b-size').textContent==='1024 × 1024'`)) throw new Error('Incorrect dense matrix atlas');
-  await evaluate(`document.querySelector('[data-view-tab="channels"]').click();document.getElementById('channel-select').value='1023';document.getElementById('channel-select').dispatchEvent(new Event('input'))`);
-  await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('1346560 connections') && document.getElementById('mesh').getAttribute('aria-label').includes('1147904 unique parameters')`);
-  if (!await connectionBands(1024)) throw new Error('Wide CPU drawing omitted a connection band');
-  if (!await evaluate(`document.getElementById('mesh-edges').dataset.renderer==='CPU · Canvas 2D' && document.getElementById('mesh-edges').dataset.connections==='1346560' && document.getElementById('mesh-edges').dataset.parameters==='1147904'`)) throw new Error('Wide topology did not include every E role and dense edge');
+  if (!await evaluate(`document.getElementById('atlas-a-title').textContent==='Shared embedding E' && document.getElementById('atlas-b-title').textContent.includes('Dense matrix A') && document.getElementById('atlas-r-title').textContent==='Tied readout Eᵀ' && document.getElementById('atlas-a-size').textContent==='97 × 256' && document.getElementById('atlas-b-size').textContent==='256 × 256' && document.getElementById('atlas-r-size').textContent==='256 × 97'`)) throw new Error('Incorrect shared-E and rotated-E atlases');
+  if (!await evaluate(`document.getElementById('atlas-b-size').textContent==='256 × 256'`)) throw new Error('Incorrect dense matrix atlas');
+  await evaluate(`document.querySelector('[data-view-tab="channels"]').click();document.getElementById('channel-select').value='255';document.getElementById('channel-select').dispatchEvent(new Event('input'))`);
+  await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('140032 connections') && document.getElementById('mesh').getAttribute('aria-label').includes('90368 unique parameters')`);
+  if (!await connectionBands(256)) throw new Error('Wide CPU drawing omitted a connection band');
+  if (!await evaluate(`document.getElementById('mesh-edges').dataset.renderer==='CPU · Canvas 2D' && document.getElementById('mesh-edges').dataset.connections==='140032' && document.getElementById('mesh-edges').dataset.parameters==='90368'`)) throw new Error('Wide topology did not include every E role and dense edge');
   await evaluate(`document.getElementById('mesh').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight'}))`);
   await waitFor(`document.getElementById('channel-select').value==='0'`);
   await evaluate(`document.getElementById('mesh').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft'}))`);
-  await waitFor(`document.getElementById('channel-select').value==='1023'`);
+  await waitFor(`document.getElementById('channel-select').value==='255'`);
   await evaluate(`document.getElementById('mesh-channel').click()`);
-  await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('channel 1023,') && document.getElementById('mesh').getAttribute('aria-label').includes('1024 to 1 neurons, 1024 learned edges, pre-RMSNorm, ReLU')`);
+  await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('channel 255,') && document.getElementById('mesh').getAttribute('aria-label').includes('256 to 1 neurons, 256 learned edges, pre-RMSNorm, ReLU')`);
   if (!await evaluate(`document.getElementById('mesh-edges').hidden && document.getElementById('network-zoom').hidden`)) throw new Error('All-weights view leaked into the channel inspector');
   await evaluate(`document.getElementById('mesh-topology').click()`);
-  await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('1346560 connections')`);
+  await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('140032 connections')`);
   for (const [width,height] of [[1366,768],[390,844],[320,568],[768,1024],[1366,600],[844,390]]) {
     await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<650});
     for (const view of ['training','weights','channels']) {
@@ -148,8 +150,9 @@ try {
       await assertFits(`${width} × ${height} wide ${view}`);
     }
   }
+  const wide = optimizerProfile('dense-rotary-256');
   await evaluate(`document.getElementById('about').click()`);
-  if (!await evaluate(`document.getElementById('about-dialog').open && document.getElementById('model-description').textContent.includes('Rotate90(E[b])') && document.getElementById('model-description').textContent.includes('One pre-norm residual block') && document.getElementById('reference-description').textContent.includes('92 epochs') && document.getElementById('reference-description').textContent.includes('meets the grokking criterion')`)) throw new Error('Incorrect model explanation');
+  if (!await evaluate(`document.getElementById('about-dialog').open && document.getElementById('model-description').textContent.includes('Rotate90(E[b])') && document.getElementById('model-description').textContent.includes('One pre-norm residual block') && document.getElementById('reference-description').textContent.includes('seeds 11 / 17 / 23') && document.getElementById('reference-description').dataset.learningRate==='${wide.learningRate}' && document.getElementById('reference-description').dataset.weightDecay==='${wide.weightDecay}' && !document.getElementById('preset-nav').hidden`)) throw new Error('Incorrect model explanation');
   await evaluate(`document.getElementById('close-about').click()`);
   await call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await writeFile('/tmp/grokking-dense-wide-mobile.png',Buffer.from((await call<{data: string}>('Page.captureScreenshot',{captureBeyondViewport:true})).data,'base64'));
@@ -157,18 +160,44 @@ try {
   const restored = await evaluate(`({epoch:document.getElementById('epoch').textContent,observations:document.getElementById('observations').textContent,loss:document.getElementById('train-loss').textContent})`);
   if (JSON.stringify(previous)!==JSON.stringify(restored)) throw new Error('Switching models changed the narrow experiment');
   if (!await evaluate(`document.getElementById('channel-select').max==='127'`)) throw new Error('Channel bounds did not follow width');
+  // Optimizer presets are separate W128 experiments. W16 has no plateau preset.
+  const slow = optimizerProfile('dense-rotary', 'slow'), plateau = optimizerProfile('dense-rotary', 'plateau'), w16 = optimizerProfile('dense-rotary-16');
+  const preset = (name: string) => `document.querySelector('[data-preset-tab="${name}"]').getAttribute('aria-pressed')==='true'`;
+  const offered = (name: string) => `!document.querySelector('[data-preset-tab="${name}"]').hidden`;
+  const optimizer = (profile: {learningRate: number; weightDecay: number}) => `document.getElementById('reference-description').dataset.learningRate==='${profile.learningRate}' && document.getElementById('reference-description').dataset.weightDecay==='${profile.weightDecay}' && document.getElementById('model-optimizer').textContent==='lr=${profile.learningRate} · wd=${profile.weightDecay}'`;
+  const epochs = (values: (number | null)[]) => values.map(epoch => epoch!.toLocaleString('en-US')).join(' / ');
+  if (!await evaluate(`!document.getElementById('preset-nav').hidden && ${preset('fast')} && ${offered('plateau')} && ${offered('slow')}`)) throw new Error('W128 should offer fast, plateau and slow optimizer presets');
+  await evaluate(`document.querySelector('[data-preset-tab="slow"]').click()`);
+  await waitFor(`document.getElementById('status').textContent==='Ready' && document.getElementById('epoch').textContent==='0'`);
+  if (!await evaluate(`${preset('slow')} && ${optimizer(slow)} && document.getElementById('reference-description').textContent.includes('${epochs(slow.nativeTest99Epochs)}')`)) throw new Error('The slow preset did not select its optimizer');
+  for (const [width,height] of [[320,568],[844,390]]) {
+    await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<650});
+    await assertFits(`${width} × ${height} slow preset`);
+  }
+  await evaluate(`document.querySelector('[data-preset-tab="plateau"]').click()`);
+  await waitFor(`document.getElementById('status').textContent==='Ready' && document.getElementById('epoch').textContent==='0'`);
+  if (!await evaluate(`${preset('plateau')} && ${optimizer(plateau)} && document.getElementById('reference-description').textContent.includes('Memorization plateau: ${epochs(plateau.nativePlateauEpochs!)} epochs.')`)) throw new Error('The plateau preset did not select its optimizer');
+  await call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-16"]').click()`);
+  await waitFor(`document.getElementById('status').textContent==='Ready' && document.getElementById('model-detail').textContent.includes('16 channels')`);
+  if (!await evaluate(`${preset('fast')} && !${offered('plateau')} && ${optimizer(w16)}`)) throw new Error('W16 has no plateau preset and should open its fast preset');
+  await evaluate(`document.querySelector('[data-model-tab="dense-rotary"]').click()`);
+  if (!await evaluate(`${preset('plateau')} && ${optimizer(plateau)} && document.getElementById('epoch').textContent==='0'`)) throw new Error('W128 should reopen the preferred plateau preset');
+  await evaluate(`document.querySelector('[data-preset-tab="fast"]').click()`);
+  const fastRestored = await evaluate(`({epoch:document.getElementById('epoch').textContent,observations:document.getElementById('observations').textContent,loss:document.getElementById('train-loss').textContent})`);
+  if (JSON.stringify(previous)!==JSON.stringify(fastRestored)) throw new Error('Switching optimizer presets changed the fast experiment');
   await evaluate(`document.querySelector('[data-view-tab="channels"]').click();document.getElementById('channel-select').value='127';document.getElementById('channel-select').dispatchEvent(new Event('input'))`);
   await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('channel 127,')`);
   await evaluate(`document.querySelector('[data-view-tab="training"]').click();document.getElementById('train').click()`);
   await waitFor(`document.getElementById('status').textContent==='Training'`);
-  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-wide"]').click()`);
-  if (!await evaluate(`document.getElementById('epoch').textContent==='1' && document.getElementById('status').textContent==='Paused' && document.getElementById('channel-select').value==='1023'`)) throw new Error('Wide state was not restored');
+  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-256"]').click()`);
+  if (!await evaluate(`document.getElementById('epoch').textContent==='1' && document.getElementById('status').textContent==='Paused' && document.getElementById('channel-select').value==='255'`)) throw new Error('Wide state was not restored');
   await new Promise(resolve=>setTimeout(resolve,250));
   await evaluate(`document.querySelector('[data-model-tab="dense-rotary"]').click()`);
   await waitFor(`document.getElementById('status').textContent==='Paused' || document.getElementById('status').textContent==='Epoch limit reached'`);
   await call('Emulation.setDeviceMetricsOverride',{width:1366,height:768,deviceScaleFactor:1,mobile:false});
-  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-wide"]').click();document.querySelector('[data-view-tab="training"]').click();document.getElementById('loss-tab').click()`);
+  await evaluate(`document.querySelector('[data-model-tab="dense-rotary-256"]').click();document.querySelector('[data-view-tab="training"]').click();document.getElementById('loss-tab').click()`);
   await writeFile('/tmp/grokking-dense-wide.png',Buffer.from((await call<{data: string}>('Page.captureScreenshot',{captureBeyondViewport:true})).data,'base64'));
   if (errors.length) throw new Error(`Browser exceptions: ${JSON.stringify(errors)}`);
-  console.log('PASS: both widths and all three views fit, CPU/WASM training with GPU APIs forbidden, off-thread software drawing of all connections including three E roles, fixed-scale live weights and changes, highlighting, zoom, inspection, live atlases, pause/reset, independent states and model information.');
+  console.log('PASS: W128 and W256, the W128 plateau and slow presets and all three views fit, CPU/WASM training with GPU APIs forbidden, off-thread software drawing of all connections including three E roles, fixed-scale live weights and changes, highlighting, zoom, inspection, live atlases, pause/reset, independent states and model information.');
 } finally { client.close(); }

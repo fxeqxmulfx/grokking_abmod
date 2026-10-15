@@ -1,0 +1,236 @@
+{
+  "records": [
+    {
+      "model": "dense-rotary-16",
+      "preset": "fast",
+      "width": 16,
+      "learningRate": 0.1,
+      "weightDecay": 0,
+      "nativeSeed11Epoch": 1033,
+      "paused": {
+        "epoch": 996,
+        "accuracy": 99.01,
+        "observations": 997,
+        "workers": 3
+      },
+      "continued": {
+        "epoch": 999,
+        "accuracy": 98.73,
+        "observations": 1000,
+        "workers": 3
+      },
+      "wallSeconds": 2.486
+    },
+    {
+      "model": "dense-rotary-16",
+      "preset": "slow",
+      "width": 16,
+      "learningRate": 0.2,
+      "weightDecay": 0.001,
+      "nativeSeed11Epoch": 5182,
+      "paused": {
+        "epoch": 5118,
+        "accuracy": 99.05,
+        "observations": 5119,
+        "workers": 4
+      },
+      "continued": {
+        "epoch": 5121,
+        "accuracy": 98.97,
+        "observations": 5122,
+        "workers": 4
+      },
+      "wallSeconds": 12.565
+    },
+    {
+      "model": "dense-rotary-32",
+      "preset": "fast",
+      "width": 32,
+      "learningRate": 0.1,
+      "weightDecay": 0.0001,
+      "nativeSeed11Epoch": 39,
+      "paused": {
+        "epoch": 39,
+        "accuracy": 99.14,
+        "observations": 40,
+        "workers": 6
+      },
+      "continued": {
+        "epoch": 42,
+        "accuracy": 99.44,
+        "observations": 43,
+        "workers": 6
+      },
+      "wallSeconds": 0.206
+    },
+    {
+      "model": "dense-rotary-32",
+      "preset": "slow",
+      "width": 32,
+      "learningRate": 0.0003,
+      "weightDecay": 0.1,
+      "nativeSeed11Epoch": 5199,
+      "paused": {
+        "epoch": 5382,
+        "accuracy": 99.03,
+        "observations": 5383,
+        "workers": 6
+      },
+      "continued": {
+        "epoch": 5385,
+        "accuracy": 98.99,
+        "observations": 5386,
+        "workers": 6
+      },
+      "wallSeconds": 16.608
+    },
+    {
+      "model": "dense-rotary-64",
+      "preset": "fast",
+      "width": 64,
+      "learningRate": 0.1,
+      "weightDecay": 0.1,
+      "nativeSeed11Epoch": 21,
+      "paused": {
+        "epoch": 21,
+        "accuracy": 99.57,
+        "observations": 22,
+        "workers": 8
+      },
+      "continued": {
+        "epoch": 24,
+        "accuracy": 99.98,
+        "observations": 25,
+        "workers": 8
+      },
+      "wallSeconds": 0.206
+    },
+    {
+      "model": "dense-rotary-64",
+      "preset": "slow",
+      "width": 64,
+      "learningRate": 0.0001,
+      "weightDecay": 0.0001,
+      "nativeSeed11Epoch": 6513,
+      "paused": {
+        "epoch": 6426,
+        "accuracy": 99.01,
+        "observations": 6427,
+        "workers": 8
+      },
+      "continued": {
+        "epoch": 6429,
+        "accuracy": 99.01,
+        "observations": 6430,
+        "workers": 8
+      },
+      "wallSeconds": 34.675
+    },
+    {
+      "model": "dense-rotary",
+      "preset": "plateau",
+      "width": 128,
+      "learningRate": 0.0003,
+      "weightDecay": 0,
+      "nativeSeed11Epoch": 3375,
+      "paused": {
+        "epoch": 3729,
+        "accuracy": 99.01,
+        "observations": 3730,
+        "workers": 10
+      },
+      "continued": {
+        "epoch": 3732,
+        "accuracy": 98.97,
+        "observations": 3733,
+        "workers": 10
+      },
+      "wallSeconds": 48.678
+    },
+    {
+      "model": "dense-rotary",
+      "preset": "slow",
+      "width": 128,
+      "learningRate": 0.00005,
+      "weightDecay": 0.3,
+      "nativeSeed11Epoch": 8151,
+      "paused": {
+        "epoch": 8189,
+        "accuracy": 99.01,
+        "observations": 8190,
+        "workers": 10
+      },
+      "continued": {
+        "epoch": 8192,
+        "accuracy": 99.08,
+        "observations": 8193,
+        "workers": 10
+      },
+      "wallSeconds": 98.845
+    },
+    {
+      "model": "dense-rotary-256",
+      "preset": "fast",
+      "width": 256,
+      "learningRate": 0.01,
+      "weightDecay": 1,
+      "nativeSeed11Epoch": 32,
+      "paused": {
+        "epoch": 32,
+        "accuracy": 99.38,
+        "observations": 33,
+        "workers": 12
+      },
+      "continued": {
+        "epoch": 35,
+        "accuracy": 99.83,
+        "observations": 36,
+        "workers": 12
+      },
+      "wallSeconds": 1.232
+    },
+    {
+      "model": "dense-rotary-256",
+      "preset": "plateau",
+      "width": 256,
+      "learningRate": 0.001,
+      "weightDecay": 0.3,
+      "nativeSeed11Epoch": 368,
+      "paused": {
+        "epoch": 366,
+        "accuracy": 99.08,
+        "observations": 367,
+        "workers": 13
+      },
+      "continued": {
+        "epoch": 369,
+        "accuracy": 99.23,
+        "observations": 370,
+        "workers": 13
+      },
+      "wallSeconds": 12.507
+    },
+    {
+      "model": "dense-rotary-256",
+      "preset": "slow",
+      "width": 256,
+      "learningRate": 0.00005,
+      "weightDecay": 0.3,
+      "nativeSeed11Epoch": 7632,
+      "paused": {
+        "epoch": 7737,
+        "accuracy": 99.01,
+        "observations": 7738,
+        "workers": 13
+      },
+      "continued": {
+        "epoch": 7740,
+        "accuracy": 99.01,
+        "observations": 7741,
+        "workers": 13
+      },
+      "wallSeconds": 267.241
+    }
+  ],
+  "errors": []
+}

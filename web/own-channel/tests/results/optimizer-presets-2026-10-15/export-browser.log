@@ -1,0 +1,18 @@
+
+> test:export-browser
+> node build/tests/export-browser.js
+
+PASS dense-rotary-16 fast: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-16 slow: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-32 fast: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-32 slow: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-64 fast: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-64 slow: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary fast: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary plateau: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary slow: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-256 fast: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-256 plateau: real .py download, one browser epoch, correct width and preserved source.
+PASS dense-rotary-256 slow: real .py download, one browser epoch, correct width and preserved source.
+PASS auto-pause: epoch 30, test 99.27%.
+PASS: mandatory target pause, Continue preserves worker/optimizer/history, three more epochs complete without re-pausing, and Reset restores the initial state.

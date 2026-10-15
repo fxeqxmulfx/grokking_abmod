@@ -1,0 +1,186 @@
+{
+  "records": [
+    {
+      "model": "dense-rotary-16",
+      "preset": "fast",
+      "width": 16,
+      "parameters": 1808,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.83,
+        "observations": "2 observations",
+        "workers": 3
+      }
+    },
+    {
+      "model": "dense-rotary-16",
+      "preset": "slow",
+      "width": 16,
+      "parameters": 1808,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.89,
+        "observations": "2 observations",
+        "workers": 4
+      }
+    },
+    {
+      "model": "dense-rotary-32",
+      "preset": "fast",
+      "width": 32,
+      "parameters": 4128,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.61,
+        "observations": "2 observations",
+        "workers": 6
+      }
+    },
+    {
+      "model": "dense-rotary-32",
+      "preset": "slow",
+      "width": 32,
+      "parameters": 4128,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.01,
+        "observations": "2 observations",
+        "workers": 6
+      }
+    },
+    {
+      "model": "dense-rotary-64",
+      "preset": "fast",
+      "width": 64,
+      "parameters": 10304,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.42,
+        "observations": "2 observations",
+        "workers": 8
+      }
+    },
+    {
+      "model": "dense-rotary-64",
+      "preset": "slow",
+      "width": 64,
+      "parameters": 10304,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.18,
+        "observations": "2 observations",
+        "workers": 8
+      }
+    },
+    {
+      "model": "dense-rotary",
+      "preset": "fast",
+      "width": 128,
+      "parameters": 28800,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.61,
+        "observations": "2 observations",
+        "workers": 9
+      }
+    },
+    {
+      "model": "dense-rotary",
+      "preset": "plateau",
+      "width": 128,
+      "parameters": 28800,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 0.99,
+        "observations": "2 observations",
+        "workers": 10
+      }
+    },
+    {
+      "model": "dense-rotary",
+      "preset": "slow",
+      "width": 128,
+      "parameters": 28800,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 0.9,
+        "observations": "2 observations",
+        "workers": 10
+      }
+    },
+    {
+      "model": "dense-rotary-256",
+      "preset": "fast",
+      "width": 256,
+      "parameters": 90368,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.22,
+        "observations": "2 observations",
+        "workers": 12
+      }
+    },
+    {
+      "model": "dense-rotary-256",
+      "preset": "plateau",
+      "width": 256,
+      "parameters": 90368,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.48,
+        "observations": "2 observations",
+        "workers": 13
+      }
+    },
+    {
+      "model": "dense-rotary-256",
+      "preset": "slow",
+      "width": 256,
+      "parameters": 90368,
+      "sourceDownload": true,
+      "sourceUnchangedAfterTraining": true,
+      "firstEpoch": {
+        "epoch": 1,
+        "accuracy": 1.07,
+        "observations": "2 observations",
+        "workers": 13
+      }
+    }
+  ],
+  "paused": {
+    "epoch": 30,
+    "accuracy": 99.27,
+    "observations": "31 observations",
+    "workers": 13
+  },
+  "continued": {
+    "epoch": 33,
+    "accuracy": 99.96,
+    "observations": "34 observations",
+    "workers": 13
+  },
+  "reset": true,
+  "errors": []
+}

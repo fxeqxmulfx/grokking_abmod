@@ -1,19 +1,19 @@
 import {element as $} from './dom.ts';
 import type {CanvasId} from './dom.ts';
-import {send, backend} from './types.ts';
-import type {Weights, ModelId, Metrics, Criterion, EngineInfo, TrainingOptions, NetworkView, NetworkNode, NetworkEdge, Point, WeightMode, WorkerResponse} from './types.ts';
+import {send, backend, preset} from './types.ts';
+import type {Weights, ModelId, Preset, Metrics, Criterion, EngineInfo, TrainingOptions, NetworkView, NetworkNode, NetworkEdge, Point, WeightMode, WorkerResponse} from './types.ts';
 import type {Prediction} from './models.ts';
 import {modelId} from './models.ts';
 import {P} from './model.ts';
 import {initializeI18n, t, number, runtimeText} from './i18n.ts';
 import {initializeTask} from './task.ts';
 import {pytorchSource} from './pytorch-export.ts';
-import {modelInfo, initialModelWeights, predictModel, inputMatrix} from './models.ts';
+import {modelInfo, modelPresets, optimizerProfile, initialModelWeights, predictModel, inputMatrix} from './models.ts';
 import {WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges} from './topology.ts';
 
 type AtlasType = 'a' | 'b' | 'r';
 interface Experiment {
-  model: ModelId; weights: Weights; initial: Weights; history: Metrics[]; channel: number;
+  model: ModelId; preset: Preset; weights: Weights; initial: Weights; history: Metrics[]; channel: number;
   meshView: 'topology' | 'channel'; networkMode: WeightMode; networkHighlight: boolean; networkView: NetworkView;
   metric: 'accuracy' | 'loss'; worker: Worker | null; running: boolean; ready: boolean; label: string;
   step: number; seed: number; activeMs: number; dirty: boolean; metricsDirty: boolean; options: TrainingOptions;
@@ -25,13 +25,14 @@ interface Experiment {
   scaleBins?: {channel: number; start: number; end: number}[];
 }
 await initializeI18n();
-function experiment(model: ModelId): Experiment {
+function experiment(model: ModelId, preset: Preset): Experiment {
   const info = modelInfo(model), seed = info.seed, initial = initialModelWeights(seed, model);
-  return {model, weights: initial.slice(), initial, history: [], channel: 0, meshView: 'topology', networkMode: 'weight', networkHighlight: false, networkView: {zoom: 1, x: 0, y: 0}, metric: 'accuracy', worker: null, running: false, ready: false, label: 'Loading', step: 0, seed, activeMs: 0, dirty: true, metricsDirty: true,
-    options: {model, seed, backend: 'auto', maxEpochs: 10000, captureHz: 5}};
+  return {model, preset, weights: initial.slice(), initial, history: [], channel: 0, meshView: 'topology', networkMode: 'weight', networkHighlight: false, networkView: {zoom: 1, x: 0, y: 0}, metric: 'accuracy', worker: null, running: false, ready: false, label: 'Loading', step: 0, seed, activeMs: 0, dirty: true, metricsDirty: true,
+    options: {model, preset, seed, backend: 'auto', maxEpochs: 10000, captureHz: 5}};
 }
-const experiments: Partial<Record<ModelId, Experiment>> = {'dense-rotary': experiment('dense-rotary')};
-let state = experiments['dense-rotary']!;
+// Every width and optimizer preset keeps its own experiment.
+const experiments = new Map<string, Experiment>([['dense-rotary/fast', experiment('dense-rotary', 'fast')]]);
+let state = experiments.get('dense-rotary/fast')!, preferredPreset: Preset = 'fast';
 let W = 128;
 const renderInputs = new Map<CanvasId, readonly unknown[]>();
 let pendingFrame: number | null = null, metricsTimer: number | null = null, lastMetricsPaint = 0;
@@ -373,6 +374,12 @@ function refresh() {
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-model-tab]')) {
     const active = button.dataset.modelTab === state.model; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active));
   }
+  const presets = modelPresets(state.model);
+  $('preset-nav').hidden = presets.length < 2;
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-preset-tab]')) {
+    const active = button.dataset.presetTab === state.preset; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active));
+    button.hidden = !presets.includes(preset(button.dataset.presetTab ?? ''));
+  }
   ui('atlas-a-title', 'Shared embedding E'); ui('atlas-b-title', 'Dense matrix A'); ui('atlas-r-title', 'Tied readout Eᵀ');
   for (const type of ['a', 'b'] as const) {const shape = atlasShape(type); ui('atlas-' + type + '-size', shape.rows + ' × ' + shape.columns);}
   ui('atlas-a-axis', 'Residue ↓ · channel →'); ui('atlas-b-axis', 'Input channel ↓ · output channel →');
@@ -381,11 +388,14 @@ function refresh() {
   $('scales').setAttribute('aria-label', t('Probe readout contributions for all {width} channels', {width: W}));
   for (const type of ['a', 'b'] as const) $('input-' + type).setAttribute('aria-label', runtimeText($('atlas-' + type + '-title').textContent + ' weights'));
   ui('model-description', t('One shared E (97 × {width}) embeds a and b and reads out the answer. Input: E[a] + Rotate90(E[b]). One pre-norm residual block applies RMSNorm → Dense A → ReLU, then adds the original input. Final RMSNorm and Eᵀ give 97 logits. E starts normal with variance 1/{width}; A is Kaiming normal with variance 2/{width}; there are no biases or learned norm gains.', {width: W}));
-  const reference = W === 16 ? 'Seed 11, Rust/CUDA: after 10,000 epochs, train 32.1% and held-out 18.1%; neither reached 99%. Only one seed verified; browser results may differ.'
-    : W === 32 ? 'Seed 11, Rust/CUDA: train ≥99% at epoch 931; held-out ≥99% at 3690. Only one seed verified; browser crossings may differ.'
-    : W === 1024 ? 'Seed 11, Rust/CUDA: train ≥99% and held-out ≤10% at epochs 18–110 (92 epochs); held-out ≥90% at 226 and ≥99% at 270. The 116-epoch rise meets the grokking criterion. Beige: train ≥99%; violet: perfect train; held-out ≤10% in both. Only one seed verified; browser crossings may differ.'
-    : 'Seed 11, Rust/CUDA: train ≥99% at epoch 315; held-out ≥90% at 510 and ≥99% at 605, without a memorization plateau. Only one seed verified; browser crossings may differ.';
-  ui('reference-description', t(reference));
+  const profile = optimizerProfile(state.model, state.preset);
+  const reference = t('Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.', {
+    seeds: profile.nativeSeeds.join(' / '), epochs: profile.nativeTest99Epochs.map(epoch => epoch === null ? '—' : number(epoch)).join(' / '), budget: number(profile.nativeBudget),
+  });
+  const plateau = profile.nativePlateauEpochs ? ' ' + t('Memorization plateau: {epochs} epochs.', {epochs: profile.nativePlateauEpochs.map(epochs => number(epochs)).join(' / ')}) : '';
+  ui('reference-description', `AdamW · lr=${profile.learningRate} · wd=${profile.weightDecay} · β=0.9/0.98 · ε=1e-8 · warmup=10. ${reference}${plateau}`);
+  $('reference-description').dataset.learningRate = String(profile.learningRate); $('reference-description').dataset.weightDecay = String(profile.weightDecay);
+  ui('model-optimizer', `lr=${profile.learningRate} · wd=${profile.weightDecay}`);
   ui('criterion-description', t('At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.'));
   ui('scale-formula', t('|probe hidden꜀| × ‖centered Eᵀ꜀‖ measures a channel’s readout contribution. If channels share a pixel, its bar shows their maximum and selects that channel. The channel input selects any channel exactly.'));
   status(state.label); invalidate();
@@ -394,7 +404,7 @@ function initialize() {
   if (!$('seed').reportValidity() || !$('limit').reportValidity()) return;
   const target = state;
   target.worker?.terminate();
-  target.options = {model: target.model, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value)};
+  target.options = {model: target.model, preset: target.preset, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value)};
   target.seed = target.options.seed; target.initial = initialModelWeights(target.seed, target.model); target.weights = target.initial.slice();
   target.step = 0; target.activeMs = 0; target.history = []; target.criterion = null; target.ready = false; target.running = false; target.error = null; target.info = null;
   status('Loading', target); refresh();
@@ -413,13 +423,22 @@ function initialize() {
   worker.onerror = event => { if (target.worker !== worker) return; status('Error', target); target.ready = false; target.error = event.message; if (state === target) refresh(); };
   send(worker, {type: 'initialize', options: target.options});
 }
-for (const button of document.querySelectorAll<HTMLButtonElement>('[data-model-tab]')) button.onclick = () => {
-  const id = modelId(button.dataset.modelTab ?? ''); if (id === state.model) return;
+function select(model: ModelId, chosen: Preset) {
+  if (model === state.model && chosen === state.preset) return;
   if (state.running) { send(state.worker, {type: 'pause'}); status('Pausing'); }
-  const previous = state.options;
-  state = experiments[id] ??= experiment(id);
+  const previous = state.options, key = `${model}/${chosen}`;
+  if (!experiments.has(key)) experiments.set(key, experiment(model, chosen));
+  state = experiments.get(key)!;
   refresh();
   if (!state.worker) { state.options.backend = previous.backend; $('backend').value = previous.backend; initialize(); }
+}
+// Widths without the preferred preset open their fast preset.
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-model-tab]')) button.onclick = () => {
+  const id = modelId(button.dataset.modelTab ?? '');
+  select(id, modelPresets(id).includes(preferredPreset) ? preferredPreset : 'fast');
+};
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-preset-tab]')) button.onclick = () => {
+  preferredPreset = preset(button.dataset.presetTab ?? ''); select(state.model, preferredPreset);
 };
 $('train').onclick = () => { if (state.ready) send(state.worker, {type: state.running ? 'pause' : 'train'}); };
 $('step').onclick = () => send(state.worker, {type: 'step'});
@@ -515,10 +534,11 @@ for (const id of ['input-a', 'input-b', 'readout'] as const) $(id).onmouseleave 
   if (document.body.dataset.view === 'channels' && state.networkHighlight) invalidate();
 };
 function download(content: BlobPart, name: string, type: string) { const url = URL.createObjectURL(new Blob([content], {type})), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-$('export-pytorch').onclick = () => download(pytorchSource(state.options), `rotate90-w${W}-seed${state.seed}.py`, 'text/x-python');
+const presetSuffix = () => state.preset === 'fast' ? '' : '-' + state.preset;
+$('export-pytorch').onclick = () => download(pytorchSource(state.options), `rotate90-w${W}${presetSuffix()}-seed${state.seed}.py`, 'text/x-python');
 $('export-metrics').onclick = () => {
   const keys = ['step', 'epoch', 'trainLoss', 'heldoutLoss', 'trainAccuracy', 'heldoutAccuracy', 'phase'] as const;
-  download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
+  download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}${presetSuffix()}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
 };
 const resizeObserver = new ResizeObserver(() => { invalidate(); });
 for (const element of document.querySelectorAll('main, canvas')) resizeObserver.observe(element);
