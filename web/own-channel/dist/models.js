@@ -3,7 +3,7 @@ import { OPTIMIZER_PROFILES } from './optimizer-profiles.js';
 import { PRESETS } from './types.js';
 function dense(id, width) {
     return { id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
-        ...(OPTIMIZER_PROFILES[width]?.fast ?? { learningRate: .01, weightDecay: 1, nativeSeeds: [], nativeTest99Epochs: [], nativeBudget: 10000 }),
+        ...OPTIMIZER_PROFILES[width].fast,
         reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width };
 }
 export const MODELS = {
@@ -14,27 +14,20 @@ export const MODELS = {
     'dense-rotary-256': dense('dense-rotary-256', 256),
 };
 export function modelId(id) {
-    if (Object.hasOwn(MODELS, id))
-        return id;
-    const match = /^dense-rotary-([1-9]\d*)$/.exec(id);
-    if (!match)
+    if (!Object.hasOwn(MODELS, id))
         throw new Error('Unknown model.');
-    return modelForWidth(Number(match[1]));
+    return id;
 }
 export function validateWidth(width) {
-    if (!Number.isInteger(width) || width < 2 || width > 2048 || width % 2 !== 0)
-        throw new Error('Width must be an even integer between 2 and 2048.');
+    modelForWidth(width);
 }
 export function modelForWidth(width) {
-    validateWidth(width);
-    return width === 128 ? 'dense-rotary' : `dense-rotary-${width}`;
+    const model = Object.values(MODELS).find(model => model.width === width);
+    if (!model)
+        throw new Error('Choose width 16, 32, 64, 128 or 256.');
+    return model.id;
 }
-export function modelInfo(id) {
-    if (Object.hasOwn(MODELS, id))
-        return MODELS[id];
-    const canonical = modelId(id), width = Number(canonical.slice('dense-rotary-'.length));
-    return canonical === 'dense-rotary' ? MODELS[canonical] : dense(canonical, width);
-}
+export function modelInfo(id) { return MODELS[modelId(id)]; }
 export function modelPresets(id) { return PRESETS.filter(preset => OPTIMIZER_PROFILES[modelInfo(id).width]?.[preset]); }
 export function optimizerProfile(id, preset = 'fast') {
     const profile = OPTIMIZER_PROFILES[modelInfo(id).width]?.[preset];

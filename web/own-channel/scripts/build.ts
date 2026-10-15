@@ -25,6 +25,7 @@ run(['node_modules/typescript/bin/tsc', '-p', 'tsconfig.tools.json']);
 run(['build/scripts/build-wasm.js']);
 run(['build/scripts/build-raster.js']);
 run(['build/scripts/build-model-diagrams.js']);
+cpSync(new URL('../../LICENSE', root), new URL('dist/LICENSE.txt', root));
 
 // Node validation uses the same emitted browser modules and binary assets.
 cpSync(new URL('dist/', root), new URL('build/dist/', root), {recursive: true});

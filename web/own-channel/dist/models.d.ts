@@ -1,5 +1,5 @@
 import type { OptimizerProfile } from './optimizer-profiles.ts';
-import type { BuiltinModelId, ModelId, OptimizerSettings, Preset, Vector, Weights } from './types.ts';
+import type { ModelId, OptimizerSettings, Preset, Vector, Weights } from './types.ts';
 export interface ModelInfo extends OptimizerProfile {
     id: ModelId;
     title: string;
@@ -11,7 +11,7 @@ export interface ModelInfo extends OptimizerProfile {
     embedding: number;
     gain: number;
 }
-export declare const MODELS: Record<BuiltinModelId, ModelInfo>;
+export declare const MODELS: Record<ModelId, ModelInfo>;
 export declare function modelId(id: string): ModelId;
 export declare function validateWidth(width: number): void;
 export declare function modelForWidth(width: number): ModelId;

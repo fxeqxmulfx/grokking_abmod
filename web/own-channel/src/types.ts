@@ -1,6 +1,5 @@
 export const MODEL_IDS = ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary-64', 'dense-rotary', 'dense-rotary-256'] as const;
-export type BuiltinModelId = typeof MODEL_IDS[number];
-export type ModelId = BuiltinModelId | `dense-rotary-${number}`;
+export type ModelId = typeof MODEL_IDS[number];
 // Optimizer presets: fast generalizes earliest on every native seed, plateau
 // memorizes longest before generalizing, slow generalizes latest.
 export const PRESETS = ['fast', 'plateau', 'slow'] as const;

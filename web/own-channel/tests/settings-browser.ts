@@ -42,10 +42,11 @@ try {
   await wait(`document.getElementById('status').textContent==='Ready'`);
   await click('#step'); await wait(`document.getElementById('epoch').textContent==='1'&&document.getElementById('status').textContent==='Paused'`);
   const nativeLoss = await evaluate(`document.getElementById('train-loss').textContent`);
-  await apply(48, .0025, 0);
+  await apply(32, .0025, 0);
+  assert.deepEqual(await evaluate(`Array.from(document.getElementById('custom-width').options,option=>option.value)`), ['16', '32', '64', '128', '256']);
   const initialLoss = await evaluate(`document.getElementById('train-loss').textContent`);
   const source = await evaluate<string>(`(async()=>{let source;const create=URL.createObjectURL,click=HTMLAnchorElement.prototype.click;URL.createObjectURL=blob=>{source=blob.text();return create(blob)};HTMLAnchorElement.prototype.click=function(){};try{document.getElementById('export-pytorch').click();return await source}finally{URL.createObjectURL=create;HTMLAnchorElement.prototype.click=click}})()`);
-  for (const line of ['DEFAULT_WIDTH = 48', 'DEFAULT_LEARNING_RATE = 0.0025', 'DEFAULT_WEIGHT_DECAY = 0']) assert.ok(source.includes(line + '\n'));
+  for (const line of ['DEFAULT_WIDTH = 32', 'DEFAULT_LEARNING_RATE = 0.0025', 'DEFAULT_WEIGHT_DECAY = 0']) assert.ok(source.includes(line + '\n'));
   await click('#step'); await wait(`document.getElementById('epoch').textContent==='1'&&document.getElementById('status').textContent==='Paused'`);
   const customLoss = await evaluate(`document.getElementById('train-loss').textContent`);
   assert.notEqual(customLoss, initialLoss);
@@ -56,20 +57,22 @@ try {
   await click('#reset'); await wait(`document.getElementById('epoch').textContent==='0'&&document.getElementById('status').textContent==='Ready'`);
   assert.equal(await evaluate(`document.getElementById('train-loss').textContent`), initialLoss);
   assert.equal(await evaluate(`document.getElementById('model-optimizer').textContent`), 'lr=0.0025 · wd=0');
-  await apply(18, .003, .2);
+  await evaluate(`document.getElementById('backend').value='scalar';document.getElementById('backend').dispatchEvent(new Event('change'))`);
+  await wait(`document.getElementById('status').textContent==='Ready'`);
+  await apply(64, .003, .2);
   assert.ok(await evaluate(`document.getElementById('device').textContent.includes('scalar')`));
   await click('#step'); await wait(`document.getElementById('epoch').textContent==='1'&&document.getElementById('status').textContent==='Paused'`);
-  await click('[data-view-tab="weights"]'); await wait(`document.getElementById('atlas-b-size').textContent==='18 × 18'`);
+  await click('[data-view-tab="weights"]'); await wait(`document.getElementById('atlas-b-size').textContent==='64 × 64'`);
   await click('[data-view-tab="channels"]');
-  await wait(`document.getElementById('mesh-edges').dataset.parameters==='2070'&&document.getElementById('mesh-edges').dataset.frame===document.getElementById('mesh-edges').dataset.request`);
+  await wait(`document.getElementById('mesh-edges').dataset.parameters==='10304'&&document.getElementById('mesh-edges').dataset.frame===document.getElementById('mesh-edges').dataset.request`);
   await click('[data-view-tab="settings"]');
-  for (const invalid of [['17', '.003', '.2'], ['2050', '.003', '.2'], ['18', '0', '.2'], ['18', '.003', '-1'], ['', '.003', '.2']]) {
+  for (const invalid of [['17', '.003', '.2'], ['48', '.003', '.2'], ['64', '0', '.2'], ['64', '.003', '-1'], ['', '.003', '.2']]) {
     await values(...invalid as [string, string, string]);
     assert.equal(await evaluate(`document.getElementById('settings-form').checkValidity()`), false);
     await evaluate(`document.getElementById('settings-form').requestSubmit()`);
     assert.ok(await evaluate(`document.body.dataset.view==='settings'&&document.getElementById('epoch').textContent==='1'`));
   }
-  await values('18', '.003', '.2');
+  await values('64', '.003', '.2');
   for (const language of ['en', 'ru', 'de', 'ja', 'es', 'fr']) {
     await evaluate(`document.getElementById('language').value='${language}';document.getElementById('language').dispatchEvent(new Event('change'))`);
     await wait(`document.documentElement.lang==='${language}'`);
@@ -81,5 +84,5 @@ try {
     }
   }
   assert.deepEqual(client.errors, []);
-  console.log('Introduction: all 12 pages forward and backward. Custom W48 SIMD and W18 scalar: training, reset, independent presets, export and validation passed. Settings: 30 localized layouts passed.');
+  console.log('Introduction: all 12 pages forward and backward. Custom W32 SIMD and W64 scalar: training, reset, independent presets, export and validation passed. Settings: five widths and 30 localized layouts passed.');
 } finally {client.close();}

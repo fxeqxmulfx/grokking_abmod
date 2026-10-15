@@ -1,9 +1,12 @@
-# Local-only development
+# Local preview and GitHub Pages
 
-The user requested local-only operation on 2026-10-12. Keep both model tabs
-available through the local preview server. Do not push source to Sites,
-register a new Site, package for cloud publication, or deploy updates unless
-the user explicitly asks to publish again.
+The user authorized a public GitHub repository and GitHub Pages publication on
+2026-10-15. The Pages workflow builds and deploys the static browser lab from
+`master`. Keep the local preview available. Settings must use the five prebuilt
+widths 16, 32, 64, 128 and 256, with custom learning rate and weight decay.
+
+Do not push source to Sites, register a new Site, or deploy there unless the
+user explicitly asks to use Sites again.
 
 The existing `.openai/hosting.json` retains the old Site identity for removal
 or later recovery. Its presence does not authorize publication. The currently

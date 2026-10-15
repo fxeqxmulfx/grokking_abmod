@@ -7,7 +7,7 @@ const tags = {
     "custom-tab": "button",
     "settings-panel": "section",
     "settings-form": "form",
-    "custom-width": "input",
+    "custom-width": "select",
     "custom-lr": "input",
     "custom-wd": "input",
     "custom-summary": "p",

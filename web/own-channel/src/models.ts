@@ -2,7 +2,7 @@ import {P, Random} from './model.ts';
 import {OPTIMIZER_PROFILES} from './optimizer-profiles.ts';
 import type {OptimizerProfile} from './optimizer-profiles.ts';
 import {PRESETS} from './types.ts';
-import type {BuiltinModelId, ModelId, OptimizerSettings, Preset, Vector, Weights} from './types.ts';
+import type {ModelId, OptimizerSettings, Preset, Vector, Weights} from './types.ts';
 
 export interface ModelInfo extends OptimizerProfile {
   id: ModelId; title: string; subtitle: string; width: number; seed: number;
@@ -10,10 +10,10 @@ export interface ModelInfo extends OptimizerProfile {
 }
 function dense(id: ModelId, width: number): ModelInfo {
   return {id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
-    ...(OPTIMIZER_PROFILES[width]?.fast ?? {learningRate: .01, weightDecay: 1, nativeSeeds: [], nativeTest99Epochs: [], nativeBudget: 10000}),
+    ...OPTIMIZER_PROFILES[width].fast,
     reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width};
 }
-export const MODELS: Record<BuiltinModelId, ModelInfo> = {
+export const MODELS: Record<ModelId, ModelInfo> = {
   'dense-rotary-16': dense('dense-rotary-16', 16),
   'dense-rotary-32': dense('dense-rotary-32', 32),
   'dense-rotary-64': dense('dense-rotary-64', 64),
@@ -21,23 +21,18 @@ export const MODELS: Record<BuiltinModelId, ModelInfo> = {
   'dense-rotary-256': dense('dense-rotary-256', 256),
 };
 export function modelId(id: string): ModelId {
-  if (Object.hasOwn(MODELS, id)) return id as BuiltinModelId;
-  const match = /^dense-rotary-([1-9]\d*)$/.exec(id);
-  if (!match) throw new Error('Unknown model.');
-  return modelForWidth(Number(match[1]));
+  if (!Object.hasOwn(MODELS, id)) throw new Error('Unknown model.');
+  return id as ModelId;
 }
 export function validateWidth(width: number): void {
-  if (!Number.isInteger(width) || width < 2 || width > 2048 || width % 2 !== 0) throw new Error('Width must be an even integer between 2 and 2048.');
+  modelForWidth(width);
 }
 export function modelForWidth(width: number): ModelId {
-  validateWidth(width);
-  return width === 128 ? 'dense-rotary' : `dense-rotary-${width}`;
+  const model = Object.values(MODELS).find(model => model.width === width);
+  if (!model) throw new Error('Choose width 16, 32, 64, 128 or 256.');
+  return model.id;
 }
-export function modelInfo(id: ModelId): ModelInfo {
-  if (Object.hasOwn(MODELS, id)) return MODELS[id as BuiltinModelId];
-  const canonical = modelId(id), width = Number(canonical.slice('dense-rotary-'.length));
-  return canonical === 'dense-rotary' ? MODELS[canonical] : dense(canonical, width);
-}
+export function modelInfo(id: ModelId): ModelInfo {return MODELS[modelId(id)];}
 export function modelPresets(id: ModelId): Preset[] {return PRESETS.filter(preset => OPTIMIZER_PROFILES[modelInfo(id).width]?.[preset]);}
 export function optimizerProfile(id: ModelId, preset: Preset = 'fast'): OptimizerProfile {
   const profile = OPTIMIZER_PROFILES[modelInfo(id).width]?.[preset];

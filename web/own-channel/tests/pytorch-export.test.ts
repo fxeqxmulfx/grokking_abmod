@@ -26,11 +26,11 @@ test('all model and optimizer preset exports contain the selected width, optimiz
   assert.throws(() => pytorchSource({model: 'dense-rotary-16', preset: 'plateau', seed: 0, maxEpochs: 1}));
 });
 
-test('custom exports retain arbitrary width, learning rate and zero weight decay', () => {
-  const source = pytorchSource({model: 'dense-rotary-18', seed: 17, maxEpochs: 25, optimizer: {learningRate: .00007, weightDecay: 0}});
-  assert.ok(source.includes('DEFAULT_WIDTH = 18\n'));
+test('custom exports retain selected width, learning rate and zero weight decay', () => {
+  const source = pytorchSource({model: 'dense-rotary-32', seed: 17, maxEpochs: 25, optimizer: {learningRate: .00007, weightDecay: 0}});
+  assert.ok(source.includes('DEFAULT_WIDTH = 32\n'));
   assert.ok(source.includes('DEFAULT_LEARNING_RATE = 0.00007\n'));
   assert.ok(source.includes('DEFAULT_WEIGHT_DECAY = 0\n'));
-  for (const learningRate of [0, -1, NaN, Infinity, 1e-100, 1e100]) assert.throws(() => pytorchSource({model: 'dense-rotary-18', seed: 11, maxEpochs: 1, optimizer: {learningRate, weightDecay: 0}}));
-  for (const weightDecay of [-1, NaN, Infinity, 1e100]) assert.throws(() => pytorchSource({model: 'dense-rotary-18', seed: 11, maxEpochs: 1, optimizer: {learningRate: .01, weightDecay}}));
+  for (const learningRate of [0, -1, NaN, Infinity, 1e-100, 1e100]) assert.throws(() => pytorchSource({model: 'dense-rotary-32', seed: 11, maxEpochs: 1, optimizer: {learningRate, weightDecay: 0}}));
+  for (const weightDecay of [-1, NaN, Infinity, 1e100]) assert.throws(() => pytorchSource({model: 'dense-rotary-32', seed: 11, maxEpochs: 1, optimizer: {learningRate: .01, weightDecay}}));
 });

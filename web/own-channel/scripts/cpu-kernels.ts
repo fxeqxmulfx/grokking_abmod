@@ -48,7 +48,7 @@ export function matrixKernels(simd: boolean, width: number, options: CPUKernelCo
       (local.set $i (i32.add (local.get $i) (i32.const 1))) (br_if $rows (i32.lt_u (local.get $i) (local.get $inputs)))))`;
   return `${options.rowThreshold !== null ? rowMatrix : ''}
 ${tile(registers, 'matrix_tile')}
-${tile(simd || width % 4 !== 0 ? 1 : 4, 'matrix_tail')}
+${tile(simd ? 1 : 4, 'matrix_tail')}
   (func $matrix (param $dst i32) (param $input i32) (param $matrix i32) (param $inputs i32) (param $outputs i32)
     (local $end i32)
     ${options.rowThreshold !== null ? `(if (i32.ge_u (local.get $outputs) (i32.const ${options.rowThreshold})) (then (call $matrix_rows (local.get $dst) (local.get $input) (local.get $matrix) (local.get $inputs) (local.get $outputs)) (return)))` : ''}

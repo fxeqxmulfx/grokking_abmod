@@ -4,8 +4,8 @@ Five preset tabs train one Dense + ReLU architecture at widths 16, 32, 64, 128
 and 256. Every width has a fast and a slow optimizer preset; W128 and W256 add a
 plateau preset.
 Training runs entirely in the browser on handwritten WASM SIMD128 or scalar
-WASM. Training and weight rendering use CPU workers. Node serves files and
-compiles WASM assets for additional widths when requested.
+WASM. Training and weight rendering use CPU workers. All five widths have
+prebuilt WASM modules; both local preview and GitHub Pages serve static files.
 
 | Tab | Channels | Unique parameters | Drawn learned connections |
 | --- | ---: | ---: | ---: |
@@ -47,19 +47,42 @@ npm test
 Rebuild after editing sources; `npm run typecheck` checks an existing build
 without emitting code. The fixed dependency versions are in `package-lock.json`.
 
-The **Settings** workspace adds a custom experiment with any even width from
-2 to 2048, a positive learning rate and nonnegative weight decay. Rotate90 needs
-channel pairs. **Apply and open training** creates a fresh experiment using the
+The **Settings** workspace adds a custom experiment at width 16, 32, 64, 128 or
+256, with a positive learning rate and nonnegative weight decay.
+**Apply and open training** creates a fresh experiment using the
 current seed, engine, epoch limit and snapshot cadence. Its **Custom** model tab
 preserves weights, optimizer and curves when switching to presets and back.
 Applying again replaces only the custom experiment. Reset and PyTorch exports
 retain its width, lr and wd.
 
-Additional widths use the same handwritten WASM template, compiled on demand
-by the local Node server and cached in memory. Multiples of four support SIMD;
-other even widths use scalar WASM, including shared CPU workers. Training stays
-in the browser. The server requires the source checkout and its installed Node
-dependencies to compile these assets.
+The width selector uses exactly the five prebuilt architectures. Every width
+supports SIMD and scalar WASM, private memory and shared CPU workers. Learning
+rate and weight decay are supplied to AdamW at runtime.
+
+## GitHub Pages
+
+The [published lab](https://fxeqxmulfx.github.io/grokking_abmod/) is deployed by
+[the Pages workflow](../../.github/workflows/pages.yml) on pushes to `master`
+that change the site, its license or the workflow. It can also be run manually
+from GitHub Actions. The workflow uses Node from `.nvmrc`, installs the lockfile,
+builds and tests, packages `build/pages/`, then deploys that artifact. Official
+Actions are pinned to commit hashes.
+
+To preview the publication locally:
+
+```sh
+npm run build:pages
+npm run preview:pages
+```
+
+Open `http://127.0.0.1:8081/grokking_abmod/`. This preview serves the artifact
+under the project prefix without special HTTP headers. The scoped isolation
+worker supplies COOP/COEP headers so Pages can use shared-memory CPU workers.
+The first visit may reload once before the app starts. Browsers that cannot
+use service workers retain the single-thread fallback. The worker fetches from
+the host and does not maintain an asset cache.
+
+The source and packaged site include the [MIT license](../../LICENSE).
 
 Training is the default workspace. Weights and Network provide the other two
 views. Every width and optimizer preset preserves its independent weights,
@@ -357,7 +380,7 @@ W128 and the retired W1024 engine, whose four-thread SIMD variant took
 
 ## Validation and observed convergence
 
-The TypeScript build and 101 Node tests pass: deterministic data and sampling,
+The TypeScript build and 89 Node tests pass: deterministic data and sampling,
 strict grokking classification, native checkpoint hashes, scalar/SIMD logits,
 all parameter gradients, shared E accumulation, finite differences and AdamW.
 Two- and four-thread variants also pass gradient, AdamW and complete-split
@@ -371,12 +394,14 @@ The real UI trains W128 and W256 with GPU APIs forbidden,
 pauses/resets, restores independent states, switches the W128 Fast, Plateau
 and Slow presets, updates weights, and fits all three views. Localization
 checks pass 432 desktop/mobile dialog and workspace layouts, including Settings.
-Custom-width checks compare W2, W4, W6, W12, W18, W48, W132 and W258 logits and
-all gradients with independent f64 backpropagation. They cover grouped-row tails,
-four shared workers and custom AdamW updates. The settings browser check follows
-every introduction page forward and backward, trains W48 SIMD and W18 scalar,
+Custom-setting checks validate the five supported widths, custom AdamW updates,
+and four shared workers. The settings browser check follows
+every introduction page forward and backward, trains W32 SIMD and W64 scalar,
 checks reset, preset restoration and PyTorch defaults, and fits 30 localized
 settings layouts with the Custom tab visible.
+The Pages check loads all 20 packaged training modules, verifies the isolation
+bootstrap without server headers, and trains every width with custom AdamW
+parameters on four CPU threads under the `/grokking_abmod/` prefix.
 
 The export integration check trains every width and preset and downloads their
 actual `.py` files before and after learning. Sources remain unchanged by training.
@@ -436,6 +461,7 @@ selected CDP port. Hardware acceleration is not required:
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
 GROKKING_CDP_PORT=9224 npm run test:settings-browser
+GROKKING_CDP_PORT=9224 GROKKING_PREVIEW_ORIGIN=http://127.0.0.1:8081/grokking_abmod npm run test:pages-browser
 GROKKING_CDP_PORT=9224 npm run test:export-browser
 GROKKING_CDP_PORT=9224 node build/tests/optimizer-browser.js
 GROKKING_CDP_PORT=9224 npm run test:rendering

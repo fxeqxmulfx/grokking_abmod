@@ -34,7 +34,7 @@ test('Shared CPU buffers are aligned, disjoint and bounded', () => {
     }
     if (width === 256 && count === 4) assert.ok(layout.pages * 65536 < 4 * 1024 * 1024);
   }
-  assert.throws(() => cpuMemoryLayout(513, 2)); assert.throws(() => cpuMemoryLayout(2050, 2)); assert.throws(() => cpuMemoryLayout(128, 0));
+  assert.throws(() => cpuMemoryLayout(512, 2)); assert.throws(() => cpuMemoryLayout(513, 2)); assert.throws(() => cpuMemoryLayout(128, 0));
 });
 
 for (const model of MODEL_IDS) for (const variant of ['simd', 'scalar'] as const) for (const threads of [2, 4]) {

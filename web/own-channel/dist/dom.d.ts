@@ -7,7 +7,7 @@ declare const tags: {
     readonly "custom-tab": "button";
     readonly "settings-panel": "section";
     readonly "settings-form": "form";
-    readonly "custom-width": "input";
+    readonly "custom-width": "select";
     readonly "custom-lr": "input";
     readonly "custom-wd": "input";
     readonly "custom-summary": "p";

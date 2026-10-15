@@ -1,6 +1,5 @@
 export declare const MODEL_IDS: readonly ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary-64', 'dense-rotary', 'dense-rotary-256'];
-export type BuiltinModelId = typeof MODEL_IDS[number];
-export type ModelId = BuiltinModelId | `dense-rotary-${number}`;
+export type ModelId = typeof MODEL_IDS[number];
 export declare const PRESETS: readonly ['fast', 'plateau', 'slow'];
 export type Preset = typeof PRESETS[number];
 export declare const BACKENDS: readonly ['auto', 'simd', 'scalar', 'simd-2', 'simd-4', 'scalar-2', 'scalar-4'];
