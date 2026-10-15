@@ -58,6 +58,7 @@ const tags = {
     "readout": "canvas",
     "range-r": "span",
     "scales-title": "h3",
+    "scales-help": "button",
     "concentration": "span",
     "scales": "canvas",
     "probe-a": "input",

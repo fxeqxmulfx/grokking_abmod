@@ -113,6 +113,22 @@ export class WASMTrainer {
         return ids.map(id => { this.exports.forward(id); return this.logits.slice(0, P); });
     }
     info() { return { description: this.scalar ? 'CPU · WASM scalar' : 'CPU · WASM SIMD128', backend: 'wasm', threads: 1, memoryBytes: this.exports.memory.buffer.byteLength }; }
+    checkpoint() {
+        const moment = (name) => new Float32Array(this.exports.memory.buffer, Number(this.exports[name].value), this.weights.length).slice();
+        return { model: this.model.id, step: this.step, b1: this.b1, b2: this.b2, weights: this.weights.slice(), moment1: moment('moment1'), moment2: moment('moment2') };
+    }
+    restore(checkpoint) {
+        if (checkpoint.model !== this.model.id || !Number.isSafeInteger(checkpoint.step) || checkpoint.step < 0 || ![checkpoint.b1, checkpoint.b2].every(value => Number.isFinite(value) && value >= 0 && value <= 1)
+            || ![checkpoint.weights, checkpoint.moment1, checkpoint.moment2].every(values => values.length === this.weights.length && values.every(Number.isFinite)))
+            throw new Error('Invalid training checkpoint.');
+        this.weights.set(checkpoint.weights);
+        for (const name of ['moment1', 'moment2'])
+            new Float32Array(this.exports.memory.buffer, Number(this.exports[name].value), this.weights.length).set(checkpoint[name]);
+        this.step = checkpoint.step;
+        this.b1 = checkpoint.b1;
+        this.b2 = checkpoint.b2;
+        this.exports.prepare();
+    }
     destroy() { this.channel.port1.close(); this.channel.port2.close(); }
 }
 export function validateSubmission(samples, gradientsOnly = false) {

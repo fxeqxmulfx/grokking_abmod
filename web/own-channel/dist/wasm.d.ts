@@ -1,8 +1,10 @@
-import type { Sample, Metrics, TrainerOptions, EngineInfo } from './types.ts';
+import type { Sample, Metrics, TrainerOptions, EngineInfo, EngineCheckpoint } from './types.ts';
 export interface TrainerExports {
     memory: WebAssembly.Memory;
     weights: WebAssembly.Global;
     gradient: WebAssembly.Global;
+    moment1: WebAssembly.Global;
+    moment2: WebAssembly.Global;
     samples: WebAssembly.Global;
     metrics: WebAssembly.Global;
     logits: WebAssembly.Global;
@@ -52,6 +54,8 @@ export declare class WASMTrainer {
     readGradients(): Promise<Float32Array<ArrayBuffer>>;
     readLogits(ids?: number[]): Promise<Float32Array<ArrayBuffer>[]>;
     info(): EngineInfo;
+    checkpoint(): EngineCheckpoint;
+    restore(checkpoint: EngineCheckpoint): void;
     destroy(): void;
 }
 export declare function validateSubmission(samples: Sample[], gradientsOnly?: boolean): void;

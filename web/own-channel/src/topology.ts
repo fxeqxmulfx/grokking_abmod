@@ -51,7 +51,9 @@ export class WeightTopology {
     else if (this.ctx) {this.ctx.setTransform(1, 0, 0, 1, 0, 0); this.ctx.clearRect(0, 0, this.element.width, this.element.height); this.element.dataset.frame = String(job);}
   }
   draw(_overlay: CanvasRenderingContext2D, layout: TopologyLayout, weights: Weights, selected: number, view: NetworkView, focus = -1, options: DrawOptions = {}) {
-    const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = Math.min(devicePixelRatio || 1, 2);
+    // Dense connections need less resolution than the separate text overlay.
+    // Bound the f32 accumulation buffer when a tab expands to the full screen.
+    const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = Math.min(devicePixelRatio || 1, 2, Math.sqrt(524288 / (layout.width * layout.height)));
     const dataset = this.element.dataset, ranges = initialWeightRanges(initial, layout.channels).map(value => value * (mode === 'delta' ? .25 : 1));
     dataset.connections = String(3 * 97 * layout.channels + layout.channels * layout.channels); dataset.parameters = String(weights.length);
     dataset.mode = mode; dataset.highlight = String(Boolean(options.highlight)); dataset.embeddingScale = String(ranges[0]); dataset.meshScale = String(ranges[1]);

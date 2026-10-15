@@ -3,7 +3,7 @@ import {browserCPUThread} from './cpu-protocol.ts';
 import type {CPUThread, CPUThreadRequest} from './cpu-protocol.ts';
 import {TOTAL, TRAIN} from './model.ts';
 import {modelInfo} from './models.ts';
-import type {TrainerOptions, Sample, Metrics, EngineInfo} from './types.ts';
+import type {TrainerOptions, Sample, Metrics, EngineInfo, EngineCheckpoint} from './types.ts';
 import {WASMTrainer, validateSubmission} from './wasm.ts';
 
 export interface ParallelOptions extends TrainerOptions {threads: number; workerFactory?: () => CPUThread}
@@ -103,5 +103,7 @@ export class ParallelWASMTrainer {
   readGradients() {return this.engine.readGradients();}
   readLogits(ids?: number[]) {return this.engine.readLogits(ids);}
   info(): EngineInfo {return {...this.engine.info(), description: `${this.engine.info().description} · ${this.count} threads`, threads: this.count};}
+  checkpoint() {if (this.busy) throw new Error('CPU trainer already has a job.'); return this.engine.checkpoint();}
+  restore(checkpoint: EngineCheckpoint) {if (this.busy) throw new Error('CPU trainer already has a job.'); this.engine.restore(checkpoint);}
   destroy() {this.fail(new Error('CPU trainer stopped.')); for (const thread of this.threads) thread.port.terminate(); this.threads = []; this.engine.destroy();}
 }

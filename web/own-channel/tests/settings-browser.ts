@@ -25,7 +25,7 @@ try {
   await client.call('Emulation.setDeviceMetricsOverride', {width: 1366, height: 768, deviceScaleFactor: 1, mobile: false});
   await client.call('Page.navigate', {url: origin + '?lang=en'});
   await wait(`document.getElementById('task-dialog')?.open&&document.getElementById('status')?.textContent==='Ready'`);
-  const route = [...['why', 'epoch', 'paper', 'chart', 'weights', 'grokking', 'findings'].map(name => 'intro/' + name), 'task', 'solution', 'examples', ...['diagram', 'types', 'equations'].map(name => 'model/' + name)];
+  const route = [...['why', 'epoch', 'paper', 'chart', 'weights', 'probe', 'grokking', 'findings'].map(name => 'intro/' + name), 'task', 'solution', 'examples', ...['diagram', 'types', 'equations'].map(name => 'model/' + name)];
   const current = `(() => {const page=document.querySelector('[data-task-tab][aria-selected="true"]').dataset.taskTab;return page==='intro'?page+'/'+document.querySelector('[data-intro-tab][aria-selected="true"]').dataset.introTab:page==='model'?page+'/'+document.querySelector('[data-model-explanation][aria-selected="true"]').dataset.modelExplanation:page})()`;
   assert.ok(await evaluate(`document.getElementById('task-back').disabled`));
   for (const [index, page] of route.entries()) {
@@ -84,5 +84,5 @@ try {
     }
   }
   assert.deepEqual(client.errors, []);
-  console.log('Introduction: all 13 pages forward and backward. Custom W32 SIMD and W64 scalar: training, reset, independent presets, export and validation passed. Settings: five widths and 30 localized layouts with aligned fields passed.');
+  console.log('Introduction: all 14 pages forward and backward. Custom W32 SIMD and W64 scalar: training, reset, independent presets, export and validation passed. Settings: five widths and 30 localized layouts with aligned fields passed.');
 } finally {client.close();}

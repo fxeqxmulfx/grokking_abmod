@@ -19,6 +19,7 @@
     "test": "npm run build && node --test --test-isolation=none build/tests/model.test.js build/tests/models-wasm.test.js build/tests/parallel-wasm.test.js build/tests/raster.test.js build/tests/checkpoint.test.js build/tests/i18n.test.js build/tests/training-control.test.js build/tests/pytorch-export.test.js build/tests/optimizer-profiles.test.js build/tests/custom-experiment.test.js",
     "test:browser": "node build/tests/browser.js",
     "test:settings-browser": "node build/tests/settings-browser.js",
+    "test:mobile-browser": "node build/tests/mobile-browser.js",
     "test:pages-browser": "node build/tests/pages-browser.js",
     "test:export-browser": "node build/tests/export-browser.js",
     "test:rendering": "node build/tests/rendering.js",

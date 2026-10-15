@@ -16,7 +16,7 @@ function experiment(model, preset) {
 // Every width and optimizer preset keeps its own experiment.
 const experiments = new Map([['dense-rotary/fast', experiment('dense-rotary', 'fast')]]);
 let state = experiments.get('dense-rotary/fast'), preferredPreset = 'fast';
-let W = 128;
+let W = 128, activation = 0;
 const renderInputs = new Map();
 let pendingFrame = null, metricsTimer = null, lastMetricsPaint = 0;
 const topology = new WeightTopology($('mesh-edges'), () => { renderInputs.delete('mesh'); invalidate(); });
@@ -272,12 +272,13 @@ function denseTopology(result, scales) {
     const label = (value, x, y) => {
         value = runtimeText(value);
         const n = transform({ x, y });
-        ctx.font = '9px "DM Mono", monospace';
+        ctx.font = '10px "DM Mono", monospace';
         ctx.textAlign = 'center';
         const length = ctx.measureText(value).width;
         ctx.fillStyle = '#fffefae8';
-        ctx.fillRect(n.x - length / 2 - 3, n.y - 9, length + 6, 12);
-        text(ctx, value, n.x, n.y, 'center', ink);
+        ctx.fillRect(n.x - length / 2 - 3, n.y - 10, length + 6, 14);
+        ctx.fillStyle = ink;
+        ctx.fillText(value, n.x, n.y);
     };
     label('E · a', layout.residue(48, 0), rows[0] - 10);
     label('J(E) · b', layout.residue(48, 1), rows[0] - 10);
@@ -570,19 +571,44 @@ function refresh() {
     status(state.label);
     invalidate();
 }
+function releaseWorker(target) {
+    target.worker?.terminate();
+    target.worker = null;
+    const finish = target.finishSuspension;
+    target.suspension = undefined;
+    target.finishSuspension = undefined;
+    finish?.();
+}
+function suspendExperiment(target) {
+    if (target.suspension)
+        return target.suspension;
+    if (!target.worker)
+        return Promise.resolve();
+    target.ready = false;
+    target.suspension = new Promise(resolve => { target.finishSuspension = resolve; });
+    send(target.worker, { type: 'suspend' });
+    return target.suspension;
+}
 function initialize() {
     if (!$('seed').reportValidity() || !$('limit').reportValidity())
         return;
+    activation++;
+    releaseWorker(state);
+    state.checkpoint = undefined;
+    startEngine();
+}
+function startEngine(checkpoint) {
     const target = state;
-    target.worker?.terminate();
     target.options = { ...target.options, model: target.model, preset: target.preset, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value) };
-    target.seed = target.options.seed;
-    target.initial = initialModelWeights(target.seed, target.model);
-    target.weights = target.initial.slice();
-    target.step = 0;
-    target.activeMs = 0;
-    target.history = [];
-    target.criterion = null;
+    if (!checkpoint) {
+        target.seed = target.options.seed;
+        target.initial = initialModelWeights(target.seed, target.model);
+        target.weights = target.initial.slice();
+        target.step = 0;
+        target.activeMs = 0;
+        target.history = [];
+        target.criterion = null;
+    }
     target.ready = false;
     target.running = false;
     target.error = null;
@@ -594,6 +620,13 @@ function initialize() {
     worker.onmessage = ({ data }) => {
         if (target.worker !== worker)
             return;
+        if (data.type === 'suspended') {
+            target.checkpoint = data.checkpoint;
+            target.ready = false;
+            target.running = false;
+            releaseWorker(target);
+            return;
+        }
         if (data.type === 'ready') {
             target.ready = true;
             target.info = data.info;
@@ -621,9 +654,11 @@ function initialize() {
             invalidate(target, data.type !== 'metrics');
     };
     worker.onerror = event => { if (target.worker !== worker)
-        return; status('Error', target); target.ready = false; target.error = event.message; if (state === target)
+        return; status('Error', target); target.ready = false; target.error = event.message; releaseWorker(target); if (state === target)
         refresh(); };
-    send(worker, { type: 'initialize', options: target.options });
+    const transfer = checkpoint ? [checkpoint.engine.weights.buffer, checkpoint.engine.moment1.buffer, checkpoint.engine.moment2.buffer, checkpoint.sampler.order.buffer] : [];
+    worker.postMessage({ type: 'initialize', options: target.options, checkpoint }, transfer);
+    target.checkpoint = undefined;
 }
 function select(model, chosen) {
     if (!state.options.optimizer && model === state.model && chosen === state.preset)
@@ -631,23 +666,23 @@ function select(model, chosen) {
     const key = `${model}/${chosen}`;
     if (!experiments.has(key))
         experiments.set(key, experiment(model, chosen));
-    activate(experiments.get(key));
+    void activate(experiments.get(key));
 }
-function activate(target) {
+async function activate(target) {
     if (target === state)
         return;
-    if (state.running) {
-        send(state.worker, { type: 'pause' });
-        status('Pausing');
-    }
-    const previous = state.options;
+    const request = ++activation, previous = state.options;
+    void suspendExperiment(state);
     state = target;
+    if (!target.worker && !target.checkpoint && !target.history.length)
+        target.options.backend = previous.backend;
     refresh();
-    if (!state.worker) {
-        state.options.backend = previous.backend;
-        $('backend').value = previous.backend;
-        initialize();
-    }
+    // Finish the previous worker before allocating another engine or thread pool.
+    await Promise.all([...experiments.values()].filter(experiment => experiment !== target || experiment.suspension).map(suspendExperiment));
+    if (request !== activation || state !== target)
+        return;
+    if (!target.worker)
+        startEngine(target.checkpoint);
 }
 // Widths without the preferred preset open their fast preset.
 for (const button of document.querySelectorAll('[data-model-tab]'))
@@ -661,7 +696,7 @@ for (const button of document.querySelectorAll('[data-preset-tab]'))
         select(state.model, preferredPreset);
     };
 $('custom-tab').onclick = () => { const custom = experiments.get('custom'); if (custom)
-    activate(custom); };
+    void activate(custom); };
 let settingsDraft = false;
 function summarizeSettings() {
     if (!$('custom-width').checkValidity()) {
@@ -687,11 +722,12 @@ $('settings-form').onsubmit = event => {
         const custom = experiment(model, 'fast');
         custom.options = { ...state.options, model, preset: 'fast', optimizer };
         const previous = experiments.get('custom');
-        previous?.worker?.terminate();
-        if (previous)
+        if (previous) {
+            releaseWorker(previous);
             previous.running = false;
+        }
         experiments.set('custom', custom);
-        activate(custom);
+        void activate(custom);
         $('custom-error').hidden = true;
         selectView('training');
     }

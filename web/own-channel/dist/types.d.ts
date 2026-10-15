@@ -42,7 +42,31 @@ export interface TrainingEngine {
     evaluate(): Promise<Metrics>;
     readWeights(): Promise<Weights>;
     info(): EngineInfo;
+    checkpoint(): EngineCheckpoint;
+    restore(checkpoint: EngineCheckpoint): void;
     destroy(): void;
+}
+export interface EngineCheckpoint {
+    model: ModelId;
+    step: number;
+    b1: number;
+    b2: number;
+    weights: Weights;
+    moment1: Weights;
+    moment2: Weights;
+}
+export interface TrainingCheckpoint {
+    engine: EngineCheckpoint;
+    sampler: {
+        order: Uint32Array<ArrayBuffer>;
+        position: number;
+        low: number;
+        high: number;
+    };
+    criterion: Omit<import('./model.ts').ShortGrokking, 'observe'>;
+    targetReached: boolean;
+    activeMs: number;
+    status: string;
 }
 export interface TrainingOptions {
     model: ModelId;
@@ -77,8 +101,9 @@ export interface Criterion {
 export type WorkerRequest = {
     type: 'initialize';
     options: TrainingOptions;
+    checkpoint?: TrainingCheckpoint;
 } | {
-    type: 'train' | 'step' | 'pause';
+    type: 'train' | 'step' | 'pause' | 'suspend';
 } | {
     type: 'configure';
     maxEpochs: number;
@@ -101,6 +126,9 @@ export type WorkerResponse = {
     type: 'metrics';
     row: Metrics;
     criterion: Criterion;
+} | {
+    type: 'suspended';
+    checkpoint?: TrainingCheckpoint;
 } | {
     type: 'error';
     message: string;

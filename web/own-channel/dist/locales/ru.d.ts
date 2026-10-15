@@ -1,4 +1,19 @@
 declare const _default: {
+    "Explain Probe contributions": string;
+    "Reading Probe contributions": string;
+    "One input pair": string;
+    "The bars describe the current a and b in Probe the model. Changing either input or training the model changes the scores. They are specific to this example.": string;
+    "Each channel contributes a vector of 97 logits, one per answer. The score measures the length of that vector after removing its common offset.": string;
+    "How the score is computed": string;
+    "h[c] is the channel activation after the final RMSNorm. The centered readout norm measures how strongly its weights distinguish the 97 answers. Their product is the displayed score.": string;
+    "The score always uses centered readout weights, regardless of the Center R display setting.": string;
+    "Bars and Top 16": string;
+    "Channels run from left to right in index order. Taller bars mean larger scores; the tallest currently fills the graph. The vertical scale adjusts, so compare proportions rather than pixel heights across training steps.": string;
+    "Top 16 is the sum of the 16 largest channel scores divided by the sum of all channel scores. For example, 80% means those channels carry 80% of this score, not 80% prediction confidence.": string;
+    "The score measures magnitude. It does not show which answer a channel favors, whether it helps the correct answer, or the effect of removing it.": string;
+    "Explore a channel": string;
+    "Tap or click a bar to select its channel. The selected bar is dark; the channel selection is shared with the network and weight maps.": string;
+    "On a narrow screen, several channels may share a bar. It shows the largest score in that group and selects that channel. Use the Channel field to select any exact index.": string;
     "Introduction text": string;
     "Reading the weight maps": string;
     "The three matrices": string;

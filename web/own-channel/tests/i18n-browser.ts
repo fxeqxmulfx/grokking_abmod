@@ -58,13 +58,13 @@ try {
       for (const page of ['intro','task','solution','examples','model']) {
         await evaluate(`document.querySelector('[data-task-tab="${page}"]').click()`);
         await assertFits(`${language} ${width}×${height} intro ${page}`,true);
-        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','weights','grokking','findings']) {
+        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','weights','probe','grokking','findings']) {
           await evaluate(`document.querySelector('[data-intro-tab="${detail}"]').click()`);
           await assertFits(`${language} ${width}×${height} introduction ${detail}`,true);
-          if(detail==='weights') {
+          if(detail==='weights'||detail==='probe') {
             await evaluate(`document.querySelector('.intro-panels').scrollTop=document.querySelector('.intro-panels').scrollHeight`);
-            await assertFits(`${language} ${width}×${height} weights guide end`,true);
-            if(!await evaluate(`(() => {const frame=document.querySelector('.intro-panels');return [...document.querySelectorAll('#intro-page-weights p')].every(paragraph=>{paragraph.scrollIntoView({block:'nearest'});const viewport=frame.getBoundingClientRect(),rect=paragraph.getBoundingClientRect();return rect.top>=viewport.top-1&&rect.bottom<=viewport.bottom+1})})()`))throw new Error(`${language} ${width}×${height}: the complete weights explanation is not reachable.`);
+            await assertFits(`${language} ${width}×${height} ${detail} guide end`,true);
+            if(!await evaluate(`(() => {const frame=document.querySelector('.intro-panels');return [...document.querySelectorAll('#intro-page-${detail} p')].every(paragraph=>{paragraph.scrollIntoView({block:'nearest'});const viewport=frame.getBoundingClientRect(),rect=paragraph.getBoundingClientRect();return rect.top>=viewport.top-1&&rect.bottom<=viewport.bottom+1})})()`))throw new Error(`${language} ${width}×${height}: the complete ${detail} explanation is not reachable.`);
           }
         }
         if (page === 'model') {
@@ -113,6 +113,8 @@ try {
   if(!await evaluate(`document.getElementById('task-dialog').open&&document.querySelectorAll('[data-task-tab]').length===5&&!document.getElementById('task-dialog').textContent.includes('EOS')`))throw new Error('Reopening the dialog or reference-free content failed.');
   await evaluate(`document.getElementById('task-open').click();document.getElementById('chart-help').click()`);
   if(!await evaluate(`document.getElementById('task-dialog').open&&!document.getElementById('task-page-intro').hidden&&!document.getElementById('intro-page-chart').hidden&&document.getElementById('intro-tab-chart').getAttribute('aria-selected')==='true'`))throw new Error('Chart guide did not open the shading explanation.');
+  await evaluate(`document.getElementById('task-open').click();document.getElementById('scales-help').click()`);
+  if(!await evaluate(`document.getElementById('task-dialog').open&&!document.getElementById('task-page-intro').hidden&&!document.getElementById('intro-page-probe').hidden&&document.getElementById('intro-tab-probe').getAttribute('aria-selected')==='true'`))throw new Error('Probe contributions guide did not open.');
   if(errors.length)throw new Error(JSON.stringify(errors));
   await writeFile('/tmp/grokking-i18n-verification.json',JSON.stringify({languages,layouts,automaticRegionalSelection:true,persistedManualChoice:true,browserLanguageChange:true,languageSwitchPreservesTraining:true,startupAndReopen:true,localRenderedSVG:true,errors},null,2)+'\n');
   console.log(`PASS: ${languages.length} languages, ${layouts} layout checks, automatic selection, persisted manual choice, live translations preserve training, real local SVGs, startup and reopen, no reference section.`);

@@ -78,7 +78,9 @@ export class WeightTopology {
         }
     }
     draw(_overlay, layout, weights, selected, view, focus = -1, options = {}) {
-        const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = Math.min(devicePixelRatio || 1, 2);
+        // Dense connections need less resolution than the separate text overlay.
+        // Bound the f32 accumulation buffer when a tab expands to the full screen.
+        const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = Math.min(devicePixelRatio || 1, 2, Math.sqrt(524288 / (layout.width * layout.height)));
         const dataset = this.element.dataset, ranges = initialWeightRanges(initial, layout.channels).map(value => value * (mode === 'delta' ? .25 : 1));
         dataset.connections = String(3 * 97 * layout.channels + layout.channels * layout.channels);
         dataset.parameters = String(weights.length);

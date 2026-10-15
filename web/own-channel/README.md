@@ -86,11 +86,18 @@ The source and packaged site include the [MIT license](../../LICENSE).
 
 Training is the default workspace. Weights and Network provide the other two
 views. Every width and optimizer preset preserves its independent weights,
-AdamW state, sampler and curves. Switching tabs or presets pauses training;
+AdamW state, sampler and curves. Switching experiments or presets pauses training;
 changing seed or backend resets that experiment. Retired browser architectures
 and the Dynamics view are removed from active code and build inputs. Native
 experiment archives remain available in
 [the historical studies](../../docs/grokking-browser-models.md).
+
+Only the active experiment retains a training worker and its CPU thread pool.
+Inactive experiments keep compact checkpoints containing weights, both AdamW
+moments, bias corrections, shuffled sampler state and the grokking criterion.
+Returning restores those states without adding a duplicate observation. The
+network raster is capped at 524,288 pixels; its text overlay keeps its separate
+display resolution.
 
 ## Architecture and initialization
 
@@ -294,7 +301,9 @@ for the other four widths and emits SIMD/scalar binaries with private or shared 
 
 The engine selector exposes 1, 2 or 4 CPU threads for both WASM variants.
 Automatic selection uses four threads with at least six logical CPUs, two
-with four or five, and one on smaller devices.
+with four or five, and one on smaller devices. Android and iOS automatically
+use at most two training threads to leave capacity for the interface; explicit
+thread selections remain available.
 Parallel training partitions each batch, sums private gradients in fixed slot
 order and performs one AdamW update on shared weights. Evaluation partitions
 the complete split and combines f64 loss sums and integer correct counts.
@@ -398,13 +407,19 @@ for both previously displayed widths and CPU variants.
 The real UI trains W128 and W256 with GPU APIs forbidden,
 pauses/resets, restores independent states, switches the W128 Fast, Plateau
 and Slow presets, updates weights, and fits all three views. Localization
-checks pass 480 desktop/mobile dialog and workspace layouts, including Settings
-and the complete scrollable weights explanation.
+checks cover desktop/mobile dialog and workspace layouts, including Settings
+and the complete scrollable weights and Probe contributions explanations.
 Custom-setting checks validate the five supported widths, custom AdamW updates,
 and four shared workers. The settings browser check follows
 every introduction page forward and backward, trains W32 SIMD and W64 scalar,
 checks reset, preset restoration and PyTorch defaults, and fits 30 localized
 settings layouts with the Custom tab visible.
+The mobile browser check uses Android Chrome emulation, DPR 3 and a sixfold CPU
+slowdown. It switches every width and preset, rapidly changes models during
+startup, repeatedly switches views at four screen sizes, checks bounded worker
+counts, suspends running training and verifies bit-for-bit continuation. It also
+checks that all six translated Dense/ReLU/skip/RMSNorm captions fit their
+backgrounds.
 The Pages check loads all 20 packaged training modules, verifies the isolation
 bootstrap without server headers, and trains every width with custom AdamW
 parameters on four CPU threads under the `/grokking_abmod/` prefix.
@@ -467,6 +482,7 @@ selected CDP port. Hardware acceleration is not required:
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
 GROKKING_CDP_PORT=9224 npm run test:settings-browser
+GROKKING_CDP_PORT=9224 npm run test:mobile-browser
 GROKKING_CDP_PORT=9224 GROKKING_PREVIEW_ORIGIN=http://127.0.0.1:8081/grokking_abmod npm run test:pages-browser
 GROKKING_CDP_PORT=9224 npm run test:export-browser
 GROKKING_CDP_PORT=9224 node build/tests/optimizer-browser.js

@@ -29,7 +29,7 @@ export function denseWat(width: number): string {
   validateWidth(width);
   const parameters = 97 * width + width * width, bytes = width * 4;
   const {addresses, cursor} = denseLayout(width);
-  const exported = new Set(['weights', 'gradient', 'data', 'samples', 'logits', 'metrics', 'statistics']);
+  const exported = new Set(['weights', 'gradient', 'moment1', 'moment2', 'data', 'samples', 'logits', 'metrics', 'statistics']);
   const globals = Object.entries(addresses).map(([name, address]) => `  (global $${name}${exported.has(name) ? ` (export "${name}")` : ''} i32 (i32.const ${address}))`);
   globals.push(`  (global $input i32 (i32.const ${addresses.states}))`, `  (global $hidden i32 (i32.const ${addresses.states + bytes}))`,
     '  (global $winner (mut i32) (i32.const 0))');
@@ -63,8 +63,8 @@ ${privateGlobals}
   (export "memory" (memory 0))
 ${[...exported].map(name => `  (export "${name}" (global $${name}))`).join('\n')}
   (global $weights (export "weights") i32 (i32.const 0))
-  (global $moment1 i32 (i32.const ${bytes}))
-  (global $moment2 i32 (i32.const ${2 * bytes}))
+  (global $moment1 (export "moment1") i32 (i32.const ${bytes}))
+  (global $moment2 (export "moment2") i32 (i32.const ${2 * bytes}))
   (global $data (export "data") i32 (i32.const ${3 * bytes}))
   (global $winner (mut i32) (i32.const 0))
 ${source.slice(source.indexOf('  (func $exp'))}`;

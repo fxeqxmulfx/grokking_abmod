@@ -158,6 +158,10 @@ export class ParallelWASMTrainer {
     readGradients() { return this.engine.readGradients(); }
     readLogits(ids) { return this.engine.readLogits(ids); }
     info() { return { ...this.engine.info(), description: `${this.engine.info().description} · ${this.count} threads`, threads: this.count }; }
+    checkpoint() { if (this.busy)
+        throw new Error('CPU trainer already has a job.'); return this.engine.checkpoint(); }
+    restore(checkpoint) { if (this.busy)
+        throw new Error('CPU trainer already has a job.'); this.engine.restore(checkpoint); }
     destroy() { this.fail(new Error('CPU trainer stopped.')); for (const thread of this.threads)
         thread.port.terminate(); this.threads = []; this.engine.destroy(); }
 }

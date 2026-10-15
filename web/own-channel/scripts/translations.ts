@@ -1,6 +1,84 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  ["Explain Probe contributions", "Explicar las contribuciones al ejemplo", "Beiträge zum Testbeispiel erklären", "テスト式への寄与を説明", "Expliquer les contributions à l’exemple", "Объяснить вклады в ответ"],
+  ["Reading Probe contributions", "Cómo leer las contribuciones al ejemplo", "Beiträge zum Testbeispiel lesen", "テスト式への寄与の読み方", "Lire les contributions à l’exemple", "Как читать Probe contributions — вклады в ответ"],
+  ["One input pair", "Un par de entrada", "Ein Eingabepaar", "1組の入力", "Une paire d’entrée", "Одна пара входов"],
+  [
+    "The bars describe the current a and b in Probe the model. Changing either input or training the model changes the scores. They are specific to this example.",
+    "Las barras describen los valores actuales de a y b en Probar el modelo. Cambiar una entrada o entrenar el modelo cambia los valores. Son específicos de este ejemplo.",
+    "Die Balken beziehen sich auf das aktuelle a und b in Modell prüfen. Andere Eingaben oder weiteres Training ändern die Werte. Sie gelten für dieses Beispiel.",
+    "棒は「モデルを試す」の現在のaとbに対する値です。入力の変更や学習によって変わり、この例に固有の値です。",
+    "Les barres décrivent les valeurs actuelles de a et b dans Tester le modèle. Modifier une entrée ou entraîner le modèle change les scores. Ils sont propres à cet exemple.",
+    "Столбцы относятся к текущим a и b в панели «Проверить модель». При смене входов или обучении оценки меняются. Они рассчитаны для этого конкретного примера."
+  ],
+  [
+    "Each channel contributes a vector of 97 logits, one per answer. The score measures the length of that vector after removing its common offset.",
+    "Cada canal aporta un vector de 97 logits, uno por respuesta. La puntuación mide la longitud de ese vector tras eliminar su desplazamiento común.",
+    "Jeder Kanal trägt einen Vektor mit 97 Logits bei, einen je Antwort. Der Wert misst dessen Länge nach Abzug des gemeinsamen Versatzes.",
+    "各チャネルは、97個の答えそれぞれに対応するロジットのベクトルを加えます。スコアは共通のオフセットを除いたベクトルの長さです。",
+    "Chaque canal apporte un vecteur de 97 logits, un par réponse. Le score mesure sa longueur après retrait de son décalage commun.",
+    "Каждый канал добавляет вектор из 97 логитов — по одному на ответ. Оценка измеряет длину этого вектора после удаления общего смещения."
+  ],
+  ["How the score is computed", "Cómo se calcula la puntuación", "Berechnung des Werts", "スコアの計算方法", "Calcul du score", "Как вычисляется оценка"],
+  [
+    "h[c] is the channel activation after the final RMSNorm. The centered readout norm measures how strongly its weights distinguish the 97 answers. Their product is the displayed score.",
+    "h[c] es la activación del canal tras la RMSNorm final. La norma de los pesos de salida centrados mide cuánto distinguen las 97 respuestas. Su producto es la puntuación mostrada.",
+    "h[c] ist die Kanalaktivierung nach der letzten RMSNorm. Die Norm des zentrierten Readouts misst, wie stark seine Gewichte die 97 Antworten unterscheiden. Ihr Produkt ist der angezeigte Wert.",
+    "h[c]は最後のRMSNorm後のチャネルの活性値です。中心化した読み出しのノルムは、重みが97個の答えをどの程度区別するかを表します。その積が表示スコアです。",
+    "h[c] est l’activation du canal après la RMSNorm finale. La norme de la sortie centrée mesure à quel point ses poids distinguent les 97 réponses. Leur produit est le score affiché.",
+    "h[c] — активация канала после последней RMSNorm. Норма центрированных выходных весов показывает, насколько сильно они различают 97 ответов. Их произведение и есть оценка на графике."
+  ],
+  [
+    "The score always uses centered readout weights, regardless of the Center R display setting.",
+    "La puntuación siempre usa pesos de salida centrados, independientemente de la opción visual Centrar R.",
+    "Der Wert verwendet immer zentrierte Ausgabegewichte, unabhängig von der Anzeigeoption R zentrieren.",
+    "表示設定「Rを中心化」に関係なく、スコアには常に中心化した読み出し重みを使います。",
+    "Le score utilise toujours les poids de sortie centrés, quel que soit le réglage d’affichage Centrer R.",
+    "Оценка всегда использует центрированные выходные веса, независимо от переключателя отображения Center R."
+  ],
+  ["Bars and Top 16", "Barras y 16 mayores", "Balken und Top 16", "棒と上位16", "Barres et 16 premiers", "Столбцы и Топ-16"],
+  [
+    "Channels run from left to right in index order. Taller bars mean larger scores; the tallest currently fills the graph. The vertical scale adjusts, so compare proportions rather than pixel heights across training steps.",
+    "Los canales van de izquierda a derecha por índice. Las barras más altas tienen mayor puntuación; la mayor ocupa la altura del gráfico. La escala vertical se ajusta: compara proporciones entre pasos de entrenamiento.",
+    "Die Kanäle stehen von links nach rechts in Indexreihenfolge. Höhere Balken bedeuten größere Werte; der höchste füllt das Diagramm. Die vertikale Skala passt sich an: Zwischen Trainingsschritten sind die Anteile vergleichbar.",
+    "チャネルは左からインデックス順です。棒が高いほどスコアが大きく、最大の棒がグラフの高さを使います。縦軸は自動調整されるため、学習ステップ間では高さのピクセル数より比率を比較します。",
+    "Les canaux suivent l’ordre des indices de gauche à droite. Une barre plus haute signifie un score plus élevé ; la plus haute remplit le graphe. L’échelle verticale s’ajuste : comparez les proportions entre étapes.",
+    "Каналы идут слева направо по индексу. Чем выше столбец, тем больше оценка; самый высокий занимает всю высоту графика. Масштаб подстраивается, поэтому между шагами обучения сравнивайте пропорции, а не высоту в пикселях."
+  ],
+  [
+    "Top 16 is the sum of the 16 largest channel scores divided by the sum of all channel scores. For example, 80% means those channels carry 80% of this score, not 80% prediction confidence.",
+    "16 mayores es la suma de las 16 puntuaciones más altas dividida por la suma de todas. Por ejemplo, 80% significa que esos canales reúnen el 80% de la puntuación, no una confianza del 80% en la predicción.",
+    "Top 16 ist die Summe der 16 größten Kanalwerte geteilt durch die Summe aller Kanalwerte. 80% bedeutet etwa, dass diese Kanäle 80% des Gesamtwerts tragen, keine Vorhersagesicherheit von 80%.",
+    "上位16は、スコアが最大の16チャネルの合計を全チャネルの合計で割った割合です。80%なら、その16チャネルが合計スコアの80%を占めます。予測の確信度80%という意味ではありません。",
+    "16 premiers est la somme des 16 plus grands scores divisée par la somme de tous les scores. Ainsi, 80% signifie qu’ils portent 80% du score total, pas une confiance de prédiction de 80%.",
+    "Топ-16 — сумма 16 наибольших оценок, делённая на сумму оценок всех каналов. Например, 80% означает, что эти каналы дают 80% суммарной оценки, а не уверенность модели 80%."
+  ],
+  [
+    "The score measures magnitude. It does not show which answer a channel favors, whether it helps the correct answer, or the effect of removing it.",
+    "La puntuación mide magnitud. No indica qué respuesta favorece un canal, si ayuda a la respuesta correcta ni qué pasaría al eliminarlo.",
+    "Der Wert misst den Betrag. Er zeigt weder die vom Kanal bevorzugte Antwort noch, ob er der richtigen Antwort hilft oder was sein Entfernen bewirken würde.",
+    "スコアは大きさの指標です。チャネルがどの答えを支持するか、正解に役立つか、取り除くとどうなるかは示しません。",
+    "Le score mesure une amplitude. Il n’indique ni la réponse favorisée par un canal, ni s’il aide la bonne réponse, ni l’effet de sa suppression.",
+    "Оценка отражает величину вклада. Она не показывает, какой ответ поддерживает канал, помогает ли он правильному ответу и что произойдёт при его удалении."
+  ],
+  ["Explore a channel", "Explorar un canal", "Einen Kanal untersuchen", "チャネルを調べる", "Explorer un canal", "Исследовать канал"],
+  [
+    "Tap or click a bar to select its channel. The selected bar is dark; the channel selection is shared with the network and weight maps.",
+    "Toca o haz clic en una barra para seleccionar su canal. La barra elegida es oscura; la selección se comparte con la red y los mapas de pesos.",
+    "Tippe oder klicke auf einen Balken, um seinen Kanal zu wählen. Der gewählte Balken ist dunkel; die Auswahl gilt auch für Netzwerk und Gewichtskarten.",
+    "棒をタップまたはクリックすると、そのチャネルを選択します。選択した棒は暗い色になり、ネットワークや重みマップの選択とも連動します。",
+    "Touchez ou cliquez sur une barre pour choisir son canal. La barre sélectionnée est sombre ; le choix est partagé avec le réseau et les cartes de poids.",
+    "Нажмите на столбец, чтобы выбрать канал. Выбранный столбец выделяется тёмным цветом; тот же канал выбирается на схеме сети и картах весов."
+  ],
+  [
+    "On a narrow screen, several channels may share a bar. It shows the largest score in that group and selects that channel. Use the Channel field to select any exact index.",
+    "En una pantalla estrecha, varios canales pueden compartir una barra. Muestra la mayor puntuación del grupo y selecciona ese canal. Usa el campo Canal para elegir un índice exacto.",
+    "Auf schmalen Bildschirmen können sich mehrere Kanäle einen Balken teilen. Er zeigt den größten Wert der Gruppe und wählt diesen Kanal. Im Feld Kanal lässt sich jeder Index genau wählen.",
+    "狭い画面では複数のチャネルが1本の棒にまとまることがあります。グループ内の最大スコアを表示し、そのチャネルを選択します。正確なインデックスはチャネル欄で指定できます。",
+    "Sur un écran étroit, plusieurs canaux peuvent partager une barre. Elle affiche le plus grand score du groupe et choisit ce canal. Le champ Canal permet de choisir un indice exact.",
+    "На узком экране один столбец может объединять несколько каналов. Он показывает наибольшую оценку в группе и выбирает соответствующий канал. Поле «Канал» позволяет указать любой индекс точно."
+  ],
   ["Introduction text", "Texto de introducción", "Einführungstext", "導入の本文", "Texte d’introduction", "Текст вступления"],
   ["Reading the weight maps", "Cómo leer los mapas de pesos", "Gewichtskarten lesen", "重みマップの読み方", "Lire les cartes de poids", "Как читать карты весов"],
   ["The three matrices", "Las tres matrices", "Die drei Matrizen", "3つの行列", "Les trois matrices", "Три матрицы"],

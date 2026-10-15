@@ -58,6 +58,7 @@ declare const tags: {
     readonly readout: "canvas";
     readonly "range-r": "span";
     readonly "scales-title": "h3";
+    readonly "scales-help": "button";
     readonly concentration: "span";
     readonly scales: "canvas";
     readonly "probe-a": "input";

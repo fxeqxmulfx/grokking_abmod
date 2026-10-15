@@ -1,6 +1,6 @@
 import { cpuMemoryLayout } from './cpu-memory.ts';
 import type { CPUThread } from './cpu-protocol.ts';
-import type { TrainerOptions, Sample, Metrics, EngineInfo } from './types.ts';
+import type { TrainerOptions, Sample, Metrics, EngineInfo, EngineCheckpoint } from './types.ts';
 import { WASMTrainer } from './wasm.ts';
 export interface ParallelOptions extends TrainerOptions {
     threads: number;
@@ -32,5 +32,7 @@ export declare class ParallelWASMTrainer {
     readGradients(): Promise<Float32Array<ArrayBuffer>>;
     readLogits(ids?: number[]): Promise<Float32Array<ArrayBuffer>[]>;
     info(): EngineInfo;
+    checkpoint(): EngineCheckpoint;
+    restore(checkpoint: EngineCheckpoint): void;
     destroy(): void;
 }

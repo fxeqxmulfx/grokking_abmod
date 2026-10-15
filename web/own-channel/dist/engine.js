@@ -11,7 +11,8 @@ export async function createEngine(seed, backend = 'auto', model = 'dense-rotary
     const cores = typeof navigator === 'object' ? navigator.hardwareConcurrency || 1 : 1;
     // Four training threads win on the measured six-core CPU. Reserve capacity
     // for the UI/render worker; smaller devices use two or one training thread.
-    const requested = backend === 'auto' ? (cores >= 6 ? 4 : cores >= 4 ? 2 : 1) : Number(backend.split('-')[1] ?? 1);
+    const mobile = typeof navigator === 'object' && /Android|iPhone|iPad/.test(navigator.userAgent);
+    const requested = backend === 'auto' ? (cores >= 6 && !mobile ? 4 : cores >= 4 ? 2 : 1) : Number(backend.split('-')[1] ?? 1);
     let note;
     if (requested > 1 && available) {
         try {
