@@ -1,4 +1,4 @@
-import { modelInfo, optimizerProfile } from './models.js';
+import { modelInfo, trainingOptimizer } from './models.js';
 import { PYTORCH_TEMPLATE } from './pytorch-template.js';
 // Export source with the selected experiment defaults. Trained weights and
 // optimizer state are never part of this download.
@@ -7,7 +7,7 @@ export function pytorchSource(options) {
         throw new Error('Invalid export seed.');
     if (!Number.isInteger(options.maxEpochs) || options.maxEpochs < 1 || options.maxEpochs > 10000)
         throw new Error('Invalid export epoch limit.');
-    const profile = optimizerProfile(options.model, options.preset);
+    const profile = trainingOptimizer(options.model, options.preset, options.optimizer);
     return PYTORCH_TEMPLATE
         .replace(/^DEFAULT_WIDTH = \d+$/m, `DEFAULT_WIDTH = ${modelInfo(options.model).width}`)
         .replace(/^DEFAULT_LEARNING_RATE = [\d.]+$/m, `DEFAULT_LEARNING_RATE = ${profile.learningRate}`)

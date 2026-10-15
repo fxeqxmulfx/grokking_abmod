@@ -1,2 +1,2 @@
-import type { Backend, ModelId, Preset, TrainingEngine } from './types.ts';
-export declare function createEngine(seed: number, backend?: Backend, model?: ModelId, preset?: Preset): Promise<TrainingEngine>;
+import type { Backend, ModelId, OptimizerSettings, Preset, TrainingEngine } from './types.ts';
+export declare function createEngine(seed: number, backend?: Backend, model?: ModelId, preset?: Preset, custom?: OptimizerSettings): Promise<TrainingEngine>;

@@ -1,4 +1,16 @@
 declare const _default: {
+    Settings: string;
+    Custom: string;
+    "Custom experiment": string;
+    "Learning rate (lr)": string;
+    "Weight decay (wd)": string;
+    "Apply and open training": string;
+    "Choose the model width and AdamW parameters. Applying starts a fresh custom experiment; presets keep their weights and curves.": string;
+    "Even widths from 2 to 2048. Rotate90 works on pairs of channels.": string;
+    "Width must be an even integer between 2 and 2048.": string;
+    "Learning rate must be a positive finite number.": string;
+    "Weight decay must be a nonnegative finite number.": string;
+    "This width uses scalar WASM; SIMD requires a multiple of four channels.": string;
     "Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.": string;
     Start: string;
     Idea: string;

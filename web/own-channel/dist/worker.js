@@ -78,7 +78,7 @@ onmessage = async ({ data: message }) => {
                 throw new Error('Epoch limit must be between 1 and 10000.');
             if (![1, 5, 10].includes(options.captureHz))
                 throw new Error('Snapshot rate must be 1, 5 or 10 Hz.');
-            engine = await createEngine(options.seed, options.backend, options.model, options.preset);
+            engine = await createEngine(options.seed, options.backend, options.model, options.preset, options.optimizer);
             sampler = new Sampler(options.seed);
             criterion = new ShortGrokking();
             await report();

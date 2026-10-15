@@ -1,10 +1,11 @@
 # Rotate90 Dense Grokking Lab
 
-Five local tabs train one Dense + ReLU architecture at widths 16, 32, 64, 128
+Five preset tabs train one Dense + ReLU architecture at widths 16, 32, 64, 128
 and 256. Every width has a fast and a slow optimizer preset; W128 and W256 add a
 plateau preset.
 Training runs entirely in the browser on handwritten WASM SIMD128 or scalar
-WASM. Training and weight rendering use CPU workers. Node serves static files.
+WASM. Training and weight rendering use CPU workers. Node serves files and
+compiles WASM assets for additional widths when requested.
 
 | Tab | Channels | Unique parameters | Drawn learned connections |
 | --- | ---: | ---: | ---: |
@@ -45,6 +46,20 @@ npm test
 `npm test` builds first and tests the emitted JavaScript and assembled binaries.
 Rebuild after editing sources; `npm run typecheck` checks an existing build
 without emitting code. The fixed dependency versions are in `package-lock.json`.
+
+The **Settings** workspace adds a custom experiment with any even width from
+2 to 2048, a positive learning rate and nonnegative weight decay. Rotate90 needs
+channel pairs. **Apply and open training** creates a fresh experiment using the
+current seed, engine, epoch limit and snapshot cadence. Its **Custom** model tab
+preserves weights, optimizer and curves when switching to presets and back.
+Applying again replaces only the custom experiment. Reset and PyTorch exports
+retain its width, lr and wd.
+
+Additional widths use the same handwritten WASM template, compiled on demand
+by the local Node server and cached in memory. Multiples of four support SIMD;
+other even widths use scalar WASM, including shared CPU workers. Training stays
+in the browser. The server requires the source checkout and its installed Node
+dependencies to compile these assets.
 
 Training is the default workspace. Weights and Network provide the other two
 views. Every width and optimizer preset preserves its independent weights,
@@ -239,6 +254,8 @@ native model SVGs, tensor types and quantified equations. The ∑ button reopens
 it. English, Spanish, German, Japanese, French and Russian are available.
 Automatic selection follows browser preference order and regional tags;
 manual choice persists locally. Language changes preserve training.
+Next and Back traverse all six introduction pages, the task, solution and
+examples, then the model diagram, types and equations in sequence.
 
 Translation sources are `scripts/translations.ts`. Model SVGs are generated
 by `scripts/build-model-diagrams.ts`. Mermaid sources and hashes are in
@@ -340,7 +357,7 @@ W128 and the retired W1024 engine, whose four-thread SIMD variant took
 
 ## Validation and observed convergence
 
-The TypeScript build and 84 Node tests pass: deterministic data and sampling,
+The TypeScript build and 101 Node tests pass: deterministic data and sampling,
 strict grokking classification, native checkpoint hashes, scalar/SIMD logits,
 all parameter gradients, shared E accumulation, finite differences and AdamW.
 Two- and four-thread variants also pass gradient, AdamW and complete-split
@@ -353,7 +370,13 @@ for both previously displayed widths and CPU variants.
 The real UI trains W128 and W256 with GPU APIs forbidden,
 pauses/resets, restores independent states, switches the W128 Fast, Plateau
 and Slow presets, updates weights, and fits all three views. Localization
-checks pass 378 desktop/mobile dialog and workspace layouts.
+checks pass 432 desktop/mobile dialog and workspace layouts, including Settings.
+Custom-width checks compare W2, W4, W6, W12, W18, W48, W132 and W258 logits and
+all gradients with independent f64 backpropagation. They cover grouped-row tails,
+four shared workers and custom AdamW updates. The settings browser check follows
+every introduction page forward and backward, trains W48 SIMD and W18 scalar,
+checks reset, preset restoration and PyTorch defaults, and fits 30 localized
+settings layouts with the Custom tab visible.
 
 The export integration check trains every width and preset and downloads their
 actual `.py` files before and after learning. Sources remain unchanged by training.
@@ -412,6 +435,7 @@ selected CDP port. Hardware acceleration is not required:
 
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
+GROKKING_CDP_PORT=9224 npm run test:settings-browser
 GROKKING_CDP_PORT=9224 npm run test:export-browser
 GROKKING_CDP_PORT=9224 node build/tests/optimizer-browser.js
 GROKKING_CDP_PORT=9224 npm run test:rendering

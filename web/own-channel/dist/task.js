@@ -7,6 +7,10 @@ const examples = [[6, 4, 50], [10, 3, 68], [1, 2, 49], [1, 96, 96], [96, 2, 48],
 export function initializeTask() {
     const dialog = $('task-dialog');
     let page = 0, modelView = 0, introView = 0;
+    function updateNavigation() {
+        $('task-back').disabled = page === 0 && introView === 0;
+        $('task-next').disabled = page === pages.length - 1 && modelView === modelViews.length - 1;
+    }
     function selectIntro(index) {
         introView = index;
         for (const [i, name] of introPages.entries()) {
@@ -16,6 +20,7 @@ export function initializeTask() {
             button.setAttribute('aria-selected', String(i === index));
             button.tabIndex = i === index ? 0 : -1;
         }
+        updateNavigation();
     }
     function selectModel(index) {
         modelView = index;
@@ -27,6 +32,7 @@ export function initializeTask() {
             button.tabIndex = i === modelView ? 0 : -1;
         }
         dialog.querySelector('.task-model-note').hidden = modelView !== 0;
+        updateNavigation();
     }
     function select(index) {
         page = Math.max(0, Math.min(pages.length - 1, index));
@@ -37,8 +43,25 @@ export function initializeTask() {
             button.setAttribute('aria-selected', String(i === page));
             button.tabIndex = i === page ? 0 : -1;
         }
-        $('task-back').disabled = page === 0;
-        $('task-next').disabled = page === pages.length - 1;
+        updateNavigation();
+    }
+    function advance(direction) {
+        if (page === 0 && introView + direction >= 0 && introView + direction < introPages.length) {
+            selectIntro(introView + direction);
+        }
+        else if (page === pages.length - 1 && modelView + direction >= 0 && modelView + direction < modelViews.length) {
+            selectModel(modelView + direction);
+        }
+        else {
+            const next = page + direction;
+            if (next < 0 || next >= pages.length)
+                return;
+            if (next === 0)
+                selectIntro(introPages.length - 1);
+            if (next === pages.length - 1)
+                selectModel(0);
+            select(next);
+        }
     }
     function localizeDiagrams() {
         for (const source of dialog.querySelectorAll('[data-model-diagram-portrait]')) {
@@ -89,8 +112,8 @@ export function initializeTask() {
         select(event.key === 'Home' ? 0 : event.key === 'End' ? pages.length - 1 : (page + offset + pages.length) % pages.length);
         dialog.querySelector(`[data-task-tab="${pages[page]}"]`).focus();
     };
-    $('task-back').onclick = () => select(page - 1);
-    $('task-next').onclick = () => select(page + 1);
+    $('task-back').onclick = () => advance(-1);
+    $('task-next').onclick = () => advance(1);
     for (const id of ['close-task', 'task-open'])
         $(id).onclick = () => dialog.close();
     $('task-help').onclick = () => { select(0); selectIntro(0); dialog.showModal(); };

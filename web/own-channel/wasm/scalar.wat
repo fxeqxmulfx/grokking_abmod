@@ -1,5 +1,5 @@
-;; Scalar equivalents of the SIMD vector kernels. All lengths are multiples
-;; of four; the shared training module supplies bounded pointers and lengths.
+;; Scalar equivalents of the SIMD vector kernels. The training module supplies
+;; positive lengths and bounded pointers, including widths with two-lane tails.
 (func $clear (param $dst i32) (param $count i32)
   (local $end i32)
   (local.set $end (i32.add (local.get $dst) (i32.mul (local.get $count) (i32.const 4))))

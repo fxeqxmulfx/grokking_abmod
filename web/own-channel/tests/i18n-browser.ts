@@ -85,7 +85,7 @@ try {
     if (!await evaluate(`document.getElementById('epoch').textContent==='1'`)) throw new Error(`Language switch reset training: ${language}`);
     for (const [width,height] of [[1366,768],[700,800],[390,844],[320,568],[844,390]]) {
       await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<650});
-      for(const view of ['training','weights','channels']) {
+      for(const view of ['training','weights','channels','settings']) {
         await evaluate(`document.querySelector('[data-view-tab="${view}"]').click()`);
         await assertFits(`${language} ${width}×${height} ${view}`);
       }

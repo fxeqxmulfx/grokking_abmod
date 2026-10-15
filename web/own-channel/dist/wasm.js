@@ -6,7 +6,11 @@ export class WASMTrainer {
             throw new Error('This browser does not support WebAssembly.');
         let scalar = options.scalar ?? false;
         const model = options.model ?? 'dense-rotary';
-        modelInfo(model);
+        if (modelInfo(model).width % 4 !== 0) {
+            if (options.requireSIMD)
+                throw new Error('SIMD requires a width divisible by four.');
+            scalar = true;
+        }
         const load = async (variant) => {
             const response = await fetch(new URL(`./${model}-${variant}${options.shared ? '-shared' : ''}.wasm`, import.meta.url));
             if (!response.ok)

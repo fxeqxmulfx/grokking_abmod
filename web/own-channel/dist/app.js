@@ -1,6 +1,6 @@
 import { element as $ } from './dom.js';
 import { send, backend, preset } from './types.js';
-import { modelId } from './models.js';
+import { modelId, modelForWidth, trainingOptimizer } from './models.js';
 import { P } from './model.js';
 import { initializeI18n, t, number, runtimeText } from './i18n.js';
 import { initializeTask } from './task.js';
@@ -525,12 +525,15 @@ function refresh() {
     $('network-highlight').checked = state.networkHighlight;
     ui('axis-note', state.metric === 'loss' ? 'Cross-entropy · logarithmic scale' : 'Complete-split accuracy');
     for (const button of document.querySelectorAll('[data-model-tab]')) {
-        const active = button.dataset.modelTab === state.model;
+        const active = !options.optimizer && button.dataset.modelTab === state.model;
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
     }
+    $('custom-tab').hidden = !experiments.has('custom');
+    $('custom-tab').classList.toggle('active', Boolean(options.optimizer));
+    $('custom-tab').setAttribute('aria-pressed', String(Boolean(options.optimizer)));
     const presets = modelPresets(state.model);
-    $('preset-nav').hidden = presets.length < 2;
+    $('preset-nav').hidden = Boolean(options.optimizer) || presets.length < 2;
     for (const button of document.querySelectorAll('[data-preset-tab]')) {
         const active = button.dataset.presetTab === state.preset;
         button.classList.toggle('active', active);
@@ -552,15 +555,16 @@ function refresh() {
     for (const type of ['a', 'b'])
         $('input-' + type).setAttribute('aria-label', runtimeText($('atlas-' + type + '-title').textContent + ' weights'));
     ui('model-description', t('One shared E (97 × {width}) embeds a and b and reads out the answer. Input: E[a] + Rotate90(E[b]). One pre-norm residual block applies RMSNorm → Dense A → ReLU, then adds the original input. Final RMSNorm and Eᵀ give 97 logits. E starts normal with variance 1/{width}; A is Kaiming normal with variance 2/{width}; there are no biases or learned norm gains.', { width: W }));
-    const profile = optimizerProfile(state.model, state.preset);
-    const reference = t('Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.', {
+    const profile = options.optimizer ? null : optimizerProfile(state.model, state.preset);
+    const optimizer = trainingOptimizer(state.model, state.preset, options.optimizer);
+    const reference = profile ? t('Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.', {
         seeds: profile.nativeSeeds.join(' / '), epochs: profile.nativeTest99Epochs.map(epoch => epoch === null ? '—' : number(epoch)).join(' / '), budget: number(profile.nativeBudget),
-    });
-    const plateau = profile.nativePlateauEpochs ? ' ' + t('Memorization plateau: {epochs} epochs.', { epochs: profile.nativePlateauEpochs.map(epochs => number(epochs)).join(' / ') }) : '';
-    ui('reference-description', `AdamW · lr=${profile.learningRate} · wd=${profile.weightDecay} · β=0.9/0.98 · ε=1e-8 · warmup=10. ${reference}${plateau}`);
-    $('reference-description').dataset.learningRate = String(profile.learningRate);
-    $('reference-description').dataset.weightDecay = String(profile.weightDecay);
-    ui('model-optimizer', `lr=${profile.learningRate} · wd=${profile.weightDecay}`);
+    }) : t('Custom experiment');
+    const plateau = profile?.nativePlateauEpochs ? ' ' + t('Memorization plateau: {epochs} epochs.', { epochs: profile.nativePlateauEpochs.map(epochs => number(epochs)).join(' / ') }) : '';
+    ui('reference-description', `AdamW · lr=${optimizer.learningRate} · wd=${optimizer.weightDecay} · β=0.9/0.98 · ε=1e-8 · warmup=10. ${reference}${plateau}`);
+    $('reference-description').dataset.learningRate = String(optimizer.learningRate);
+    $('reference-description').dataset.weightDecay = String(optimizer.weightDecay);
+    ui('model-optimizer', `lr=${optimizer.learningRate} · wd=${optimizer.weightDecay}`);
     ui('criterion-description', t('At least 25 continuous epochs with train ≥99% and held-out ≤10%, then a rise to ≥90% within 250 epochs and a later held-out ≥99% result. Every epoch is evaluated.'));
     ui('scale-formula', t('|probe hidden꜀| × ‖centered Eᵀ꜀‖ measures a channel’s readout contribution. If channels share a pixel, its bar shows their maximum and selects that channel. The channel input selects any channel exactly.'));
     status(state.label);
@@ -571,7 +575,7 @@ function initialize() {
         return;
     const target = state;
     target.worker?.terminate();
-    target.options = { model: target.model, preset: target.preset, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value) };
+    target.options = { ...target.options, model: target.model, preset: target.preset, seed: Number($('seed').value), backend: backend($('backend').value), maxEpochs: Number($('limit').value), captureHz: Number($('capture').value) };
     target.seed = target.options.seed;
     target.initial = initialModelWeights(target.seed, target.model);
     target.weights = target.initial.slice();
@@ -622,16 +626,22 @@ function initialize() {
     send(worker, { type: 'initialize', options: target.options });
 }
 function select(model, chosen) {
-    if (model === state.model && chosen === state.preset)
+    if (!state.options.optimizer && model === state.model && chosen === state.preset)
+        return;
+    const key = `${model}/${chosen}`;
+    if (!experiments.has(key))
+        experiments.set(key, experiment(model, chosen));
+    activate(experiments.get(key));
+}
+function activate(target) {
+    if (target === state)
         return;
     if (state.running) {
         send(state.worker, { type: 'pause' });
         status('Pausing');
     }
-    const previous = state.options, key = `${model}/${chosen}`;
-    if (!experiments.has(key))
-        experiments.set(key, experiment(model, chosen));
-    state = experiments.get(key);
+    const previous = state.options;
+    state = target;
     refresh();
     if (!state.worker) {
         state.options.backend = previous.backend;
@@ -650,6 +660,46 @@ for (const button of document.querySelectorAll('[data-preset-tab]'))
         preferredPreset = preset(button.dataset.presetTab ?? '');
         select(state.model, preferredPreset);
     };
+$('custom-tab').onclick = () => { const custom = experiments.get('custom'); if (custom)
+    activate(custom); };
+let settingsDraft = false;
+function summarizeSettings() {
+    if (!$('custom-width').checkValidity()) {
+        ui('custom-summary', '');
+        return;
+    }
+    const info = modelInfo(modelForWidth(Number($('custom-width').value)));
+    ui('custom-summary', t('{width} channels · {parameters} parameters · {activation} · FP32', { width: info.width, parameters: number(info.parameters), activation: t('ReLU') }));
+}
+for (const id of ['custom-width', 'custom-lr', 'custom-wd'])
+    $(id).oninput = () => {
+        settingsDraft = true;
+        $('custom-error').hidden = true;
+        summarizeSettings();
+    };
+$('settings-form').onsubmit = event => {
+    event.preventDefault();
+    if (!$('settings-form').reportValidity())
+        return;
+    try {
+        const model = modelForWidth(Number($('custom-width').value));
+        const optimizer = trainingOptimizer(model, 'fast', { learningRate: Number($('custom-lr').value), weightDecay: Number($('custom-wd').value) });
+        const custom = experiment(model, 'fast');
+        custom.options = { ...state.options, model, preset: 'fast', optimizer };
+        const previous = experiments.get('custom');
+        previous?.worker?.terminate();
+        if (previous)
+            previous.running = false;
+        experiments.set('custom', custom);
+        activate(custom);
+        $('custom-error').hidden = true;
+        selectView('training');
+    }
+    catch (error) {
+        ui('custom-error', error instanceof Error ? error.message : String(error));
+        $('custom-error').hidden = false;
+    }
+};
 $('train').onclick = () => { if (state.ready)
     send(state.worker, { type: state.running ? 'pause' : 'train' }); };
 $('step').onclick = () => send(state.worker, { type: 'step' });
@@ -799,7 +849,7 @@ for (const id of ['input-a', 'input-b', 'readout'])
             invalidate();
     };
 function download(content, name, type) { const url = URL.createObjectURL(new Blob([content], { type })), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
-const presetSuffix = () => state.preset === 'fast' ? '' : '-' + state.preset;
+const presetSuffix = () => state.options.optimizer ? `-custom-lr${state.options.optimizer.learningRate}-wd${state.options.optimizer.weightDecay}` : state.preset === 'fast' ? '' : '-' + state.preset;
 $('export-pytorch').onclick = () => download(pytorchSource(state.options), `rotate90-w${W}${presetSuffix()}-seed${state.seed}.py`, 'text/x-python');
 $('export-metrics').onclick = () => {
     const keys = ['step', 'epoch', 'trainLoss', 'heldoutLoss', 'trainAccuracy', 'heldoutAccuracy', 'phase'];
@@ -809,16 +859,27 @@ const resizeObserver = new ResizeObserver(() => { invalidate(); });
 for (const element of document.querySelectorAll('main, canvas'))
     resizeObserver.observe(element);
 window.addEventListener('resize', () => { invalidate(); });
-for (const button of document.querySelectorAll('[data-view-tab]'))
-    button.onclick = () => {
-        document.body.dataset.view = button.dataset.viewTab;
-        for (const tab of document.querySelectorAll('[data-view-tab]')) {
-            const selected = tab === button;
-            tab.classList.toggle('active', selected);
-            tab.setAttribute('aria-pressed', String(selected));
+function selectView(view) {
+    document.body.dataset.view = view;
+    $('settings-panel').hidden = view !== 'settings';
+    if (view === 'settings') {
+        if (!settingsDraft) {
+            const optimizer = trainingOptimizer(state.model, state.preset, state.options.optimizer);
+            $('custom-width').value = String(W);
+            $('custom-lr').value = String(optimizer.learningRate);
+            $('custom-wd').value = String(optimizer.weightDecay);
         }
-        invalidate();
-    };
+        summarizeSettings();
+    }
+    for (const tab of document.querySelectorAll('[data-view-tab]')) {
+        const selected = tab.dataset.viewTab === view;
+        tab.classList.toggle('active', selected);
+        tab.setAttribute('aria-pressed', String(selected));
+    }
+    invalidate();
+}
+for (const button of document.querySelectorAll('[data-view-tab]'))
+    button.onclick = () => selectView(button.dataset.viewTab);
 $('about').onclick = () => {
     ui('engine-error', $('error').textContent);
     $('engine-error').hidden = $('error').hidden;
@@ -828,7 +889,7 @@ $('close-about').onclick = () => $('about-dialog').close();
 $('error').onclick = () => $('about').click();
 document.addEventListener('visibilitychange', () => { send(state.worker, { type: 'capture', hz: document.hidden ? 1 : Number($('capture').value) }); invalidate(); });
 document.fonts.ready.then(() => { invalidate(); });
-window.addEventListener('localechange', () => { refresh(); });
+window.addEventListener('localechange', () => { refresh(); summarizeSettings(); });
 initialize();
 initializeTask();
 invalidate();

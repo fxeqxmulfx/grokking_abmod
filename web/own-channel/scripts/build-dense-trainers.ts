@@ -1,7 +1,7 @@
-import {readFile, writeFile} from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
 import {root} from '../project.ts';
 import {PRIVATE_ADDRESSES, ROW_SLOTS} from '../src/cpu-memory.ts';
-import {MODELS} from '../src/models.ts';
+import {validateWidth} from '../src/models.ts';
 
 // The 128-channel handwritten Dense trainer is the source. Specialize only
 // widths, byte strides, addresses and parameter counts; the math is identical.
@@ -25,7 +25,8 @@ for (const [name, address] of Object.entries(denseLayout(128).addresses)) {
   const value = ` i32 (i32.const ${address}))`;
   if (!watBase.includes(`(global $${name}${value}`) && !watBase.includes(`(global $${name} (export "${name}")${value}`)) throw new Error(`dense-rotary.wat: $${name} is not at ${address}.`);
 }
-function denseWat(width: number): string {
+export function denseWat(width: number): string {
+  validateWidth(width);
   const parameters = 97 * width + width * width, bytes = width * 4;
   const {addresses, cursor} = denseLayout(width);
   const exported = new Set(['weights', 'gradient', 'data', 'samples', 'logits', 'metrics', 'statistics']);
@@ -52,10 +53,6 @@ ${globals.join('\n')}
 
 ${source}`;
 }
-for (const {width, id: name} of Object.values(MODELS)) {
-  if (width !== 128) await writeFile(new URL(`wasm/${name}.wat`, root), denseWat(width));
-}
-
 export function sharedWat(source: string, width: number): string {
   const bytes = (97 * width + width * width) * 4;
   const exported = new Set(['gradient', 'samples', 'logits', 'metrics', 'statistics']);

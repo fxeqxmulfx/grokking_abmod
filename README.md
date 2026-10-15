@@ -64,6 +64,8 @@ Dense + ReLU residual architecture at widths 16, 32, 64, 128 and 256 entirely in
 the browser with handwritten WASM SIMD, realtime loss/accuracy,
 all-weight visualizations, and complete-split loss curves. Its Fast, Plateau and
 Slow optimizer presets come from [Rust/CUDA searches](docs/dense-cuda-kernels.md#optimizer-search).
+The Settings tab accepts custom even widths from 2 to 2048, learning rate and
+weight decay, with a separate experiment that preserves its state between tabs.
 Pre-RMSNorm remains inside the single residual branch, with final RMSNorm
 before the tied readout.
 The frontend, local preview server and validation tools use strict TypeScript.

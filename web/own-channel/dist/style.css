@@ -41,6 +41,13 @@ main { min-height: 0; min-width: 0; padding: 12px 16px; display: grid; grid-temp
 .view-nav button { padding: 5px 12px; border-color: transparent; font-size: 10px; }
 .view-nav button.active { background: var(--ink); color: var(--card); }
 .dashboard { min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 258px; gap: 12px; }
+.settings-panel { width: min(100%, 680px); align-self: start; justify-self: center; display: grid; gap: 18px; overflow: auto; max-height: 100%; }
+.settings-panel form { display: grid; gap: 18px; }
+.settings-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.settings-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; }
+.settings-fields input, .settings-fields select { width: 100%; min-width: 0; margin: 0; }
+.settings-panel .primary { justify-self: start; }
+body[data-view="settings"] .dashboard { display: none; }
 .visuals { display: grid; min-width: 0; min-height: 0; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(100px, .45fr); grid-template-areas: 'curve mesh' 'weights weights' 'scales probe'; }
 .card { min-width: 0; min-height: 0; background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 12px; }
 .card-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-width: 0; }
@@ -253,6 +260,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .visuals { gap: 10px; grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr) 100px; }
   .card { padding: 10px; }
   .probe .equation { gap: 7px; }
+  .settings-panel, .settings-panel form { gap: 10px; }
 }
 
 @media (max-width: 979px), (max-height: 639px) {
@@ -291,6 +299,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .experiment-nav { display: contents; }
   .experiment-nav > .model-nav:first-child { flex: 1 1 100%; }
   .model-nav button { flex: 1; padding: 4px 8px; }
+  .model-nav:has(#custom-tab:not([hidden])) button { padding-inline: 5px; }
   .preset-nav button { padding: 4px 6px; }
   .topbar { gap: 12px; padding: 0 12px; }
   .brand > span:last-child { display: none; }
@@ -309,6 +318,10 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   main { padding: 8px; gap: 8px; }
   .view-nav { flex: 1 1 auto; justify-content: center; margin-left: 0; }
   .view-nav button { flex: 1; }
+  .settings-panel { gap: 14px; }
+  .settings-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .settings-panel form { gap: 14px; }
+  .settings-panel .primary { justify-self: stretch; }
   .dashboard { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
   .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
   .controls > .card-heading, .progress-block, .metrics, .stop-check, .phase, .controls .error, .export { grid-column: 1 / -1; }

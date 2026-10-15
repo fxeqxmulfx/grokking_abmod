@@ -1,6 +1,32 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  ["Settings", "Ajustes", "Einstellungen", "設定", "Réglages", "Настройки"],
+  ["Custom", "Propio", "Eigene", "カスタム", "Perso", "Свои"],
+  ["Custom experiment", "Experimento propio", "Eigenes Experiment", "カスタム実験", "Expérience personnalisée", "Свой эксперимент"],
+  ["Learning rate (lr)", "Tasa de aprendizaje (lr)", "Lernrate (lr)", "学習率 (lr)", "Taux d’apprentissage (lr)", "Скорость обучения (lr)"],
+  ["Weight decay (wd)", "Decaimiento de pesos (wd)", "Gewichtsabnahme (wd)", "重み減衰 (wd)", "Décroissance des poids (wd)", "Затухание весов (wd)"],
+  ["Apply and open training", "Aplicar y abrir entrenamiento", "Anwenden und Training öffnen", "適用して学習を開く", "Appliquer et ouvrir l’entraînement", "Применить и открыть обучение"],
+  [
+    "Choose the model width and AdamW parameters. Applying starts a fresh custom experiment; presets keep their weights and curves.",
+    "Elige la anchura y los parámetros de AdamW. Al aplicar se inicia un nuevo experimento propio; los ajustes predefinidos conservan sus pesos y curvas.",
+    "Wähle Modellbreite und AdamW-Parameter. Anwenden beginnt ein neues eigenes Experiment; die Voreinstellungen behalten Gewichte und Kurven.",
+    "モデルの幅とAdamWのパラメータを選びます。適用すると新しいカスタム実験を作成します。プリセットの重みと曲線は保持されます。",
+    "Choisissez la largeur et les paramètres AdamW. L’application crée une nouvelle expérience personnalisée ; les préréglages conservent leurs poids et courbes.",
+    "Выберите ширину модели и параметры AdamW. Применение создаёт новый свой эксперимент; готовые настройки сохраняют веса и графики."
+  ],
+  [
+    "Even widths from 2 to 2048. Rotate90 works on pairs of channels.",
+    "Anchuras pares de 2 a 2048. Rotate90 trabaja con pares de canales.",
+    "Gerade Breiten von 2 bis 2048. Rotate90 arbeitet mit Kanalpaaren.",
+    "幅は2から2048までの偶数です。Rotate90はチャネルのペアを回転します。",
+    "Largeurs paires de 2 à 2048. Rotate90 travaille sur des paires de canaux.",
+    "Чётная ширина от 2 до 2048. Rotate90 работает с парами каналов."
+  ],
+  ["Width must be an even integer between 2 and 2048.", "La anchura debe ser un entero par entre 2 y 2048.", "Die Breite muss eine gerade ganze Zahl zwischen 2 und 2048 sein.", "幅は2から2048までの偶数にしてください。", "La largeur doit être un entier pair entre 2 et 2048.", "Ширина должна быть чётным целым числом от 2 до 2048."],
+  ["Learning rate must be a positive finite number.", "La tasa de aprendizaje debe ser un número finito positivo.", "Die Lernrate muss eine positive endliche Zahl sein.", "学習率は正の有限数にしてください。", "Le taux d’apprentissage doit être un nombre fini positif.", "Скорость обучения должна быть положительным конечным числом."],
+  ["Weight decay must be a nonnegative finite number.", "El decaimiento de pesos debe ser un número finito no negativo.", "Die Gewichtsabnahme muss eine nichtnegative endliche Zahl sein.", "重み減衰は0以上の有限数にしてください。", "La décroissance des poids doit être un nombre fini positif ou nul.", "Затухание весов должно быть неотрицательным конечным числом."],
+  ["This width uses scalar WASM; SIMD requires a multiple of four channels.", "Esta anchura usa WASM escalar; SIMD requiere un múltiplo de cuatro canales.", "Diese Breite nutzt skalares WASM; SIMD benötigt ein Vielfaches von vier Kanälen.", "この幅はスカラーWASMを使用します。SIMDには4の倍数のチャネル数が必要です。", "Cette largeur utilise WASM scalaire ; SIMD exige un multiple de quatre canaux.", "Для этой ширины используется скалярный WASM; SIMD требует число каналов, кратное четырём."],
   [
     "Rust/CUDA, seeds {seeds}: epochs to ≥99% held-out accuracy: {epochs}. A dash means not reached within {budget} epochs. Browser crossings may differ.",
     "Rust/CUDA, semillas {seeds}: épocas hasta ≥99% en prueba: {epochs}. Un guion indica que no se alcanzó en {budget} épocas. En el navegador puede variar.",

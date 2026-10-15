@@ -3,7 +3,7 @@ import { OPTIMIZER_PROFILES } from './optimizer-profiles.js';
 import { PRESETS } from './types.js';
 function dense(id, width) {
     return { id, title: 'Rotate90', subtitle: 'Dense + ReLU', width, seed: 11,
-        ...OPTIMIZER_PROFILES[width].fast,
+        ...(OPTIMIZER_PROFILES[width]?.fast ?? { learningRate: .01, weightDecay: 1, nativeSeeds: [], nativeTest99Epochs: [], nativeBudget: 10000 }),
         reportEvery: 10, parameters: P * width + width * width, embedding: P * width, gain: P * width };
 }
 export const MODELS = {
@@ -14,17 +14,41 @@ export const MODELS = {
     'dense-rotary-256': dense('dense-rotary-256', 256),
 };
 export function modelId(id) {
-    if (!Object.hasOwn(MODELS, id))
+    if (Object.hasOwn(MODELS, id))
+        return id;
+    const match = /^dense-rotary-([1-9]\d*)$/.exec(id);
+    if (!match)
         throw new Error('Unknown model.');
-    return id;
+    return modelForWidth(Number(match[1]));
 }
-export function modelInfo(id) { return MODELS[id]; }
-export function modelPresets(id) { return PRESETS.filter(preset => OPTIMIZER_PROFILES[modelInfo(id).width][preset]); }
+export function validateWidth(width) {
+    if (!Number.isInteger(width) || width < 2 || width > 2048 || width % 2 !== 0)
+        throw new Error('Width must be an even integer between 2 and 2048.');
+}
+export function modelForWidth(width) {
+    validateWidth(width);
+    return width === 128 ? 'dense-rotary' : `dense-rotary-${width}`;
+}
+export function modelInfo(id) {
+    if (Object.hasOwn(MODELS, id))
+        return MODELS[id];
+    const canonical = modelId(id), width = Number(canonical.slice('dense-rotary-'.length));
+    return canonical === 'dense-rotary' ? MODELS[canonical] : dense(canonical, width);
+}
+export function modelPresets(id) { return PRESETS.filter(preset => OPTIMIZER_PROFILES[modelInfo(id).width]?.[preset]); }
 export function optimizerProfile(id, preset = 'fast') {
-    const profile = OPTIMIZER_PROFILES[modelInfo(id).width][preset];
+    const profile = OPTIMIZER_PROFILES[modelInfo(id).width]?.[preset];
     if (!profile)
         throw new Error('Unknown optimizer preset.');
     return profile;
+}
+export function trainingOptimizer(id, preset = 'fast', custom) {
+    const { learningRate, weightDecay } = custom ?? optimizerProfile(id, preset);
+    if (!Number.isFinite(learningRate) || !Number.isFinite(Math.fround(learningRate)) || Math.fround(learningRate) <= 0)
+        throw new Error('Learning rate must be a positive finite number.');
+    if (!Number.isFinite(weightDecay) || !Number.isFinite(Math.fround(weightDecay)) || weightDecay < 0)
+        throw new Error('Weight decay must be a nonnegative finite number.');
+    return { learningRate, weightDecay };
 }
 // Box–Muller uses the native SplitMix64 stream and rounds each stored value to
 // f32. E consumes the same number of draws as the old uniform initializer,

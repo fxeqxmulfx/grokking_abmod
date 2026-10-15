@@ -4,6 +4,14 @@ declare const tags: {
     readonly "model-optimizer": "code";
     readonly device: "span";
     readonly "preset-nav": "nav";
+    readonly "custom-tab": "button";
+    readonly "settings-panel": "section";
+    readonly "settings-form": "form";
+    readonly "custom-width": "input";
+    readonly "custom-lr": "input";
+    readonly "custom-wd": "input";
+    readonly "custom-summary": "p";
+    readonly "custom-error": "p";
     readonly language: "select";
     readonly "task-help": "button";
     readonly about: "button";

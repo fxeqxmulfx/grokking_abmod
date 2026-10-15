@@ -58,7 +58,7 @@ try {
   await waitFor(`document.getElementById('task-dialog').open && [...document.querySelectorAll('[data-task-diagram]')].every(image=>image.complete&&image.naturalWidth>0)`);
   await evaluate(`document.getElementById('task-open').click()`);
   if (!await evaluate(`document.getElementById('model-detail').textContent.includes('128 channels') && document.getElementById('model-detail').textContent.includes('28,800') && document.getElementById('model-name').textContent.includes('Dense + ReLU') && document.getElementById('seed').value==='11' && document.getElementById('step').textContent==='+1 epoch'`)) throw new Error('Incorrect narrow defaults');
-  if (!await evaluate(`document.body.dataset.view==='training' && !document.getElementById('dynamics') && !document.getElementById('weight-group') && document.querySelectorAll('[data-model-tab]').length===${MODEL_IDS.length} && document.querySelectorAll('[data-view-tab]').length===3`)) throw new Error('Incorrect model tabs or obsolete workspace variants remain.');
+  if (!await evaluate(`document.body.dataset.view==='training' && !document.getElementById('dynamics') && !document.getElementById('weight-group') && document.querySelectorAll('[data-model-tab]').length===${MODEL_IDS.length} && document.querySelectorAll('[data-view-tab]').length===4`)) throw new Error('Incorrect model tabs or obsolete workspace variants remain.');
   await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('53632 connections')`);
   await networkPaint();
   const renderer = await evaluate<Record<string, string>>(`({...document.getElementById('mesh-edges').dataset})`);

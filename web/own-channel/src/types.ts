@@ -1,5 +1,6 @@
 export const MODEL_IDS = ['dense-rotary-16', 'dense-rotary-32', 'dense-rotary-64', 'dense-rotary', 'dense-rotary-256'] as const;
-export type ModelId = typeof MODEL_IDS[number];
+export type BuiltinModelId = typeof MODEL_IDS[number];
+export type ModelId = BuiltinModelId | `dense-rotary-${number}`;
 // Optimizer presets: fast generalizes earliest on every native seed, plateau
 // memorizes longest before generalizing, slow generalizes latest.
 export const PRESETS = ['fast', 'plateau', 'slow'] as const;
@@ -33,8 +34,9 @@ export interface TrainingEngine {
 }
 export interface TrainingOptions {
   model: ModelId; preset: Preset; seed: number; backend: Backend; maxEpochs: number;
-  captureHz: number;
+  captureHz: number; optimizer?: OptimizerSettings;
 }
+export interface OptimizerSettings {learningRate: number; weightDecay: number}
 export interface Interval {start: number | null; end: number | null; epochs: number}
 export interface GrokkingEvent {
   epoch: number; delayed: boolean; plateauEpochs: number;
