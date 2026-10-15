@@ -39,6 +39,7 @@ export class CPUScene {
   classifications = 0; backgroundPaints = 0; buildMs = 0; drawMs = 0;
   onRestore?: () => void;
   private weights: Weights | null = null; private initial: Weights | null = null; private mode: WeightMode = 'weight';
+  private rasterScale = 0;
   private addresses = {columns: 0, residues: 0, answers: 0, palette: 0, codes: 0, scratch: 0, pixels: 0};
   private codes = new Uint16Array(); private palette = new Float32Array(); private coordinates = new Float32Array();
   private image: ImageData | null = null;
@@ -64,8 +65,8 @@ export class CPUScene {
     if (changedLayout) this.weights = null;
     this.shape = shape; this.pose = '';
   }
-  private prepare(layout: TopologyLayout, weights: Weights, initial: Weights, mode: WeightMode) {
-    if (this.weights === weights && this.initial === initial && this.mode === mode) return;
+  private prepare(layout: TopologyLayout, weights: Weights, initial: Weights, mode: WeightMode, scale: number) {
+    if (this.weights === weights && this.initial === initial && this.mode === mode && this.rasterScale === scale) return;
     const start = performance.now(), e = P * layout.channels;
     const ranges = initialWeightRanges(initial, layout.channels).map(value => value * (mode === 'delta' ? .25 : 1));
     for (let i = 0; i < weights.length; i++) {
@@ -78,12 +79,14 @@ export class CPUScene {
       const magnitude = (level + .5) / LEVELS;
       // Accumulate in f32 before converting to RGBA8; weak edges cannot be
       // rounded away individually, even when millions of paths overlap.
-      const alpha = Math.max(1 / 4096, Math.min(.05, 1.8 / Math.sqrt(group ? layout.channels ** 2 : e)) * (.03 + .97 * magnitude));
+      // A raster line covers one device pixel. Compensate for the additional
+      // pixels per CSS pixel so higher resolution does not wash out weights.
+      const alpha = scale * Math.max(1 / 4096, Math.min(.05, 1.8 / Math.sqrt(group ? layout.channels ** 2 : e)) * (.03 + .97 * magnitude));
       for (let c = 0; c < 3; c++) this.palette[index + c] = rgb[color + c] * alpha;
       this.palette[index + 3] = alpha;
     }
-    this.palette.set([157 / 4096, 161 / 4096, 150 / 4096, 1 / 4096], ZERO * 4);
-    this.weights = weights; this.initial = initial; this.mode = mode; this.pose = '';
+    this.palette.set([157 * scale / 4096, 161 * scale / 4096, 150 * scale / 4096, scale / 4096], ZERO * 4);
+    this.weights = weights; this.initial = initial; this.mode = mode; this.rasterScale = scale; this.pose = '';
     this.classifications++; this.buildMs = performance.now() - start;
   }
   draw(ctx: Context, layout: TopologyLayout, weights: Weights, selected: number, view: NetworkView, focus = -1, options: DrawOptions = {}, scale = 1) {
@@ -92,7 +95,7 @@ export class CPUScene {
     // complete high-resolution image. Every connection is still rasterized.
     const tileHeight = Math.min(height, Math.max(1, Math.floor(TILE_PIXELS / (width + 1))));
     this.allocate(width, tileHeight, layout.channels, weights.length);
-    this.prepare(layout, weights, options.initial ?? weights, options.mode ?? 'weight');
+    this.prepare(layout, weights, options.initial ?? weights, options.mode ?? 'weight', scale);
     if (!this.background) {
       this.background = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
       this.backgroundContext = this.background.getContext('2d', {willReadFrequently: true}) as Context | null;

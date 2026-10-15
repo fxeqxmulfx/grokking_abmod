@@ -188,7 +188,9 @@ try {
   if (JSON.stringify(previous)!==JSON.stringify(fastRestored)) throw new Error('Switching optimizer presets changed the fast experiment');
   await evaluate(`document.querySelector('[data-view-tab="channels"]').click();document.getElementById('channel-select').value='127';document.getElementById('channel-select').dispatchEvent(new Event('input'))`);
   await waitFor(`document.getElementById('mesh').getAttribute('aria-label').includes('channel 127,')`);
-  await evaluate(`document.querySelector('[data-view-tab="training"]').click();document.getElementById('train').click()`);
+  await evaluate(`document.querySelector('[data-view-tab="training"]').click()`);
+  await waitFor(`!document.getElementById('train').disabled`);
+  await evaluate(`document.getElementById('train').click()`);
   await waitFor(`document.getElementById('status').textContent==='Training'`);
   await evaluate(`document.querySelector('[data-model-tab="dense-rotary-256"]').click()`);
   if (!await evaluate(`document.getElementById('epoch').textContent==='1' && document.getElementById('status').textContent==='Paused' && document.getElementById('channel-select').value==='255'`)) throw new Error('Wide state was not restored');

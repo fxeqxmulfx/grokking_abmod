@@ -101,8 +101,11 @@ Returning restores those states without adding a duplicate observation.
 
 Hidden canvases release their backing stores and keep 1×1 placeholders. The
 network renderer starts only when visible and is terminated on leaving the
-view, releasing its WASM memory and intermediate image. Resize observation uses
-stable containers so replaced canvas elements are not retained. Visible display
+view, releasing its WASM memory and intermediate image. The visible canvas
+stays on the main thread and receives transferable RGBA frames from the worker;
+it never relies on implicit OffscreenCanvas presentation. The worker waits for
+presentation acknowledgement before sending another image, bounding queued
+frame buffers to one. Resize observation uses stable containers. Visible display
 surfaces render at up to 2× CSS resolution, with a 524,288-pixel budget per
 mobile surface and 1,048,576 pixels on desktop. The network raster is limited
 to 524,288 pixels and reuses strips of at most 131,072 pixels for f32
@@ -265,7 +268,10 @@ heatmap rasters are cached until weights or display mode change. Contiguous
 single-pass rasterization reuses its pixel buffers between snapshots.
 
 Network renders every A connection and every E connection in its three shared
-roles with software Canvas 2D in an OffscreenCanvas worker. Magnitude uses `log1p(abs(weight) / initialRMS)`,
+roles with software Canvas 2D in an OffscreenCanvas worker. The main thread
+presents its completed pixel buffer with `putImageData` and marks a frame ready
+only after that draw. Stale poses are acknowledged and discarded.
+Magnitude uses `log1p(abs(weight) / initialRMS)`,
 mapped to `strength / (1 + strength)`. E and A have separate initial RMS references
 that stay fixed throughout training. Change ×4 uses one quarter of those references;
 exactly unchanged weights are transparent. Nonzero changes use a single magnitude
@@ -274,6 +280,7 @@ The legend and both views share the same color stops. Network uses
 1,024 magnitude bands per sign. Its software WASM rasterizer accumulates every
 line's scanline spans in an f32 difference buffer, then combines overlaps into
 pixels. Color is a mass-weighted average; opacity is mass / (1 + mass).
+Line mass scales with raster resolution so high-DPI output keeps its contrast.
 This avoids Canvas path intersection costs and RGBA8 rounding of weak edges.
 Weight classifications and the background raster are cached; highlighting
 reuses the background. Browsers without OffscreenCanvas use the same renderer on
@@ -436,8 +443,11 @@ checks that all six translated Dense/ReLU/skip/RMSNorm captions fit their
 backgrounds.
 The mobile memory regression trains W128 for 15 epochs, visits Network and
 Weights, and checks 12 complete render/release cycles plus 120 interleaved view
-switches. It compares every heatmap pixel, requires 2× resolution on the phone,
-holds trainer shutdown pending to detect blank maps, and simulates canvas
+switches. It verifies actual colored pixels in all three network connection
+bands while simulating broken transferred-canvas presentation, checks recovery
+after dropping stale frames, and bounds completed images in flight to one.
+It compares every heatmap pixel, requires 2× resolution on the phone, holds
+trainer shutdown pending to detect blank maps, and simulates canvas
 restoration. Hidden surfaces must be 1×1, network raster memory must remain
 below 4 MiB, and paused Weights must retain no dedicated workers. Returning to
 Training must reproduce the uninterrupted epoch-16 weights bit-for-bit.

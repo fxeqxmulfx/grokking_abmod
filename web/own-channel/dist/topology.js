@@ -15,7 +15,6 @@ export class WeightTopology {
     weights = null;
     initial = null;
     generation = 0;
-    transferred = false;
     initializing = false;
     contextEvents = null;
     constructor(element, invalidate) {
@@ -28,12 +27,16 @@ export class WeightTopology {
     start() {
         if (this.worker || this.ctx || this.initializing)
             return;
+        this.ctx = this.element.getContext('2d', { willReadFrequently: true });
+        if (!this.ctx)
+            throw new Error('Canvas 2D is unavailable.');
+        this.contextEvents = new AbortController();
+        this.element.addEventListener('contextrestored', () => this.invalidate(), { signal: this.contextEvents.signal });
         const generation = this.generation;
-        if (typeof Worker === 'function' && typeof this.element.transferControlToOffscreen === 'function') {
+        if (typeof Worker === 'function' && typeof OffscreenCanvas === 'function') {
             try {
-                this.worker = new Worker(new URL('./topology-worker.js', import.meta.url), { type: 'module' });
-                const canvas = this.element.transferControlToOffscreen();
-                this.transferred = true;
+                const worker = new Worker(new URL('./topology-worker.js?frame=rgba-v1', import.meta.url), { type: 'module' });
+                this.worker = worker;
                 this.worker.onmessage = ({ data }) => {
                     if (generation !== this.generation)
                         return;
@@ -45,18 +48,37 @@ export class WeightTopology {
                         this.invalidate();
                         return;
                     }
-                    const dataset = this.element.dataset;
-                    dataset.frame = String(data.job);
-                    dataset.classifications = String(data.classifications);
-                    dataset.backgroundPaints = String(data.backgroundPaints);
-                    dataset.buildMs = String(data.buildMs);
-                    dataset.drawMs = String(data.drawMs);
-                    dataset.memoryBytes = String(data.memoryBytes);
-                    dataset.rasterPixels = String(data.rasterPixels);
+                    try {
+                        // Paint the visible canvas directly. A worker's completion message
+                        // alone does not prove that a transferred canvas reached the screen.
+                        if (data.job !== this.job || this.ctx.isContextLost())
+                            return;
+                        if (this.element.width !== data.width)
+                            this.element.width = data.width;
+                        if (this.element.height !== data.height)
+                            this.element.height = data.height;
+                        this.ctx.putImageData(new ImageData(data.pixels, data.width, data.height), 0, 0);
+                        const dataset = this.element.dataset;
+                        dataset.frame = String(data.job);
+                        dataset.classifications = String(data.classifications);
+                        dataset.backgroundPaints = String(data.backgroundPaints);
+                        dataset.buildMs = String(data.buildMs);
+                        dataset.drawMs = String(data.drawMs);
+                        dataset.memoryBytes = String(data.memoryBytes);
+                        dataset.rasterPixels = String(data.rasterPixels);
+                    }
+                    catch (error) {
+                        this.fallback(errorText(error));
+                    }
+                    finally {
+                        // Bound queued image buffers to one frame, including stale poses.
+                        if (this.worker === worker)
+                            worker.postMessage({ type: 'presented', job: data.job });
+                    }
                 };
                 this.worker.onerror = event => { if (generation === this.generation)
                     this.fallback(event.message); };
-                this.worker.postMessage({ type: 'initialize', canvas }, [canvas]);
+                this.worker.postMessage({ type: 'initialize' });
                 this.element.dataset.thread = 'worker';
             }
             catch (error) {
@@ -70,20 +92,12 @@ export class WeightTopology {
         this.generation++;
         this.worker?.terminate();
         this.worker = null;
-        // A transferred canvas cannot regain a 2D context; replace it on failure.
-        if (this.transferred) {
-            const replacement = this.element.cloneNode(false);
-            replacement.width = replacement.height = 1;
-            this.element.replaceWith(replacement);
-            this.element = replacement;
-        }
         this.contextEvents?.abort();
         this.contextEvents = new AbortController();
         this.element.addEventListener('contextrestored', () => this.invalidate(), { signal: this.contextEvents.signal });
         this.ctx = this.element.getContext('2d', { willReadFrequently: true });
         if (!this.ctx)
             throw new Error('Canvas 2D is unavailable.');
-        this.transferred = false;
         this.scene = null;
         this.weights = this.initial = null;
         this.element.dataset.thread = 'main';
@@ -179,16 +193,7 @@ export class WeightTopology {
         this.worker = null;
         this.contextEvents?.abort();
         this.contextEvents = null;
-        if (this.transferred) {
-            // A transferred canvas cannot be transferred again after its worker exits.
-            const replacement = this.element.cloneNode(false);
-            replacement.width = replacement.height = 1;
-            this.element.replaceWith(replacement);
-            this.element = replacement;
-        }
-        else
-            this.element.width = this.element.height = 1;
-        this.transferred = false;
+        this.element.width = this.element.height = 1;
         this.ctx = null;
         this.scene = null;
         this.initializing = false;

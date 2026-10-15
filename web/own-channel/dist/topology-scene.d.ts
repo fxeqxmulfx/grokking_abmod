@@ -31,6 +31,7 @@ export declare class CPUScene {
     private weights;
     private initial;
     private mode;
+    private rasterScale;
     private addresses;
     private codes;
     private palette;

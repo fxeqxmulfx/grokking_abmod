@@ -1,7 +1,10 @@
 import type { Weights, NetworkView, WeightMode } from './types.ts';
 export type TopologyRequest = {
     type: 'initialize';
-    canvas: OffscreenCanvas;
+    canvas?: OffscreenCanvas;
+} | {
+    type: 'presented';
+    job: number;
 } | {
     type: 'clear';
     job: number;
@@ -23,6 +26,9 @@ export type TopologyRequest = {
 export type TopologyResponse = {
     type: 'paint';
     job: number;
+    width: number;
+    height: number;
+    pixels: Uint8ClampedArray<ArrayBuffer>;
     classifications: number;
     backgroundPaints: number;
     buildMs: number;

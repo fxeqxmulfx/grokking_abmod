@@ -20,6 +20,22 @@ async function workers(expected: number) {
 }
 interface Storage {pixels: number; hiddenPixels: number; rasterBytes: number; rasterPixels: number; view: string}
 interface AtlasPixels {id: string; width: number; height: number; scale: number; opaque: number; total: number; digest: string}
+interface NetworkPixels {width: number; height: number; bands: {visible: number; colored: number}[]; digest: string}
+async function networkPixels() {
+  const image = await evaluate<NetworkPixels>(`(async()=>{
+    const {topologyLayout}=await import(new URL('./topology.js',location.href)),canvas=document.getElementById('mesh-edges'),rect=canvas.getBoundingClientRect();
+    const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data,rows=topologyLayout(rect.width,rect.height,128).rows;
+    const bands=[0,1,2].map(band=>{const y=Math.floor((rows[band]+rows[band+1])/2*canvas.height/rect.height);let visible=0,colored=0;
+      for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;if(pixels[i+3]){visible++;if(pixels[i]!==pixels[i+1]||pixels[i+1]!==pixels[i+2])colored++;}}return{visible,colored};});
+    let hash=2166136261;for(const value of pixels)hash=Math.imul(hash^value,16777619);
+    return{width:canvas.width,height:canvas.height,bands,digest:(hash>>>0).toString(16)};
+  })()`);
+  assert.ok(image.width > 1 && image.height > 1, 'The visible network canvas must receive the rendered image.');
+  for (const band of image.bands) {
+    assert.ok(band.visible > image.width / 4 && band.colored > image.width / 4, 'Paint learned weight colors in all three connection bands, independently of nodes and labels.');
+  }
+  return image;
+}
 const atlasRead = `['input-a','input-b','readout'].map(id=>{
   const canvas=document.getElementById(id),rect=canvas.getBoundingClientRect(),pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
   let opaque=0,hash=2166136261;for(let i=0;i<pixels.length;i++){hash=Math.imul(hash^pixels[i],16777619);if(i%4===3&&pixels[i]===255)opaque++;}
@@ -54,9 +70,15 @@ try {
   await client.call('Emulation.setUserAgentOverride', {userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-A235F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36'});
   await client.call('Emulation.setCPUThrottlingRate', {rate: 6});
   injected = await client.call<{identifier: string}>('Page.addScriptToEvaluateOnNewDocument', {source: `(() => {
-    window.memoryReview={weights:null,holdSuspensions:false,pending:[]};const NativeWorker=Worker;
+    window.memoryReview={weights:null,holdSuspensions:false,pending:[],holdFrames:false,frames:[],transfers:0};const NativeWorker=Worker;
+    // Model a compositor that never attaches transferred worker canvases to
+    // their DOM placeholders. A render acknowledgement must not pass this test.
+    HTMLCanvasElement.prototype.transferControlToOffscreen=function(){window.memoryReview.transfers++;return new OffscreenCanvas(this.width,this.height)};
     window.Worker=class extends NativeWorker{
-      constructor(...args){super(...args);this.addEventListener('message',({data})=>{if(data.type==='weights')window.memoryReview.weights=data.weights.slice().buffer})}
+      constructor(...args){super(...args);this.addEventListener('message',event=>{
+        const data=event.data;if(data.type==='weights')window.memoryReview.weights=data.weights.slice().buffer;
+        if(data.type==='paint'&&window.memoryReview.holdFrames){event.stopImmediatePropagation();window.memoryReview.frames.push(()=>this.onmessage?.call(this,event))}
+      })}
       postMessage(message,...args){
         if(message.type==='suspend'&&window.memoryReview.holdSuspensions)window.memoryReview.pending.push(()=>super.postMessage(message,...args));
         else super.postMessage(message,...args);
@@ -84,11 +106,26 @@ try {
   assert.equal(await evaluate('window.memoryReview.pending.length'), 1);
   await evaluate('window.memoryReview.holdSuspensions=false;for(const resume of window.memoryReview.pending.splice(0))resume()');
   await workers(0);
+  // Hold one completed image while newer zoom poses arrive. Backpressure must
+  // bound queued frames, and discarding that old pose must still acknowledge it.
+  await evaluate('window.memoryReview.holdFrames=true');
+  await click('[data-view-tab="channels"]');
+  await wait('window.memoryReview.frames.length===1');
+  await click('#zoom-in'); await paint(); await click('#zoom-reset'); await paint();
+  await evaluate('new Promise(resolve=>setTimeout(resolve,200))');
+  assert.equal(await evaluate('window.memoryReview.frames.length'), 1, 'Keep at most one completed image in flight.');
+  await evaluate('window.memoryReview.holdFrames=false;for(const present of window.memoryReview.frames.splice(0))present()');
+  await wait(`(() => {const d=document.getElementById('mesh-edges').dataset;return d.frame&&d.frame===d.request})()`);
+  const expectedNetwork = await networkPixels();
+  const networkScreenshot = await client.call<{data: string}>('Page.captureScreenshot', {format: 'png'});
+  await writeFile('/tmp/grokking-mobile-network.png', Buffer.from(networkScreenshot.data, 'base64'));
+  await click('[data-view-tab="weights"]'); await workers(0);
   for (let i = 0; i < 12; i++) {
     await click('[data-view-tab="channels"]');
     await wait(`(() => {const d=document.getElementById('mesh-edges').dataset;return d.frame&&d.frame===d.request})()`);
     await workers(1); const network = await storage(); records.push(network);
     assert.ok(network.rasterPixels > 262144, 'The mobile network must retain a sharp raster rather than the old low-resolution image.');
+    assert.deepEqual(await networkPixels(), expectedNetwork, 'Reopening Network must present all learned connections again.');
     assert.equal(await evaluate(`document.getElementById('mesh-edges').dataset.connections`), '53632');
     await click('[data-view-tab="weights"]'); await workers(0);
     const weights = await storage(); records.push(weights);
@@ -111,6 +148,7 @@ try {
   })()`);
   for (const maps of rapidMaps) assert.deepEqual(maps, expectedMaps, 'Interleaving view switches with rendering and trainer startup must never leave a blank atlas.');
   await workers(0); records.push(await storage());
+  assert.equal(await evaluate('window.memoryReview.transfers'), 0, 'Visible canvas presentation must not depend on transferControlToOffscreen.');
   // A restored 2D context has an empty backing store, even if its data keys
   // still match. Simulate that browser lifecycle event without changing weights.
   await evaluate(`for(const id of ['input-a','input-b','readout']){const c=document.getElementById(id);c.getContext('2d').reset();c.dispatchEvent(new Event('contextrestored'));}`);
@@ -135,8 +173,8 @@ try {
   await workers(0); records.push(await storage());
   assert.ok(Number(await evaluate(`document.getElementById('epoch').textContent`)) >= 16);
   assert.deepEqual(client.errors, []);
-  await writeFile('/tmp/grokking-mobile-memory-verification.json', JSON.stringify({origin,epochsBeforeSwitching:15,records,maps:expectedMaps,rapidPaints:rapidMaps.length,bitwiseContinuation:true,errors:client.errors},null,2)+'\n');
-  console.log(`PASS: W128 at epoch 15, sharp heatmaps before trainer shutdown, 12 complete render/release cycles, 120 interleaved view switches with exact pixel comparisons, context restoration, immediate Pause → Network → Weights, no hidden pixel buffers, zero workers on Weights, bounded raster memory and bit-for-bit epoch 16 after restoring training.`);
+  await writeFile('/tmp/grokking-mobile-memory-verification.json', JSON.stringify({origin,epochsBeforeSwitching:15,records,maps:expectedMaps,network:expectedNetwork,rapidPaints:rapidMaps.length,bitwiseContinuation:true,errors:client.errors},null,2)+'\n');
+  console.log(`PASS: W128 at epoch 15, actual pixels in all three network bands with broken offscreen presentation, one image in flight and stale-frame recovery, sharp heatmaps before trainer shutdown, 12 complete render/release cycles, 120 interleaved view switches, context restoration, immediate Pause → Network → Weights, no hidden pixel buffers, zero workers on Weights, bounded raster memory and bit-for-bit epoch 16 after restoring training.`);
 } finally {
   if (injected) await client.call('Page.removeScriptToEvaluateOnNewDocument', {identifier: injected.identifier});
   await client.call('Emulation.setCPUThrottlingRate', {rate: 1});

@@ -15,7 +15,6 @@ export declare class WeightTopology {
     private weights;
     private initial;
     private generation;
-    private transferred;
     private initializing;
     private contextEvents;
     constructor(element: HTMLCanvasElement, invalidate: () => void);

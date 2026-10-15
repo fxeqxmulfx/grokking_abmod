@@ -49,9 +49,21 @@ try {
       if(!bandVisibility().every(n=>n>1250/4))throw new Error('Weak changes disappeared');
       const memoryBytes=scene.exports.memory.buffer.byteLength;
       if(memoryBytes>4*1024*1024)throw new Error('Tiled raster exceeded its scratch-memory budget');
+      const contrastLayout=topologyLayout(320,240,width),contrastCanvas=document.createElement('canvas'),contrastContext=contrastCanvas.getContext('2d',{willReadFrequently:true}),opacity=[];
+      for(const scale of [1,2]){
+        contrastCanvas.width=320*scale;contrastCanvas.height=240*scale;
+        scene.draw(contrastContext,contrastLayout,changed,32,view,-1,{initial:weights},scale);
+        const data=contrastContext.getImageData(0,0,contrastCanvas.width,contrastCanvas.height).data;
+        opacity.push([0,1,2].map(band=>{const y=Math.floor((contrastLayout.rows[band]+contrastLayout.rows[band+1])/2*scale);let sum=0;for(let x=0;x<contrastCanvas.width;x++)sum+=data[(y*contrastCanvas.width+x)*4+3];return sum/contrastCanvas.width}));
+      }
+      if(!opacity[0].every((value,i)=>opacity[1][i]>=value*.75&&opacity[1][i]<=value*1.25))throw new Error('High-DPI rendering washed out the network weights');
       // Explicitly exercise the main-thread fallback with the real wrapper.
-      const fallbackCanvas=document.createElement('canvas');Object.defineProperty(fallbackCanvas,'transferControlToOffscreen',{value:undefined});
-      let fallback,invalidations=0;await new Promise(resolve=>{fallback=new WeightTopology(fallbackCanvas,()=>{invalidations++;resolve()});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights})});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
+      const fallbackCanvas=document.createElement('canvas'),NativeWorker=window.Worker;
+      let fallback,invalidations=0;await new Promise(resolve=>{
+        window.Worker=class {constructor(){throw new Error('Exercise worker-startup fallback')}};
+        try{fallback=new WeightTopology(fallbackCanvas,()=>{invalidations++;resolve()});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights})}
+        finally{window.Worker=NativeWorker}
+      });fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
       if(fallbackCanvas.dataset.thread!=='main'||Number(fallbackCanvas.dataset.connections)!==3*97*width+width*width)throw new Error('CPU fallback failed');
       const fallbackImage=fallbackCanvas.toDataURL(),beforeRestore=invalidations;
       fallbackCanvas.getContext('2d').reset();fallbackCanvas.dispatchEvent(new Event('contextrestored'));
@@ -60,7 +72,7 @@ try {
       if(fallbackCanvas.toDataURL()!==fallbackImage)throw new Error('Restored fallback lost its connections');
       fallback.destroy();
       const median=values=>values.slice(2).sort((a,b)=>a-b)[Math.floor((values.length-2)/2)];
-      results.push({width,connections:3*97*width+width*width,memoryBytes,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,classificationReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true,contextRestoration:true});
+      results.push({width,connections:3*97*width+width*width,memoryBytes,opacity,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,classificationReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true,contextRestoration:true});
     }
     return{viewport:[1250,520],renderer:'CPU Canvas 2D',results};
   })()`);
