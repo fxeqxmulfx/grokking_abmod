@@ -71,6 +71,7 @@ h3 span { font: 10px var(--mono); color: var(--muted); margin-left: 6px; }
 .rose { background: #be3e79; }
 .mesh-blue { background: #5294b0; }
 canvas { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; }
+.heatmap-card canvas { image-rendering: pixelated; }
 .chart-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
 #observations { white-space: nowrap; }
 .mesh-card { grid-area: mesh; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 7px; }

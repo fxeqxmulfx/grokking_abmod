@@ -32,4 +32,6 @@ export type TopologyResponse = {
 } | {
     type: 'error';
     message: string;
+} | {
+    type: 'invalidate';
 };

@@ -102,11 +102,16 @@ Returning restores those states without adding a duplicate observation.
 Hidden canvases release their backing stores and keep 1×1 placeholders. The
 network renderer starts only when visible and is terminated on leaving the
 view, releasing its WASM memory and intermediate image. Resize observation uses
-stable containers so replaced canvas elements are not retained. Mobile display
-surfaces use at most one pixel per CSS pixel, with a 262,144-pixel budget per
-surface and a 131,072-pixel budget for the network raster. Desktop budgets are
-1,048,576 and 524,288 pixels respectively. The renderer keeps all connections
-and restores the selected channel, zoom and pan when reopened.
+stable containers so replaced canvas elements are not retained. Visible display
+surfaces render at up to 2× CSS resolution, with a 524,288-pixel budget per
+mobile surface and 1,048,576 pixels on desktop. The network raster is limited
+to 524,288 pixels and reuses strips of at most 131,072 pixels for f32
+accumulation, keeping its WASM memory below 4 MiB even at the higher resolution.
+Heatmaps use nearest-neighbor scaling and paint immediately while a trainer
+checkpoint is pending; only the dense renderer waits for trainer shutdown.
+Restored canvas contexts invalidate their display and bitmap caches. The
+renderer keeps all connections and restores the selected channel, zoom and pan
+when reopened.
 
 ## Architecture and initialization
 
@@ -430,9 +435,11 @@ counts, suspends running training and verifies bit-for-bit continuation. It also
 checks that all six translated Dense/ReLU/skip/RMSNorm captions fit their
 backgrounds.
 The mobile memory regression trains W128 for 15 epochs, visits Network and
-Weights, and checks 12 complete render/release cycles plus 80 rapid view
-switches. Hidden surfaces must be 1×1, network raster memory must remain below
-4 MiB, and paused Weights must retain no dedicated workers. Returning to
+Weights, and checks 12 complete render/release cycles plus 120 interleaved view
+switches. It compares every heatmap pixel, requires 2× resolution on the phone,
+holds trainer shutdown pending to detect blank maps, and simulates canvas
+restoration. Hidden surfaces must be 1×1, network raster memory must remain
+below 4 MiB, and paused Weights must retain no dedicated workers. Returning to
 Training must reproduce the uninterrupted epoch-16 weights bit-for-bit.
 The Pages check loads all 20 packaged training modules, verifies the isolation
 bootstrap without server headers, and trains every width with custom AdamW

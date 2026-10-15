@@ -1,6 +1,7 @@
 import { weightColor, weightMagnitude, weightPalette, initialWeightRanges } from './weight-colors.js';
 export const NETWORK_LEVELS = 1024;
 const LEVELS = NETWORK_LEVELS, SKIP = 65535, ZERO = 4 * LEVELS, P = 97;
+const TILE_PIXELS = 131072;
 const rgb = weightPalette(LEVELS);
 export function topologyLayout(width, height, channels) {
     const top = Math.min(26, height * .15), bottom = height - 22, span = bottom - top, half = (width - 64) / 2;
@@ -30,6 +31,7 @@ export class CPUScene {
     backgroundPaints = 0;
     buildMs = 0;
     drawMs = 0;
+    onRestore;
     weights = null;
     initial = null;
     mode = 'weight';
@@ -102,13 +104,17 @@ export class CPUScene {
     }
     draw(ctx, layout, weights, selected, view, focus = -1, options = {}, scale = 1) {
         const start = performance.now(), width = Math.round(layout.width * scale), height = Math.round(layout.height * scale);
-        this.allocate(width, height, layout.channels, weights.length);
+        // Reuse one strip of f32 scratch space instead of allocating it for the
+        // complete high-resolution image. Every connection is still rasterized.
+        const tileHeight = Math.min(height, Math.max(1, Math.floor(TILE_PIXELS / (width + 1))));
+        this.allocate(width, tileHeight, layout.channels, weights.length);
         this.prepare(layout, weights, options.initial ?? weights, options.mode ?? 'weight');
         if (!this.background) {
             this.background = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
             this.backgroundContext = this.background.getContext('2d', { willReadFrequently: true });
             if (!this.backgroundContext)
                 throw new Error('Canvas 2D is unavailable.');
+            this.background.addEventListener('contextrestored', () => { this.pose = ''; this.onRestore?.(); });
         }
         const pose = `${this.classifications}:${width}:${height}:${view.zoom}:${view.x}:${view.y}`;
         if (this.pose !== pose) {
@@ -126,8 +132,10 @@ export class CPUScene {
                 this.coordinates[w + 2 * P + r] = x(layout.answer(r));
             }
             const a = this.addresses, rows = layout.rows.map(y => (y + view.y) * scale);
-            this.exports.render(a.codes, a.palette, a.columns, a.residues, a.answers, a.scratch, a.pixels, width, height, w, rows[0], rows[1], rows[2], rows[3]);
-            this.backgroundContext.putImageData(this.image, 0, 0);
+            for (let top = 0; top < height; top += tileHeight) {
+                this.exports.render(a.codes, a.palette, a.columns, a.residues, a.answers, a.scratch, a.pixels, width, tileHeight, w, rows[0] - top, rows[1] - top, rows[2] - top, rows[3] - top);
+                this.backgroundContext.putImageData(this.image, 0, top);
+            }
             this.pose = pose;
             this.backgroundPaints++;
         }

@@ -27,6 +27,7 @@ export declare class CPUScene {
     backgroundPaints: number;
     buildMs: number;
     drawMs: number;
+    onRestore?: () => void;
     private weights;
     private initial;
     private mode;

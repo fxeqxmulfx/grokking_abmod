@@ -7,11 +7,13 @@ let canvas: OffscreenCanvas, ctx: OffscreenCanvasRenderingContext2D;
 let weights: Weights, initial: Weights, pending: Exclude<TopologyRequest, {type: 'initialize'}> | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 const ready = CPUScene.create();
+void ready.then(scene => {scene.onRestore = () => postMessage({type: 'invalidate'});}).catch(() => {});
 onmessage = ({data}: MessageEvent<TopologyRequest>) => {
   try {
     if (data.type === 'initialize') {
       canvas = data.canvas; const context = canvas.getContext('2d', {willReadFrequently: true});
-      if (!context) throw new Error('Canvas 2D is unavailable.'); ctx = context; return;
+      if (!context) throw new Error('Canvas 2D is unavailable.'); ctx = context;
+      canvas.addEventListener('contextrestored', () => postMessage({type: 'invalidate'})); return;
     }
     // Retain snapshots even when a newer pose replaces a queued draw.
     if (data.type === 'draw') {if (data.weights) weights = data.weights; if (data.initial) initial = data.initial;}

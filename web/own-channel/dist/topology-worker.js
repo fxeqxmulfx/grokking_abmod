@@ -4,6 +4,7 @@ let canvas, ctx;
 let weights, initial, pending = null;
 let timer = null;
 const ready = CPUScene.create();
+void ready.then(scene => { scene.onRestore = () => postMessage({ type: 'invalidate' }); }).catch(() => { });
 onmessage = ({ data }) => {
     try {
         if (data.type === 'initialize') {
@@ -12,6 +13,7 @@ onmessage = ({ data }) => {
             if (!context)
                 throw new Error('Canvas 2D is unavailable.');
             ctx = context;
+            canvas.addEventListener('contextrestored', () => postMessage({ type: 'invalidate' }));
             return;
         }
         // Retain snapshots even when a newer pose replaces a queued draw.

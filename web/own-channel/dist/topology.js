@@ -17,6 +17,7 @@ export class WeightTopology {
     generation = 0;
     transferred = false;
     initializing = false;
+    contextEvents = null;
     constructor(element, invalidate) {
         this.element = element;
         this.invalidate = invalidate;
@@ -38,6 +39,10 @@ export class WeightTopology {
                         return;
                     if (data.type === 'error') {
                         this.fallback(data.message);
+                        return;
+                    }
+                    if (data.type === 'invalidate') {
+                        this.invalidate();
                         return;
                     }
                     const dataset = this.element.dataset;
@@ -72,6 +77,9 @@ export class WeightTopology {
             this.element.replaceWith(replacement);
             this.element = replacement;
         }
+        this.contextEvents?.abort();
+        this.contextEvents = new AbortController();
+        this.element.addEventListener('contextrestored', () => this.invalidate(), { signal: this.contextEvents.signal });
         this.ctx = this.element.getContext('2d', { willReadFrequently: true });
         if (!this.ctx)
             throw new Error('Canvas 2D is unavailable.');
@@ -83,8 +91,15 @@ export class WeightTopology {
             this.element.dataset.error = message;
         const generation = this.generation;
         this.initializing = true;
-        void CPUScene.create().then(scene => { if (generation !== this.generation)
-            return; this.scene = scene; this.initializing = false; this.invalidate(); })
+        void CPUScene.create().then(scene => {
+            if (generation !== this.generation)
+                return;
+            scene.onRestore = () => { if (generation === this.generation)
+                this.invalidate(); };
+            this.scene = scene;
+            this.initializing = false;
+            this.invalidate();
+        })
             .catch(error => { if (generation === this.generation) {
             this.initializing = false;
             this.element.dataset.error = errorText(error);
@@ -103,8 +118,8 @@ export class WeightTopology {
     }
     draw(_overlay, layout, weights, selected, view, focus = -1, options = {}) {
         this.start();
-        // Dense connections need less resolution than the separate text overlay.
-        // Bound the f32 accumulation buffer when a tab expands to the full screen.
+        // Bound the final raster dimensions; CPUScene reuses a small strip of
+        // accumulation memory for the complete image.
         const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = networkScale(layout.width, layout.height);
         const dataset = this.element.dataset, ranges = initialWeightRanges(initial, layout.channels).map(value => value * (mode === 'delta' ? .25 : 1));
         dataset.connections = String(3 * 97 * layout.channels + layout.channels * layout.channels);
@@ -162,6 +177,8 @@ export class WeightTopology {
         this.generation++;
         this.worker?.terminate();
         this.worker = null;
+        this.contextEvents?.abort();
+        this.contextEvents = null;
         if (this.transferred) {
             // A transferred canvas cannot be transferred again after its worker exits.
             const replacement = this.element.cloneNode(false);

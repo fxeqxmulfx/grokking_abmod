@@ -14,7 +14,7 @@ for (const variant of ['simd', 'scalar']) test(`${variant} software raster: shar
   const color = new Float32Array(buffer, palette, 4097 * 4), weights = new Uint16Array(buffer, codes, 198), output = new Uint8Array(buffer, pixels, 8 * 12 * 4);
   column.set([2, 6]); residue.fill(2); residue[97] = 6; answer.fill(2);
   color.set([90, 0, 0, 1], 0); color.set([0, 0, 90, 1], 1024 * 4); color.set([0, 90, 0, 1], 2048 * 4);
-  const render = (rows = [0, 4, 8, 12]) => exports.render(codes, palette, columns, residues, answers, scratch, pixels, 8, 12, 2, rows[0], rows[1], rows[2], rows[3]);
+  const render = (rows = [0, 4, 8, 12], height = 12) => exports.render(codes, palette, columns, residues, answers, scratch, pixels, 8, height, 2, rows[0], rows[1], rows[2], rows[3]);
   const pixel = (x: number, y: number) => Array.from(output.slice((y * 8 + x) * 4, (y * 8 + x + 1) * 4));
   weights.fill(65535); weights[0] = 0; render();
   assert.deepEqual(pixel(2, 0), [90, 0, 0, 127], 'a uses E[0,0]');
@@ -32,4 +32,11 @@ for (const variant of ['simd', 'scalar']) test(`${variant} software raster: shar
   column.set([-100, 100]); render();
   assert.ok(Array.from({length: 8}, (_, x) => pixel(x, 6)[3]).every(alpha => alpha === 127), 'zoomed spans cross every visible column');
   weights.fill(65535); render(); assert.ok(output.every(value => value === 0), 'zero changes clear previous pixels');
+  column.set([2, 6]); weights[0] = weights[1] = 0; weights[195] = 2048;
+  render(); const complete = output.slice(), tiled = new Uint8Array(complete.length);
+  for (let top = 0; top < 12; top += 3) {
+    render([0, 4, 8, 12].map(row => row - top), 3);
+    tiled.set(output.subarray(0, 8 * 3 * 4), top * 8 * 4);
+  }
+  assert.deepEqual(tiled, complete, 'Tiled accumulation preserves all shared-E roles, dense edges and strip boundaries.');
 });

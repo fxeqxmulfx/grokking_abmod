@@ -214,7 +214,10 @@ function atlas(id: CanvasId, type: AtlasType) {
     const bitmap = cached?.bitmap ?? document.createElement('canvas');
     const resized = bitmap.width !== columns || bitmap.height !== rows;
     if (resized) { bitmap.width = columns; bitmap.height = rows; }
-    const bitmapCtx = bitmap.getContext('2d')!, image = !cached || resized ? bitmapCtx.createImageData(columns, rows) : cached.image;
+    const bitmapCtx = bitmap.getContext('2d', {willReadFrequently: true})!, image = !cached || resized ? bitmapCtx.createImageData(columns, rows) : cached.image;
+    if (!cached) bitmap.addEventListener('contextrestored', () => {
+      atlasCache.delete(type); renderInputs.delete(id); invalidate();
+    });
     const weights = state.weights, original = mode === 'delta' ? state.initial : null, offset = type === 'b' ? modelInfo(state.model).gain : 0;
     const means = centered ? new Float64Array(columns) : null;
     if (means) {
@@ -297,8 +300,9 @@ function invalidate(target = state, immediate = true) {
   }
 }
 function renderCanvas(id: CanvasId, inputs: readonly unknown[], render: () => void) {
-  const rect = $(id).getBoundingClientRect();
+  const element = $(id), rect = element.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return;
+  if (element.getContext('2d', {willReadFrequently: true})?.isContextLost()) {renderInputs.delete(id); return;}
   const next = [...inputs, Math.round(rect.width), Math.round(rect.height), displayScale(Math.round(rect.width), Math.round(rect.height)), document.documentElement.lang];
   const previous = renderInputs.get(id);
   if (previous && previous.length === next.length && next.every((value, i) => value === previous[i])) return;
@@ -317,7 +321,7 @@ function releaseHiddenGraphics() {
 function draw() {
   pendingFrame = null;
   releaseHiddenGraphics();
-  if (!state.dirty || document.hidden || (compactRendering && state.suspension)) return;
+  if (!state.dirty || document.hidden) return;
   state.dirty = false;
   if (state.metricsDirty) refreshMetrics();
   renderCanvas('curve', [state, state.history.length, state.metric, state.criterion], curve);
@@ -326,7 +330,9 @@ function draw() {
   const meshVisible = visible('mesh'), scalesVisible = visible('scales');
   if (visible('probe-a') || meshVisible || scalesVisible) {
     const result = probe();
-    if (meshVisible || scalesVisible) {
+    // Only the dense renderer waits for the trainer to release its memory.
+    // Weight maps must paint even during a rapid leave/return to Training.
+    if ((meshVisible || scalesVisible) && !(compactRendering && state.suspension)) {
       const scales = channelScales(result), view = state.networkView;
       renderCanvas('mesh', [state, state.weights, state.initial, result, state.channel, state.meshView, state.networkMode, state.networkHighlight, state.networkHighlight ? state.focusWeight : null, view.zoom, view.x, view.y], () => denseMesh(result, scales));
       renderCanvas('scales', [state, scales, state.channel], () => scalePlot(scales));
@@ -635,6 +641,9 @@ $('export-metrics').onclick = () => {
   download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}${presetSuffix()}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
 };
 const resizeObserver = new ResizeObserver(() => { invalidate(); });
+for (const id of ['curve', 'mesh', 'scales', 'input-a', 'input-b', 'readout'] as const) {
+  $(id).addEventListener('contextrestored', () => {renderInputs.delete(id); invalidate();});
+}
 for (const element of document.querySelectorAll('main, .chart-card, .mesh-canvas, .scale-card, .heatmap-card')) resizeObserver.observe(element);
 window.addEventListener('resize', () => { invalidate(); });
 function selectView(view: string) {

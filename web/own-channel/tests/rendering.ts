@@ -15,6 +15,7 @@ try {
   // Instrument browser APIs, independently of the application's render caches.
   await client.call('Page.addScriptToEvaluateOnNewDocument', {source: `(() => {
     window.renderReview = {reset() {this.work = {frames: 0, clears: {}, rasters: 0, snapshots: []}}};
+    window.renderReview.bitmaps = [];
     window.renderReview.reset();
     const raf = window.requestAnimationFrame;
     window.requestAnimationFrame = function(callback) {
@@ -28,7 +29,10 @@ try {
     };
     const put = CanvasRenderingContext2D.prototype.putImageData;
     CanvasRenderingContext2D.prototype.putImageData = function(...args) {
-      if (!this.canvas.id) window.renderReview.work.rasters++;
+      if (!this.canvas.id) {
+        window.renderReview.work.rasters++;
+        if (!window.renderReview.bitmaps.includes(this.canvas)) window.renderReview.bitmaps.push(this.canvas);
+      }
       return put.apply(this, args);
     };
     const NativeWorker = Worker;
@@ -68,6 +72,19 @@ try {
   assert.deepEqual(selection.clears, {'input-a': 1, 'input-b': 1, readout: 1});
   assert.equal(selection.rasters, 0, 'Selection must reuse all three heatmap rasters');
 
+  await reset();
+  await evaluate(`(() => {
+    const canvas=document.getElementById('input-a'),context=canvas.getContext('2d');
+    window.renderReview.pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
+    context.reset();
+    const bitmap=window.renderReview.bitmaps[0];bitmap.getContext('2d').reset();bitmap.dispatchEvent(new Event('contextrestored'));
+  })()`);
+  await paint();
+  assert.equal(await evaluate(`(() => {const c=document.getElementById('input-a'),pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;return pixels.every((value,i)=>value===window.renderReview.pixels[i])})()`), true, 'A restored source bitmap must regenerate the original weight colors.');
+  assert.equal((await work()).rasters, 1, 'Restore only the discarded source bitmap.');
+  assert.deepEqual((await work()).clears, {'input-a': 1});
+  await evaluate('delete window.renderReview.pixels');
+
   // Receive real per-epoch metrics more often than the one-Hz weight snapshots.
   await evaluate(`(() => {
     const capture = document.querySelector('#capture'); capture.value = '1'; capture.dispatchEvent(new Event('change'));
@@ -105,7 +122,7 @@ try {
 
   assert.deepEqual(client.errors, []);
   console.log(JSON.stringify({selection, training}));
-  console.log('PASS: idle, hover, selection, snapshot cadence, complete epoch history, unchanged-weight deduplication and status-only updates.');
+  console.log('PASS: idle, hover, selection, source bitmap restoration, snapshot cadence, complete epoch history, unchanged-weight deduplication and status-only updates.');
 } finally {
   client.close();
 }

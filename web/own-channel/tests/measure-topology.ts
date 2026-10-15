@@ -47,17 +47,25 @@ try {
       if(bandVisibility().some(n=>n>0))throw new Error('Initial changes should be transparent');
       const changed=weights.map((v,i)=>v+(i<97*width?.002:.01));scene.draw(ctx,layout,changed,32,view,-1,{initial:weights,mode:'delta'});
       if(!bandVisibility().every(n=>n>1250/4))throw new Error('Weak changes disappeared');
+      const memoryBytes=scene.exports.memory.buffer.byteLength;
+      if(memoryBytes>4*1024*1024)throw new Error('Tiled raster exceeded its scratch-memory budget');
       // Explicitly exercise the main-thread fallback with the real wrapper.
       const fallbackCanvas=document.createElement('canvas');Object.defineProperty(fallbackCanvas,'transferControlToOffscreen',{value:undefined});
-      let fallback;await new Promise(resolve=>{fallback=new WeightTopology(fallbackCanvas,resolve);fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights})});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
-      if(fallbackCanvas.dataset.thread!=='main'||Number(fallbackCanvas.dataset.connections)!==3*97*width+width*width)throw new Error('CPU fallback failed');fallback.destroy();
+      let fallback,invalidations=0;await new Promise(resolve=>{fallback=new WeightTopology(fallbackCanvas,()=>{invalidations++;resolve()});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights})});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
+      if(fallbackCanvas.dataset.thread!=='main'||Number(fallbackCanvas.dataset.connections)!==3*97*width+width*width)throw new Error('CPU fallback failed');
+      const fallbackImage=fallbackCanvas.toDataURL(),beforeRestore=invalidations;
+      fallbackCanvas.getContext('2d').reset();fallbackCanvas.dispatchEvent(new Event('contextrestored'));
+      if(invalidations!==beforeRestore+1)throw new Error('Restored fallback did not request a redraw');
+      fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
+      if(fallbackCanvas.toDataURL()!==fallbackImage)throw new Error('Restored fallback lost its connections');
+      fallback.destroy();
       const median=values=>values.slice(2).sort((a,b)=>a-b)[Math.floor((values.length-2)/2)];
-      results.push({width,connections:3*97*width+width*width,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,classificationReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true});
+      results.push({width,connections:3*97*width+width*width,memoryBytes,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,classificationReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true,contextRestoration:true});
     }
     return{viewport:[1250,520],renderer:'CPU Canvas 2D',results};
   })()`);
   if (client.errors.length) throw new Error(JSON.stringify(client.errors));
   await writeFile('/tmp/grokking-cpu-topology.json', JSON.stringify(checks, null, 2) + '\n');
   console.log(JSON.stringify(checks));
-  console.log('PASS: all connections, raw/change, software fallback, cached classifications/background, real pointer pan and Fit.');
+  console.log('PASS: all connections, raw/change, tiled scratch memory, software fallback and context restoration, cached classifications/background, real pointer pan and Fit.');
 } finally {client.close();}
