@@ -1,0 +1,14 @@
+✔ diagnostic equations stay in the held-out split and repeat for a seed (37.491757ms)
+✔ neighbor-rotary diagnostic margins and probabilities match independent model inference (73.836332ms)
+✔ neighbor-rotary-wide diagnostic margins and probabilities match independent model inference (535.765366ms)
+✔ zero logits are ties, with uniform probability and deterministic class zero (0.860841ms)
+✔ history bounds memory, preserves endpoints and replaces repeated epochs (1.032442ms)
+✔ histogram preserves the sign, zero ties and clipped tails around its boundary (0.216628ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 703.83857

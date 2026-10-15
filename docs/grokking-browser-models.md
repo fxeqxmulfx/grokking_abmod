@@ -2,9 +2,11 @@
 
 The later [short-plateau study](short-mesh-results.md) relaxes the minimum
 plateau to 25 epochs and identifies replicated sparse mesh candidates.
-Both current browser tabs use the [shared-E Rotate90 Neighbor architecture](rotary-neighbor-results.md)
-at widths 128 and 1024. The wider model satisfies the short-study criterion on
-all five tested seeds.
+Both current browser tabs use the [Dense + ReLU architecture with Normal(0, 1/W) E](rotary-dense-embedding-results.md)
+at widths 128 and 1024, with one pre-norm residual block and shared E.
+The native seed-11 W1024 run has a 92-epoch memorization plateau and qualifies
+under the short-study criterion. The [Neighbor study](rotary-neighbor-results.md)
+retains its five-seed experiments and earlier browser measurements.
 The earlier-model comparisons below retain the original longer-plateau rule.
 
 ## Earlier untied Neighbor browser model

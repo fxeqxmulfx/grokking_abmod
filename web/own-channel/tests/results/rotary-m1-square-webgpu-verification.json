@@ -1,0 +1,212 @@
+{
+  "architecture": {
+    "blocks": 1,
+    "meshDepth": 1,
+    "meshOutputActivation": true,
+    "widths": [
+      128,
+      1024
+    ],
+    "parameters": [
+      12672,
+      101376
+    ]
+  },
+  "checksPerWidth": 18,
+  "sources": {
+    "dist/models.mjs": "adf53002cffcf270343dfda3b897eee3158fc1e3bd573c8701d2e792a73c9063",
+    "dist/gpu.mjs": "5d18a604e3f5e49b463b93eaeb6ee644ddc2783a5c3f135cc0c22a90c6d898d2",
+    "dist/neighbor-rotary.wgsl": "f790fad1a13124bc93fe91937caa87f8d44b0b1cfa24d90b6bb9ef8846f7dba0",
+    "dist/neighbor-rotary-wide.wgsl": "6b0ecc88e5edcb377b2623bbfa05579a966bae1f1f97a70e310db53caefdb066",
+    "dist/neighbor-rotary-simd.wasm": "ce45e72bd5dc6ad089bd059185ba405f0960989aae0df6bcc6de5afff0d2a85f",
+    "dist/neighbor-rotary-wide-simd.wasm": "d015c757f1a864d8f17d301b02c2ee780fecfe977a9e3c3c2db5fefaf709b2a8",
+    "tests/models-reference.mjs": "41ed048b92e5184b1a8020cbee8b0c0865d9ad29f8a0a745736df77910d958b9",
+    "tests/models-gpu.mjs": "bcbbffa24b1de05ebd863a4360f1228711be9d8505a983e79a4bdee3b7be0c38"
+  },
+  "checks": {
+    "narrow": [
+      {
+        "check": "logits 0",
+        "error": 5.330363910260871e-7
+      },
+      {
+        "check": "logits 19",
+        "error": 7.042897682829619e-7
+      },
+      {
+        "check": "logits 4655",
+        "error": 5.317370644908337e-7
+      },
+      {
+        "check": "logits 4656",
+        "error": 8.021503673516506e-7
+      },
+      {
+        "check": "logits 9311",
+        "error": 4.965757872676946e-7
+      },
+      {
+        "check": "parameters 0..12416, batch 1",
+        "error": 0.0000020079306346509895,
+        "relativeError": 5.219906962485391e-7
+      },
+      {
+        "check": "parameters 12416..12672, batch 1",
+        "error": 4.046922328360125e-7,
+        "relativeError": 5.730539991542772e-7
+      },
+      {
+        "check": "parameters 0..12416, batch 37",
+        "error": 6.050806589108504e-8,
+        "relativeError": 2.3851232837857143e-7
+      },
+      {
+        "check": "parameters 12416..12672, batch 37",
+        "error": 1.561324107328399e-8,
+        "relativeError": 2.8078967231219103e-7
+      },
+      {
+        "check": "parameters 0..12416, batch 48",
+        "error": 4.398393364801745e-8,
+        "relativeError": 2.416318225230561e-7
+      },
+      {
+        "check": "parameters 12416..12672, batch 48",
+        "error": 1.2589649415854776e-8,
+        "relativeError": 2.388269259576428e-7
+      },
+      {
+        "check": "parameters 0..12416, batch 512",
+        "error": 2.7021997375809015e-8,
+        "relativeError": 6.017128738857073e-7
+      },
+      {
+        "check": "parameters 12416..12672, batch 512",
+        "error": 1.0163995964318495e-8,
+        "relativeError": 5.997876849259275e-7
+      },
+      {
+        "check": "AdamW 1",
+        "error": 2.487583951327199e-7
+      },
+      {
+        "check": "AdamW 2",
+        "error": 2.480582646027796e-7
+      },
+      {
+        "check": "AdamW 3",
+        "error": 2.468035659036749e-7
+      },
+      {
+        "check": "complete-split metrics",
+        "row": {
+          "step": 3,
+          "epoch": 0.3,
+          "trainLoss": 4.7833170890808105,
+          "trainAccuracy": 0.011168384924530983,
+          "heldoutLoss": 4.776150226593018,
+          "heldoutAccuracy": 0.007731958758085966
+        }
+      },
+      {
+        "check": "nontrivial independent gains/edges",
+        "error": 7.220010231345775e-8
+      }
+    ],
+    "wide": [
+      {
+        "check": "logits 0",
+        "error": 0.00000280043691258669
+      },
+      {
+        "check": "logits 19",
+        "error": 0.00000325065085737819
+      },
+      {
+        "check": "logits 4655",
+        "error": 0.000005607037148358529
+      },
+      {
+        "check": "logits 4656",
+        "error": 0.000004718411100057551
+      },
+      {
+        "check": "logits 9311",
+        "error": 0.000004020285897077258
+      },
+      {
+        "check": "parameters 0..99328, batch 1",
+        "error": 0.000004625639453692543,
+        "relativeError": 0.0000011791562658839589
+      },
+      {
+        "check": "parameters 99328..101376, batch 1",
+        "error": 7.559224506903384e-7,
+        "relativeError": 0.000001055059559806686
+      },
+      {
+        "check": "parameters 0..99328, batch 37",
+        "error": 2.8120047617513633e-7,
+        "relativeError": 0.0000010416230974180198
+      },
+      {
+        "check": "parameters 99328..101376, batch 37",
+        "error": 6.000598680184349e-8,
+        "relativeError": 6.211122428777206e-7
+      },
+      {
+        "check": "parameters 0..99328, batch 48",
+        "error": 4.1570471659424513e-7,
+        "relativeError": 0.000001687349955927357
+      },
+      {
+        "check": "parameters 99328..101376, batch 48",
+        "error": 6.754404894074306e-8,
+        "relativeError": 8.077715892203429e-7
+      },
+      {
+        "check": "parameters 0..99328, batch 512",
+        "error": 1.533518276253254e-7,
+        "relativeError": 0.0000011605523255409063
+      },
+      {
+        "check": "parameters 99328..101376, batch 512",
+        "error": 2.9447407220994926e-8,
+        "relativeError": 6.520136790703466e-7
+      },
+      {
+        "check": "AdamW 1",
+        "error": 9.764788823744819e-7
+      },
+      {
+        "check": "AdamW 2",
+        "error": 9.766990988306634e-7
+      },
+      {
+        "check": "AdamW 3",
+        "error": 9.759737960197967e-7
+      },
+      {
+        "check": "complete-split metrics",
+        "row": {
+          "step": 3,
+          "epoch": 0.3,
+          "trainLoss": 6.187548637390137,
+          "trainAccuracy": 0.00987972505390644,
+          "heldoutLoss": 6.219274520874023,
+          "heldoutAccuracy": 0.009450172074139118
+        }
+      },
+      {
+        "check": "nontrivial independent gains/edges",
+        "error": 3.5738721324007905e-7
+      }
+    ]
+  },
+  "maximumRelativeGradientError": {
+    "narrow": 6.017128738857073e-7,
+    "wide": 0.000001687349955927357
+  },
+  "command": "GROKKING_CDP_PORT=9225 node web/own-channel/tests/browser.mjs",
+  "note": "Numerical checks ran before the all-weights visualization changes. The listed mathematical sources remain unchanged."
+}

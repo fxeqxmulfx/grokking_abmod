@@ -1,0 +1,7 @@
+# Keep one residual block and reduce its branch from three mesh layers to two.
+# Matched widths, seed set, shared-E role rotation, and training protocol.
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 2 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 2 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 7
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 2 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 8
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 2 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 9
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 2 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 10

@@ -1,0 +1,13 @@
+✔ automatic language selection respects browser order and regional tags (0.877809ms)
+✔ manual choice overrides browser language, invalid choices fall back safely (1.021397ms)
+✔ all catalogs contain every message and preserve interpolation fields (8.922351ms)
+✔ all initial accessible labels and titles have translations (3.155452ms)
+✔ every division diagram is a rendered local Mermaid SVG matching its source manifest (6.552266ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43.126191

@@ -1,0 +1,6 @@
+# Only the shared Neighbor embedding/readout architecture.
+# Every logit can depend on all 194 ordinary one-hot a/b input features.
+# 32 shared linear embedding layers -> Rotate90/add -> 64 pre-RMSNorm
+# Neighbor + ReLU residual blocks -> final RMSNorm -> the same 32 embedding
+# layers transposed in reverse order. RMSNorm has no learned parameters.
+grok-simple --model shared-neighbor-mesh-mlp --encoding one-hot --activation relu --width 128 --embedding-mesh-depth 32 --depth 64 --connectivity neighbor --mesh-initialization identity-hidden --learning-rate 0.001 --weight-decay 0.1 --seed 11

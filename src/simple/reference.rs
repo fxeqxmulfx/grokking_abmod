@@ -89,6 +89,45 @@ pub(crate) fn verification_parameters(config: SimpleConfig, seed: u64) -> Vec<f3
         .iter()
         .map(|&p| 2.0 * p)
         .collect();
+    if config.architecture == Architecture::SharedNeighborMeshMlp {
+        let embedding = 2 * config.width * config.embedding_mesh_depth;
+        // Preserve a stable shared chain while exercising every edge and bias.
+        for unit in parameters[..embedding].as_chunks_mut::<2>().0 {
+            unit[0] *= 0.5;
+            if config.shared_embedding_initialization.normalizes_columns() {
+                // Exercise the actual balanced initializer, including strong mixing.
+                unit[1] *= 0.5;
+            } else {
+                unit[1] = 0.2 / config.embedding_mesh_depth as f32;
+            }
+        }
+        for unit in parameters[embedding..].as_chunks_mut::<3>().0 {
+            unit[0] *= 0.5;
+            unit[1] = unit[1] * 0.5 + 0.05 / config.depth as f32;
+            if config.activation == Activation::Square {
+                unit[0] *= 0.25;
+                unit[1] *= 0.25;
+            }
+            unit[2] = 0.1;
+        }
+        return parameters;
+    }
+    if config.architecture == Architecture::FullMeshMlp {
+        // Exercise both parents and nonzero biases, including identity-initialized
+        // hidden layers. Positive biases avoid testing only dead ReLU paths.
+        for unit in parameters.as_chunks_mut::<3>().0 {
+            // Keep the Square fixture out of softmax saturation: subtracting
+            // a nearly unit FP32 probability otherwise tests cancellation in
+            // cross entropy instead of the new sparse layer's derivatives.
+            if config.activation == Activation::Square {
+                unit[0] *= 0.25;
+                unit[1] *= 0.25;
+            }
+            unit[1] += 0.2;
+            unit[2] = 0.1;
+        }
+        return parameters;
+    }
     let parents = config.connectivity.parents();
     let mesh = parameters.len() - parents * config.width * config.stored_mesh_layers();
     let mut random = Random::new(seed);
@@ -165,6 +204,91 @@ fn forward(
     for row in features.chunks_exact(config.input_features()) {
         let x: Vec<_> = row.iter().map(|&v| tape.constant(f64::from(v))).collect();
         logits.push(match config.architecture {
+            Architecture::SharedNeighborMeshMlp => {
+                let (width, embedding_depth) = (config.width, config.embedding_mesh_depth);
+                let zero = tape.constant(0.0);
+                let (a, b) = x.split_at(config.modulus);
+                let mut left = a.to_vec();
+                let mut right = b.to_vec();
+                left.resize(width, zero);
+                right.resize(width, zero);
+                for layer in 0..embedding_depth {
+                    let embed = |tape: &mut Tape, input: &[usize]| -> Vec<usize> {
+                        (0..width)
+                            .map(|c| {
+                                let unit = 2 * (layer * width + c);
+                                tape.dot(&[input[c], input[(c + 1) % width]], &[unit, unit + 1])
+                            })
+                            .collect()
+                    };
+                    left = embed(&mut tape, &left);
+                    right = embed(&mut tape, &right);
+                }
+                let minus = tape.constant(-1.0);
+                let mut hidden: Vec<_> = (0..width)
+                    .map(|c| {
+                        let rotated = if c.is_multiple_of(2) {
+                            tape.multiply(right[c + 1], minus)
+                        } else {
+                            right[c - 1]
+                        };
+                        tape.add(left[c], rotated)
+                    })
+                    .collect();
+                for (layer, shape) in config.two_parent_layers().into_iter().enumerate() {
+                    let offset = 2 * width * embedding_depth + 3 * width * layer;
+                    let normalized = rmsnorm(&mut tape, std::slice::from_ref(&hidden), 1).remove(0);
+                    let branch: Vec<_> = (0..width)
+                        .map(|c| {
+                            let [a, b] = shape.parents(c);
+                            let unit = offset + 3 * c;
+                            let projection =
+                                tape.dot(&[normalized[a], normalized[b]], &[unit, unit + 1]);
+                            tape.add(projection, unit + 2)
+                        })
+                        .collect();
+                    let activated = activate(&mut tape, &branch);
+                    hidden = hidden
+                        .iter()
+                        .zip(&activated)
+                        .map(|(&a, &b)| tape.add(a, b))
+                        .collect();
+                }
+                hidden = rmsnorm(&mut tape, &[hidden], 1).remove(0);
+                for layer in (0..embedding_depth).rev() {
+                    hidden = (0..width)
+                        .map(|c| {
+                            let previous = (c + width - 1) % width;
+                            let own = 2 * (layer * width + c);
+                            let neighbor = 2 * (layer * width + previous) + 1;
+                            tape.dot(&[hidden[c], hidden[previous]], &[own, neighbor])
+                        })
+                        .collect();
+                }
+                hidden.truncate(config.modulus);
+                hidden
+            }
+            Architecture::FullMeshMlp => {
+                let mut hidden = x.clone();
+                let mut offset = 0;
+                for (index, layer) in config.two_parent_layers().into_iter().enumerate() {
+                    let inputs = if index == 0 {
+                        hidden
+                    } else {
+                        activate(&mut tape, &hidden)
+                    };
+                    hidden = (0..layer.outputs)
+                        .map(|output| {
+                            let [a, b] = layer.parents(output);
+                            let unit = offset + 3 * output;
+                            let projection = tape.dot(&[inputs[a], inputs[b]], &[unit, unit + 1]);
+                            tape.add(projection, unit + 2)
+                        })
+                        .collect();
+                    offset += layer.parameters();
+                }
+                hidden
+            }
             Architecture::Mlp => {
                 let mut hidden = dense(&mut tape, &x, 0);
                 for layer in 1..=config.depth {
@@ -212,7 +336,8 @@ fn forward(
             }
             Architecture::ResidualMeshMlp
             | Architecture::TiedConcatResidualMeshMlp
-            | Architecture::TiedRotaryResidualMeshMlp => {
+            | Architecture::TiedRotaryResidualMeshMlp
+            | Architecture::TiedRotaryResidualDenseMlp => {
                 let width = config.width;
                 let parents = config.connectivity.parents();
                 let tied = config.architecture.tied_embeddings();
@@ -240,7 +365,14 @@ fn forward(
                 for block in 0..config.depth {
                     let normalized = rmsnorm(&mut tape, std::slice::from_ref(&hidden), 1).remove(0);
                     let mut branch = normalized;
-                    for layer in 0..config.mesh_depth {
+                    if config.architecture.residual_dense() {
+                        branch = dense(&mut tape, &branch, 1 + block);
+                    }
+                    for layer in 0..if config.architecture.residual_dense() {
+                        0
+                    } else {
+                        config.mesh_depth
+                    } {
                         if layer > 0 {
                             branch = activate(&mut tape, &branch);
                         }
@@ -256,6 +388,9 @@ fn forward(
                                 tape.dot(&inputs, &(start..start + parents).collect::<Vec<_>>())
                             })
                             .collect();
+                    }
+                    if config.residual_branch_activation() {
+                        branch = activate(&mut tape, &branch);
                     }
                     hidden = hidden
                         .iter()
@@ -324,6 +459,32 @@ mod tests {
         };
         let mut configs = Vec::new();
         for activation in [Activation::Relu, Activation::Square] {
+            configs.push(SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 8,
+                depth: 2,
+                embedding_mesh_depth: 2,
+                activation,
+                ..base
+            });
+            for connectivity in [Connectivity::Neighbor, Connectivity::Butterfly] {
+                for initialization in [
+                    super::super::FullMeshInitialization::Kaiming,
+                    super::super::FullMeshInitialization::IdentityHidden,
+                ] {
+                    configs.push(SimpleConfig {
+                        architecture: Architecture::FullMeshMlp,
+                        encoding: Encoding::Binary,
+                        width: 8,
+                        depth: 3,
+                        activation,
+                        connectivity,
+                        full_mesh_initialization: initialization,
+                        ..base
+                    });
+                }
+            }
             for encoding in [
                 Encoding::OneHot,
                 Encoding::Binary,
@@ -431,6 +592,31 @@ mod tests {
                     mesh_depth: 3,
                     ..base
                 });
+                if connectivity == Connectivity::Neighbor {
+                    configs.push(SimpleConfig {
+                        architecture: Architecture::TiedRotaryResidualDenseMlp,
+                        activation,
+                        width: 6,
+                        depth: 2,
+                        ..base
+                    });
+                }
+                for architecture in [
+                    Architecture::ResidualMeshMlp,
+                    Architecture::TiedConcatResidualMeshMlp,
+                    Architecture::TiedRotaryResidualMeshMlp,
+                ] {
+                    configs.push(SimpleConfig {
+                        architecture,
+                        activation,
+                        connectivity,
+                        width: 6,
+                        depth: 1,
+                        mesh_depth: 1,
+                        mesh_output_activation: true,
+                        ..base
+                    });
+                }
             }
         }
         configs
@@ -460,7 +646,15 @@ mod tests {
             );
             let scale = gradient.iter().fold(0.0_f64, |a, g| a.max(g.abs()));
             assert!(scale > 1e-4, "{config:?}");
-            for index in (0..count).step_by(3) {
+            let spacing = if matches!(
+                config.architecture,
+                Architecture::FullMeshMlp | Architecture::SharedNeighborMeshMlp
+            ) {
+                1
+            } else {
+                3
+            };
+            for index in (0..count).step_by(spacing) {
                 let mut shifted = parameters.clone();
                 let step = 1e-6;
                 shifted[index] += step;

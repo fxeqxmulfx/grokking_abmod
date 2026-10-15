@@ -1,0 +1,52 @@
+{
+  "baseline_study": "target/grok-div97-shared-neighbor-prenorm",
+  "control_study": "target/grok-div97-shared-neighbor-prenorm-kaiming",
+  "seed": 11,
+  "checked_settings": [
+    "architecture",
+    "activation",
+    "encoding",
+    "operation",
+    "modulus",
+    "train_fraction",
+    "seed",
+    "init_seed",
+    "width",
+    "depth",
+    "embedding_mesh_depth",
+    "connectivity",
+    "parameters",
+    "normalization",
+    "core_structure",
+    "rmsnorm_epsilon",
+    "final_rmsnorm",
+    "learning_rate",
+    "weight_decay",
+    "betas",
+    "epsilon",
+    "warmup_steps",
+    "batch",
+    "requested_epochs",
+    "report_every"
+  ],
+  "settings_differences": [],
+  "baseline_core_initialization": "identity-hidden",
+  "control_core_initialization": "kaiming",
+  "embedding_parameters_identical": true,
+  "embedding_parameters_sha256": "e2237f16c77fa4868e19a6a84e30d58b76319274a8d409f66ae20b1756661031",
+  "first_core_block_identical": true,
+  "trainer_identical": true,
+  "trainer_sha256": "541737de86a4446ac026930fa023919bdc047ee9b06a84c7d060173a986e91d7",
+  "scope": "Initial shared embedding weights, first core block, trainer binary, and listed training/topology settings. Core blocks 2 through 64 differ by initializer.",
+  "no_decay_control": {
+    "study": "target/grok-div97-shared-neighbor-prenorm-no-decay",
+    "settings_differences": [
+      "weight_decay"
+    ],
+    "baseline_weight_decay": "0.1",
+    "control_weight_decay": "0",
+    "complete_initial_model_identical": true,
+    "initial_model_sha256": "a7a4f1feda2b6416d5a3b9052790d30d2b856db82bec4624b59de47ef56674cc",
+    "trainer_identical": true
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-13",
+  "node": "v24.21.0",
+  "typescript": "7.0.2",
+  "strict": true,
+  "noEmitOnError": true,
+  "model": "tied shared-E Rotate90, pre-RMSNorm Dense ReLU residual, final RMSNorm",
+  "embeddingInitialization": "Normal(0, variance=1/W)",
+  "widths": [
+    128,
+    1024
+  ],
+  "nativeInitialCheckpointMatch": true,
+  "nodeTests": 30,
+  "workspaceViews": [
+    "training",
+    "weights",
+    "channels"
+  ],
+  "uiLayouts": 26,
+  "localeLayouts": 216,
+  "webgpuReference": "webgpu-reference.json",
+  "canvasFallbackAllConnections": true,
+  "retiredActiveArchitecturesRemoved": true,
+  "fullGrokkingCriterionUnchanged": true,
+  "sourceSha256": {
+    "src/app.ts": "f2da05d61b782b6952ad4c3b2a9e481308b30c72eeeb690bc65ce985d1afbcbf",
+    "src/model.ts": "c1a7b6ef928a6850fd83cfc7c62f2875312ef833b515b5019f62a8208af4d269",
+    "src/models.ts": "ae67f006f67535dc896a65d246fe906807af9a9b528d5a8231d0364091e12c3c",
+    "src/gpu.ts": "e1fc853f916fcf375b1dab2accdf0e6a730023b00117452356d343c5e0fb813d",
+    "src/wasm.ts": "64667697fb2e01f18f76b3abf1b8dbfed557c81ce591c21a51636c81fe890b16",
+    "src/topology.ts": "df90d7e1ff1aa008a56b51eedb97ee21b6ee5d1b4888c958a9d01ef8ae68a94e",
+    "src/types.ts": "f9184542daecab8872801d62994926feb9d386be79328995ced90aa86ab16e84",
+    "src/worker.ts": "35fc74235444a374ac3d725185862facfc46857211d4ce029bce64d18fd940d9",
+    "server.ts": "917d9be4533bf38c92fecf1f1c25a0762326439b37dc546f763f3727fe6eff3e",
+    "tsconfig.json": "7890025376936bd03425903fbb884bea93ceeae143b92c58f040bf517a775d3f",
+    "tsconfig.tools.json": "d53151f9dcdc11a220a5663bd9367a966d4c4b338d4a66a18b0125b61666c985",
+    "package-lock.json": "a896807ea18daa76a8248ed45680e4b6035807d6c093c49f0c906b92e07d9349",
+    "dist/dense-rotary.wgsl": "2d50474212fa0f22ecbff014310b19251abf66d972358b5450bb4a07853da665",
+    "dist/dense-rotary-wide.wgsl": "20b1ad5a15d81878658e005e26e4abc5a876d899ec35cbbe2e4677b5efb3c368"
+  },
+  "measuredGpuShaderBodyUnchanged": true
+}

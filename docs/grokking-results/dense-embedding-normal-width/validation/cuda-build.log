@@ -1,0 +1,10 @@
+=========================================
+RUSTC-CODEGEN-CUDA CARGO build
+=========================================
+
+Running cargo build --release --locked --bin mesh-gpt --bin sharp-mesh-search...
+
+   Compiling grokking_abmod v0.1.0 (/home/misha/rust_projects/grokking_abmod)
+    Finished `release` profile [optimized] target(s) in 5m 03s
+
+✓ Cargo build succeeded

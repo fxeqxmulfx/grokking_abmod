@@ -1,8 +1,7 @@
 //! Attention-free baselines for the grokking experiments. Each model reads the
-//! two encoded operands of `a op b` and predicts the answer through a bias-free
-//! linear readout: a plain MLP, an MLP whose deeper hidden layers are Mesh GPT's
-//! two-parent mesh layers, a pre-norm residual MLP, or the elementwise product
-//! of two operand embeddings.
+//! two encoded operands of `a op b` and predicts the answer: dense/tied readout
+//! baselines, residual models, operand products, and a fully two-parent network
+//! with a sparse input and sparse readout.
 
 mod gpu;
 mod reference;
@@ -37,6 +36,13 @@ pub enum Architecture {
     /// Mesh GPT, or only its own channel with `Connectivity::Own`. Depth 1 is
     /// the one-layer MLP.
     MeshMlp,
+    /// An entirely two-parent network: sparse input, hidden and output layers,
+    /// local activations and per-node biases. No dense embedding or readout,
+    /// attention, residual branch or normalization mixes additional parents.
+    FullMeshMlp,
+    /// Shared linear Neighbor embedding chains for a/b and their transposed
+    /// readout, Rotate90 roles, pre-RMSNorm residual mesh blocks and final RMSNorm.
+    SharedNeighborMeshMlp,
     /// Shared operand embeddings, their ordered concatenation projected to
     /// `width`, `depth - 1` mesh layers, and the shared embedding's transpose
     /// as readout. The embedding has one optimizer state for all three uses.
@@ -53,6 +59,9 @@ pub enum Architecture {
     /// Shared operand/readout embedding. Rotate adjacent coordinate pairs of
     /// operand b by 90 degrees, add operand a, then use residual mesh blocks.
     TiedRotaryResidualMeshMlp,
+    /// Shared rotated operand embeddings and tied readout, with one activated
+    /// width-by-width dense projection in each pre-RMSNorm residual branch.
+    TiedRotaryResidualDenseMlp,
     /// The elementwise product of separate `a` and `b` embeddings, read out.
     Bilinear,
 }
@@ -62,11 +71,14 @@ impl fmt::Display for Architecture {
         formatter.write_str(match self {
             Self::Mlp => "mlp",
             Self::MeshMlp => "mesh-mlp",
+            Self::FullMeshMlp => "full-mesh-mlp",
+            Self::SharedNeighborMeshMlp => "shared-neighbor-mesh-mlp",
             Self::TiedConcatMeshMlp => "tied-concat-mesh-mlp",
             Self::ResidualMlp => "residual-mlp",
             Self::ResidualMeshMlp => "residual-mesh-mlp",
             Self::TiedConcatResidualMeshMlp => "tied-concat-residual-mesh-mlp",
             Self::TiedRotaryResidualMeshMlp => "tied-rotary-residual-mesh-mlp",
+            Self::TiedRotaryResidualDenseMlp => "tied-rotary-residual-dense-mlp",
             Self::Bilinear => "bilinear",
         })
     }
@@ -79,11 +91,14 @@ impl FromStr for Architecture {
         match value {
             "mlp" => Ok(Self::Mlp),
             "mesh-mlp" => Ok(Self::MeshMlp),
+            "full-mesh-mlp" => Ok(Self::FullMeshMlp),
+            "shared-neighbor-mesh-mlp" => Ok(Self::SharedNeighborMeshMlp),
             "tied-concat-mesh-mlp" => Ok(Self::TiedConcatMeshMlp),
             "residual-mlp" => Ok(Self::ResidualMlp),
             "residual-mesh-mlp" => Ok(Self::ResidualMeshMlp),
             "tied-concat-residual-mesh-mlp" => Ok(Self::TiedConcatResidualMeshMlp),
             "tied-rotary-residual-mesh-mlp" => Ok(Self::TiedRotaryResidualMeshMlp),
+            "tied-rotary-residual-dense-mlp" => Ok(Self::TiedRotaryResidualDenseMlp),
             "bilinear" => Ok(Self::Bilinear),
             _ => Err(format!("unknown model: {value}")),
         }
@@ -95,8 +110,10 @@ impl Architecture {
         matches!(
             self,
             Self::TiedConcatMeshMlp
+                | Self::SharedNeighborMeshMlp
                 | Self::TiedConcatResidualMeshMlp
                 | Self::TiedRotaryResidualMeshMlp
+                | Self::TiedRotaryResidualDenseMlp
         )
     }
 
@@ -110,7 +127,16 @@ impl Architecture {
     }
 
     pub fn rotary_embeddings(self) -> bool {
-        self == Self::TiedRotaryResidualMeshMlp
+        matches!(
+            self,
+            Self::TiedRotaryResidualMeshMlp
+                | Self::TiedRotaryResidualDenseMlp
+                | Self::SharedNeighborMeshMlp
+        )
+    }
+
+    pub fn residual_dense(self) -> bool {
+        self == Self::TiedRotaryResidualDenseMlp
     }
 }
 
@@ -197,6 +223,117 @@ impl FromStr for Activation {
             "relu" => Ok(Self::Relu),
             "square" => Ok(Self::Square),
             _ => Err(format!("unknown activation: {value}")),
+        }
+    }
+}
+
+/// Initialization of the separate, fully sparse two-parent network.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FullMeshInitialization {
+    /// Independent Kaiming-normal hidden weights, linear-gain output weights.
+    #[default]
+    Kaiming,
+    /// Random input/output layers, identity hidden layers that learn mixing.
+    IdentityHidden,
+}
+
+impl fmt::Display for FullMeshInitialization {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Kaiming => "kaiming",
+            Self::IdentityHidden => "identity-hidden",
+        })
+    }
+}
+
+impl FromStr for FullMeshInitialization {
+    type Err = String;
+
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "kaiming" => Ok(Self::Kaiming),
+            "identity-hidden" => Ok(Self::IdentityHidden),
+            _ => Err(format!("unknown full-mesh initialization: {value}")),
+        }
+    }
+}
+
+/// Initialization controls for the tied dense embedding/readout matrix.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum DenseEmbeddingInitialization {
+    /// Historical U(-1/sqrt(classes), 1/sqrt(classes)) embedding.
+    #[default]
+    UniformFanIn,
+    /// Normal(0, 1/width) variance for the shared readout's width inputs.
+    NormalWidth,
+}
+
+impl fmt::Display for DenseEmbeddingInitialization {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::UniformFanIn => "uniform-fan-in",
+            Self::NormalWidth => "normal-width",
+        })
+    }
+}
+
+impl FromStr for DenseEmbeddingInitialization {
+    type Err = String;
+
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "uniform-fan-in" => Ok(Self::UniformFanIn),
+            "normal-width" => Ok(Self::NormalWidth),
+            _ => Err(format!("unknown dense embedding initialization: {value}")),
+        }
+    }
+}
+
+/// Matched initialization controls for the shared linear Neighbor chain.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SharedEmbeddingInitialization {
+    /// Historical identity plus small Gaussian neighbor weights.
+    #[default]
+    NearIdentity,
+    /// Small orthogonal paired rotations, with unit implicit class columns.
+    UnitNormWeak,
+    /// Signed 45-degree paired rotations, with the same column normalization.
+    UnitNormStrong,
+}
+
+impl SharedEmbeddingInitialization {
+    /// Gaussian neighbor deviation or the paired rotation's tangent.
+    pub fn ratio(self, depth: usize) -> f64 {
+        match self {
+            Self::NearIdentity | Self::UnitNormWeak => 0.1 / (depth as f64).sqrt(),
+            Self::UnitNormStrong => 1.0,
+        }
+    }
+
+    pub fn normalizes_columns(self) -> bool {
+        self != Self::NearIdentity
+    }
+}
+
+impl fmt::Display for SharedEmbeddingInitialization {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::NearIdentity => "near-identity",
+            Self::UnitNormWeak => "unit-norm-weak",
+            Self::UnitNormStrong => "unit-norm-strong",
+        })
+    }
+}
+
+impl FromStr for SharedEmbeddingInitialization {
+    type Err = String;
+
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        match value {
+            "near-identity" => Ok(Self::NearIdentity),
+            "unit-norm-weak" => Ok(Self::UnitNormWeak),
+            "unit-norm-strong" => Ok(Self::UnitNormStrong),
+            _ => Err(format!("unknown shared embedding initialization: {value}")),
         }
     }
 }
@@ -338,6 +475,26 @@ impl Dense {
     }
 }
 
+/// A two-parent affine layer. Each output has two weights and one bias. Biases
+/// are parameters, not connections from other activation nodes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TwoParentLayer {
+    pub inputs: usize,
+    pub outputs: usize,
+    pub stride: usize,
+}
+
+impl TwoParentLayer {
+    pub fn parents(self, output: usize) -> [usize; 2] {
+        let first = output * self.inputs / self.outputs;
+        [first, (first + self.stride) % self.inputs]
+    }
+
+    pub fn parameters(self) -> usize {
+        3 * self.outputs
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SimpleConfig {
     pub architecture: Architecture,
@@ -347,17 +504,29 @@ pub struct SimpleConfig {
     pub modulus: usize,
     /// Hidden width of an MLP, or the residual and embedding width.
     pub width: usize,
-    /// MLP and mesh-MLP hidden layers or residual-MLP blocks. Bilinear models ignore it.
+    /// MLP and full-mesh hidden layers or residual blocks. Bilinear models ignore it.
     pub depth: usize,
     /// Feed-forward width of a residual block, as a multiple of `width`.
     pub expansion: usize,
     /// Fixed-width mesh layers per residual branch. Only residual mesh MLPs use it.
     pub mesh_depth: usize,
+    /// Apply the configured activation after the last mesh layer, before the skip sum.
+    /// Residual mesh branches otherwise activate only between their mesh layers.
+    pub mesh_output_activation: bool,
     /// The parents of each mesh-layer unit. Only mesh MLPs use it.
     pub connectivity: Connectivity,
     /// Every mesh layer uses the first mesh layer's weights, so a mesh MLP
     /// of any depth stores one mesh layer. Only mesh MLPs use it.
     pub tied_mesh: bool,
+    /// Core initialization of the full mesh and shared Neighbor architectures.
+    pub full_mesh_initialization: FullMeshInitialization,
+    /// Linear Neighbor layers shared by a/b and transposed readout. Only the
+    /// fully sparse SharedNeighborMeshMlp uses this depth.
+    pub embedding_mesh_depth: usize,
+    /// Initialization-only mixing and column scale of the shared linear chain.
+    pub shared_embedding_initialization: SharedEmbeddingInitialization,
+    /// Initialization-only distribution of E in the rotary dense residual model.
+    pub dense_embedding_initialization: DenseEmbeddingInitialization,
     /// Factors per hidden channel whose balanced L2 penalty the weight decay
     /// imitates. For `n` other than 2, AdamW decays the input column and
     /// readout row of channel `c` at `λ s_c^(2/n - 1)`, where
@@ -381,8 +550,13 @@ impl Default for SimpleConfig {
             depth: 1,
             expansion: 4,
             mesh_depth: 4,
+            mesh_output_activation: false,
             connectivity: Connectivity::Neighbor,
             tied_mesh: false,
+            full_mesh_initialization: FullMeshInitialization::Kaiming,
+            embedding_mesh_depth: 4,
+            shared_embedding_initialization: SharedEmbeddingInitialization::NearIdentity,
+            dense_embedding_initialization: DenseEmbeddingInitialization::UniformFanIn,
             decay_factors: 2,
             mesh_learning_rate_multiplier: 1,
         }
@@ -391,6 +565,14 @@ impl Default for SimpleConfig {
 
 impl SimpleConfig {
     pub fn validate(&self) -> Result<()> {
+        if self.dense_embedding_initialization != DenseEmbeddingInitialization::UniformFanIn
+            && self.architecture != Architecture::TiedRotaryResidualDenseMlp
+        {
+            return Err(
+                "width-normal embedding initialization needs the rotary dense residual model"
+                    .into(),
+            );
+        }
         if !(2..=MAX_SIMPLE_CLASSES).contains(&self.modulus) {
             return Err(format!("modulus must be in 2..={MAX_SIMPLE_CLASSES}").into());
         }
@@ -414,6 +596,20 @@ impl SimpleConfig {
         // A unit's second parent must be another channel.
         if self.architecture.residual_mesh() && !(1..=MAX_SIMPLE_DEPTH).contains(&self.mesh_depth) {
             return Err(format!("mesh depth must be in 1..={MAX_SIMPLE_DEPTH}").into());
+        }
+        if self.architecture == Architecture::SharedNeighborMeshMlp
+            && !(1..=MAX_SIMPLE_DEPTH).contains(&self.embedding_mesh_depth)
+        {
+            return Err("shared Neighbor embedding depth must be in 1..=64".into());
+        }
+        if self.shared_embedding_initialization.normalizes_columns()
+            && (self.architecture != Architecture::SharedNeighborMeshMlp
+                || !self.embedding_mesh_depth.is_multiple_of(2))
+        {
+            return Err("unit-norm embedding initialization needs a shared Neighbor model with even embedding depth".into());
+        }
+        if self.mesh_output_activation && !self.architecture.residual_mesh() {
+            return Err("only residual mesh branches activate their final mesh output".into());
         }
         if self.mesh_layers() > 0 && self.connectivity.parents() == 2 && self.width < 2 {
             return Err("a second mesh parent needs a width of at least 2".into());
@@ -443,6 +639,30 @@ impl SimpleConfig {
                 || !self.width.is_multiple_of(2))
         {
             return Err("rotary roles need one-hot encoding and a positive even width".into());
+        }
+        if self.architecture == Architecture::FullMeshMlp
+            && (self.encoding != Encoding::Binary || self.connectivity == Connectivity::Own)
+        {
+            return Err(
+                "a full mesh needs ordinary binary inputs and two-parent connectivity".into(),
+            );
+        }
+        if self.full_mesh_initialization != FullMeshInitialization::Kaiming
+            && !matches!(
+                self.architecture,
+                Architecture::FullMeshMlp | Architecture::SharedNeighborMeshMlp
+            )
+        {
+            return Err("only a full mesh configures its mesh initialization".into());
+        }
+        if self.architecture == Architecture::SharedNeighborMeshMlp
+            && (self.encoding != Encoding::OneHot
+                || self.width < self.modulus
+                || !self.width.is_multiple_of(2)
+                || !(1..=MAX_SIMPLE_DEPTH).contains(&self.embedding_mesh_depth)
+                || self.connectivity == Connectivity::Own)
+        {
+            return Err("shared Neighbor meshes need one-hot inputs, even width >= classes, two core parents and embedding depth 1..=64".into());
         }
         if self.decay_factors < 2 {
             return Err("weight decay imitates at least two factors per channel".into());
@@ -491,10 +711,16 @@ impl SimpleConfig {
             Architecture::MeshMlp | Architecture::ResidualMeshMlp => {
                 vec![dense(self.input_features(), width), dense(width, classes)]
             }
+            Architecture::FullMeshMlp | Architecture::SharedNeighborMeshMlp => Vec::new(),
             Architecture::TiedConcatMeshMlp | Architecture::TiedConcatResidualMeshMlp => {
                 vec![dense(classes, width), dense(2 * width, width)]
             }
             Architecture::TiedRotaryResidualMeshMlp => vec![dense(classes, width)],
+            Architecture::TiedRotaryResidualDenseMlp => {
+                let mut layers = vec![dense(classes, width)];
+                layers.extend(std::iter::repeat_n(dense(width, width), self.depth));
+                layers
+            }
             Architecture::ResidualMlp => {
                 let hidden = width * self.expansion;
                 let mut layers = vec![dense(self.input_features(), width)];
@@ -516,12 +742,128 @@ impl SimpleConfig {
     /// Mesh layers of a mesh MLP, each with one weight per unit and parent.
     pub fn mesh_layers(&self) -> usize {
         match self.architecture {
+            Architecture::FullMeshMlp => self.depth + 1,
+            Architecture::SharedNeighborMeshMlp => self.embedding_mesh_depth + self.depth,
             Architecture::MeshMlp | Architecture::TiedConcatMeshMlp => self.depth.saturating_sub(1),
             Architecture::ResidualMeshMlp
             | Architecture::TiedConcatResidualMeshMlp
             | Architecture::TiedRotaryResidualMeshMlp => self.depth * self.mesh_depth,
             _ => 0,
         }
+    }
+
+    /// All affine layers of FullMeshMlp, including the sparse readout. The input
+    /// layer pairs corresponding a/b bits. Width changes distribute the first
+    /// parents evenly; same-width layers use the requested mesh connectivity.
+    pub fn two_parent_layers(&self) -> Vec<TwoParentLayer> {
+        if self.architecture == Architecture::SharedNeighborMeshMlp {
+            return (0..self.depth)
+                .map(|layer| TwoParentLayer {
+                    inputs: self.width,
+                    outputs: self.width,
+                    stride: self.mesh_stride(layer),
+                })
+                .collect();
+        }
+        if self.architecture != Architecture::FullMeshMlp {
+            return Vec::new();
+        }
+        let mut layers = vec![TwoParentLayer {
+            inputs: self.input_features(),
+            outputs: self.width,
+            stride: self.operand_features(),
+        }];
+        layers.extend((1..self.depth).map(|layer| TwoParentLayer {
+            inputs: self.width,
+            outputs: self.width,
+            stride: self.mesh_stride(layer - 1),
+        }));
+        layers.push(TwoParentLayer {
+            inputs: self.width,
+            outputs: self.modulus,
+            stride: self.mesh_stride(self.depth - 1),
+        });
+        layers
+    }
+
+    /// Potential input dependencies of each full-mesh logit, independent of
+    /// current weights and activations. Binary inputs use at most 20 bits.
+    pub fn full_mesh_receptive_fields(&self) -> Vec<u64> {
+        if self.architecture != Architecture::FullMeshMlp {
+            return Vec::new();
+        }
+        let mut fields: Vec<_> = (0..self.input_features()).map(|bit| 1_u64 << bit).collect();
+        for layer in self.two_parent_layers() {
+            fields = (0..layer.outputs)
+                .map(|output| {
+                    let [a, b] = layer.parents(output);
+                    fields[a] | fields[b]
+                })
+                .collect();
+        }
+        fields
+    }
+
+    /// Input identity routes through the learned meshes, excluding global RMS
+    /// statistics. Padding contributes no feature. This is a lower bound on
+    /// full dependencies, and avoids using a norm scalar as a shortcut in the
+    /// depth/coverage check.
+    pub fn shared_neighbor_input_coverage(&self) -> Vec<usize> {
+        if self.architecture != Architecture::SharedNeighborMeshMlp {
+            return Vec::new();
+        }
+        let words = (2 * self.modulus).div_ceil(64);
+        let combine = |fields: &[Vec<u64>], stride: usize| -> Vec<Vec<u64>> {
+            (0..self.width)
+                .map(|c| {
+                    fields[c]
+                        .iter()
+                        .zip(&fields[(c + stride) % self.width])
+                        .map(|(a, b)| a | b)
+                        .collect()
+                })
+                .collect()
+        };
+        let mut a = vec![vec![0_u64; words]; self.width];
+        let mut b = a.clone();
+        for class in 0..self.modulus {
+            a[class][class / 64] |= 1 << (class % 64);
+            let bit = self.modulus + class;
+            b[class][bit / 64] |= 1 << (bit % 64);
+        }
+        for _ in 0..self.embedding_mesh_depth {
+            a = combine(&a, 1);
+            b = combine(&b, 1);
+        }
+        let mut fields: Vec<Vec<u64>> = (0..self.width)
+            .map(|c| {
+                let rotated = if c.is_multiple_of(2) { c + 1 } else { c - 1 };
+                a[c].iter().zip(&b[rotated]).map(|(a, b)| a | b).collect()
+            })
+            .collect();
+        for layer in 0..self.depth {
+            fields = combine(&fields, self.mesh_stride(layer));
+        }
+        for _ in 0..self.embedding_mesh_depth {
+            fields = combine(&fields, self.width - 1);
+        }
+        fields
+            .iter()
+            .take(self.modulus)
+            .map(|field| field.iter().map(|word| word.count_ones() as usize).sum())
+            .collect()
+    }
+
+    pub(crate) fn residual_branch_depth(&self) -> usize {
+        if self.architecture.residual_dense() {
+            1
+        } else {
+            self.mesh_depth
+        }
+    }
+
+    pub(crate) fn residual_branch_activation(&self) -> bool {
+        self.architecture.residual_dense() || self.mesh_output_activation
     }
 
     /// Mesh layers with their own weights: at most one when they are tied.
@@ -552,6 +894,18 @@ impl SimpleConfig {
     /// Parameter group sizes in storage order: the dense layers, then the
     /// stored mesh layers.
     pub(crate) fn groups(&self) -> Vec<usize> {
+        if self.architecture == Architecture::SharedNeighborMeshMlp {
+            let mut groups = vec![2 * self.width; self.embedding_mesh_depth];
+            groups.extend(std::iter::repeat_n(3 * self.width, self.depth));
+            return groups;
+        }
+        if self.architecture == Architecture::FullMeshMlp {
+            return self
+                .two_parent_layers()
+                .into_iter()
+                .map(TwoParentLayer::parameters)
+                .collect();
+        }
         let mut groups: Vec<_> = self.layers().into_iter().map(Dense::parameters).collect();
         let mesh = self.connectivity.parents() * self.width;
         groups.extend(std::iter::repeat_n(mesh, self.stored_mesh_layers()));
@@ -565,11 +919,100 @@ impl SimpleConfig {
     /// PyTorch's default `nn.Linear` initialization, U(-1/sqrt(fan_in), 1/sqrt(fan_in)),
     /// drawn layer by layer from a seeded SplitMix64 stream. Mesh layers start
     /// as the identity and draw nothing, so a ReLU mesh MLP of any depth first
-    /// computes the one-layer MLP of the same seed.
+    /// computes the one-layer MLP of the same seed. Rotary dense residual
+    /// projections instead use Kaiming normal, fan-in, with ReLU gain sqrt(2).
+    /// Its optional width-normal E consumes the same random draws as the
+    /// historical uniform E, preserving every initial dense branch weight.
+    /// Full meshes initialize their two-parent layers separately and zero biases.
     pub fn initial_parameters(&self, seed: u64) -> Vec<f32> {
         let mut random = Random::new(seed ^ 0x73696d706c650004);
         let mut parameters = Vec::with_capacity(self.parameter_count());
-        for layer in self.layers() {
+        if self.architecture == Architecture::SharedNeighborMeshMlp {
+            // Both controls draw exactly the same Gaussian stream. Their core
+            // weights therefore match, despite different embedding mixing.
+            let mode = self.shared_embedding_initialization;
+            let ratio = mode.ratio(self.embedding_mesh_depth);
+            let own = if mode.normalizes_columns() {
+                (1.0 + ratio * ratio).sqrt().recip()
+            } else {
+                1.0
+            };
+            let deviation = ratio * own;
+            for _ in 0..self.embedding_mesh_depth * self.width {
+                let radius = (-2.0 * (1.0 - f64::from(random.unit())).ln()).sqrt();
+                let angle = std::f64::consts::TAU * f64::from(random.unit());
+                parameters
+                    .extend_from_slice(&[own as f32, (deviation * radius * angle.cos()) as f32]);
+            }
+            if mode.normalizes_columns() {
+                self.initialize_shared_rotation_factors(&mut parameters, ratio);
+                self.normalize_shared_embedding_columns(&mut parameters);
+            }
+            for layer in 0..self.depth {
+                let identity = self.full_mesh_initialization
+                    == FullMeshInitialization::IdentityHidden
+                    && layer > 0;
+                for _ in 0..self.width {
+                    let weights = if identity {
+                        [1.0, 0.0]
+                    } else {
+                        let radius = (-2.0 * (1.0 - f64::from(random.unit())).ln()).sqrt();
+                        let angle = std::f64::consts::TAU * f64::from(random.unit());
+                        [(radius * angle.cos()) as f32, (radius * angle.sin()) as f32]
+                    };
+                    parameters.extend_from_slice(&[weights[0], weights[1], 0.0]);
+                }
+            }
+            return parameters;
+        }
+        if self.architecture == Architecture::FullMeshMlp {
+            for (index, layer) in self.two_parent_layers().into_iter().enumerate() {
+                let identity = self.full_mesh_initialization
+                    == FullMeshInitialization::IdentityHidden
+                    && index > 0
+                    && index < self.depth;
+                let deviation = if index == self.depth {
+                    0.5_f64.sqrt()
+                } else {
+                    1.0
+                };
+                for _ in 0..layer.outputs {
+                    let weights = if identity {
+                        [1.0, 0.0]
+                    } else {
+                        let radius = (-2.0 * (1.0 - f64::from(random.unit())).ln()).sqrt();
+                        let angle = std::f64::consts::TAU * f64::from(random.unit());
+                        [
+                            (deviation * radius * angle.cos()) as f32,
+                            (deviation * radius * angle.sin()) as f32,
+                        ]
+                    };
+                    parameters.extend_from_slice(&[weights[0], weights[1], 0.0]);
+                }
+            }
+            return parameters;
+        }
+        for (index, layer) in self.layers().into_iter().enumerate() {
+            let normal_embedding = index == 0
+                && self.dense_embedding_initialization == DenseEmbeddingInitialization::NormalWidth;
+            if normal_embedding || self.architecture.residual_dense() && index > 0 {
+                // Box-Muller from the same SplitMix64 stream. Use f64 math
+                // before the final FP32 cast, matching the browser initializer.
+                let deviation = if normal_embedding {
+                    (1.0 / layer.outputs as f64).sqrt()
+                } else {
+                    (2.0 / layer.inputs as f64).sqrt()
+                };
+                for offset in (0..layer.parameters()).step_by(2) {
+                    let radius = (-2.0 * (1.0 - f64::from(random.unit())).ln()).sqrt();
+                    let angle = std::f64::consts::TAU * f64::from(random.unit());
+                    parameters.push((deviation * radius * angle.cos()) as f32);
+                    if offset + 1 < layer.parameters() {
+                        parameters.push((deviation * radius * angle.sin()) as f32);
+                    }
+                }
+                continue;
+            }
             let bound = 1.0 / (layer.inputs as f32).sqrt();
             parameters.extend((0..layer.parameters()).map(|_| (2.0 * random.unit() - 1.0) * bound));
         }
@@ -599,11 +1042,395 @@ impl SimpleConfig {
         }
         Ok((features, targets))
     }
+
+    /// Two ordinary Neighbor layers implement an orthogonal pair rotation and
+    /// a cyclic shift. On input (x[c+1], x[c+2]), the two output rows are
+    /// (cos*x + sin*y, -sin*x + cos*y). Both controls use the same random signs.
+    fn initialize_shared_rotation_factors(&self, parameters: &mut [f32], ratio: f64) {
+        let angle = ratio.atan();
+        let cosine = angle.cos();
+        for layer in (0..self.embedding_mesh_depth).step_by(2) {
+            for c in (0..self.width).step_by(2) {
+                let first = 2 * (layer * self.width + c);
+                let second = first + 2 * self.width;
+                let sign = if parameters[first + 1] >= 0.0 {
+                    1.0
+                } else {
+                    -1.0
+                };
+                let sine = sign * angle.sin();
+                parameters[first..first + 4].copy_from_slice(&[
+                    0.0,
+                    1.0,
+                    -sine as f32,
+                    cosine as f32,
+                ]);
+                parameters[second..second + 4].copy_from_slice(&[
+                    cosine.recip() as f32,
+                    (sine / cosine) as f32,
+                    1.0,
+                    0.0,
+                ]);
+            }
+        }
+    }
+
+    /// Applies E <- E D by scaling the first layer's incoming columns. This
+    /// preserves the sparse topology, linear chain and exactly tied transpose.
+    /// Only the 97 (or configured modulus) used class columns are normalized.
+    fn normalize_shared_embedding_columns(&self, parameters: &mut [f32]) {
+        let mut scales = vec![1.0; self.width];
+        for (class, scale) in scales.iter_mut().take(self.modulus).enumerate() {
+            let mut row = vec![0.0_f64; self.width];
+            row[class] = 1.0;
+            for layer in 0..self.embedding_mesh_depth {
+                row = (0..self.width)
+                    .map(|c| {
+                        let unit = 2 * (layer * self.width + c);
+                        f64::from(parameters[unit]) * row[c]
+                            + f64::from(parameters[unit + 1]) * row[(c + 1) % self.width]
+                    })
+                    .collect();
+            }
+            // The paired rotation factors are nonsingular with bounded scales.
+            let norm = row.iter().map(|v| v * v).sum::<f64>().sqrt();
+            assert!(norm.is_finite() && norm > 0.0);
+            *scale = norm.recip() as f32;
+        }
+        for c in 0..self.width {
+            parameters[2 * c] *= scales[c];
+            parameters[2 * c + 1] *= scales[(c + 1) % self.width];
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shared_neighbor_stores_embedding_once_and_has_no_dense_layers() {
+        let config = SimpleConfig {
+            architecture: Architecture::SharedNeighborMeshMlp,
+            width: 128,
+            depth: 8,
+            embedding_mesh_depth: 4,
+            ..SimpleConfig::default()
+        };
+        config.validate().unwrap();
+        assert!(config.layers().is_empty());
+        assert!(config.architecture.tied_embeddings());
+        assert!(config.architecture.rotary_embeddings());
+        assert_eq!(config.parameter_count(), 4096);
+        assert_eq!(config.groups(), [vec![256; 4], vec![384; 8]].concat());
+        assert!(
+            config
+                .shared_neighbor_input_coverage()
+                .iter()
+                .all(|&count| count < 194)
+        );
+        let global = SimpleConfig {
+            depth: 64,
+            embedding_mesh_depth: 32,
+            ..config
+        };
+        assert!(
+            global
+                .shared_neighbor_input_coverage()
+                .iter()
+                .all(|&count| count == 194)
+        );
+        let initial = config.initial_parameters(11);
+        assert_eq!(initial.len(), 4096);
+        assert_eq!(initial, config.initial_parameters(11));
+        assert_ne!(initial, config.initial_parameters(7));
+        assert!(
+            initial[..1024]
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .all(|unit| unit[0] == 1.0 && unit[1] != 0.0)
+        );
+        assert!(
+            initial[1024..]
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .all(|unit| unit[2] == 0.0)
+        );
+        for layer in config.two_parent_layers() {
+            assert_eq!((layer.inputs, layer.outputs, layer.stride), (128, 128, 1));
+        }
+        for invalid in [
+            SimpleConfig {
+                width: 96,
+                ..config
+            },
+            SimpleConfig {
+                width: 129,
+                ..config
+            },
+            SimpleConfig {
+                encoding: Encoding::Binary,
+                ..config
+            },
+            SimpleConfig {
+                embedding_mesh_depth: 0,
+                ..config
+            },
+            SimpleConfig {
+                embedding_mesh_depth: usize::MAX,
+                ..config
+            },
+            SimpleConfig {
+                tied_mesh: true,
+                ..config
+            },
+        ] {
+            assert!(invalid.validate().is_err());
+        }
+    }
+
+    #[test]
+    fn balanced_shared_initialization_matches_core_weights_and_column_norms() {
+        let base = SimpleConfig {
+            architecture: Architecture::SharedNeighborMeshMlp,
+            modulus: 97,
+            width: 128,
+            depth: 64,
+            embedding_mesh_depth: 32,
+            full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+            ..SimpleConfig::default()
+        };
+        let offset = 2 * base.width * base.embedding_mesh_depth;
+        let expected = (1.0 / base.width as f64 + f64::from(1e-5_f32))
+            .sqrt()
+            .recip();
+        for seed in [11, 17, 23] {
+            let legacy = base.initial_parameters(seed);
+            for mode in [
+                SharedEmbeddingInitialization::UnitNormWeak,
+                SharedEmbeddingInitialization::UnitNormStrong,
+            ] {
+                let config = SimpleConfig {
+                    shared_embedding_initialization: mode,
+                    ..base
+                };
+                config.validate().unwrap();
+                let weights = config.initial_parameters(seed);
+                assert_eq!(weights.len(), 32768);
+                assert_eq!(&weights[offset..], &legacy[offset..]);
+                assert!(weights.iter().all(|v| v.is_finite()));
+                assert_eq!(weights, config.initial_parameters(seed));
+                // With a zero residual branch and b absent, the diagonal tied
+                // readout is |E_a|^2 / sqrt(|E_a|^2/W + epsilon). This checks
+                // unit norms through the independent forward and transpose.
+                let probe = SimpleConfig { depth: 1, ..config };
+                let mut parameters = weights[..offset + 3 * config.width].to_vec();
+                parameters[offset..].fill(0.0);
+                let model = ReferenceSimpleModel::from_parameters(probe, parameters).unwrap();
+                for start in (0..config.modulus).step_by(8) {
+                    let end = (start + 8).min(config.modulus);
+                    let mut features = vec![0.0; (end - start) * probe.input_features()];
+                    for class in start..end {
+                        features[(class - start) * probe.input_features() + class] = 1.0;
+                    }
+                    for (i, row) in model.logits(&features).unwrap().iter().enumerate() {
+                        for (q, &value) in row.iter().enumerate() {
+                            let target = if q == start + i { expected } else { 0.0 };
+                            assert!(
+                                (value - target).abs() < 1e-5,
+                                "{mode}, seed {seed}, input {}, output {q}",
+                                start + i
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn balanced_shared_initialization_rejects_other_models_and_odd_depths() {
+        for mode in [
+            SharedEmbeddingInitialization::UnitNormWeak,
+            SharedEmbeddingInitialization::UnitNormStrong,
+        ] {
+            assert!(
+                SimpleConfig {
+                    shared_embedding_initialization: mode,
+                    ..SimpleConfig::default()
+                }
+                .validate()
+                .is_err()
+            );
+            assert!(
+                SimpleConfig {
+                    architecture: Architecture::SharedNeighborMeshMlp,
+                    modulus: 7,
+                    width: 8,
+                    embedding_mesh_depth: 3,
+                    shared_embedding_initialization: mode,
+                    ..SimpleConfig::default()
+                }
+                .validate()
+                .is_err()
+            );
+            assert_eq!(
+                mode.to_string()
+                    .parse::<SharedEmbeddingInitialization>()
+                    .unwrap(),
+                mode
+            );
+        }
+    }
+
+    #[test]
+    fn shared_neighbor_reverse_chain_equals_the_implicit_embedding_transpose() {
+        let config = SimpleConfig {
+            architecture: Architecture::SharedNeighborMeshMlp,
+            modulus: 7,
+            width: 8,
+            depth: 2,
+            embedding_mesh_depth: 3,
+            ..SimpleConfig::default()
+        };
+        let weights = config.initial_parameters(11);
+        let h: Vec<_> = (0..8).map(|c| (c as f64 * 0.73).cos()).collect();
+        let mut readout = h.clone();
+        for layer in (0..3).rev() {
+            readout = (0..8)
+                .map(|c| {
+                    let previous = (c + 7) % 8;
+                    f64::from(weights[2 * (layer * 8 + c)]) * readout[c]
+                        + f64::from(weights[2 * (layer * 8 + previous) + 1]) * readout[previous]
+                })
+                .collect();
+        }
+        for (class, &actual) in readout.iter().enumerate().take(7) {
+            let mut embedding = vec![0.0; 8];
+            embedding[class] = 1.0;
+            for layer in 0..3 {
+                embedding = (0..8)
+                    .map(|c| {
+                        f64::from(weights[2 * (layer * 8 + c)]) * embedding[c]
+                            + f64::from(weights[2 * (layer * 8 + c) + 1]) * embedding[(c + 1) % 8]
+                    })
+                    .collect();
+            }
+            let expected: f64 = embedding.iter().zip(&h).map(|(a, b)| a * b).sum();
+            assert!((expected - actual).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn full_mesh_has_two_distinct_parents_including_input_and_readout() {
+        let config = SimpleConfig {
+            architecture: Architecture::FullMeshMlp,
+            encoding: Encoding::Binary,
+            width: 128,
+            depth: 8,
+            connectivity: Connectivity::Butterfly,
+            ..SimpleConfig::default()
+        };
+        config.validate().unwrap();
+        assert!(config.layers().is_empty());
+        let layers = config.two_parent_layers();
+        assert_eq!(layers.len(), 9);
+        assert_eq!((layers[0].inputs, layers[0].outputs), (14, 128));
+        assert_eq!((layers[8].inputs, layers[8].outputs), (128, 97));
+        assert_eq!(config.parameter_count(), 3 * (8 * 128 + 97));
+        for layer in layers {
+            for output in 0..layer.outputs {
+                let [a, b] = layer.parents(output);
+                assert!(a < layer.inputs && b < layer.inputs && a != b);
+            }
+        }
+        let all_inputs = (1_u64 << 14) - 1;
+        assert!(
+            config
+                .full_mesh_receptive_fields()
+                .iter()
+                .all(|&field| field == all_inputs)
+        );
+        let local = SimpleConfig {
+            connectivity: Connectivity::Neighbor,
+            ..config
+        };
+        assert!(
+            local
+                .full_mesh_receptive_fields()
+                .iter()
+                .all(|&field| field != all_inputs)
+        );
+        let deep = SimpleConfig { depth: 64, ..local };
+        assert!(
+            deep.full_mesh_receptive_fields()
+                .iter()
+                .all(|&field| field == all_inputs)
+        );
+        for invalid in [
+            SimpleConfig {
+                encoding: Encoding::OneHot,
+                ..config
+            },
+            SimpleConfig {
+                connectivity: Connectivity::Own,
+                ..config
+            },
+            SimpleConfig {
+                tied_mesh: true,
+                ..config
+            },
+        ] {
+            assert!(invalid.validate().is_err());
+        }
+    }
+
+    #[test]
+    fn full_mesh_initialization_is_seeded_and_identity_applies_only_to_hidden_layers() {
+        let config = SimpleConfig {
+            architecture: Architecture::FullMeshMlp,
+            encoding: Encoding::Binary,
+            modulus: 7,
+            width: 8,
+            depth: 3,
+            ..SimpleConfig::default()
+        };
+        let weights = config.initial_parameters(11);
+        assert_eq!(weights.len(), config.parameter_count());
+        assert_eq!(weights, config.initial_parameters(11));
+        assert_ne!(weights, config.initial_parameters(7));
+        assert!(weights.as_chunks::<3>().0.iter().all(|unit| unit[2] == 0.0));
+        assert!(weights.as_chunks::<3>().0.iter().any(|unit| unit[1] != 0.0));
+        let identity = SimpleConfig {
+            full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+            ..config
+        };
+        identity.validate().unwrap();
+        let weights = identity.initial_parameters(11);
+        assert!(
+            weights[24..72]
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .all(|unit| *unit == [1.0, 0.0, 0.0])
+        );
+        assert!(
+            weights[..24]
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .any(|unit| unit[1] != 0.0)
+        );
+        assert!(
+            weights[72..]
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .any(|unit| unit[1] != 0.0)
+        );
+    }
 
     #[test]
     fn residual_mesh_config_bounds_branch_depth_and_counts_only_edges() {
@@ -675,6 +1502,184 @@ mod tests {
             .validate()
             .is_err()
         );
+    }
+
+    #[test]
+    fn normal_width_embedding_preserves_dense_weights_and_has_width_scaled_variance() {
+        for width in [128, 1024] {
+            let base = SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualDenseMlp,
+                width,
+                depth: 1,
+                ..SimpleConfig::default()
+            };
+            let normal = SimpleConfig {
+                dense_embedding_initialization: DenseEmbeddingInitialization::NormalWidth,
+                ..base
+            };
+            normal.validate().unwrap();
+            for seed in [11, 17, 23] {
+                let original = base.initial_parameters(seed);
+                let changed = normal.initial_parameters(seed);
+                assert_eq!(changed, normal.initial_parameters(seed));
+                assert_eq!(changed.len(), original.len());
+                let embedding = normal.modulus * width;
+                assert_eq!(changed[embedding..], original[embedding..]);
+                assert_ne!(changed[..embedding], original[..embedding]);
+                let mean = changed[..embedding]
+                    .iter()
+                    .map(|&x| f64::from(x))
+                    .sum::<f64>()
+                    / embedding as f64;
+                let variance = changed[..embedding]
+                    .iter()
+                    .map(|&x| (f64::from(x) - mean).powi(2))
+                    .sum::<f64>()
+                    / embedding as f64;
+                assert!(mean.abs() < 0.025 / (width as f64).sqrt());
+                assert!((variance * width as f64 - 1.0).abs() < 0.025);
+                // Expected squared class norm is one, without projecting rows
+                // onto a sphere or constraining parameters during training.
+                let mean_squared_norm = changed[..embedding]
+                    .iter()
+                    .map(|&x| f64::from(x).powi(2))
+                    .sum::<f64>()
+                    / normal.modulus as f64;
+                assert!((mean_squared_norm - 1.0).abs() < 0.025);
+            }
+        }
+    }
+
+    #[test]
+    fn normal_width_embedding_rejects_unrelated_architectures_and_roundtrips() {
+        let mode = DenseEmbeddingInitialization::NormalWidth;
+        assert_eq!(
+            mode.to_string()
+                .parse::<DenseEmbeddingInitialization>()
+                .unwrap(),
+            mode
+        );
+        assert!(
+            "normal-typo"
+                .parse::<DenseEmbeddingInitialization>()
+                .is_err()
+        );
+        for architecture in [
+            Architecture::Mlp,
+            Architecture::TiedRotaryResidualMeshMlp,
+            Architecture::SharedNeighborMeshMlp,
+        ] {
+            assert!(
+                SimpleConfig {
+                    architecture,
+                    dense_embedding_initialization: mode,
+                    ..SimpleConfig::default()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn rotary_dense_branch_uses_seeded_kaiming_weights_and_trains_all_connections() {
+        use super::ReferenceSimpleModel;
+        use crate::gpt::{EquationDataset, ModularOperation};
+        let dense = SimpleConfig {
+            architecture: Architecture::TiedRotaryResidualDenseMlp,
+            activation: Activation::Relu,
+            modulus: 7,
+            width: 6,
+            depth: 1,
+            ..SimpleConfig::default()
+        };
+        dense.validate().unwrap();
+        assert_eq!(dense.groups(), [42, 36]);
+        let mesh = SimpleConfig {
+            architecture: Architecture::TiedRotaryResidualMeshMlp,
+            mesh_depth: 1,
+            mesh_output_activation: true,
+            ..dense
+        };
+        let dataset = EquationDataset::new(7, ModularOperation::Divide, 0.5, 11).unwrap();
+        let (features, targets) = dense.encode(&dataset.split(false)[..3]).unwrap();
+        let model = ReferenceSimpleModel::new(dense, 11).unwrap();
+        let sparse = ReferenceSimpleModel::new(mesh, 11).unwrap();
+        assert_eq!(&model.parameters()[..42], &sparse.parameters()[..42]);
+        assert_eq!(dense.initial_parameters(11), dense.initial_parameters(11));
+        assert_ne!(dense.initial_parameters(11), dense.initial_parameters(7));
+        let (_, gradient) = model.loss_and_gradient(&features, &targets).unwrap();
+        assert!(
+            gradient[42..]
+                .iter()
+                .enumerate()
+                .any(|(i, value)| i / 6 != i % 6 && value.abs() > 1e-8)
+        );
+        for (width, parameters) in [(128, 28_800), (1024, 1_147_904)] {
+            assert_eq!(
+                SimpleConfig {
+                    width,
+                    modulus: 97,
+                    ..dense
+                }
+                .parameter_count(),
+                parameters
+            );
+        }
+        let wide = SimpleConfig {
+            width: 128,
+            modulus: 97,
+            ..dense
+        };
+        let initialized = wide.initial_parameters(11);
+        let matrix = &initialized[97 * 128..];
+        let mean = matrix.iter().map(|&v| f64::from(v)).sum::<f64>() / matrix.len() as f64;
+        let variance = matrix
+            .iter()
+            .map(|&v| (f64::from(v) - mean).powi(2))
+            .sum::<f64>()
+            / matrix.len() as f64;
+        assert!(mean.abs() < 0.004);
+        assert!((variance / (2.0 / 128.0) - 1.0).abs() < 0.05);
+    }
+
+    #[test]
+    fn final_mesh_activation_preserves_parameters_and_needs_a_residual_mesh() {
+        let config = SimpleConfig {
+            architecture: Architecture::TiedRotaryResidualMeshMlp,
+            activation: Activation::Square,
+            width: 128,
+            depth: 1,
+            mesh_depth: 1,
+            ..SimpleConfig::default()
+        };
+        let activated = SimpleConfig {
+            mesh_output_activation: true,
+            ..config
+        };
+        activated.validate().unwrap();
+        assert_eq!(activated.parameter_count(), 12_672);
+        assert_eq!(activated.groups(), config.groups());
+        assert_eq!(
+            activated.initial_parameters(11),
+            config.initial_parameters(11)
+        );
+        for architecture in [
+            Architecture::Mlp,
+            Architecture::MeshMlp,
+            Architecture::TiedConcatMeshMlp,
+            Architecture::ResidualMlp,
+            Architecture::Bilinear,
+        ] {
+            assert!(
+                SimpleConfig {
+                    architecture,
+                    ..activated
+                }
+                .validate()
+                .is_err()
+            );
+        }
     }
 
     #[test]

@@ -1,0 +1,136 @@
+{
+  "narrow": [
+    {
+      "check": "logits 0",
+      "error": 6.706224384145365e-7
+    },
+    {
+      "check": "logits 19",
+      "error": 8.576347473310264e-7
+    },
+    {
+      "check": "logits 4655",
+      "error": 0.0000011034873561577285
+    },
+    {
+      "check": "logits 4656",
+      "error": 9.210472707854578e-7
+    },
+    {
+      "check": "logits 9311",
+      "error": 7.907443815291515e-7
+    },
+    {
+      "check": "all 28800 gradients, batch 1",
+      "error": 8.010244374467845e-7
+    },
+    {
+      "check": "all 28800 gradients, batch 37",
+      "error": 6.497604272681645e-8
+    },
+    {
+      "check": "all 28800 gradients, batch 48",
+      "error": 5.982963431280797e-8
+    },
+    {
+      "check": "all 28800 gradients, batch 512",
+      "error": 2.1467473086071026e-8
+    },
+    {
+      "check": "AdamW 1",
+      "error": 1.4897335143260193e-8
+    },
+    {
+      "check": "AdamW 2",
+      "error": 2.9240976084921044e-8
+    },
+    {
+      "check": "AdamW 3",
+      "error": 4.4072346883083924e-8
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 4.999467372894287,
+        "trainAccuracy": 0.010524054989218712,
+        "heldoutLoss": 5.025078773498535,
+        "heldoutAccuracy": 0.01009450200945139
+      }
+    },
+    {
+      "check": "signed dense connections",
+      "error": 0.0000021747699907592732
+    }
+  ],
+  "wide": [
+    {
+      "check": "logits 0",
+      "error": 0.0000026532183787786323
+    },
+    {
+      "check": "logits 19",
+      "error": 0.000002067853590137503
+    },
+    {
+      "check": "logits 4655",
+      "error": 0.000002580065648682961
+    },
+    {
+      "check": "logits 4656",
+      "error": 0.0000025091071125249442
+    },
+    {
+      "check": "logits 9311",
+      "error": 0.0000021559500376078233
+    },
+    {
+      "check": "all 1147904 gradients, batch 1",
+      "error": 0.0000054530406878861015
+    },
+    {
+      "check": "all 1147904 gradients, batch 37",
+      "error": 1.8255820438684012e-7
+    },
+    {
+      "check": "all 1147904 gradients, batch 48",
+      "error": 1.3882646884844085e-7
+    },
+    {
+      "check": "all 1147904 gradients, batch 512",
+      "error": 4.490359440875724e-8
+    },
+    {
+      "check": "AdamW 1",
+      "error": 0.000004727189834984047
+    },
+    {
+      "check": "AdamW 2",
+      "error": 0.000004728312798796264
+    },
+    {
+      "check": "AdamW 3",
+      "error": 0.000004726889716026583
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 4.9347968101501465,
+        "trainAccuracy": 0.01739690825343132,
+        "heldoutLoss": 5.028462886810303,
+        "heldoutAccuracy": 0.012027491815388203
+      }
+    },
+    {
+      "check": "nontrivial dense parameters 0..99328",
+      "error": 1.9201142411467975e-7
+    },
+    {
+      "check": "nontrivial dense parameters 99328..1147904",
+      "error": 1.092928847250263e-8
+    }
+  ]
+}

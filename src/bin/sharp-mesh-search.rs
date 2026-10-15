@@ -322,7 +322,10 @@ impl Candidate {
         let mut i = 1;
         while i < self.0.len() {
             let flag = &self.0[i];
-            if flag == "--tied-mesh" || flag == "--embedding-init-unit" {
+            if flag == "--tied-mesh"
+                || flag == "--embedding-init-unit"
+                || flag == "--mesh-output-activation"
+            {
                 entries.push(format!("{flag}=true"));
                 i += 1;
             } else {
@@ -378,7 +381,10 @@ fn read_queue(path: &Path) -> Result<Vec<Candidate>> {
         let mut i = 1;
         while i < arguments.len() {
             let flag = &arguments[i];
-            if flag == "--tied-mesh" || flag == "--embedding-init-unit" {
+            if flag == "--tied-mesh"
+                || flag == "--embedding-init-unit"
+                || flag == "--mesh-output-activation"
+            {
                 i += 1;
                 continue;
             }
@@ -391,6 +397,10 @@ fn read_queue(path: &Path) -> Result<Vec<Candidate>> {
                 "--encoding",
                 "--connectivity",
                 "--mesh-learning-rate-multiplier",
+                "--mesh-initialization",
+                "--embedding-mesh-depth",
+                "--embedding-initialization",
+                "--dense-embedding-initialization",
                 "--learning-rate",
                 "--weight-decay",
                 "--seed",
@@ -423,16 +433,48 @@ fn read_queue(path: &Path) -> Result<Vec<Candidate>> {
         }
         let candidate = Candidate(arguments);
         let command = candidate.0.first().map(String::as_str);
+        if candidate
+            .0
+            .iter()
+            .any(|flag| flag == "--mesh-output-activation")
+            && (command != Some("grok-simple")
+                || ![
+                    "residual-mesh-mlp",
+                    "tied-concat-residual-mesh-mlp",
+                    "tied-rotary-residual-mesh-mlp",
+                ]
+                .contains(&candidate.get("--model").unwrap_or("")))
+        {
+            return Err(format!(
+                "queue line {} activates a non-residual-mesh output",
+                line_number + 1
+            )
+            .into());
+        }
         let mesh = command == Some("grok")
             || (command == Some("grok-simple")
                 && [
                     "mesh-mlp",
+                    "full-mesh-mlp",
+                    "shared-neighbor-mesh-mlp",
                     "residual-mesh-mlp",
                     "tied-concat-mesh-mlp",
                     "tied-concat-residual-mesh-mlp",
                     "tied-rotary-residual-mesh-mlp",
+                    "tied-rotary-residual-dense-mlp",
                 ]
                 .contains(&candidate.get("--model").unwrap_or("")));
+        let full_mesh =
+            command == Some("grok-simple") && candidate.get("--model") == Some("full-mesh-mlp");
+        let shared_neighbor = command == Some("grok-simple")
+            && candidate.get("--model") == Some("shared-neighbor-mesh-mlp");
+        let invalid_encoding = if full_mesh {
+            candidate.get("--encoding") != Some("binary")
+        } else {
+            candidate
+                .get("--encoding")
+                .is_some_and(|value| value != "one-hot")
+        };
         if !mesh
             || candidate.get("--width").is_none()
             || candidate.get("--seed").is_none()
@@ -440,9 +482,12 @@ fn read_queue(path: &Path) -> Result<Vec<Candidate>> {
                 .get("--depth")
                 .or_else(|| candidate.get("--layers"))
                 .is_none()
-            || candidate
-                .get("--encoding")
-                .is_some_and(|value| value != "one-hot")
+            || invalid_encoding
+            || (!full_mesh && !shared_neighbor && candidate.get("--mesh-initialization").is_some())
+            || (!shared_neighbor && candidate.get("--embedding-mesh-depth").is_some())
+            || (!shared_neighbor && candidate.get("--embedding-initialization").is_some())
+            || (candidate.get("--model") != Some("tied-rotary-residual-dense-mlp")
+                && candidate.get("--dense-embedding-initialization").is_some())
             || candidate
                 .get("--embedding-order")
                 .is_some_and(|value| value != "token")
@@ -1429,12 +1474,83 @@ mod tests {
         let line = candidate.0.join(" ");
         fs::write(&path, format!("# Research queue\n\n{line}\n")).unwrap();
         assert_eq!(read_queue(&path).unwrap()[0].key(), candidate.key());
+        fs::write(&path, format!("{line} --mesh-output-activation\n")).unwrap();
+        assert!(
+            read_queue(&path).unwrap()[0]
+                .0
+                .contains(&"--mesh-output-activation".into())
+        );
         for invalid in [
             line.replace("residual-mesh-mlp", "residual-mlp"),
             line.replace("one-hot", "discrete-log"),
             format!("{line} --output /tmp/overwrite"),
             format!("{line} --width"),
             "grok-simple --model mesh-mlp".into(),
+            format!(
+                "{} --mesh-output-activation",
+                line.replace("residual-mesh-mlp", "mesh-mlp")
+            ),
+        ] {
+            fs::write(&path, invalid).unwrap();
+            assert!(read_queue(&path).is_err());
+        }
+    }
+
+    #[test]
+    fn queue_accepts_full_mesh_binary_inputs_without_accepting_assisted_encodings() {
+        let directory = Temporary::new("full-mesh-queue");
+        let path = directory.0.join("queue.args");
+        let line = "grok-simple --model full-mesh-mlp --width 128 --depth 8 --seed 11 --encoding binary --connectivity butterfly --mesh-initialization identity-hidden";
+        fs::write(&path, line).unwrap();
+        assert_eq!(read_queue(&path).unwrap().len(), 1);
+        for invalid in [
+            line.replace("binary", "one-hot"),
+            line.replace("binary", "discrete-log"),
+            line.replace("full-mesh-mlp", "mesh-mlp"),
+        ] {
+            fs::write(&path, invalid).unwrap();
+            assert!(read_queue(&path).is_err());
+        }
+    }
+
+    #[test]
+    fn queue_accepts_only_unassisted_shared_neighbor_candidates() {
+        let directory = Temporary::new("shared-neighbor-queue");
+        let path = directory.0.join("queue.args");
+        let line = "grok-simple --model shared-neighbor-mesh-mlp --width 128 --depth 64 --embedding-mesh-depth 32 --encoding one-hot --connectivity neighbor --mesh-initialization identity-hidden --seed 11";
+        fs::write(&path, line).unwrap();
+        assert_eq!(read_queue(&path).unwrap().len(), 1);
+        for mode in ["unit-norm-weak", "unit-norm-strong"] {
+            fs::write(&path, format!("{line} --embedding-initialization {mode}")).unwrap();
+            assert_eq!(read_queue(&path).unwrap().len(), 1);
+        }
+        for invalid in [
+            line.replace("one-hot", "discrete-log"),
+            line.replace("shared-neighbor-mesh-mlp", "mesh-mlp"),
+            format!(
+                "{} --embedding-initialization unit-norm-strong",
+                line.replace("shared-neighbor-mesh-mlp", "full-mesh-mlp")
+                    .replace("one-hot", "binary")
+            ),
+        ] {
+            fs::write(&path, invalid).unwrap();
+            assert!(read_queue(&path).is_err());
+        }
+    }
+
+    #[test]
+    fn queue_accepts_dense_embedding_controls_only_for_the_dense_rotary_model() {
+        let directory = Temporary::new("dense-embedding-queue");
+        let path = directory.0.join("queue.args");
+        let line = "grok-simple --model tied-rotary-residual-dense-mlp --width 128 --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --seed 11";
+        fs::write(&path, line).unwrap();
+        assert_eq!(read_queue(&path).unwrap().len(), 1);
+        for invalid in [
+            line.replace(
+                "tied-rotary-residual-dense-mlp",
+                "tied-rotary-residual-mesh-mlp",
+            ),
+            line.replace("one-hot", "discrete-log"),
         ] {
             fs::write(&path, invalid).unwrap();
             assert!(read_queue(&path).is_err());

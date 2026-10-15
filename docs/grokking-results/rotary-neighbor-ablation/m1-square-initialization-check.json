@@ -1,0 +1,76 @@
+{
+  "scope": "Byte-identical shared E and first mesh for all paired seeds; the two seed-11 no-activation controls have identical complete initial weight files.",
+  "passed": true,
+  "runs": [
+    {
+      "width": 128,
+      "seed": 11,
+      "initial_parameters_sha256": "f0d28c681b9be479b436c23ec3894e7b0fe61e6acce8c373cc25846a5cd9e230",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": true
+    },
+    {
+      "width": 128,
+      "seed": 7,
+      "initial_parameters_sha256": "a942a7254e05b642dfccf9ae07722adeef560ddb7e3bc98ee7093916d4a5f9d0",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 128,
+      "seed": 8,
+      "initial_parameters_sha256": "551f586a2d91f5cfd16ea31017bcbfe72632eb2cb5cdefeff032ea1e4e43a734",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 128,
+      "seed": 9,
+      "initial_parameters_sha256": "109681b6b358fc53426bda7738edbab6a55e56ffc27a6a6049f6f06fff37a053",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 128,
+      "seed": 10,
+      "initial_parameters_sha256": "c78e705c763b2077b2d26cb96a8d64984268ac5f388035b9abee79879fefc065",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 1024,
+      "seed": 11,
+      "initial_parameters_sha256": "cb9e3a7662ab24c46cafe99776240a42be4eb393dc3db81ef63cf4abe64ee447",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": true
+    },
+    {
+      "width": 1024,
+      "seed": 7,
+      "initial_parameters_sha256": "0ac1e81d0aa228a41826b98c6f908a93b5e575fcf126ff12d20fd580de8d98fc",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 1024,
+      "seed": 8,
+      "initial_parameters_sha256": "1eb918d35ae96b45d099fb30281457fd86c625b6ea683e79a82cfc5ff0f1bc85",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 1024,
+      "seed": 9,
+      "initial_parameters_sha256": "715ba86785af66923e05652623335f0d3992c5cfca7ee64c6074e164c4a49cde",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    },
+    {
+      "width": 1024,
+      "seed": 10,
+      "initial_parameters_sha256": "e6430e26cfae723d0bcbfc8c31273e9312f55d14417c879a238dfe14a2e33a39",
+      "identical_to_m2_parameter_prefix": true,
+      "identical_to_no_activation_control": null
+    }
+  ]
+}

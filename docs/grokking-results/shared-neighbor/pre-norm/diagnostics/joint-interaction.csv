@@ -1,0 +1,3 @@
+phase,core_connectivity,weighted_interaction_fraction,mean_class_interaction_fraction,nonzero_grid_accuracy
+initial,neighbor,0.120846978678,0.156766389034,0.011176215278
+trained,neighbor,0.341506540704,0.364851566724,0.029839409722

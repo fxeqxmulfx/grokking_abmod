@@ -1,0 +1,189 @@
+{
+  "recordedAt": "2026-10-12T20:51:39.934Z",
+  "sources": {
+    "dist/app.mjs": "705f6ac7a0cb0e1211c518a02003e665b3a5e2529217b37434642a26cb792067",
+    "dist/topology.mjs": "49dda3e0c44bbe5ea650e9c04ac5fe01e9b2d34ad2fff1d436bda5bda1cccccf",
+    "dist/index.html": "0ce6bf51de1379fa2aa97319151f7fb9a42299df344f1457cacb3f847f4f0a5b",
+    "dist/style.css": "cc344afffdef84ecebe9651b681956ff7e3c0c6deb885eae1ecf0cbb1ae73d84",
+    "tests/browser.mjs": "6fd003e5f001ee2baa2166a0bc39d76e14bf98f839e8ee22347e45dd200871e6",
+    "tests/measure-topology.mjs": "fa730e153f68f2ba566c57e0d2cd654b0676046709a8d12d60a82a6aeff0cea1"
+  },
+  "ui": {
+    "passed": true,
+    "command": "GROKKING_VERIFY_ONLY=ui GROKKING_CDP_PORT=9225 node web/own-channel/tests/browser.mjs",
+    "logSha256": "2b53da08960898192ce26d7e73d1ae76dfeee8cd96fb060601c2066e5ee55ea7",
+    "layouts": [
+      "Layout fits: 1366 × 768 narrow",
+      "Layout fits: 1280 × 720 narrow",
+      "Layout fits: 1024 × 768 narrow",
+      "Layout fits: 1920 × 1080 narrow",
+      "Layout fits: 1366 × 768 narrow",
+      "Layout fits: 390 × 844 narrow weights",
+      "Layout fits: 390 × 844 narrow channels",
+      "Layout fits: 390 × 844 narrow training",
+      "Layout fits: 1366 × 768 wide training",
+      "Layout fits: 1366 × 768 wide weights",
+      "Layout fits: 1366 × 768 wide channels",
+      "Layout fits: 390 × 844 wide training",
+      "Layout fits: 390 × 844 wide weights",
+      "Layout fits: 390 × 844 wide channels",
+      "Layout fits: 320 × 568 wide training",
+      "Layout fits: 320 × 568 wide weights",
+      "Layout fits: 320 × 568 wide channels",
+      "Layout fits: 768 × 1024 wide training",
+      "Layout fits: 768 × 1024 wide weights",
+      "Layout fits: 768 × 1024 wide channels",
+      "Layout fits: 1366 × 600 wide training",
+      "Layout fits: 1366 × 600 wide weights",
+      "Layout fits: 1366 × 600 wide channels",
+      "Layout fits: 844 × 390 wide training",
+      "Layout fits: 844 × 390 wide weights",
+      "Layout fits: 844 × 390 wide channels"
+    ],
+    "checks": [
+      "All connections drawn with no default channel emphasis",
+      "Change is zero before training and visible in all three bands after real learning",
+      "Color scales stay fixed during learning",
+      "Mode, highlight and zoom reuse weight uploads and preserve training",
+      "WebGPU/WASM training, independent tabs, pause/reset, both network views and all viewport layouts"
+    ]
+  },
+  "fullBrowserRun": {
+    "model": "neighbor-rotary-wide",
+    "seed": 11,
+    "backend": "webgpu",
+    "captureHz": 10,
+    "snapshots": [
+      {
+        "label": "initial",
+        "epoch": "0",
+        "heldoutAccuracy": "1.03%",
+        "phase": "Learning",
+        "status": "Ready",
+        "renderer": {
+          "connections": "300032",
+          "parameters": "101376",
+          "mode": "delta",
+          "highlight": "false",
+          "embeddingScale": "0.025383492931723595",
+          "meshScale": "0.25",
+          "renderer": "WebGL2",
+          "uploads": "6",
+          "precision": "float16"
+        },
+        "bands": [
+          0,
+          0,
+          0
+        ],
+        "gpuError": 0
+      },
+      {
+        "label": "epoch40",
+        "epoch": "41",
+        "heldoutAccuracy": "10.01%",
+        "phase": "Generalizing",
+        "status": "Training",
+        "renderer": {
+          "connections": "300032",
+          "parameters": "101376",
+          "mode": "delta",
+          "highlight": "false",
+          "embeddingScale": "0.025383492931723595",
+          "meshScale": "0.25",
+          "renderer": "WebGL2",
+          "uploads": "35",
+          "precision": "float16"
+        },
+        "bands": [
+          133328,
+          17566,
+          89797
+        ],
+        "gpuError": 0
+      },
+      {
+        "label": "epoch100",
+        "epoch": "101",
+        "heldoutAccuracy": "40.16%",
+        "phase": "Generalizing",
+        "status": "Training",
+        "renderer": {
+          "connections": "300032",
+          "parameters": "101376",
+          "mode": "delta",
+          "highlight": "false",
+          "embeddingScale": "0.025383492931723595",
+          "meshScale": "0.25",
+          "renderer": "WebGL2",
+          "uploads": "84",
+          "precision": "float16"
+        },
+        "bands": [
+          157711,
+          36928,
+          111744
+        ],
+        "gpuError": 0
+      },
+      {
+        "label": "final",
+        "epoch": "181",
+        "heldoutAccuracy": "99.03%",
+        "phase": "Generalized",
+        "status": "Target reached",
+        "renderer": {
+          "connections": "300032",
+          "parameters": "101376",
+          "mode": "delta",
+          "highlight": "false",
+          "embeddingScale": "0.025383492931723595",
+          "meshScale": "0.25",
+          "renderer": "WebGL2",
+          "uploads": "145",
+          "precision": "float16"
+        },
+        "bands": [
+          75579,
+          19789,
+          63305
+        ],
+        "gpuError": 0
+      }
+    ]
+  },
+  "drawing": {
+    "connections": 300032,
+    "parameters": 101376,
+    "viewport": [
+      1250,
+      520
+    ],
+    "precision": "float16",
+    "renderer": "ANGLE (AMD, AMD Radeon Graphics (radeonsi renoir ACO), OpenGL ES 3.2)",
+    "gpuMs": [
+      5.599999964237213,
+      1.100000023841858,
+      0.30000001192092896,
+      0.19999998807907104,
+      0.30000001192092896,
+      0.2999999523162842,
+      0.19999998807907104,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.19999998807907104,
+      0.19999998807907104
+    ],
+    "gpuMedianMs": 0.30000001192092896,
+    "canvasFallbackMs": 27.399999976158142,
+    "zoomReusesTexture": true,
+    "canvasFallbackIncludesAllConnections": true,
+    "canvasFallbackShowsWeakChanges": true,
+    "realPointerPan": true,
+    "fitRestoresDiagram": true,
+    "note": "Standalone arrow drawing with initial seed-11 weights, including texture uploads, accumulation/composite and gl.finish; excludes node overlay, probe, training and other dashboard panels. Median excludes two warmup draws.",
+    "noFloatTargetUsesCanvas": true
+  },
+  "note": "Training implementation is unchanged. Numerical verification remains in rotary-m1-square-webgpu-verification.json and the earlier 74-test Node log. GPU and Canvas drawing checked separately; Canvas bins magnitudes and uses a visibility floor."
+}

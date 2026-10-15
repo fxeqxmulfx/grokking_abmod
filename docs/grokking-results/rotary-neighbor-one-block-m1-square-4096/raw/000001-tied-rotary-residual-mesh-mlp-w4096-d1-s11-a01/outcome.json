@@ -1,0 +1,1 @@
+{"status":"complete","detail":null,"elapsed_seconds":1139.560330769,"statistics":{"rows":735,"epoch":734,"train_accuracy":1,"test_accuracy":0.990979381,"plateau_start_epoch":13,"plateau_end_epoch":409,"plateau_epochs":396,"plateau_before_90_epochs":396,"last_low_before_90_epoch":409,"first_test_90_epoch":700,"rise_epochs":291,"first_test_99_epoch":734,"matched":false}}

@@ -1,0 +1,43 @@
+{
+  "model": "neighbor-rotary",
+  "variant": "simd",
+  "seed": 11,
+  "blocks": 1,
+  "meshDepth": 1,
+  "meshOutputActivation": true,
+  "parameters": 12672,
+  "reportEvery": 10,
+  "elapsedSeconds": 6.173175224,
+  "wasmSha256": "ce45e72bd5dc6ad089bd059185ba405f0960989aae0df6bcc6de5afff0d2a85f",
+  "node": "v24.21.0",
+  "criterion": {
+    "plateau": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "perfect": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 113,
+    "lastLow": 23,
+    "first90": 95,
+    "rise": 72,
+    "event": {
+      "epoch": 113,
+      "delayed": false,
+      "plateauEpochs": 0,
+      "perfectTrainEpochs": 0,
+      "riseEpochs": 72
+    }
+  },
+  "sourceSha256": {
+    "wasm.mjs": "e556bc1351bcd2a80bac6542f2711163f5df44b576fd921977edc0cb0d944d60",
+    "models.mjs": "adf53002cffcf270343dfda3b897eee3158fc1e3bd573c8701d2e792a73c9063",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda"
+  }
+}

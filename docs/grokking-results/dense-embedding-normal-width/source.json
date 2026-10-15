@@ -1,0 +1,14 @@
+{
+  "method": "Two seed-11 Rust/CUDA controls. E changes from uniform with variance 1/(3*97) to Gaussian with variance 1/W. A remains byte-identical, with pre-RMSNorm and final RMSNorm. No frontend update.",
+  "files": {
+    "src/simple/mod.rs": "27f1a1be9ce75835353dbeebeea89b33a23f24eacd2209c20339b0555d80d3ee",
+    "src/simple/gpu.rs": "bcbac2fc2b9bfec7dfe4eee9b9565f2357c522b55209793f417e2849e6446add",
+    "src/simple/reference.rs": "39c9d3786d5239d6388e26e02eeb930fcb398b8a0a3fb47515b8d7469b8ca7fc",
+    "src/bin/mesh-gpt/simple.rs": "d3f9f43769cb6fe14d2f951aad7f0c77cc03a4c6ccc73ec2a9dd8b69ea01ce53",
+    "src/bin/sharp-mesh-search.rs": "ff4cfeedd8317b028c7adf987e07c47c489b2c8db6da7b74afa0d07fc1365d01",
+    "experiments/div97-dense-embedding-normal-width.args": "f7111d7315f42eb3742f2903aed6f335212aef8922f3e6f5957eb2c717a57bc4",
+    "scripts/analyze-short-mesh.py": "8b7465d2ff7bed417ba71484e36d9635780eb7773b211cb29aa0f786584097fa",
+    "scripts/analyze-dense-embedding.mjs": "2cecf56825bfbf956768c5cb075cd8a5472a788697a412c5c142ce9bfa2ea511",
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb"
+  }
+}

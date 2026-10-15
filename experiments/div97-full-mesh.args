@@ -1,0 +1,12 @@
+# Fully sparse input, hidden layers and readout; ordinary 14-bit a/b inputs.
+# Each node: two distinct activation parents, two learned weights and one bias.
+# No dense E/readout, RMSNorm, attention or residual branch. Output is 97 logits.
+# Compare depth and initialization; the final Neighbor case has global input coverage.
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 128 --depth 8 --connectivity butterfly --mesh-initialization kaiming --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 128 --depth 16 --connectivity butterfly --mesh-initialization kaiming --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 128 --depth 32 --connectivity butterfly --mesh-initialization kaiming --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 128 --depth 8 --connectivity butterfly --mesh-initialization identity-hidden --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 128 --depth 16 --connectivity butterfly --mesh-initialization identity-hidden --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 512 --depth 16 --connectivity butterfly --mesh-initialization kaiming --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 512 --depth 16 --connectivity butterfly --mesh-initialization identity-hidden --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model full-mesh-mlp --encoding binary --activation relu --width 128 --depth 64 --connectivity neighbor --mesh-initialization identity-hidden --learning-rate 0.001 --weight-decay 0.1 --seed 11

@@ -1,0 +1,41 @@
+✔ dense-rotary/simd has no imports and matches the seeded initialization (20.918273ms)
+✔ dense-rotary/simd logits and all gradients match f64 backpropagation (431.473411ms)
+✔ dense-rotary/simd independent gains/edges and shared parameter accumulation (34.720971ms)
+✔ dense-rotary/simd AdamW matches a single state per unique parameter (1137.45341ms)
+✔ dense-rotary/scalar has no imports and matches the seeded initialization (11.626891ms)
+✔ dense-rotary/scalar logits and all gradients match f64 backpropagation (415.361858ms)
+✔ dense-rotary/scalar independent gains/edges and shared parameter accumulation (34.365041ms)
+✔ dense-rotary/scalar AdamW matches a single state per unique parameter (1175.069054ms)
+✔ dense-rotary-wide/simd has no imports and matches the seeded initialization (116.746418ms)
+✔ dense-rotary-wide/simd logits and all gradients match f64 backpropagation (744.718235ms)
+✔ dense-rotary-wide/simd independent gains/edges and shared parameter accumulation (467.213653ms)
+✔ dense-rotary-wide/simd AdamW matches a single state per unique parameter (2948.474352ms)
+✔ dense-rotary-wide/scalar has no imports and matches the seeded initialization (106.12809ms)
+✔ dense-rotary-wide/scalar logits and all gradients match f64 backpropagation (775.599077ms)
+✖ dense-rotary-wide/scalar independent gains/edges and shared parameter accumulation (506.72592ms)
+✔ dense-rotary-wide/scalar AdamW matches a single state per unique parameter (6194.880496ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 15
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15149.832161
+
+✖ failing tests:
+
+test at tests/models-wasm.test.mjs:52:3
+✖ dense-rotary-wide/scalar independent gains/edges and shared parameter accumulation (506.72592ms)
+  AssertionError [ERR_ASSERTION]: nontrivial wide weights: error 0.000002822696731366592 at 49162, tolerance 6.464124471381134e-7
+      at close (file:///home/misha/rust_projects/grokking_abmod/web/own-channel/tests/models-wasm.test.mjs:16:10)
+      at TestContext.<anonymous> (file:///home/misha/rust_projects/grokking_abmod/web/own-channel/tests/models-wasm.test.mjs:64:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

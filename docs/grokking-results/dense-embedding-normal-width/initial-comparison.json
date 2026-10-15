@@ -1,0 +1,246 @@
+{
+  "scope": "Single-seed Rust/CUDA E-distribution and scale control at both widths. Initial A, data split, sampler and optimizer fixed. Variance is an initialization property; no norm constraint during training. Both distribution shape and variance change.",
+  "initialOnly": true,
+  "completedPairs": 2,
+  "analysisScriptSha256": "2cecf56825bfbf956768c5cb075cd8a5472a788697a412c5c142ce9bfa2ea511",
+  "trainerSha256": "53419ce2a547980b61ca0bd30c21a97495e816eebd2c1676749c124d4b7c140d",
+  "independentForwardSourceSha256": "d46adbafa97eaeb80c14fbb821b88b89c6d117e94be1f10ebea60509e19478f4",
+  "pairs": [
+    {
+      "width": 128,
+      "seed": 11,
+      "checkedSettings": [
+        "architecture",
+        "activation",
+        "encoding",
+        "operation",
+        "modulus",
+        "train_fraction",
+        "seed",
+        "init_seed",
+        "width",
+        "depth",
+        "parameters",
+        "all_parameters",
+        "normalization",
+        "bias",
+        "learning_rate",
+        "weight_decay",
+        "betas",
+        "epsilon",
+        "warmup_steps",
+        "batch",
+        "requested_epochs",
+        "report_every",
+        "steps_per_epoch",
+        "stop_validation_accuracy"
+      ],
+      "identicalDenseA": true,
+      "datasetSha256": "d3d57d7c547e22c8184736c911e408a2fc7cb2583189f588bb14a26a1ea96faa",
+      "denseASha256": "d4c12a11d9f2f181d4ac362fe13840f035efdee948cd2c645eb67c517957f1fe",
+      "uniform": {
+        "initialSha256": "46793ce710384962cf06be56bd9e07eb1b4f32bf4ef3a95041375f721f6656e1",
+        "geometry": {
+          "embeddingMean": -0.0002069180612022138,
+          "embeddingVariance": 0.003492843553291326,
+          "embeddingStd": 0.05910028386811121,
+          "minClassNorm": 0.6042442742405734,
+          "meanClassNorm": 0.6682590253062016,
+          "maxClassNorm": 0.7322881389064172,
+          "diagnosticSampleCount": 128,
+          "diagnosticSplit": "128 fixed held-out pairs",
+          "meanInputRms": 0.0839034492783733,
+          "centeredLogitRms": 0.6650472769170658,
+          "crossEntropy": 4.74563702178244,
+          "precision": "independent f64 inference on native f32 weights"
+        },
+        "statistics": {
+          "observations": 680,
+          "spacing_epochs": 1,
+          "plateau": {
+            "epochs": 0,
+            "start": null,
+            "end": null
+          },
+          "perfect_train_plateau": {
+            "epochs": 0,
+            "start": null,
+            "end": null
+          },
+          "first_train_99": {
+            "epoch": 339,
+            "train": 0.990764605,
+            "test": 0.118556701,
+            "train_loss": 0.512503616,
+            "test_loss": 3.747007737
+          },
+          "last_test_10": {
+            "epoch": 331,
+            "train": 0.984321306,
+            "test": 0.099871134,
+            "train_loss": 0.581016874,
+            "test_loss": 3.926574666
+          },
+          "first_test_90": {
+            "epoch": 588,
+            "train": 1,
+            "test": 0.901632302,
+            "train_loss": 0.002164309,
+            "test_loss": 0.355984496
+          },
+          "rise_epochs": 257,
+          "first_test_99": {
+            "epoch": 679,
+            "train": 1,
+            "test": 0.990549828,
+            "train_loss": 0.000136788,
+            "test_loss": 0.052508587
+          },
+          "final": {
+            "epoch": 679,
+            "train": 1,
+            "test": 0.990549828,
+            "train_loss": 0.000136788,
+            "test_loss": 0.052508587
+          },
+          "matched": false
+        }
+      },
+      "normal": {
+        "initialSha256": "b90448461caff3b6e04bd9ead0a3f7e7f055e8c1cd71ce19f1069186c74ae04b",
+        "geometry": {
+          "embeddingMean": 0.000654705440506135,
+          "embeddingVariance": 0.007786684635768181,
+          "embeddingStd": 0.08824219305846938,
+          "minClassNorm": 0.8301355633396121,
+          "meanClassNorm": 0.9966960239336794,
+          "maxClassNorm": 1.1449754119918873,
+          "diagnosticSampleCount": 128,
+          "diagnosticSplit": "128 fixed held-out pairs",
+          "meanInputRms": 0.12432449662531296,
+          "centeredLogitRms": 1.0305168078393607,
+          "crossEntropy": 5.019859195537433,
+          "precision": "independent f64 inference on native f32 weights"
+        }
+      }
+    },
+    {
+      "width": 1024,
+      "seed": 11,
+      "checkedSettings": [
+        "architecture",
+        "activation",
+        "encoding",
+        "operation",
+        "modulus",
+        "train_fraction",
+        "seed",
+        "init_seed",
+        "width",
+        "depth",
+        "parameters",
+        "all_parameters",
+        "normalization",
+        "bias",
+        "learning_rate",
+        "weight_decay",
+        "betas",
+        "epsilon",
+        "warmup_steps",
+        "batch",
+        "requested_epochs",
+        "report_every",
+        "steps_per_epoch",
+        "stop_validation_accuracy"
+      ],
+      "identicalDenseA": true,
+      "datasetSha256": "d3d57d7c547e22c8184736c911e408a2fc7cb2583189f588bb14a26a1ea96faa",
+      "denseASha256": "61b4302be14666812189e7e931872e944910d4abc92276dcb2d99ac2c02b82d0",
+      "uniform": {
+        "initialSha256": "92813e65e2d4552ec3a260720d19a04f47dc2d3acd8e1dd2d6f9ae25c13508dc",
+        "geometry": {
+          "embeddingMean": -0.00022221326356531665,
+          "embeddingVariance": 0.0034389313052392875,
+          "embeddingStd": 0.05864240193954616,
+          "minClassNorm": 1.8080186054427734,
+          "meanClassNorm": 1.8764160833828258,
+          "maxClassNorm": 1.9329758327084197,
+          "diagnosticSampleCount": 128,
+          "diagnosticSplit": "128 fixed held-out pairs",
+          "meanInputRms": 0.08285476649259671,
+          "centeredLogitRms": 1.9396545459008852,
+          "crossEntropy": 6.308692842065001,
+          "precision": "independent f64 inference on native f32 weights"
+        },
+        "statistics": {
+          "observations": 369,
+          "spacing_epochs": 1,
+          "plateau": {
+            "epochs": 164,
+            "start": 15,
+            "end": 179
+          },
+          "perfect_train_plateau": {
+            "epochs": 105,
+            "start": 74,
+            "end": 179
+          },
+          "first_train_99": {
+            "epoch": 15,
+            "train": 0.991838488,
+            "test": 0.011383162,
+            "train_loss": 0.580122392,
+            "test_loss": 7.9384224
+          },
+          "last_test_10": {
+            "epoch": 179,
+            "train": 1,
+            "test": 0.098797251,
+            "train_loss": 5.34e-7,
+            "test_loss": 4.788375411
+          },
+          "first_test_90": {
+            "epoch": 320,
+            "train": 1,
+            "test": 0.902061856,
+            "train_loss": 4.54e-7,
+            "test_loss": 0.465383527
+          },
+          "rise_epochs": 141,
+          "first_test_99": {
+            "epoch": 368,
+            "train": 1,
+            "test": 0.991194158,
+            "train_loss": 5.3e-7,
+            "test_loss": 0.102382501
+          },
+          "final": {
+            "epoch": 368,
+            "train": 1,
+            "test": 0.991194158,
+            "train_loss": 5.3e-7,
+            "test_loss": 0.102382501
+          },
+          "matched": true
+        }
+      },
+      "normal": {
+        "initialSha256": "ea659d5b1596d3a019c3d2af55cb4c030244481b73011b0def3572ddc04d1e91",
+        "geometry": {
+          "embeddingMean": 0.000038614185301929115,
+          "embeddingVariance": 0.0009719430381184775,
+          "embeddingStd": 0.031176000996254755,
+          "minClassNorm": 0.9403765288724946,
+          "meanClassNorm": 0.9974455812251961,
+          "maxClassNorm": 1.0357566613992135,
+          "diagnosticSampleCount": 128,
+          "diagnosticSplit": "128 fixed held-out pairs",
+          "meanInputRms": 0.04411689941581327,
+          "centeredLogitRms": 0.9732721042547751,
+          "crossEntropy": 5.174866067220301,
+          "precision": "independent f64 inference on native f32 weights"
+        }
+      }
+    }
+  ]
+}

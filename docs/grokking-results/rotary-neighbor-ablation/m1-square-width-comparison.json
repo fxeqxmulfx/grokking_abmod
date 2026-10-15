@@ -1,0 +1,651 @@
+{
+  "date": "2026-10-12",
+  "scope": "Native Rust/CUDA width comparison for one residual Neighbor mesh with Square at branch output; five seeds per width.",
+  "protocol_fields_checked": [
+    "architecture",
+    "activation",
+    "encoding",
+    "operation",
+    "modulus",
+    "train_fraction",
+    "training_equations",
+    "validation_equations",
+    "seed",
+    "init_seed",
+    "inputs",
+    "abstract_symbol_permutation",
+    "loss",
+    "output_classes",
+    "normalization",
+    "initialization",
+    "bias",
+    "betas",
+    "epsilon",
+    "learning_rate",
+    "mesh_learning_rate_multiplier",
+    "weight_decay",
+    "warmup_steps",
+    "batch",
+    "report_every",
+    "evaluation",
+    "requested_epochs",
+    "steps_per_epoch",
+    "epoch_definition",
+    "epoch_tail",
+    "stop_validation_accuracy",
+    "operand_rotation",
+    "embedding_roles",
+    "connectivity",
+    "tied_mesh",
+    "depth",
+    "mesh_depth",
+    "mesh_output_activation",
+    "pointwise_activations_per_branch"
+  ],
+  "all_training_protocols_identical": true,
+  "initialization_note": "Each width uses the same SplitMix64 seed and scale. Different tensor shapes are not identical checkpoints.",
+  "criterion": {
+    "minimum_plateau_epochs": 25,
+    "maximum_rise_epochs": 250
+  },
+  "reference_verification": "m1-square-verification.json",
+  "verified_source_hashes_unchanged": true,
+  "profiles": [
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "parameters": 12672,
+      "seeds": 5,
+      "reached_target_seeds": 5,
+      "qualified_seeds": 0,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        59,
+        72
+      ],
+      "first_test_99": [
+        105,
+        113
+      ],
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "summary_sha256": "361b6cfeedf9478b3c00f261bf33ae2c024a4cd8b1f56fc2c1208563f0003745"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "parameters": 101376,
+      "seeds": 5,
+      "reached_target_seeds": 5,
+      "qualified_seeds": 0,
+      "plateau_epochs": [
+        11,
+        15
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        102,
+        117
+      ],
+      "first_test_99": [
+        178,
+        188
+      ],
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "summary_sha256": "26638f7b1e3048112b7ee69d0be941a2496e8ab95c69aca8b1c611764b86ddb6"
+    },
+    {
+      "width": 2048,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "parameters": 202752,
+      "seeds": 5,
+      "reached_target_seeds": 5,
+      "qualified_seeds": 0,
+      "plateau_epochs": [
+        83,
+        92
+      ],
+      "perfect_train_plateau_epochs": [
+        2,
+        28
+      ],
+      "rise_epochs": [
+        289,
+        363
+      ],
+      "first_test_99": [
+        462,
+        536
+      ],
+      "archive": "rotary-neighbor-one-block-m1-square-2048",
+      "summary_sha256": "001f0e236bafb429bb3a7332ffe35c85632e65b10bfcfd91df5578d126cb2d01"
+    }
+  ],
+  "runs": [
+    {
+      "width": 128,
+      "seed": 11,
+      "parameters": 12672,
+      "first_train_99": 81,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 23,
+      "first_test_90": 95,
+      "rise_epochs": 72,
+      "first_test_99": 113,
+      "qualified": false,
+      "final": {
+        "epoch": 113,
+        "train": 1,
+        "test": 0.990120275,
+        "train_loss": 0.066044081,
+        "test_loss": 0.174096623
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w128-d1-s11-a01",
+      "history_sha256": "b6889ad39ac2c766e493cc1c58d8ce28e7e78db07dc4a2576300114451ec2163",
+      "initial_model_sha256": "f0d28c681b9be479b436c23ec3894e7b0fe61e6acce8c373cc25846a5cd9e230",
+      "final_model_sha256": "89cb5ed313bd8c8663029082bd29af47384c10bae2f97990d72b6846267624b8",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "seed": 7,
+      "parameters": 12672,
+      "first_train_99": 80,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 26,
+      "first_test_90": 90,
+      "rise_epochs": 64,
+      "first_test_99": 106,
+      "qualified": false,
+      "final": {
+        "epoch": 106,
+        "train": 1,
+        "test": 0.991408935,
+        "train_loss": 0.070560133,
+        "test_loss": 0.174729814
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w128-d1-s7-a01",
+      "history_sha256": "4ef1f89badfbcd71219e1f10f105379b80cdd7a01d78702503d72cda757532aa",
+      "initial_model_sha256": "a942a7254e05b642dfccf9ae07722adeef560ddb7e3bc98ee7093916d4a5f9d0",
+      "final_model_sha256": "a6c03e0842904933c4a7b800bea217ddd6f4aab08c21f9f54f53ca0c93709cc9",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "seed": 8,
+      "parameters": 12672,
+      "first_train_99": 79,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 25,
+      "first_test_90": 89,
+      "rise_epochs": 64,
+      "first_test_99": 109,
+      "qualified": false,
+      "final": {
+        "epoch": 109,
+        "train": 1,
+        "test": 0.990120275,
+        "train_loss": 0.06677181,
+        "test_loss": 0.170306116
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w128-d1-s8-a01",
+      "history_sha256": "224897a1c20010bfbea9dbfa38712829acd60a26a24629e20a0ff13781f85b69",
+      "initial_model_sha256": "551f586a2d91f5cfd16ea31017bcbfe72632eb2cb5cdefeff032ea1e4e43a734",
+      "final_model_sha256": "13d52314adfa09ad54196e0cdf234db13f603203553caad1a3be18dc160fee93",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "seed": 9,
+      "parameters": 12672,
+      "first_train_99": 79,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 24,
+      "first_test_90": 87,
+      "rise_epochs": 63,
+      "first_test_99": 105,
+      "qualified": false,
+      "final": {
+        "epoch": 105,
+        "train": 1,
+        "test": 0.990335052,
+        "train_loss": 0.071841499,
+        "test_loss": 0.174926798
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w128-d1-s9-a01",
+      "history_sha256": "b48cb3d1c1e2fe6598885c50f4a09a4b5b161763497e44b943ea88c96cc18898",
+      "initial_model_sha256": "109681b6b358fc53426bda7738edbab6a55e56ffc27a6a6049f6f06fff37a053",
+      "final_model_sha256": "26efb80a5c95b748611bac9fb62aed2ce911599b28bb653b480b48fc4b0a3487",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "seed": 10,
+      "parameters": 12672,
+      "first_train_99": 75,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 25,
+      "first_test_90": 84,
+      "rise_epochs": 59,
+      "first_test_99": 105,
+      "qualified": false,
+      "final": {
+        "epoch": 105,
+        "train": 1,
+        "test": 0.990979381,
+        "train_loss": 0.058955407,
+        "test_loss": 0.15240085
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w128-d1-s10-a01",
+      "history_sha256": "441be9d052ce1c3581ea9c0608e672baefd1dbf672bc1a99e8a2da4159ee0414",
+      "initial_model_sha256": "c78e705c763b2077b2d26cb96a8d64984268ac5f388035b9abee79879fefc065",
+      "final_model_sha256": "c031e97e939bd2be5337d0a5a29012dad0f830ffe3d516762b16197de05e6dc6",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "seed": 11,
+      "parameters": 101376,
+      "first_train_99": 26,
+      "plateau": {
+        "epochs": 12,
+        "start": 26,
+        "end": 38
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 38,
+      "first_test_90": 147,
+      "rise_epochs": 109,
+      "first_test_99": 181,
+      "qualified": false,
+      "final": {
+        "epoch": 181,
+        "train": 1,
+        "test": 0.990764605,
+        "train_loss": 2.4e-7,
+        "test_loss": 0.02671872
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w1024-d1-s11-a01",
+      "history_sha256": "b9e7df7031288153837f7bea32d5cded9853cd038c9d68f1cfc110ae08543f65",
+      "initial_model_sha256": "cb9e3a7662ab24c46cafe99776240a42be4eb393dc3db81ef63cf4abe64ee447",
+      "final_model_sha256": "25a8940e43be1f711141b2f0a3c966c9547a52d67f209bd686876cdefa4d66e1",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "seed": 7,
+      "parameters": 101376,
+      "first_train_99": 27,
+      "plateau": {
+        "epochs": 15,
+        "start": 27,
+        "end": 42
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 42,
+      "first_test_90": 152,
+      "rise_epochs": 110,
+      "first_test_99": 186,
+      "qualified": false,
+      "final": {
+        "epoch": 186,
+        "train": 1,
+        "test": 0.990549828,
+        "train_loss": 2.21e-7,
+        "test_loss": 0.029062646
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w1024-d1-s7-a01",
+      "history_sha256": "22b4b92e51911bc5e9b4ecc8c17ce93f7b20dc2108285394996f90ba4930a797",
+      "initial_model_sha256": "0ac1e81d0aa228a41826b98c6f908a93b5e575fcf126ff12d20fd580de8d98fc",
+      "final_model_sha256": "6e71b0739c08a99213b20af783eb37382049f641e5fe07c189f2ce6af5676856",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "seed": 8,
+      "parameters": 101376,
+      "first_train_99": 28,
+      "plateau": {
+        "epochs": 15,
+        "start": 28,
+        "end": 43
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 43,
+      "first_test_90": 145,
+      "rise_epochs": 102,
+      "first_test_99": 178,
+      "qualified": false,
+      "final": {
+        "epoch": 178,
+        "train": 1,
+        "test": 0.990979381,
+        "train_loss": 3.32e-7,
+        "test_loss": 0.026799019
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w1024-d1-s8-a01",
+      "history_sha256": "5efa7c85788c800817aa77c6e580bfabd1d581861dd296a216b7f70d62ffd8a5",
+      "initial_model_sha256": "1eb918d35ae96b45d099fb30281457fd86c625b6ea683e79a82cfc5ff0f1bc85",
+      "final_model_sha256": "e6e7e5dde64cc9baae30674b7f05a40e31e0b2e9e69c7d34c677fb9712712dcb",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "seed": 9,
+      "parameters": 101376,
+      "first_train_99": 26,
+      "plateau": {
+        "epochs": 12,
+        "start": 26,
+        "end": 38
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 38,
+      "first_test_90": 155,
+      "rise_epochs": 117,
+      "first_test_99": 188,
+      "qualified": false,
+      "final": {
+        "epoch": 188,
+        "train": 1,
+        "test": 0.991194158,
+        "train_loss": 2.44e-7,
+        "test_loss": 0.029220223
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w1024-d1-s9-a01",
+      "history_sha256": "c41fe485f2f6ac80b224c157a7f17a888e809cffd4f5faa26ac704f45eeb4a55",
+      "initial_model_sha256": "715ba86785af66923e05652623335f0d3992c5cfca7ee64c6074e164c4a49cde",
+      "final_model_sha256": "071643bb74215b22dabf8c6b0280efc2faa86b2c7b26121c45797295b104be80",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "seed": 10,
+      "parameters": 101376,
+      "first_train_99": 26,
+      "plateau": {
+        "epochs": 11,
+        "start": 26,
+        "end": 37
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "last_test_10": 37,
+      "first_test_90": 148,
+      "rise_epochs": 111,
+      "first_test_99": 186,
+      "qualified": false,
+      "final": {
+        "epoch": 186,
+        "train": 1,
+        "test": 0.990549828,
+        "train_loss": 2.11e-7,
+        "test_loss": 0.028660154
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w1024-d1-s10-a01",
+      "history_sha256": "64caa4b7bfc09cbd1dd2053cbdbf0a638da66e342bf0e7997f7b60339e693962",
+      "initial_model_sha256": "e6430e26cfae723d0bcbfc8c31273e9312f55d14417c879a238dfe14a2e33a39",
+      "final_model_sha256": "4dd47eadc40f2fdab76aac61676e9c5df9a5eade2069ac37805ae792f8da7790",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 2048,
+      "seed": 11,
+      "parameters": 202752,
+      "first_train_99": 18,
+      "plateau": {
+        "epochs": 83,
+        "start": 18,
+        "end": 101
+      },
+      "perfect_train_plateau": {
+        "epochs": 28,
+        "start": 66,
+        "end": 94
+      },
+      "last_test_10": 101,
+      "first_test_90": 390,
+      "rise_epochs": 289,
+      "first_test_99": 462,
+      "qualified": false,
+      "final": {
+        "epoch": 462,
+        "train": 1,
+        "test": 0.990335052,
+        "train_loss": 2.18e-7,
+        "test_loss": 0.042096193
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-2048",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w2048-d1-s11-a01",
+      "history_sha256": "5cbc375d42034cf873f6925ba7549d09db671d71dad95ddb1aeea4c16c5a7b1b",
+      "initial_model_sha256": "32119c6688976ab6610022c0511459c5cc42dedd898e69ba7e7bd4dadef790d5",
+      "final_model_sha256": "f6f9b3897a6407a76f2c89678d3ae940fc57d0fdad763ef05c0e517f6fc7266e",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 2048,
+      "seed": 7,
+      "parameters": 202752,
+      "first_train_99": 17,
+      "plateau": {
+        "epochs": 92,
+        "start": 17,
+        "end": 109
+      },
+      "perfect_train_plateau": {
+        "epochs": 14,
+        "start": 95,
+        "end": 109
+      },
+      "last_test_10": 109,
+      "first_test_90": 456,
+      "rise_epochs": 347,
+      "first_test_99": 536,
+      "qualified": false,
+      "final": {
+        "epoch": 536,
+        "train": 1,
+        "test": 0.991408935,
+        "train_loss": 2.59e-7,
+        "test_loss": 0.023546713
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-2048",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w2048-d1-s7-a01",
+      "history_sha256": "27a78b0f83b566cf9cb7cf7dfd410c4ad87f3ed0bed3ae81b64d200839b2d82a",
+      "initial_model_sha256": "3f1e84264275f77b63ddcfed644f6ce70dd25e8f155b86dadf6afe3351ef8f1b",
+      "final_model_sha256": "bf051bdb305fa22343f32cda8f5a2575d24ef3c33a53255d52851218d43e3e35",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 2048,
+      "seed": 8,
+      "parameters": 202752,
+      "first_train_99": 18,
+      "plateau": {
+        "epochs": 87,
+        "start": 18,
+        "end": 105
+      },
+      "perfect_train_plateau": {
+        "epochs": 2,
+        "start": 84,
+        "end": 86
+      },
+      "last_test_10": 105,
+      "first_test_90": 468,
+      "rise_epochs": 363,
+      "first_test_99": 535,
+      "qualified": false,
+      "final": {
+        "epoch": 535,
+        "train": 1,
+        "test": 0.990549828,
+        "train_loss": 2.18e-7,
+        "test_loss": 0.028086218
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-2048",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w2048-d1-s8-a01",
+      "history_sha256": "24f189422a2fc5c48be10b55e6868729953a11bf9c59bb073f6e8910e173c88a",
+      "initial_model_sha256": "28104a65035ceeb3253f8f2aee31251f354072fe7781f7a54c604f50bb17f93b",
+      "final_model_sha256": "b94eab1baac478096f08714eabedf2367edb7aadeef4e4b241ce3d694ebad3ff",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 2048,
+      "seed": 9,
+      "parameters": 202752,
+      "first_train_99": 18,
+      "plateau": {
+        "epochs": 90,
+        "start": 18,
+        "end": 108
+      },
+      "perfect_train_plateau": {
+        "epochs": 16,
+        "start": 91,
+        "end": 107
+      },
+      "last_test_10": 110,
+      "first_test_90": 470,
+      "rise_epochs": 360,
+      "first_test_99": 533,
+      "qualified": false,
+      "final": {
+        "epoch": 533,
+        "train": 1,
+        "test": 0.990549828,
+        "train_loss": 2.28e-7,
+        "test_loss": 0.029000601
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-2048",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w2048-d1-s9-a01",
+      "history_sha256": "1dbd9fbf26cfbd398c5238984a44f102167cad6c7ec1f11b5669a85f47b35e11",
+      "initial_model_sha256": "b51d65ca79169f6263f42f95951ac2ba7ceac44800569b66e7cc48ac01efac43",
+      "final_model_sha256": "950be119b848a8dc9ad4ab68728d5e582a74c20d31dfc5cd0ce7426c72231be4",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 2048,
+      "seed": 10,
+      "parameters": 202752,
+      "first_train_99": 18,
+      "plateau": {
+        "epochs": 90,
+        "start": 18,
+        "end": 108
+      },
+      "perfect_train_plateau": {
+        "epochs": 16,
+        "start": 92,
+        "end": 108
+      },
+      "last_test_10": 110,
+      "first_test_90": 448,
+      "rise_epochs": 338,
+      "first_test_99": 515,
+      "qualified": false,
+      "final": {
+        "epoch": 515,
+        "train": 1,
+        "test": 0.990120275,
+        "train_loss": 2.36e-7,
+        "test_loss": 0.029683064
+      },
+      "archive": "rotary-neighbor-one-block-m1-square-2048",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w2048-d1-s10-a01",
+      "history_sha256": "164d0e7073f99e41fcafedf51a8c5782783eb3d820c6891a3b7a4554d16e238c",
+      "initial_model_sha256": "e4819fb4139d0b373d729c8ec5c3bae594fd69ad0b42df525bad2184a0678b7a",
+      "final_model_sha256": "b569f09616175ab75a95d7d143b9894c9143590040f36d361c4c8f0ce7de3f0e",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    }
+  ]
+}

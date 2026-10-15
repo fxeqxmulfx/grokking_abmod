@@ -1,0 +1,31 @@
+[
+  {
+    "kind": "butterfly",
+    "depth": 8,
+    "width": 1545,
+    "height": 1214,
+    "nodes": 1135,
+    "connections": 2242,
+    "error": false,
+    "text": "Full butterfly mesh: every neuron and connection"
+  },
+  {
+    "kind": "neighbor",
+    "depth": 64,
+    "width": 2405,
+    "height": 1214,
+    "nodes": 8303,
+    "connections": 16578,
+    "error": false,
+    "text": "Full neighbor mesh: every neuron and connection"
+  },
+  {
+    "kind": "shared-neighbor-embedding-readout",
+    "width": 9421,
+    "height": 1260,
+    "nodes": 54144,
+    "connections": 99263,
+    "maxIncoming": 2,
+    "error": false
+  }
+]

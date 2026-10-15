@@ -1,0 +1,881 @@
+{
+  "analysis_script_sha256": "e86df7bc4a5a80af66fdb01a7f2fa0cfeedb0987d298cdf17bb237c7424ba213",
+  "diagnostic_source_sha256": "dc3075c5682a92958e16f2d72d186d8fcc7b603051d289ed32cb0226714518dd",
+  "interaction_source_sha256": "47988f0c5fce1ff9d38f3f631b9eebf426530b41982434dc343aa6f01ac8eb77",
+  "runs": [
+    {
+      "name": "pre-norm",
+      "phases": [
+        {
+          "phase": "initial",
+          "embedding_norm_zero": 1.005119619,
+          "minimum_embedding_norm": 1.000000727,
+          "maximum_embedding_norm": 1.042506874,
+          "mean_effective_embedding_channels": 1.0205926388969075,
+          "selected_traces": [
+            {
+              "phase": "initial",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.125143506,
+              "variable_energy_fraction": 0.987773866,
+              "direction_variation_fraction": 0.987994123,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 63.821424401,
+              "variable_energy_fraction": 0.971532874,
+              "direction_variation_fraction": 0.971564864,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.338241577
+            },
+            {
+              "phase": "initial",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999999,
+              "variable_energy_fraction": 0.971564864,
+              "direction_variation_fraction": 0.971564864,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 1.138977887,
+              "variable_energy_fraction": 0.992330895,
+              "direction_variation_fraction": 0.992531998,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.095033293,
+              "variable_energy_fraction": 0.980396293,
+              "direction_variation_fraction": 0.97937689,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 1.144574903,
+              "variable_energy_fraction": 0.992425017,
+              "direction_variation_fraction": 0.992629091,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.095523086,
+              "variable_energy_fraction": 0.980318672,
+              "direction_variation_fraction": 0.979300593,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.0008684600675234,
+          "maximum_core_gradient_rms": 0.1264131497064
+        },
+        {
+          "phase": "trained",
+          "embedding_norm_zero": 411.165939616,
+          "minimum_embedding_norm": 0.002205115,
+          "maximum_embedding_norm": 411.165939616,
+          "mean_effective_embedding_channels": 2.283394637896907,
+          "selected_traces": [
+            {
+              "phase": "trained",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.179741805,
+              "variable_energy_fraction": 0.997435535,
+              "direction_variation_fraction": 0.989676677,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 22.23240796,
+              "variable_energy_fraction": 0.841311791,
+              "direction_variation_fraction": 0.812918298,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.408950806
+            },
+            {
+              "phase": "trained",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999987,
+              "variable_energy_fraction": 0.812918298,
+              "direction_variation_fraction": 0.812918298,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 24.336627449,
+              "variable_energy_fraction": 0.69130278,
+              "direction_variation_fraction": 0.02709465,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.012137919,
+              "variable_energy_fraction": 0.524518587,
+              "direction_variation_fraction": 0.132569629,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 2.857832121,
+              "variable_energy_fraction": 0.575517334,
+              "direction_variation_fraction": 0.386187846,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.012025121,
+              "variable_energy_fraction": 0.47725428,
+              "direction_variation_fraction": 0.129175107,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.0007198156878651,
+          "maximum_core_gradient_rms": 0.2481974793379
+        }
+      ],
+      "splits": [
+        {
+          "split": "train",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 44,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4612,
+              "accuracy": 0.05247181266261925
+            }
+          ]
+        },
+        {
+          "split": "validation",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 52,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4604,
+              "accuracy": 0.007167680278019114
+            }
+          ]
+        }
+      ],
+      "interactions": [
+        {
+          "phase": "initial",
+          "core_connectivity": "neighbor",
+          "weighted_interaction_fraction": 0.120846978678,
+          "mean_class_interaction_fraction": 0.156766389034,
+          "nonzero_grid_accuracy": 0.011176215278
+        },
+        {
+          "phase": "trained",
+          "core_connectivity": "neighbor",
+          "weighted_interaction_fraction": 0.341506540704,
+          "mean_class_interaction_fraction": 0.364851566724,
+          "nonzero_grid_accuracy": 0.029839409722
+        }
+      ],
+      "core_connectivity": "neighbor",
+      "prediction_scope": "All 9312 equations, native CUDA predictions after 1000 epochs.",
+      "activation_scope": "First 512 seeded training equations; gradients use first 16.",
+      "prediction_file": "docs/grokking-results/shared-neighbor/pre-norm/raw/000001-shared-neighbor-mesh-mlp-w128-d64-s11-a01/predictions.csv",
+      "prediction_sha256": "47536cb8b55aa93cd1f228e2f9d382ba1e2f9bc80b8f17837b275c7f2cbf2f89",
+      "initial_model_sha256": "a7a4f1feda2b6416d5a3b9052790d30d2b856db82bec4624b59de47ef56674cc",
+      "final_model_sha256": "e887ac90b423f82652cc79fbf4c615fe1c1961d20125b0f8ea90d280119ba730",
+      "trainer_sha256": "541737de86a4446ac026930fa023919bdc047ee9b06a84c7d060173a986e91d7",
+      "distinct_prediction_classes": 57
+    },
+    {
+      "name": "pre-norm-kaiming",
+      "phases": [
+        {
+          "phase": "initial",
+          "embedding_norm_zero": 1.005119619,
+          "minimum_embedding_norm": 1.000000727,
+          "maximum_embedding_norm": 1.042506874,
+          "mean_effective_embedding_channels": 1.0205926388969075,
+          "selected_traces": [
+            {
+              "phase": "initial",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.125143506,
+              "variable_energy_fraction": 0.987773866,
+              "direction_variation_fraction": 0.987994123,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 36.257517534,
+              "variable_energy_fraction": 0.919612602,
+              "direction_variation_fraction": 0.919898538,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.429885864
+            },
+            {
+              "phase": "initial",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999996,
+              "variable_energy_fraction": 0.919898538,
+              "direction_variation_fraction": 0.919898538,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 1.123439939,
+              "variable_energy_fraction": 0.987229849,
+              "direction_variation_fraction": 0.987626584,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.064822326,
+              "variable_energy_fraction": 0.957539211,
+              "direction_variation_fraction": 0.954345491,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 1.117293867,
+              "variable_energy_fraction": 0.987043642,
+              "direction_variation_fraction": 0.987501203,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.064713208,
+              "variable_energy_fraction": 0.956917919,
+              "direction_variation_fraction": 0.953564615,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.001004876630643,
+          "maximum_core_gradient_rms": 0.09996295171173
+        },
+        {
+          "phase": "trained",
+          "embedding_norm_zero": 252.154144709,
+          "minimum_embedding_norm": 0.000142393,
+          "maximum_embedding_norm": 252.154144709,
+          "mean_effective_embedding_channels": 2.140896437515464,
+          "selected_traces": [
+            {
+              "phase": "trained",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.100600664,
+              "variable_energy_fraction": 0.997219372,
+              "direction_variation_fraction": 0.990245836,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 9.25712327,
+              "variable_energy_fraction": 0.835335336,
+              "direction_variation_fraction": 0.766002821,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.176208496
+            },
+            {
+              "phase": "trained",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999912,
+              "variable_energy_fraction": 0.766002827,
+              "direction_variation_fraction": 0.766002821,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 20.00178084,
+              "variable_energy_fraction": 0.710156725,
+              "direction_variation_fraction": 0.096655798,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.011633714,
+              "variable_energy_fraction": 0.389462009,
+              "direction_variation_fraction": 0.106305631,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 1.009517418,
+              "variable_energy_fraction": 0.778578561,
+              "direction_variation_fraction": 0.770560058,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.011517332,
+              "variable_energy_fraction": 0.309736606,
+              "direction_variation_fraction": 0.102808271,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.00117624336384,
+          "maximum_core_gradient_rms": 0.2118607633227
+        }
+      ],
+      "splits": [
+        {
+          "split": "train",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 44,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4612,
+              "accuracy": 0.04184735472679965
+            }
+          ]
+        },
+        {
+          "split": "validation",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 52,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4604,
+              "accuracy": 0.00629887054735013
+            }
+          ]
+        }
+      ],
+      "interactions": null,
+      "core_connectivity": "neighbor",
+      "prediction_scope": "All 9312 equations, native CUDA predictions after 1000 epochs.",
+      "activation_scope": "First 512 seeded training equations; gradients use first 16.",
+      "prediction_file": "docs/grokking-results/shared-neighbor/pre-norm-kaiming/raw/000001-shared-neighbor-mesh-mlp-w128-d64-s11-a01/predictions.csv",
+      "prediction_sha256": "2a71b02a9b44845b115cccc4b425af37786deb1e48b9ed965e811d2fdabdef74",
+      "initial_model_sha256": "64180ffa10467bcc3fe9ebb7d604cd6b3e9eaef35f6d54d78ffb4b04f876bc24",
+      "final_model_sha256": "04f0519d44d8bfa2d22235d8512222bfa278413d9f9838157be1568ba868dc74",
+      "trainer_sha256": "541737de86a4446ac026930fa023919bdc047ee9b06a84c7d060173a986e91d7",
+      "distinct_prediction_classes": 26
+    },
+    {
+      "name": "pre-norm-no-decay",
+      "phases": [
+        {
+          "phase": "initial",
+          "embedding_norm_zero": 1.005119619,
+          "minimum_embedding_norm": 1.000000727,
+          "maximum_embedding_norm": 1.042506874,
+          "mean_effective_embedding_channels": 1.0205926388969075,
+          "selected_traces": [
+            {
+              "phase": "initial",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.125143506,
+              "variable_energy_fraction": 0.987773866,
+              "direction_variation_fraction": 0.987994123,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 63.821424401,
+              "variable_energy_fraction": 0.971532874,
+              "direction_variation_fraction": 0.971564864,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.338241577
+            },
+            {
+              "phase": "initial",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999999,
+              "variable_energy_fraction": 0.971564864,
+              "direction_variation_fraction": 0.971564864,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 1.138977887,
+              "variable_energy_fraction": 0.992330895,
+              "direction_variation_fraction": 0.992531998,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.095033293,
+              "variable_energy_fraction": 0.980396293,
+              "direction_variation_fraction": 0.97937689,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 1.144574903,
+              "variable_energy_fraction": 0.992425017,
+              "direction_variation_fraction": 0.992629091,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.095523086,
+              "variable_energy_fraction": 0.980318672,
+              "direction_variation_fraction": 0.979300593,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.0008684600675234,
+          "maximum_core_gradient_rms": 0.1264131497064
+        },
+        {
+          "phase": "trained",
+          "embedding_norm_zero": 96.382720532,
+          "minimum_embedding_norm": 0.215385522,
+          "maximum_embedding_norm": 96.382720532,
+          "mean_effective_embedding_channels": 2.3070459415360816,
+          "selected_traces": [
+            {
+              "phase": "trained",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.409818903,
+              "variable_energy_fraction": 0.990467939,
+              "direction_variation_fraction": 0.990137311,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 85.143084697,
+              "variable_energy_fraction": 0.322340568,
+              "direction_variation_fraction": 0.326716536,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.599380493
+            },
+            {
+              "phase": "trained",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999999,
+              "variable_energy_fraction": 0.326716536,
+              "direction_variation_fraction": 0.326716536,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 35.992765684,
+              "variable_energy_fraction": 0.088180268,
+              "direction_variation_fraction": 0.020620692,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.01297524,
+              "variable_energy_fraction": 0.630390866,
+              "direction_variation_fraction": 0.167804916,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 3.866332378,
+              "variable_energy_fraction": 0.37030057,
+              "direction_variation_fraction": 0.260452811,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.012868438,
+              "variable_energy_fraction": 0.602507642,
+              "direction_variation_fraction": 0.164548435,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.0005647974551757,
+          "maximum_core_gradient_rms": 0.04032770879875
+        }
+      ],
+      "splits": [
+        {
+          "split": "train",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 44,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4612,
+              "accuracy": 0.05680832610581093
+            }
+          ]
+        },
+        {
+          "split": "validation",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 52,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4604,
+              "accuracy": 0.005430060816681147
+            }
+          ]
+        }
+      ],
+      "interactions": null,
+      "core_connectivity": "neighbor",
+      "prediction_scope": "All 9312 equations, native CUDA predictions after 1000 epochs.",
+      "activation_scope": "First 512 seeded training equations; gradients use first 16.",
+      "prediction_file": "docs/grokking-results/shared-neighbor/pre-norm-no-decay/raw/000001-shared-neighbor-mesh-mlp-w128-d64-s11-a01/predictions.csv",
+      "prediction_sha256": "d5de73d9dfa9ec22bf43ee8b5345693a9966740be406a7c5be5aa2c83bf9e67b",
+      "initial_model_sha256": "a7a4f1feda2b6416d5a3b9052790d30d2b856db82bec4624b59de47ef56674cc",
+      "final_model_sha256": "685fc55490cf7efdac6bf8dd59a40d790e117fc9a7678a1dfa4d37539a5b8ad5",
+      "trainer_sha256": "541737de86a4446ac026930fa023919bdc047ee9b06a84c7d060173a986e91d7",
+      "distinct_prediction_classes": 89
+    },
+    {
+      "name": "core-mixing",
+      "phases": [
+        {
+          "phase": "initial",
+          "embedding_norm_zero": 1.005119619,
+          "minimum_embedding_norm": 1.000000727,
+          "maximum_embedding_norm": 1.042506874,
+          "mean_effective_embedding_channels": 1.0205926388969075,
+          "selected_traces": [
+            {
+              "phase": "initial",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.125143506,
+              "variable_energy_fraction": 0.987773866,
+              "direction_variation_fraction": 0.987994123,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 63.821424401,
+              "variable_energy_fraction": 0.971532874,
+              "direction_variation_fraction": 0.971564864,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.338241577
+            },
+            {
+              "phase": "initial",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999999,
+              "variable_energy_fraction": 0.971564864,
+              "direction_variation_fraction": 0.971564864,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 1.138977887,
+              "variable_energy_fraction": 0.992330895,
+              "direction_variation_fraction": 0.992531998,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.095033293,
+              "variable_energy_fraction": 0.980396293,
+              "direction_variation_fraction": 0.97937689,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 1.144574903,
+              "variable_energy_fraction": 0.992425017,
+              "direction_variation_fraction": 0.992629091,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "initial",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.095523086,
+              "variable_energy_fraction": 0.980318672,
+              "direction_variation_fraction": 0.979300593,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.0006340211664131,
+          "maximum_core_gradient_rms": 0.1264131497064
+        },
+        {
+          "phase": "trained",
+          "embedding_norm_zero": 1795.333988576,
+          "minimum_embedding_norm": 0.001315322,
+          "maximum_embedding_norm": 1795.333988576,
+          "mean_effective_embedding_channels": 2.142815786020618,
+          "selected_traces": [
+            {
+              "phase": "trained",
+              "stage": "joined",
+              "rows": 512,
+              "mean_rms": 0.454029778,
+              "variable_energy_fraction": 0.998032589,
+              "direction_variation_fraction": 0.988644416,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "core_64",
+              "rows": 512,
+              "mean_rms": 19.103527982,
+              "variable_energy_fraction": 0.863627492,
+              "direction_variation_fraction": 0.804922547,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": 0.348632812
+            },
+            {
+              "phase": "trained",
+              "stage": "final_rmsnorm",
+              "rows": 512,
+              "mean_rms": 0.999999982,
+              "variable_energy_fraction": 0.804922548,
+              "direction_variation_fraction": 0.804922547,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "centered_logits",
+              "rows": 512,
+              "mean_rms": 48.233251882,
+              "variable_energy_fraction": 0.917079778,
+              "direction_variation_fraction": 0.09949168,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "answer_probabilities",
+              "rows": 512,
+              "mean_rms": 0.013042995,
+              "variable_energy_fraction": 0.600735024,
+              "direction_variation_fraction": 0.199191642,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_centered_logits",
+              "rows": 511,
+              "mean_rms": 1.57354748,
+              "variable_energy_fraction": 0.838009289,
+              "direction_variation_fraction": 0.80937746,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            },
+            {
+              "phase": "trained",
+              "stage": "nonzero_a_answer_probabilities",
+              "rows": 511,
+              "mean_rms": 0.012936681,
+              "variable_energy_fraction": 0.568008597,
+              "direction_variation_fraction": 0.196058135,
+              "zero_vector_fraction": 0,
+              "branch_active_fraction": ""
+            }
+          ],
+          "minimum_core_gradient_rms": 0.0004876072560872,
+          "maximum_core_gradient_rms": 0.07518903750987
+        }
+      ],
+      "splits": [
+        {
+          "split": "train",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 44,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4612,
+              "accuracy": 0.06439722463139635
+            }
+          ]
+        },
+        {
+          "split": "validation",
+          "rows": 4656,
+          "groups": [
+            {
+              "a_zero": true,
+              "rows": 52,
+              "accuracy": 1
+            },
+            {
+              "a_zero": false,
+              "rows": 4604,
+              "accuracy": 0.004561251086012163
+            }
+          ]
+        }
+      ],
+      "interactions": [
+        {
+          "phase": "initial",
+          "core_connectivity": "butterfly",
+          "weighted_interaction_fraction": 0.120846978678,
+          "mean_class_interaction_fraction": 0.156766389034,
+          "nonzero_grid_accuracy": 0.011176215278
+        },
+        {
+          "phase": "trained",
+          "core_connectivity": "butterfly",
+          "weighted_interaction_fraction": 0.397687723328,
+          "mean_class_interaction_fraction": 0.391560741526,
+          "nonzero_grid_accuracy": 0.034505208333
+        }
+      ],
+      "core_connectivity": "butterfly",
+      "prediction_scope": "All 9312 equations, native CUDA predictions after 1000 epochs.",
+      "activation_scope": "First 512 seeded training equations; gradients use first 16.",
+      "prediction_file": "docs/grokking-results/shared-neighbor/core-mixing/raw/000001-shared-neighbor-mesh-mlp-w128-d64-s11-a01/predictions.csv",
+      "prediction_sha256": "015f8f4e2664cefdfc29915f0be7be633101a1fdd4fecd9ef7d2df8a091fa4c8",
+      "initial_model_sha256": "a7a4f1feda2b6416d5a3b9052790d30d2b856db82bec4624b59de47ef56674cc",
+      "final_model_sha256": "17afd369c41180658d8108edb9f7e56a7c6891df9f5c32601ca6d40ee61f8e81",
+      "trainer_sha256": "541737de86a4446ac026930fa023919bdc047ee9b06a84c7d060173a986e91d7",
+      "distinct_prediction_classes": 43
+    }
+  ]
+}

@@ -12,7 +12,7 @@ use crate::{
     mesh::validate_finite,
 };
 
-use super::{Activation, Architecture, Dense, MAX_SIMPLE_ROWS, SimpleConfig};
+use super::{Activation, Architecture, Dense, MAX_SIMPLE_ROWS, SimpleConfig, TwoParentLayer};
 
 const IDENTITY: usize = 0;
 const RELU: usize = 1;
@@ -90,6 +90,67 @@ mod kernels {
             *output = table[row * columns + item % columns];
         }
         let _ = rows;
+    }
+
+    /// Fixed, unary column copies: split operands, zero-pad logits for the
+    /// transposed readout's backward pass, or select the class prefix.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, source >= 1, target >= 1, copied >= 1, copied <= target,
+        offset + copied <= source, input.len() == rows * source,
+        out.len() == rows * target))]
+    pub fn simple_copy_columns<const S: usize>(
+        rows: usize,
+        source: usize,
+        target: usize,
+        offset: usize,
+        copied: usize,
+        input: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let _ = S;
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let (row, column) = (item / target, item % target);
+            *output = if column < copied {
+                input[row * source + offset + column]
+            } else {
+                0.0
+            };
+        }
+        let _ = rows;
+    }
+
+    /// Adjacent-pair J rotation, or its transpose for backpropagation. Each
+    /// output has one activation parent and a fixed sign.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, pairs >= 1, width == 2 * pairs,
+        input.len() == rows * width, out.len() == input.len()))]
+    pub fn simple_pair_rotation<const TRANSPOSE: usize>(
+        rows: usize,
+        pairs: usize,
+        width: usize,
+        input: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let even = item.is_multiple_of(2);
+            let parent = if even { item + 1 } else { item - 1 };
+            let negative = even != (TRANSPOSE == 1);
+            *output = if negative {
+                -input[parent]
+            } else {
+                input[parent]
+            };
+        }
+        let _ = width;
+        let _ = (rows, pairs);
     }
 
     /// `out[r][o] = sum_i f(input[r][offset + i]) W[i][o]`; input rows have
@@ -500,6 +561,110 @@ mod kernels {
         }
     }
 
+    /// A complete sparse affine layer: two activation parents and a node bias.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, inputs >= 2, outputs >= 1, stride >= 1, stride < inputs,
+        input.len() == rows * inputs, weights.len() == 3 * outputs,
+        out.len() == rows * outputs))]
+    pub fn simple_two_parent<const ACTIVATION: usize>(
+        rows: usize,
+        inputs: usize,
+        outputs: usize,
+        stride: usize,
+        input: &[f32],
+        weights: &[[f32; 3]],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let (row, channel) = (item / outputs, item % outputs);
+            let first = channel * inputs / outputs;
+            let second = (first + stride) % inputs;
+            *output = weights[3 * channel][0]
+                * simple_activate(input[row * inputs + first], ACTIVATION)
+                + weights[3 * channel + 1][0]
+                    * simple_activate(input[row * inputs + second], ACTIVATION)
+                + weights[3 * channel + 2][0];
+        }
+        let _ = rows;
+    }
+
+    /// Each input owns its reverse accumulation. Integer intervals find all
+    /// readers of the evenly distributed parents without atomics or dense scans.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, inputs >= 2, outputs >= 1, stride >= 1, stride < inputs,
+        gradient.len() == rows * outputs, weights.len() == 3 * outputs,
+        before.len() == rows * inputs, out.len() == rows * inputs))]
+    pub fn simple_two_parent_input_gradient<const ACTIVATION: usize>(
+        rows: usize,
+        inputs: usize,
+        outputs: usize,
+        stride: usize,
+        gradient: &[f32],
+        weights: &[[f32; 3]],
+        before: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let (row, channel) = (item / inputs, item % inputs);
+            let mut total = 0.0;
+            let mut parent = 0;
+            while parent < 2 {
+                let first = (channel + inputs - parent * stride) % inputs;
+                let start = (first * outputs).div_ceil(inputs);
+                let end = ((first + 1) * outputs).div_ceil(inputs);
+                for reader in start..end {
+                    total += gradient[row * outputs + reader] * weights[3 * reader + parent][0];
+                }
+                parent += 1;
+            }
+            *output = total * simple_slope(before[item], ACTIVATION);
+        }
+        let _ = rows;
+    }
+
+    /// One thread owns each edge or bias and accumulates the batch in row order.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, inputs >= 2, outputs >= 1, stride >= 1, stride < inputs,
+        input.len() == rows * inputs, gradient.len() == rows * outputs,
+        out.len() == 3 * outputs))]
+    pub fn simple_two_parent_weight_gradient<const ACTIVATION: usize>(
+        rows: usize,
+        inputs: usize,
+        outputs: usize,
+        stride: usize,
+        input: &[f32],
+        gradient: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            let (channel, kind) = (item / 3, item % 3);
+            let first = channel * inputs / outputs;
+            let parent = (first + kind % 2 * stride) % inputs;
+            let mut total = 0.0;
+            for row in 0..rows {
+                let feature = if kind == 2 {
+                    1.0
+                } else {
+                    simple_activate(input[row * inputs + parent], ACTIVATION)
+                };
+                total += feature * gradient[row * outputs + channel];
+            }
+            *output = total;
+        }
+    }
+
     /// Elementwise `left + right`, or `left * right` for the `PRODUCT` operation.
     #[kernel]
     #[launch_bounds(128)]
@@ -518,6 +683,40 @@ mod kernels {
             } else {
                 left[item] + right[item]
             };
+        }
+    }
+
+    /// Add an activated branch to the unchanged residual stream.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        stream.len() == out.len(), branch.len() == out.len()))]
+    pub fn simple_activated_sum<const ACTIVATION: usize>(
+        stream: &[f32],
+        branch: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            *output = stream[item] + simple_activate(branch[item], ACTIVATION);
+        }
+    }
+
+    /// Differentiate the final branch activation without altering the skip gradient.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        branch.len() == out.len(), gradient.len() == out.len()))]
+    pub fn simple_activation_gradient<const ACTIVATION: usize>(
+        branch: &[f32],
+        gradient: &[f32],
+        mut out: DisjointSlice<f32>,
+    ) {
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            *output = gradient[item] * simple_slope(branch[item], ACTIVATION);
         }
     }
 
@@ -800,7 +999,13 @@ impl Workspace {
 fn buffer_widths(config: SimpleConfig) -> (Vec<usize>, Vec<usize>) {
     let (width, depth) = (config.width, config.depth);
     match config.architecture {
-        Architecture::Mlp | Architecture::MeshMlp => (vec![width; depth], vec![width; 2]),
+        Architecture::SharedNeighborMeshMlp => (
+            vec![width; 3 * config.embedding_mesh_depth + 3 * depth + 5],
+            vec![width; 5],
+        ),
+        Architecture::Mlp | Architecture::MeshMlp | Architecture::FullMeshMlp => {
+            (vec![width; depth], vec![width; 2])
+        }
         Architecture::TiedConcatMeshMlp => {
             let mut values = vec![width; depth];
             values.push(2 * width);
@@ -815,8 +1020,9 @@ fn buffer_widths(config: SimpleConfig) -> (Vec<usize>, Vec<usize>) {
         }
         Architecture::ResidualMeshMlp
         | Architecture::TiedConcatResidualMeshMlp
-        | Architecture::TiedRotaryResidualMeshMlp => {
-            let mut values = vec![width; 2 * depth + 2 + depth * config.mesh_depth];
+        | Architecture::TiedRotaryResidualMeshMlp
+        | Architecture::TiedRotaryResidualDenseMlp => {
+            let mut values = vec![width; 2 * depth + 2 + depth * config.residual_branch_depth()];
             let mut adjoints = vec![width; 5];
             if config.architecture == Architecture::TiedConcatResidualMeshMlp {
                 values.push(2 * width);
@@ -837,6 +1043,131 @@ struct Kernels {
 // Launch wrappers mirror their kernels' argument lists.
 #[allow(clippy::too_many_arguments)]
 impl Kernels {
+    fn copy_columns(
+        &self,
+        rows: usize,
+        shape: [usize; 4],
+        input: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let [source, target, offset, copied] = shape;
+        let launch = self
+            .module
+            .prepare_simple_copy_columns::<0>(config::<1>(out.len())?)?;
+        self.module.simple_copy_columns(
+            &self.stream,
+            &launch,
+            rows,
+            source,
+            target,
+            offset,
+            copied,
+            input,
+            out,
+        )?;
+        Ok(())
+    }
+
+    fn pair_rotation<const TRANSPOSE: usize>(
+        &self,
+        width: usize,
+        input: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        if width < 2 {
+            return Err("pair rotation needs a width of at least two".into());
+        }
+        let launch = self
+            .module
+            .prepare_simple_pair_rotation::<TRANSPOSE>(config::<1>(out.len())?)?;
+        self.module.simple_pair_rotation(
+            &self.stream,
+            &launch,
+            input.len() / width,
+            width / 2,
+            width,
+            input,
+            out,
+        )?;
+        Ok(())
+    }
+    fn two_parent<const ACTIVATION: usize>(
+        &self,
+        rows: usize,
+        layer: TwoParentLayer,
+        input: &DeviceBuffer<f32>,
+        weights: &DeviceBuffer<[f32; 3]>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let launch = self
+            .module
+            .prepare_simple_two_parent::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module.simple_two_parent(
+            &self.stream,
+            &launch,
+            rows,
+            layer.inputs,
+            layer.outputs,
+            layer.stride,
+            input,
+            weights,
+            out,
+        )?;
+        Ok(())
+    }
+
+    fn two_parent_input_gradient<const ACTIVATION: usize>(
+        &self,
+        rows: usize,
+        layer: TwoParentLayer,
+        gradient: &DeviceBuffer<f32>,
+        weights: &DeviceBuffer<[f32; 3]>,
+        before: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let launch = self
+            .module
+            .prepare_simple_two_parent_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module.simple_two_parent_input_gradient(
+            &self.stream,
+            &launch,
+            rows,
+            layer.inputs,
+            layer.outputs,
+            layer.stride,
+            gradient,
+            weights,
+            before,
+            out,
+        )?;
+        Ok(())
+    }
+
+    fn two_parent_weight_gradient<const ACTIVATION: usize>(
+        &self,
+        rows: usize,
+        layer: TwoParentLayer,
+        input: &DeviceBuffer<f32>,
+        gradient: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let launch = self
+            .module
+            .prepare_simple_two_parent_weight_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module.simple_two_parent_weight_gradient(
+            &self.stream,
+            &launch,
+            rows,
+            layer.inputs,
+            layer.outputs,
+            layer.stride,
+            input,
+            gradient,
+            out,
+        )?;
+        Ok(())
+    }
+
     fn gather(
         &self,
         table: &DeviceTable,
@@ -1131,6 +1462,34 @@ impl Kernels {
         Ok(())
     }
 
+    fn activated_sum<const ACTIVATION: usize>(
+        &self,
+        stream: &DeviceBuffer<f32>,
+        branch: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let launch = self
+            .module
+            .prepare_simple_activated_sum::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module
+            .simple_activated_sum(&self.stream, &launch, stream, branch, out)?;
+        Ok(())
+    }
+
+    fn activation_gradient<const ACTIVATION: usize>(
+        &self,
+        branch: &DeviceBuffer<f32>,
+        gradient: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let launch = self
+            .module
+            .prepare_simple_activation_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        self.module
+            .simple_activation_gradient(&self.stream, &launch, branch, gradient, out)?;
+        Ok(())
+    }
+
     /// `mesh` holds the layer width, the parents per unit, and the stride to
     /// each unit's second parent; `ACTIVATION` applies to the inputs.
     fn mesh<const ACTIVATION: usize>(
@@ -1405,7 +1764,8 @@ impl GpuSimpleModel {
             });
             offset += size;
         }
-        let tied = config.stored_mesh_layers() < config.mesh_layers();
+        let tied = config.stored_mesh_layers() < config.mesh_layers()
+            || config.architecture == Architecture::SharedNeighborMeshMlp;
         let mesh_gradients = (0..if tied { 2 } else { 0 })
             .map(|_| {
                 let size = config.connectivity.parents() * config.width;
@@ -1687,6 +2047,117 @@ impl GpuSimpleModel {
         let input = [c.input_features(), 0];
         let values = &mut workspace.values;
         match c.architecture {
+            Architecture::SharedNeighborMeshMlp => {
+                let embedding_depth = c.embedding_mesh_depth;
+                let b = embedding_depth + 1;
+                let (rotation, joined) = (2 * embedding_depth + 2, 2 * embedding_depth + 3);
+                let normalized = joined + c.depth + 1;
+                let branches = normalized + c.depth;
+                let final_norm = branches + c.depth;
+                let readout = final_norm + 1;
+                let mesh = [c.width, 2, 1];
+                k.copy_columns(
+                    rows,
+                    [2 * c.modulus, c.width, 0, c.modulus],
+                    &workspace.inputs,
+                    &mut values[0],
+                )?;
+                k.copy_columns(
+                    rows,
+                    [2 * c.modulus, c.width, c.modulus, c.modulus],
+                    &workspace.inputs,
+                    &mut values[b],
+                )?;
+                for layer in 0..embedding_depth {
+                    for start in [0, b] {
+                        let [before, after] =
+                            values.get_disjoint_mut([start + layer, start + layer + 1])?;
+                        k.mesh::<IDENTITY>(rows, mesh, before, state(layer), after)?;
+                    }
+                }
+                let [before, after] = values.get_disjoint_mut([b + embedding_depth, rotation])?;
+                k.pair_rotation::<0>(c.width, before, after)?;
+                let [a, rb, out] = values.get_disjoint_mut([embedding_depth, rotation, joined])?;
+                k.combine::<ADD>(a, rb, out)?;
+                for (layer, shape) in c.two_parent_layers().into_iter().enumerate() {
+                    let [before, after] =
+                        values.get_disjoint_mut([joined + layer, normalized + layer])?;
+                    k.rmsnorm::<0>(
+                        rows,
+                        c.width,
+                        [before, before, before],
+                        &mut workspace.statistics,
+                        after,
+                    )?;
+                    let [before, after] =
+                        values.get_disjoint_mut([normalized + layer, branches + layer])?;
+                    k.two_parent::<IDENTITY>(
+                        rows,
+                        shape,
+                        before,
+                        state(embedding_depth + layer),
+                        after,
+                    )?;
+                    let [stream, branch, after] = values.get_disjoint_mut([
+                        joined + layer,
+                        branches + layer,
+                        joined + layer + 1,
+                    ])?;
+                    k.activated_sum::<ACTIVATION>(stream, branch, after)?;
+                }
+                let [before, after] = values.get_disjoint_mut([joined + c.depth, final_norm])?;
+                k.rmsnorm::<0>(
+                    rows,
+                    c.width,
+                    [before, before, before],
+                    &mut workspace.statistics,
+                    after,
+                )?;
+                for layer in 0..embedding_depth {
+                    let previous = if layer == 0 {
+                        final_norm
+                    } else {
+                        readout + layer - 1
+                    };
+                    let [before, after] = values.get_disjoint_mut([previous, readout + layer])?;
+                    // The input-gradient kernel is exactly a linear mesh's transpose.
+                    k.mesh_input_gradient::<IDENTITY>(
+                        rows,
+                        mesh,
+                        before,
+                        state(embedding_depth - layer - 1),
+                        before,
+                        after,
+                    )?;
+                }
+                k.copy_columns(
+                    rows,
+                    [c.width, c.modulus, 0, c.modulus],
+                    &values[readout + embedding_depth - 1],
+                    &mut workspace.logits,
+                )?;
+            }
+            Architecture::FullMeshMlp => {
+                let sparse = c.two_parent_layers();
+                k.two_parent::<IDENTITY>(
+                    rows,
+                    sparse[0],
+                    &workspace.inputs,
+                    state(0),
+                    &mut values[0],
+                )?;
+                for (layer, &shape) in sparse.iter().enumerate().take(c.depth).skip(1) {
+                    let [before, after] = values.get_disjoint_mut([layer - 1, layer])?;
+                    k.two_parent::<ACTIVATION>(rows, shape, before, state(layer), after)?;
+                }
+                k.two_parent::<ACTIVATION>(
+                    rows,
+                    sparse[c.depth],
+                    &values[c.depth - 1],
+                    state(c.depth),
+                    &mut workspace.logits,
+                )?;
+            }
             Architecture::Mlp => {
                 let depth = c.depth;
                 k.dense::<IDENTITY>(
@@ -1766,8 +2237,10 @@ impl GpuSimpleModel {
             }
             Architecture::ResidualMeshMlp
             | Architecture::TiedConcatResidualMeshMlp
-            | Architecture::TiedRotaryResidualMeshMlp => {
+            | Architecture::TiedRotaryResidualMeshMlp
+            | Architecture::TiedRotaryResidualDenseMlp => {
                 let blocks = c.depth;
+                let branch_depth = c.residual_branch_depth();
                 let (normalized, mesh_values) = (blocks + 1, 2 * blocks + 2);
                 let tied = c.architecture.tied_embeddings();
                 let mesh_group = layers.len();
@@ -1779,7 +2252,7 @@ impl GpuSimpleModel {
                         &mut values[0],
                     )?;
                 } else if tied {
-                    let joined = mesh_values + blocks * c.mesh_depth;
+                    let joined = mesh_values + blocks * branch_depth;
                     k.concat_embedding(
                         [rows, c.modulus, c.width],
                         &workspace.inputs,
@@ -1808,8 +2281,8 @@ impl GpuSimpleModel {
                 for block in 0..blocks {
                     let [h, n] = values.get_disjoint_mut([block, normalized + block])?;
                     k.rmsnorm::<0>(rows, c.width, [&*h, &*h, &*h], &mut workspace.statistics, n)?;
-                    for layer in 0..c.mesh_depth {
-                        let mesh_layer = block * c.mesh_depth + layer;
+                    for layer in 0..branch_depth {
+                        let mesh_layer = block * branch_depth + layer;
                         let mesh = [c.width, c.connectivity.parents(), c.mesh_stride(mesh_layer)];
                         let after = mesh_values + mesh_layer;
                         let before = if layer == 0 {
@@ -1818,7 +2291,16 @@ impl GpuSimpleModel {
                             after - 1
                         };
                         let [before, after] = values.get_disjoint_mut([before, after])?;
-                        if layer == 0 {
+                        if c.architecture.residual_dense() {
+                            k.dense::<IDENTITY>(
+                                layers[1 + block],
+                                rows,
+                                before,
+                                [c.width, 0],
+                                state(1 + block),
+                                after,
+                            )?;
+                        } else if layer == 0 {
                             k.mesh::<IDENTITY>(
                                 rows,
                                 mesh,
@@ -1836,9 +2318,13 @@ impl GpuSimpleModel {
                             )?;
                         }
                     }
-                    let branch = mesh_values + (block + 1) * c.mesh_depth - 1;
+                    let branch = mesh_values + (block + 1) * branch_depth - 1;
                     let [h, branch, next] = values.get_disjoint_mut([block, branch, block + 1])?;
-                    k.combine::<ADD>(h, branch, next)?;
+                    if c.residual_branch_activation() {
+                        k.activated_sum::<ACTIVATION>(h, branch, next)?;
+                    } else {
+                        k.combine::<ADD>(h, branch, next)?;
+                    }
                 }
                 let [h, n] = values.get_disjoint_mut([blocks, normalized + blocks])?;
                 k.rmsnorm::<0>(rows, c.width, [&*h, &*h, &*h], &mut workspace.statistics, n)?;
@@ -1940,6 +2426,168 @@ impl GpuSimpleModel {
         let adjoints = &mut workspace.adjoints;
         let logits = &workspace.logit_gradient;
         match c.architecture {
+            Architecture::SharedNeighborMeshMlp => {
+                let embedding_depth = c.embedding_mesh_depth;
+                let b = embedding_depth + 1;
+                let joined = 2 * embedding_depth + 3;
+                let normalized = joined + c.depth + 1;
+                let branches = normalized + c.depth;
+                let final_norm = branches + c.depth;
+                let readout = final_norm + 1;
+                let mesh = [c.width, 2, 1];
+                let mut upstream = 0;
+                k.copy_columns(
+                    rows,
+                    [c.modulus, c.width, 0, c.modulus],
+                    logits,
+                    &mut adjoints[0],
+                )?;
+                for layer in (0..embedding_depth).rev() {
+                    let group = embedding_depth - layer - 1;
+                    let before = if layer == 0 {
+                        final_norm
+                    } else {
+                        readout + layer - 1
+                    };
+                    // dM for X M^T is the ordinary mesh weight gradient with
+                    // its input/upstream operands exchanged. This initializes
+                    // the shared gradient; a and b add to it below.
+                    k.mesh_weight_gradient::<IDENTITY>(
+                        rows,
+                        mesh,
+                        &adjoints[upstream],
+                        &values[before],
+                        &mut parameters[group].gradient,
+                    )?;
+                    let [before, after] = adjoints.get_disjoint_mut([upstream, 1 - upstream])?;
+                    k.mesh::<IDENTITY>(rows, mesh, before, &parameters[group].state, after)?;
+                    upstream = 1 - upstream;
+                }
+                let [before, after] = adjoints.get_disjoint_mut([upstream, 1 - upstream])?;
+                k.rmsnorm::<1>(
+                    rows,
+                    c.width,
+                    [&values[joined + c.depth], &*before, &values[final_norm]],
+                    &mut workspace.statistics,
+                    after,
+                )?;
+                upstream = 1 - upstream;
+                let sparse = c.two_parent_layers();
+                for layer in (0..c.depth).rev() {
+                    let group = embedding_depth + layer;
+                    let [gradient, dz] = adjoints.get_disjoint_mut([upstream, 2])?;
+                    k.activation_gradient::<ACTIVATION>(&values[branches + layer], gradient, dz)?;
+                    k.two_parent_weight_gradient::<IDENTITY>(
+                        rows,
+                        sparse[layer],
+                        &values[normalized + layer],
+                        &adjoints[2],
+                        &mut parameters[group].gradient,
+                    )?;
+                    let [dz, dn] = adjoints.get_disjoint_mut([2, 3])?;
+                    k.two_parent_input_gradient::<IDENTITY>(
+                        rows,
+                        sparse[layer],
+                        dz,
+                        &parameters[group].state,
+                        &values[normalized + layer],
+                        dn,
+                    )?;
+                    let [dn, dx] = adjoints.get_disjoint_mut([3, 4])?;
+                    k.rmsnorm::<1>(
+                        rows,
+                        c.width,
+                        [&values[joined + layer], &*dn, &values[normalized + layer]],
+                        &mut workspace.statistics,
+                        dx,
+                    )?;
+                    let [skip, branch, out] =
+                        adjoints.get_disjoint_mut([upstream, 4, 1 - upstream])?;
+                    k.combine::<ADD>(skip, branch, out)?;
+                    upstream = 1 - upstream;
+                }
+                let [gradient, saved] = adjoints.get_disjoint_mut([upstream, 2])?;
+                k.copy_columns(rows, [c.width, c.width, 0, c.width], gradient, saved)?;
+                for start in [0, b] {
+                    let [saved, out] = adjoints.get_disjoint_mut([2, 0])?;
+                    if start == 0 {
+                        k.copy_columns(rows, [c.width, c.width, 0, c.width], saved, out)?;
+                    } else {
+                        k.pair_rotation::<1>(c.width, saved, out)?;
+                    }
+                    upstream = 0;
+                    for layer in (0..embedding_depth).rev() {
+                        k.mesh_weight_gradient::<IDENTITY>(
+                            rows,
+                            mesh,
+                            &values[start + layer],
+                            &adjoints[upstream],
+                            &mut mesh_gradients[0],
+                        )?;
+                        let [added, sum] = mesh_gradients.get_disjoint_mut([0, 1])?;
+                        k.combine::<ADD>(&parameters[layer].gradient, added, sum)?;
+                        std::mem::swap(&mut parameters[layer].gradient, sum);
+                        if layer > 0 {
+                            let [before, after] =
+                                adjoints.get_disjoint_mut([upstream, 1 - upstream])?;
+                            k.mesh_input_gradient::<IDENTITY>(
+                                rows,
+                                mesh,
+                                before,
+                                &parameters[layer].state,
+                                &values[start + layer],
+                                after,
+                            )?;
+                            upstream = 1 - upstream;
+                        }
+                    }
+                }
+            }
+            Architecture::FullMeshMlp => {
+                let sparse = c.two_parent_layers();
+                let depth = c.depth;
+                k.two_parent_weight_gradient::<ACTIVATION>(
+                    rows,
+                    sparse[depth],
+                    &values[depth - 1],
+                    logits,
+                    &mut parameters[depth].gradient,
+                )?;
+                k.two_parent_input_gradient::<ACTIVATION>(
+                    rows,
+                    sparse[depth],
+                    logits,
+                    &parameters[depth].state,
+                    &values[depth - 1],
+                    &mut adjoints[(depth - 1) % 2],
+                )?;
+                for layer in (1..depth).rev() {
+                    let [upstream, target] =
+                        adjoints.get_disjoint_mut([layer % 2, (layer - 1) % 2])?;
+                    k.two_parent_weight_gradient::<ACTIVATION>(
+                        rows,
+                        sparse[layer],
+                        &values[layer - 1],
+                        upstream,
+                        &mut parameters[layer].gradient,
+                    )?;
+                    k.two_parent_input_gradient::<ACTIVATION>(
+                        rows,
+                        sparse[layer],
+                        upstream,
+                        &parameters[layer].state,
+                        &values[layer - 1],
+                        target,
+                    )?;
+                }
+                k.two_parent_weight_gradient::<IDENTITY>(
+                    rows,
+                    sparse[0],
+                    &workspace.inputs,
+                    &adjoints[0],
+                    &mut parameters[0].gradient,
+                )?;
+            }
             Architecture::Mlp => {
                 // The gradient of hidden pre-activation z_k lives in adjoints[k % 2].
                 let depth = c.depth;
@@ -2089,13 +2737,15 @@ impl GpuSimpleModel {
             }
             Architecture::ResidualMeshMlp
             | Architecture::TiedConcatResidualMeshMlp
-            | Architecture::TiedRotaryResidualMeshMlp => {
+            | Architecture::TiedRotaryResidualMeshMlp
+            | Architecture::TiedRotaryResidualDenseMlp => {
                 const DN: usize = 0;
                 const DH: usize = 1;
                 const DZ: usize = 2;
                 const BRANCH: usize = 3;
                 const SUM: usize = 4;
                 let blocks = c.depth;
+                let branch_depth = c.residual_branch_depth();
                 let (normalized, mesh_values) = (blocks + 1, 2 * blocks + 2);
                 let last = &values[normalized + blocks];
                 let tied = c.architecture.tied_embeddings();
@@ -2136,9 +2786,19 @@ impl GpuSimpleModel {
                 )?;
                 for block in (0..blocks).rev() {
                     let mut upstream = DH;
-                    for layer in (0..c.mesh_depth).rev() {
-                        let mesh_layer = block * c.mesh_depth + layer;
-                        let group = mesh_group + mesh_layer;
+                    if c.residual_branch_activation() {
+                        let branch = mesh_values + (block + 1) * branch_depth - 1;
+                        let [gradient, out] = adjoints.get_disjoint_mut([DH, DZ])?;
+                        k.activation_gradient::<ACTIVATION>(&values[branch], gradient, out)?;
+                        upstream = DZ;
+                    }
+                    for layer in (0..branch_depth).rev() {
+                        let mesh_layer = block * branch_depth + layer;
+                        let group = if c.architecture.residual_dense() {
+                            1 + block
+                        } else {
+                            mesh_group + mesh_layer
+                        };
                         let mesh = [c.width, c.connectivity.parents(), c.mesh_stride(mesh_layer)];
                         let before = if layer == 0 {
                             normalized + block
@@ -2147,7 +2807,24 @@ impl GpuSimpleModel {
                         };
                         let target = if upstream == DN { DZ } else { DN };
                         let [gradient, out] = adjoints.get_disjoint_mut([upstream, target])?;
-                        if layer == 0 {
+                        if c.architecture.residual_dense() {
+                            k.weight_gradient::<IDENTITY>(
+                                layers[group],
+                                rows,
+                                &values[before],
+                                [c.width, 0],
+                                gradient,
+                                &mut parameters[group].gradient,
+                            )?;
+                            k.input_gradient::<IDENTITY>(
+                                layers[group],
+                                rows,
+                                gradient,
+                                &parameters[group].state,
+                                &values[before],
+                                out,
+                            )?;
+                        } else if layer == 0 {
                             k.mesh_weight_gradient::<IDENTITY>(
                                 rows,
                                 mesh,
@@ -2204,7 +2881,7 @@ impl GpuSimpleModel {
                         &mut parameters[0].gradient,
                     )?;
                 } else if tied {
-                    let joined = &values[mesh_values + blocks * c.mesh_depth];
+                    let joined = &values[mesh_values + blocks * branch_depth];
                     k.weight_gradient::<IDENTITY>(
                         layers[1],
                         rows,
@@ -2400,8 +3077,8 @@ mod verification {
     use crate::{
         gpt::{EquationDataset, ModularOperation},
         simple::{
-            Activation, Connectivity, Encoding, ReferenceSimpleModel,
-            reference::verification_parameters,
+            Activation, Connectivity, DenseEmbeddingInitialization, Encoding,
+            FullMeshInitialization, ReferenceSimpleModel, reference::verification_parameters,
         },
     };
 
@@ -2411,10 +3088,37 @@ mod verification {
         /// minibatches with repeated rows, AdamW steps, bitwise repeatability,
         /// input validation, and launch contracts.
         pub fn verify(device: usize) -> Result<()> {
+            Self::verify_selected(device, None)
+        }
+
+        pub fn verify_architecture(device: usize, architecture: Architecture) -> Result<()> {
+            Self::verify_selected(device, Some(architecture))
+        }
+
+        fn verify_selected(device: usize, architecture: Option<Architecture>) -> Result<()> {
             dense_tiled::verify(device)?;
-            for config in configurations() {
+            for config in configurations()
+                .into_iter()
+                .filter(|config| architecture.is_none_or(|model| config.architecture == model))
+            {
                 let [logits, gradients] = verify_model(device, config)?;
                 let model = match config.architecture {
+                    Architecture::FullMeshMlp => format!(
+                        "{} {} {}",
+                        config.architecture, config.connectivity, config.full_mesh_initialization
+                    ),
+                    Architecture::SharedNeighborMeshMlp => format!(
+                        "{} {} embedding-depth={} embedding-init={} {}",
+                        config.architecture,
+                        config.connectivity,
+                        config.embedding_mesh_depth,
+                        config.shared_embedding_initialization,
+                        config.full_mesh_initialization
+                    ),
+                    Architecture::TiedRotaryResidualDenseMlp => format!(
+                        "{} embedding-init={}",
+                        config.architecture, config.dense_embedding_initialization
+                    ),
                     Architecture::MeshMlp | Architecture::TiedConcatMeshMlp if config.tied_mesh => {
                         format!("{} {} tied", config.architecture, config.connectivity)
                     }
@@ -2425,8 +3129,15 @@ mod verification {
                     | Architecture::TiedConcatResidualMeshMlp
                     | Architecture::TiedRotaryResidualMeshMlp => {
                         format!(
-                            "{} {} mesh-depth={}",
-                            config.architecture, config.connectivity, config.mesh_depth
+                            "{} {} mesh-depth={}{}",
+                            config.architecture,
+                            config.connectivity,
+                            config.mesh_depth,
+                            if config.mesh_output_activation {
+                                " activated-output"
+                            } else {
+                                ""
+                            }
                         )
                     }
                     _ if config.decay_factors != 2 => {
@@ -2479,6 +3190,100 @@ mod verification {
             ..base
         };
         vec![
+            SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 8,
+                depth: 2,
+                embedding_mesh_depth: 2,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 16,
+                depth: 3,
+                embedding_mesh_depth: 3,
+                connectivity: Connectivity::Butterfly,
+                full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 8,
+                depth: 1,
+                embedding_mesh_depth: 2,
+                activation: Activation::Square,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 128,
+                modulus: 97,
+                depth: 64,
+                embedding_mesh_depth: 32,
+                full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 128,
+                modulus: 97,
+                depth: 64,
+                embedding_mesh_depth: 32,
+                full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+                shared_embedding_initialization:
+                    crate::simple::SharedEmbeddingInitialization::UnitNormWeak,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::SharedNeighborMeshMlp,
+                encoding: Encoding::OneHot,
+                width: 128,
+                modulus: 97,
+                depth: 64,
+                embedding_mesh_depth: 32,
+                full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+                shared_embedding_initialization:
+                    crate::simple::SharedEmbeddingInitialization::UnitNormStrong,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::FullMeshMlp,
+                encoding: Encoding::Binary,
+                width: 8,
+                depth: 3,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::FullMeshMlp,
+                encoding: Encoding::Binary,
+                width: 16,
+                depth: 4,
+                connectivity: Connectivity::Butterfly,
+                full_mesh_initialization: FullMeshInitialization::IdentityHidden,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::FullMeshMlp,
+                encoding: Encoding::Binary,
+                activation: Activation::Square,
+                width: 5,
+                depth: 1,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::FullMeshMlp,
+                encoding: Encoding::Binary,
+                modulus: 97,
+                width: 128,
+                depth: 8,
+                connectivity: Connectivity::Butterfly,
+                ..base
+            },
             base,
             SimpleConfig {
                 activation: Activation::Square,
@@ -2770,6 +3575,87 @@ mod verification {
                 depth: 2,
                 mesh_depth: 2,
                 connectivity: Connectivity::Butterfly,
+                ..base
+            },
+            // Final activation preserves Square when a branch has only one mesh.
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualMeshMlp,
+                modulus: 97,
+                width: 128,
+                depth: 1,
+                mesh_depth: 1,
+                mesh_output_activation: true,
+                connectivity: Connectivity::Neighbor,
+                activation: Activation::Square,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualMeshMlp,
+                modulus: 97,
+                width: 1024,
+                depth: 1,
+                mesh_depth: 1,
+                mesh_output_activation: true,
+                connectivity: Connectivity::Neighbor,
+                activation: Activation::Square,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualMeshMlp,
+                width: 6,
+                depth: 1,
+                mesh_depth: 1,
+                mesh_output_activation: true,
+                connectivity: Connectivity::Own,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::ResidualMeshMlp,
+                width: 6,
+                depth: 2,
+                mesh_depth: 2,
+                mesh_output_activation: true,
+                connectivity: Connectivity::Butterfly,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedConcatResidualMeshMlp,
+                width: 6,
+                depth: 1,
+                mesh_depth: 1,
+                mesh_output_activation: true,
+                connectivity: Connectivity::Neighbor,
+                activation: Activation::Square,
+                ..base
+            },
+            // Dense replacement: all matrix gradients and repeated residual blocks.
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualDenseMlp,
+                width: 6,
+                depth: 2,
+                dense_embedding_initialization: DenseEmbeddingInitialization::NormalWidth,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualDenseMlp,
+                modulus: 97,
+                width: 128,
+                depth: 1,
+                dense_embedding_initialization: DenseEmbeddingInitialization::NormalWidth,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualDenseMlp,
+                width: 6,
+                depth: 2,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualDenseMlp,
+                modulus: 97,
+                width: 32,
+                depth: 1,
+                activation: Activation::Square,
                 ..base
             },
             // Channel decay as ten factors, whose shrunken first channel hits the cap.
@@ -3086,6 +3972,80 @@ mod verification {
         k.mesh::<RELU>(2, own, &hidden, &gains, &mut exact)?;
         k.mesh_input_gradient::<RELU>(2, own, &hidden, &gains, &hidden, &mut exact)?;
         k.mesh_weight_gradient::<RELU>(2, own, &hidden, &exact, &mut gain_gradient)?;
+        k.activated_sum::<SQUARE>(&hidden, &hidden, &mut exact)?;
+        k.activation_gradient::<SQUARE>(&hidden, &hidden, &mut exact)?;
+        let sparse = TwoParentLayer {
+            inputs: width,
+            outputs: width,
+            stride: 1,
+        };
+        k.copy_columns(2, [width, width, 0, width], &hidden, &mut exact)?;
+        k.pair_rotation::<0>(width, &hidden, &mut exact)?;
+        k.pair_rotation::<1>(width, &hidden, &mut exact)?;
+        let odd = DeviceBuffer::<f32>::zeroed(&k.stream, 6)?;
+        let mut odd_out = DeviceBuffer::<f32>::zeroed(&k.stream, 6)?;
+        if k.copy_columns(2, [width, width, 1, width], &hidden, &mut exact)
+            .is_ok()
+            || k.copy_columns(2, [width, width, 0, width + 1], &hidden, &mut exact)
+                .is_ok()
+            || k.copy_columns(2, [width, width, 0, width], &hidden, &mut long)
+                .is_ok()
+            || k.pair_rotation::<0>(3, &odd, &mut odd_out).is_ok()
+            || k.pair_rotation::<1>(width, &hidden, &mut long).is_ok()
+        {
+            return Err(
+                "a shared Neighbor launch contract accepted an invalid copy or rotation".into(),
+            );
+        }
+        let mut sparse_gradient = DeviceBuffer::<f32>::zeroed(&k.stream, 3 * width)?;
+        k.two_parent::<RELU>(2, sparse, &hidden, &triples, &mut exact)?;
+        k.two_parent_input_gradient::<RELU>(2, sparse, &hidden, &triples, &hidden, &mut exact)?;
+        k.two_parent_weight_gradient::<RELU>(2, sparse, &hidden, &exact, &mut sparse_gradient)?;
+        if k.two_parent::<RELU>(2, sparse, &hidden, &weights, &mut exact)
+            .is_ok()
+            || k.two_parent::<RELU>(2, sparse, &hidden, &triples, &mut long)
+                .is_ok()
+            || k.two_parent::<RELU>(
+                2,
+                TwoParentLayer {
+                    stride: 0,
+                    ..sparse
+                },
+                &hidden,
+                &triples,
+                &mut exact,
+            )
+            .is_ok()
+            || k.two_parent::<RELU>(
+                2,
+                TwoParentLayer {
+                    stride: width,
+                    ..sparse
+                },
+                &hidden,
+                &triples,
+                &mut exact,
+            )
+            .is_ok()
+            || k.two_parent_input_gradient::<RELU>(2, sparse, &long, &triples, &hidden, &mut exact)
+                .is_ok()
+            || k.two_parent_input_gradient::<RELU>(2, sparse, &hidden, &triples, &long, &mut exact)
+                .is_ok()
+            || k.two_parent_input_gradient::<RELU>(
+                2, sparse, &hidden, &weights, &hidden, &mut exact,
+            )
+            .is_ok()
+            || k.two_parent_input_gradient::<RELU>(2, sparse, &hidden, &triples, &hidden, &mut long)
+                .is_ok()
+            || k.two_parent_weight_gradient::<RELU>(2, sparse, &hidden, &long, &mut sparse_gradient)
+                .is_ok()
+            || k.two_parent_weight_gradient::<RELU>(2, sparse, &long, &hidden, &mut sparse_gradient)
+                .is_ok()
+            || k.two_parent_weight_gradient::<RELU>(2, sparse, &hidden, &exact, &mut mesh_gradient)
+                .is_ok()
+        {
+            return Err("a two-parent launch contract accepted an invalid shape or parent".into());
+        }
         k.channel_decay(dense, -0.5, state, readout, &mut scale)?;
         k.adam_channels(optimizer, [0.5, 0.5], [1, width], &scale, &mut group)?;
         if k.dense::<IDENTITY>(layer, 2, &input, [columns, 0], state, &mut long)
@@ -3095,6 +4055,14 @@ mod verification {
             || k.weight_gradient::<IDENTITY>(layer, 2, &input, [columns, 0], &long, &mut gradient)
                 .is_ok()
             || k.gather(&table, &batches.indices, 2, &mut normalized)
+                .is_ok()
+            || k.activated_sum::<SQUARE>(&long, &hidden, &mut exact)
+                .is_ok()
+            || k.activated_sum::<SQUARE>(&hidden, &long, &mut exact)
+                .is_ok()
+            || k.activation_gradient::<SQUARE>(&long, &hidden, &mut exact)
+                .is_ok()
+            || k.activation_gradient::<SQUARE>(&hidden, &long, &mut exact)
                 .is_ok()
             || k.rmsnorm::<0>(
                 2,

@@ -1,0 +1,4 @@
+# Matched control: keep the shared Neighbor embedding/readout and initial weights.
+# Only the core second-parent strides change from 1 to the repeating 1,2,...,64 schedule.
+# Identity-hidden initialization makes the complete initial function match the baseline.
+grok-simple --model shared-neighbor-mesh-mlp --encoding one-hot --activation relu --width 128 --embedding-mesh-depth 32 --depth 64 --connectivity butterfly --mesh-initialization identity-hidden --learning-rate 0.001 --weight-decay 0.1 --seed 11

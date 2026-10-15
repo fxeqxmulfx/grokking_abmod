@@ -1,0 +1,31 @@
+{
+  "connections": 300032,
+  "parameters": 101376,
+  "viewport": [
+    1250,
+    520
+  ],
+  "renderer": "ANGLE (AMD, AMD Radeon Graphics (radeonsi renoir ACO), OpenGL ES 3.2)",
+  "gpuMs": [
+    2,
+    0.3999999761581421,
+    0.5,
+    0.3999999761581421,
+    0.30000001192092896,
+    0.3999999761581421,
+    0.30000001192092896,
+    0.5,
+    0.2999999523162842,
+    0.2999999523162842,
+    0.40000003576278687,
+    0.30000001192092896
+  ],
+  "gpuMedianMs": 0.3999999761581421,
+  "canvasFallbackMs": 25.69999998807907,
+  "zoomReusesTexture": true,
+  "canvasFallbackIncludesAllConnections": true,
+  "realPointerPan": true,
+  "fitRestoresDiagram": true,
+  "note": "Standalone arrow drawing with initial seed-11 weights, including texture uploads and gl.finish; excludes node overlay, probe, training and other dashboard panels. Median excludes two warmup draws.",
+  "sourceSha256": "58a041aba7332237d79823e4e40315cff14ebf6337631178d768e8b7aa58701f"
+}

@@ -1,0 +1,6 @@
+# Replace the sole Neighbor Mesh with a Kaiming-normal dense W x W layer and ReLU.
+# Shared E, Rotate90, pre-RMSNorm, skip and final tied readout are unchanged.
+grok-simple --model tied-rotary-residual-dense-mlp --width 128 --depth 1 --activation relu --encoding one-hot --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-dense-mlp --width 1024 --depth 1 --activation relu --encoding one-hot --learning-rate 0.001 --weight-decay 0.1 --seed 11
+# Square remains a comparison experiment using the same random initialization.
+grok-simple --model tied-rotary-residual-dense-mlp --width 128 --depth 1 --activation square --encoding one-hot --learning-rate 0.001 --weight-decay 0.1 --seed 11

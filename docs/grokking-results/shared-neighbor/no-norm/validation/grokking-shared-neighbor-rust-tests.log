@@ -1,0 +1,120 @@
+    Blocking waiting for file lock on build directory
+   Compiling grokking_abmod v0.1.0 (/home/misha/rust_projects/grokking_abmod)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.10s
+     Running unittests src/lib.rs (target/debug/build/grokking_abmod/f0bfcbcd47655969/out/grokking_abmod-f0bfcbcd47655969)
+
+running 62 tests
+test gpt::config::tests::all_parameters_are_mesh_edges_and_do_not_grow_with_vocabulary ... ok
+test gpt::config::tests::optimizer_rejects_invalid_hyperparameters ... ok
+test gpt::config::tests::configuration_rejects_invalid_and_overflowing_dimensions ... ok
+test gpt::config::tests::batch_row_limit_accepts_large_batches_and_rejects_overflow ... ok
+test gpt::config::tests::ablation_names_round_trip_and_strides_stay_inside_width ... ok
+test gpt::geometry::tests::circle_and_fourier_grams_follow_cosine_identities_in_the_declared_order ... ok
+test gpt::geometry::tests::initialized_tables_realize_the_expected_grams ... ok
+test gpt::geometry::tests::integer_signed_codes_are_distinct_and_have_squared_norm_thirty ... ok
+test gpt::config::tests::table_embedding_stores_the_generated_mesh_vectors ... ok
+test gpt::gpu::plan_tests::launch_geometry_handles_large_buffers_and_rejects_overflow ... ok
+test gpt::grokking::tests::sampler_stays_in_training_and_does_not_duplicate_examples ... ok
+test gpt::reference::tests::answer_only_loss_and_gradients_average_over_supervised_equations ... ok
+test gpt::checkpoint::tests::checkpoint_rejects_corruption_and_round_trips_exact_weights ... ok
+test gpt::reference::tests::butterfly_meshes_read_power_of_two_distant_channels ... ok
+test gpt::reference::tests::exclusive_projection_is_per_head_and_removes_self_alignment ... ok
+test gpt::reference::tests::exclusive_gradients_match_finite_differences_including_norm_floor ... ok
+test gpt::reference::tests::future_tokens_and_other_batch_items_cannot_change_prefix_logits ... ok
+test gpt::grokking::tests::equations_are_disjoint_complete_reproducible_and_abstract ... ok
+test gpt::reference::tests::qk_norm_normalizes_each_head_independently ... ok
+test gpt::reference::tests::rmsnorm_gradients_match_finite_differences_for_full_rows_and_heads ... ok
+test gpt::reference::tests::rmsnorm_preserves_nonzero_means_and_stabilizes_zero_inputs ... ok
+test gpt::gpu::plan_tests::shared_gradient_slots_never_overlap_live_nodes ... ok
+test gpt::reference::tests::slice_rope_pairs_opposite_halves_and_preserves_norms ... ok
+test gpt::reference::tests::slice_rope_gradients_and_relative_position_identity ... ok
+test gpt::reference::tests::zero_inputs_do_not_create_mesh_or_head_offsets ... ok
+test gpu::tests::training_rejects_invalid_optimizer_options ... ok
+test gpt::text::tests::tokenizer_round_trip_and_split_boundaries ... ok
+test gpt::geometry::tests::protected_coordinates_survive_arbitrary_embedding_weights_and_residual_depth ... ok
+test mesh::tests::article_diamond_has_the_expected_connections ... ok
+test gpt::geometry::tests::all_forms_support_both_parameterizations_and_operator_switches ... ok
+test gpt::reference::tests::table_embedding_matches_the_tabulated_mesh_model ... ok
+test gpt::checkpoint::tests::geometric_checkpoints_preserve_codes_constraints_and_operator_switches ... ok
+test gpt::grokking::tests::equations_reject_invalid_primes_splits_and_batches ... ok
+test mesh::tests::target_has_the_article_boundary_values ... ok
+test simple::reference::tests::models_compute_the_documented_functions ... ok
+test simple::reference::tests::tied_meshes_repeat_their_one_stored_layer ... ok
+test simple::reference::tests::reference_rejects_malformed_rows_targets_and_parameters ... ok
+test simple::tests::equations_encode_both_operands_and_the_answer ... ok
+test mesh::tests::rejects_invalid_shapes_and_nonfinite_data ... ok
+test gpt::checkpoint::tests::ablation_checkpoints_round_trip_their_architecture ... ok
+test simple::reference::tests::identity_meshes_preserve_the_one_layer_relu_mlp ... ok
+test simple::tests::configurations_reject_empty_oversized_and_composite_cases ... ok
+test simple::tests::full_mesh_initialization_is_seeded_and_identity_applies_only_to_hidden_layers ... ok
+test simple::tests::final_mesh_activation_preserves_parameters_and_needs_a_residual_mesh ... ok
+test simple::tests::mesh_mlps_extend_the_one_layer_mlp_with_identity_meshes ... ok
+test simple::tests::residual_mesh_config_bounds_branch_depth_and_counts_only_edges ... ok
+test simple::tests::parameter_counts_follow_the_layer_shapes ... ok
+test simple::tests::full_mesh_has_two_distinct_parents_including_input_and_readout ... ok
+test mesh::tests::pruned_diamond_matches_the_full_zero_padded_mesh ... ok
+test simple::tests::initialization_is_seeded_and_bounded_by_fan_in ... ok
+test simple::tests::rotary_residual_mesh_stores_one_embedding_and_requires_coordinate_pairs ... ok
+test simple::tests::tied_concatenation_stores_shared_embedding_projection_and_mesh_only ... ok
+test simple::tests::shared_neighbor_reverse_chain_equals_the_implicit_embedding_transpose ... ok
+test simple::tests::rotary_dense_branch_uses_seeded_kaiming_weights_and_trains_all_connections ... ok
+test simple::tests::tied_residual_mesh_shares_embedding_across_inputs_and_readout ... ok
+test simple::tests::encodings_present_identities_bits_values_and_logarithms ... ok
+test simple::tests::shared_neighbor_stores_embedding_once_and_has_no_dense_layers ... ok
+test mesh::tests::backprop_matches_finite_differences_for_every_parameter ... ok
+test gpt::geometry::tests::normalized_embeddings_and_their_autodiff_match_finite_differences ... ok
+test gpt::reference::tests::all_transformer_gradients_match_finite_differences ... ok
+test gpt::config::tests::fixed_token_codes_are_distinct_at_wide_and_narrow_widths ... ok
+test simple::reference::tests::reference_gradients_match_central_differences ... ok
+
+test result: ok. 62 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.88s
+
+     Running unittests src/bin/full-mesh-svg.rs (target/debug/build/grokking_abmod/c7f2feee7e1cf0b9/out/full_mesh_svg-c7f2feee7e1cf0b9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/build/grokking_abmod/ab57d2945e585ea6/out/grokking_abmod-ab57d2945e585ea6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/mesh-gpt.rs (target/debug/build/grokking_abmod/e76b2924da673f89/out/mesh_gpt-e76b2924da673f89)
+
+running 8 tests
+test geometry::tests::shared_flags_reject_malformed_switches_and_record_their_meaning ... ok
+test grokking::tests::ablation_flags_select_the_embedding_and_connectivity ... ok
+test grokking::tests::epoch_budgets_include_short_tail_batches_and_reject_overflow ... ok
+test grokking::tests::grokking_defaults_and_warmup_follow_the_paper_protocol ... ok
+test grokking::tests::initial_unit_normalization_is_an_explicit_table_only_control ... ok
+test grokking::tests::validation_stop_is_optional_inclusive_and_bounded ... ok
+test grokking::tests::workspace_capacity_is_bounded_before_device_creation ... ok
+test grokking::tests::initial_unit_normalization_preserves_directions_and_block_weights ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/mesh-gpt-bench.rs (target/debug/build/grokking_abmod/ab21dc3507efd5c8/out/mesh_gpt_bench-ab21dc3507efd5c8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/sharp-mesh-search.rs (target/debug/build/grokking_abmod/8c562e2044462765/out/sharp_mesh_search-8c562e2044462765)
+
+running 11 tests
+test tests::csv_reader_ignores_partial_lines_detects_divergence_and_breaks_missing_reports ... ok
+test tests::delayed_sharp_curve_matches_but_direct_and_gradual_generalization_do_not ... ok
+test tests::candidate_key_is_independent_of_option_order_and_mutating_to_same_value ... ok
+test tests::fine_reports_confirm_short_plateaus_without_bridging_missing_epochs ... ok
+test tests::directory_lock_prevents_parallel_workers_and_is_released_on_drop ... ok
+test tests::train_accuracy_dips_reset_the_plateau_and_later_dips_do_not_rewrite_first_transition ... ok
+test tests::queue_accepts_full_mesh_binary_inputs_without_accepting_assisted_encodings ... ok
+test tests::queue_accepts_only_unassisted_shared_neighbor_candidates ... ok
+test tests::queue_accepts_mesh_arguments_and_rejects_nonmesh_cheat_inputs_and_output_overrides ... ok
+test tests::proposals_are_reproducible_mesh_only_and_use_full_epoch_budgets ... ok
+test tests::stop_kills_owned_child_and_resume_keeps_interrupted_artifacts ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+

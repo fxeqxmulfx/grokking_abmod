@@ -1,0 +1,48 @@
+{
+  "model": "neighbor-rotary-wide",
+  "seed": 11,
+  "blocks": 1,
+  "meshDepth": 1,
+  "meshOutputActivation": true,
+  "parameters": 101376,
+  "reportEvery": 10,
+  "backend": "webgpu",
+  "info": {
+    "description": "WebGPU adapter",
+    "backend": "webgpu",
+    "fallback": false
+  },
+  "elapsedSeconds": 12.501099999964238,
+  "criterion": {
+    "plateau": {
+      "start": 26,
+      "end": 38,
+      "epochs": 12
+    },
+    "perfect": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 181,
+    "lastLow": 38,
+    "first90": 147,
+    "rise": 109,
+    "event": {
+      "epoch": 181,
+      "delayed": false,
+      "plateauEpochs": 12,
+      "perfectTrainEpochs": 0,
+      "riseEpochs": 109
+    }
+  },
+  "node": "v24.21.0",
+  "sourceSha256": {
+    "neighbor-rotary-wide.wgsl": "6b0ecc88e5edcb377b2623bbfa05579a966bae1f1f97a70e310db53caefdb066",
+    "gpu.mjs": "5d18a604e3f5e49b463b93eaeb6ee644ddc2783a5c3f135cc0c22a90c6d898d2",
+    "models.mjs": "adf53002cffcf270343dfda3b897eee3158fc1e3bd573c8701d2e792a73c9063",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda"
+  }
+}

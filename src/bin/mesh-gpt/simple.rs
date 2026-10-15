@@ -34,6 +34,7 @@ struct Options {
     device: usize,
     output: PathBuf,
     verify: bool,
+    verify_model: Option<Architecture>,
     help: bool,
 }
 
@@ -59,6 +60,7 @@ impl Options {
             device: 0,
             output: PathBuf::from("target/mesh-gpt-simple"),
             verify: false,
+            verify_model: None,
             help: false,
         };
         let mut explicit_steps = false;
@@ -71,8 +73,21 @@ impl Options {
                 "--depth" => options.config.depth = value(&mut arguments, &flag)?,
                 "--expansion" => options.config.expansion = value(&mut arguments, &flag)?,
                 "--mesh-depth" => options.config.mesh_depth = value(&mut arguments, &flag)?,
+                "--mesh-output-activation" => options.config.mesh_output_activation = true,
                 "--connectivity" => options.config.connectivity = value(&mut arguments, &flag)?,
                 "--tied-mesh" => options.config.tied_mesh = true,
+                "--mesh-initialization" => {
+                    options.config.full_mesh_initialization = value(&mut arguments, &flag)?
+                }
+                "--embedding-mesh-depth" => {
+                    options.config.embedding_mesh_depth = value(&mut arguments, &flag)?
+                }
+                "--embedding-initialization" => {
+                    options.config.shared_embedding_initialization = value(&mut arguments, &flag)?
+                }
+                "--dense-embedding-initialization" => {
+                    options.config.dense_embedding_initialization = value(&mut arguments, &flag)?
+                }
                 "--decay-factors" => options.config.decay_factors = value(&mut arguments, &flag)?,
                 "--mesh-learning-rate-multiplier" => {
                     options.config.mesh_learning_rate_multiplier = value(&mut arguments, &flag)?
@@ -99,6 +114,10 @@ impl Options {
                 "--device" => options.device = value(&mut arguments, &flag)?,
                 "--output" => options.output = value(&mut arguments, &flag)?,
                 "--verify" => options.verify = true,
+                "--verify-model" => {
+                    options.verify_model = Some(value(&mut arguments, &flag)?);
+                    options.verify = true;
+                }
                 "--help" | "-h" => options.help = true,
                 _ => {
                     return Err(format!(
@@ -121,12 +140,20 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         println!(
             "Attention-free baselines on the Mesh GPT grokking protocol\n\
             Usage: cargo oxide run --bin mesh-gpt -- grok-simple [options]\n\n\
-            --model NAME          mlp (default), mesh-mlp, tied-concat-mesh-mlp,\n\
+            --model NAME          mlp (default), mesh-mlp, full-mesh-mlp, shared-neighbor-mesh-mlp,\n\
+                                  tied-concat-mesh-mlp,\n\
                                   residual-mlp, residual-mesh-mlp,\n\
                                   tied-concat-residual-mesh-mlp,\n\
-                                  tied-rotary-residual-mesh-mlp, or bilinear\n\
+                                  tied-rotary-residual-mesh-mlp, tied-rotary-residual-dense-mlp, or bilinear\n\
             --encoding NAME       Per operand: one-hot (default), binary (+-1 bits),\n\
                                   scalar ((v-48)/48 for p=97), or discrete-log\n\
+            --mesh-initialization Full mesh only: kaiming (default), identity-hidden\n\
+            --embedding-mesh-depth Shared Neighbor embedding layers (default 4)\n\
+            --embedding-initialization Shared Neighbor: near-identity (default),\n\
+                                  unit-norm-weak, or unit-norm-strong\n\
+            --dense-embedding-initialization Rotary Dense: uniform-fan-in (default),\n\
+                                  or normal-width (variance 1/width)\n\
+            --verify-model NAME   Verify only this architecture and its launch contracts\n\
                                   ([v==0, centered log to a primitive root]; prime p)\n\
             --activation NAME     relu (default) or square; bilinear has none\n\
             --width N             MLP hidden width, residual stream, or bilinear rank (default: 128)\n\
@@ -134,6 +161,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
                                   a mesh MLP's layers after the first are mesh layers\n\
             --expansion N         Residual block hidden width / stream width (default: 4)\n\
             --mesh-depth N        Residual mesh branch layers, 1..64 (default: 4)\n\
+            --mesh-output-activation  Apply the activation after the final mesh, before the skip\n\
             --connectivity NAME   Mesh MLP second parent: neighbor, c+1 (default),\n\
                                   butterfly, c+2^(layer mod floor(log2 width)), or\n\
                                   own, none: each mesh unit scales its own channel\n\
@@ -163,7 +191,10 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
         return Ok(());
     }
     if options.verify {
-        return GpuSimpleModel::verify(options.device);
+        return match options.verify_model {
+            Some(model) => GpuSimpleModel::verify_architecture(options.device, model),
+            None => GpuSimpleModel::verify(options.device),
+        };
     }
     train(options)
 }
@@ -252,7 +283,7 @@ fn train(mut options: Options) -> Result<()> {
     std::fs::write(
         options.output.join("run.txt"),
         format!(
-            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\ntied_mesh={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias=false\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nmesh_learning_rate_multiplier={}\nweight_decay={}\ndecay_factors={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
+            "paper=https://arxiv.org/abs/2201.02177v1\nstatus=running\nmodel=simple\nfamily={}\narchitecture={}\nactivation={}\nencoding={}\noperation={}\nmodulus={}\ntrain_fraction={}\ntraining_equations={}\nvalidation_equations={}\nseed={}\ninit_seed={init_seed}\ninputs=residue_values\nabstract_symbol_permutation=false\nloss=answer_only\noutput_classes={}\ninput_features={}\nwidth={}\ndepth={}\nexpansion={}\nconnectivity={}\nmesh_layers={}\ntied_mesh={}\nparameters={parameters}\nall_parameters={parameters}\nnormalization={}\ninitialization={}\nbias={}\nbetas=0.9,0.98\nepsilon=1e-8\nlearning_rate={}\nmesh_learning_rate_multiplier={}\nweight_decay={}\ndecay_factors={}\nwarmup_steps=10\nbatch={batch}\nsteps={}\nreport_every={}\nevaluation=complete_splits\ncheckpoint={}\nrequested_epochs={}\nsteps_per_epoch={steps_per_epoch}\nepoch_definition=one_visit_to_every_training_equation\nepoch_tail=short_batch\nstop_validation_accuracy={}\n",
             family(config),
             config.architecture,
             match config.architecture {
@@ -276,6 +307,8 @@ fn train(mut options: Options) -> Result<()> {
             ),
             match config.architecture {
                 Architecture::MeshMlp
+                | Architecture::FullMeshMlp
+                | Architecture::SharedNeighborMeshMlp
                 | Architecture::TiedConcatMeshMlp
                 | Architecture::TiedConcatResidualMeshMlp
                 | Architecture::TiedRotaryResidualMeshMlp
@@ -285,6 +318,8 @@ fn train(mut options: Options) -> Result<()> {
             config.mesh_layers(),
             match config.architecture {
                 Architecture::MeshMlp
+                | Architecture::FullMeshMlp
+                | Architecture::SharedNeighborMeshMlp
                 | Architecture::TiedConcatMeshMlp
                 | Architecture::TiedConcatResidualMeshMlp
                 | Architecture::TiedRotaryResidualMeshMlp
@@ -295,7 +330,9 @@ fn train(mut options: Options) -> Result<()> {
                 Architecture::ResidualMlp
                 | Architecture::ResidualMeshMlp
                 | Architecture::TiedConcatResidualMeshMlp
-                | Architecture::TiedRotaryResidualMeshMlp => "pre_rmsnorm_blocks_and_final",
+                | Architecture::TiedRotaryResidualMeshMlp
+                | Architecture::TiedRotaryResidualDenseMlp
+                | Architecture::SharedNeighborMeshMlp => "pre_rmsnorm_blocks_and_final",
                 _ => "none",
             },
             match config.architecture {
@@ -304,11 +341,37 @@ fn train(mut options: Options) -> Result<()> {
                 Architecture::TiedConcatMeshMlp | Architecture::TiedConcatResidualMeshMlp =>
                     "uniform_fan_in_embedding_projection_identity_mesh",
                 Architecture::TiedRotaryResidualMeshMlp => "uniform_fan_in_embedding_identity_mesh",
+                Architecture::TiedRotaryResidualDenseMlp =>
+                    match config.dense_embedding_initialization {
+                        grokking_abmod::simple::DenseEmbeddingInitialization::UniformFanIn =>
+                            "uniform_fan_in_embedding_kaiming_normal_relu_gain_dense",
+                        grokking_abmod::simple::DenseEmbeddingInitialization::NormalWidth =>
+                            "normal_width_embedding_kaiming_normal_relu_gain_dense",
+                    },
+                Architecture::FullMeshMlp => match config.full_mesh_initialization {
+                    grokking_abmod::simple::FullMeshInitialization::Kaiming =>
+                        "kaiming_normal_two_parent_zero_bias",
+                    grokking_abmod::simple::FullMeshInitialization::IdentityHidden =>
+                        "kaiming_normal_input_output_identity_hidden_zero_bias",
+                },
+                Architecture::SharedNeighborMeshMlp => {
+                    if config.shared_embedding_initialization.normalizes_columns() {
+                        "unit_column_norm_rotation_factors_shared_neighbor_kaiming_or_identity_core"
+                    } else {
+                        "near_identity_gaussian_shared_neighbor_kaiming_or_identity_core"
+                    }
+                }
                 _ => "uniform_fan_in",
             },
+            matches!(
+                config.architecture,
+                Architecture::FullMeshMlp | Architecture::SharedNeighborMeshMlp
+            ),
             options.optimizer.learning_rate,
             match config.architecture {
                 Architecture::MeshMlp
+                | Architecture::FullMeshMlp
+                | Architecture::SharedNeighborMeshMlp
                 | Architecture::TiedConcatMeshMlp
                 | Architecture::TiedConcatResidualMeshMlp
                 | Architecture::TiedRotaryResidualMeshMlp
@@ -329,6 +392,11 @@ fn train(mut options: Options) -> Result<()> {
                     "raw_f32_le_shared_embedding_projection_then_stored_mesh_layers",
                 Architecture::TiedRotaryResidualMeshMlp =>
                     "raw_f32_le_shared_embedding_then_mesh_layers",
+                Architecture::TiedRotaryResidualDenseMlp =>
+                    "raw_f32_le_shared_embedding_then_dense_branches",
+                Architecture::FullMeshMlp => "raw_f32_le_two_parent_layers_unit_weights_then_bias",
+                Architecture::SharedNeighborMeshMlp =>
+                    "raw_f32_le_shared_neighbor_layers_then_two_parent_core",
                 _ => "raw_f32_le_layer_order",
             },
             options
@@ -339,6 +407,91 @@ fn train(mut options: Options) -> Result<()> {
                 .map_or_else(|| "none".into(), |x| x.to_string()),
         ),
     )?;
+    if config.architecture == Architecture::TiedRotaryResidualDenseMlp {
+        let mut metadata = OpenOptions::new()
+            .append(true)
+            .open(options.output.join("run.txt"))?;
+        let variance = match config.dense_embedding_initialization {
+            grokking_abmod::simple::DenseEmbeddingInitialization::UniformFanIn => {
+                1.0 / (3 * config.modulus) as f64
+            }
+            grokking_abmod::simple::DenseEmbeddingInitialization::NormalWidth => {
+                1.0 / config.width as f64
+            }
+        };
+        writeln!(
+            metadata,
+            "dense_embedding_initialization={}\nembedding_initial_variance={variance:.12}\nembedding_scale_constraint=initialization_only\ndense_branch_initialization=kaiming_normal_variance_2_over_width",
+            config.dense_embedding_initialization
+        )?;
+    }
+    if config.architecture == Architecture::FullMeshMlp {
+        let mut metadata = OpenOptions::new()
+            .append(true)
+            .open(options.output.join("run.txt"))?;
+        writeln!(
+            metadata,
+            "max_activation_parents=2\ninput_projection=two_parent\nreadout=two_parent\nmesh_initialization={}",
+            config.full_mesh_initialization
+        )?;
+        let receptive_fields = config.full_mesh_receptive_fields();
+        writeln!(
+            metadata,
+            "readout_min_input_features={}\nreadout_max_input_features={}",
+            receptive_fields
+                .iter()
+                .map(|field| field.count_ones())
+                .min()
+                .unwrap_or(0),
+            receptive_fields
+                .iter()
+                .map(|field| field.count_ones())
+                .max()
+                .unwrap_or(0)
+        )?;
+    }
+    if config.architecture == Architecture::SharedNeighborMeshMlp {
+        let mut metadata = OpenOptions::new()
+            .append(true)
+            .open(options.output.join("run.txt"))?;
+        writeln!(
+            metadata,
+            "max_activation_parents=2\nembedding_mesh_depth={}\nembedding_connectivity=neighbor\nembedding_weight_sharing=a,b,transposed_readout\noperand_rotation=pairwise_b_plus_90_degrees\nreadout=transposed_neighbor_chain\nmesh_initialization={}",
+            config.embedding_mesh_depth, config.full_mesh_initialization
+        )?;
+        let mode = config.shared_embedding_initialization;
+        writeln!(
+            metadata,
+            "shared_embedding_initialization={mode}\nembedding_initialization={}\nembedding_mixing_strength={:.12}\nembedding_column_norm_target={}\nembedding_column_normalization={}",
+            if mode.normalizes_columns() {
+                "paired_rotation_factors_with_unit_implicit_columns"
+            } else {
+                "identity_plus_gaussian_mixing_std_0.1_over_sqrt_depth"
+            },
+            mode.ratio(config.embedding_mesh_depth),
+            if mode.normalizes_columns() {
+                "1"
+            } else {
+                "none"
+            },
+            if mode.normalizes_columns() {
+                "initialization_only"
+            } else {
+                "none"
+            },
+        )?;
+        writeln!(
+            metadata,
+            "core_structure=pre_rmsnorm_mesh_activation_residual\nfinal_rmsnorm=true\nrmsnorm_epsilon=1e-5\ninput_coverage_excludes_norm_statistics=true"
+        )?;
+        let coverage = config.shared_neighbor_input_coverage();
+        writeln!(
+            metadata,
+            "readout_min_input_features={}\nreadout_max_input_features={}",
+            coverage.iter().min().unwrap_or(&0),
+            coverage.iter().max().unwrap_or(&0)
+        )?;
+    }
     println!(
         "Simple-model grokking: {} {} mod {}, train={}, validation={}, batch={}, parameters={parameters}",
         family(config),
@@ -353,6 +506,16 @@ fn train(mut options: Options) -> Result<()> {
             .append(true)
             .open(options.output.join("run.txt"))?;
         writeln!(metadata, "mesh_depth={}", config.mesh_depth)?;
+        writeln!(
+            metadata,
+            "mesh_output_activation={}",
+            config.mesh_output_activation
+        )?;
+        writeln!(
+            metadata,
+            "pointwise_activations_per_branch={}",
+            config.mesh_depth - 1 + usize::from(config.mesh_output_activation)
+        )?;
         if config.architecture.rotary_embeddings() {
             writeln!(metadata, "operand_rotation=pairwise_b_plus_90_degrees")?;
             writeln!(metadata, "embedding_roles=a,b,readout")?;
@@ -473,12 +636,14 @@ fn family(config: SimpleConfig) -> String {
     match config.architecture {
         Architecture::Bilinear => format!("{}-{}", config.architecture, config.encoding),
         Architecture::MeshMlp
+        | Architecture::FullMeshMlp
+        | Architecture::SharedNeighborMeshMlp
         | Architecture::TiedConcatMeshMlp
         | Architecture::ResidualMeshMlp
         | Architecture::TiedConcatResidualMeshMlp
         | Architecture::TiedRotaryResidualMeshMlp => {
             format!(
-                "{}-{}{}-{}-{}{}",
+                "{}-{}{}-{}-{}{}{}",
                 config.architecture,
                 config.connectivity,
                 if config.tied_mesh { "-tied" } else { "" },
@@ -487,7 +652,12 @@ fn family(config: SimpleConfig) -> String {
                 match config.mesh_learning_rate_multiplier {
                     1 => String::new(),
                     k => format!("-mesh-rate-{k}"),
-                }
+                },
+                if config.mesh_output_activation {
+                    "-activated-output"
+                } else {
+                    ""
+                },
             )
         }
         _ if config.decay_factors != 2 => format!(

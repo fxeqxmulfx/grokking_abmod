@@ -1,0 +1,193 @@
+{
+  "results": [
+    {
+      "model": "neighbor-rotary",
+      "seed": 11,
+      "backend": "webgpu",
+      "captureHz": 10,
+      "elapsedSeconds": 1.554,
+      "diagnosticMedianMs": 1.699999988079071,
+      "diagnosticMaxMs": 2.099999964237213,
+      "snapshots": [
+        {
+          "label": "initial",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "1.800000011920929",
+            "range": "4",
+            "medianMargin": "-1.620653510093689",
+            "medianCorrectProbability": "0.008352567441761494",
+            "step": "0",
+            "correct": "0",
+            "snapshots": "1"
+          },
+          "heldoutAccuracy": "0.99%",
+          "observations": "1 observations",
+          "status": "Ready",
+          "phase": "Learning"
+        },
+        {
+          "label": "epoch40",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "1.5999999642372131",
+            "range": "4",
+            "medianMargin": "-0.32404105365276337",
+            "medianCorrectProbability": "0.1688590794801712",
+            "step": "450",
+            "correct": "41",
+            "snapshots": "7"
+          },
+          "heldoutAccuracy": "40.46%",
+          "observations": "54 observations",
+          "status": "Training",
+          "phase": "Generalizing"
+        },
+        {
+          "label": "epoch100",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "1.699999988079071",
+            "range": "4",
+            "medianMargin": "1.9188170433044434",
+            "medianCorrectProbability": "0.7770285606384277",
+            "step": "1020",
+            "correct": "125",
+            "snapshots": "13"
+          },
+          "heldoutAccuracy": "97.98%",
+          "observations": "109 observations",
+          "status": "Training",
+          "phase": "Generalizing"
+        },
+        {
+          "label": "final",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "1.699999988079071",
+            "range": "4",
+            "medianMargin": "2.7267366647720337",
+            "medianCorrectProbability": "0.879751592874527",
+            "step": "1130",
+            "correct": "128",
+            "snapshots": "15"
+          },
+          "heldoutAccuracy": "99.01%",
+          "observations": "114 observations",
+          "status": "Target reached",
+          "phase": "Generalized"
+        }
+      ]
+    },
+    {
+      "model": "neighbor-rotary-wide",
+      "seed": 11,
+      "backend": "webgpu",
+      "captureHz": 10,
+      "elapsedSeconds": 13.074,
+      "diagnosticMedianMs": 10.899999976158142,
+      "diagnosticMaxMs": 13.800000011920929,
+      "snapshots": [
+        {
+          "label": "initial",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "10.5",
+            "range": "4",
+            "medianMargin": "-5.043761968612671",
+            "medianCorrectProbability": "0.0015875243116170168",
+            "step": "0",
+            "correct": "0",
+            "snapshots": "1"
+          },
+          "heldoutAccuracy": "1.03%",
+          "observations": "1 observations",
+          "status": "Ready",
+          "phase": "Learning"
+        },
+        {
+          "label": "epoch40",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "10.800000011920929",
+            "range": "4",
+            "medianMargin": "-3.7274341583251953",
+            "medianCorrectProbability": "0.015983841381967068",
+            "step": "400",
+            "correct": "11",
+            "snapshots": "22"
+          },
+          "heldoutAccuracy": "10.07%",
+          "observations": "43 observations",
+          "status": "Training",
+          "phase": "Generalizing"
+        },
+        {
+          "label": "epoch100",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "12.100000023841858",
+            "range": "4",
+            "medianMargin": "-1.771394431591034",
+            "medianCorrectProbability": "0.1310744807124138",
+            "step": "1000",
+            "correct": "44",
+            "snapshots": "52"
+          },
+          "heldoutAccuracy": "38.94%",
+          "observations": "101 observations",
+          "status": "Training",
+          "phase": "Generalizing"
+        },
+        {
+          "label": "final",
+          "diagnostics": {
+            "samples": "128",
+            "computeMs": "10.599999964237213",
+            "range": "4",
+            "medianMargin": "9.129255294799805",
+            "medianCorrectProbability": "0.9998553693294525",
+            "step": "1810",
+            "correct": "127",
+            "snapshots": "93"
+          },
+          "heldoutAccuracy": "99.03%",
+          "observations": "182 observations",
+          "status": "Target reached",
+          "phase": "Generalized"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "sourceSha256": {
+    "dist/app.mjs": "74812a2bae1faa37f4e4ae12b0d4e3e96bcf8eb6a98e955cec77e86ecc68be91",
+    "dist/dynamics.mjs": "c3c2ae2d47c6a80015eeb8d018ba41a2001d4365853513937ecd7bfd05899428",
+    "dist/dynamics-worker.mjs": "782c2d8426f67a1164d0d34a731dc2541b6f069703df673d5cca2a76c586ec29",
+    "dist/index.html": "e0ae007fef522771438313f4ef9bbdc64298b7803432e0307ebec95395e485f2",
+    "dist/style.css": "85335b3e4ea2a52ccc01b320818b48793e63efd9202be2428aabcd06e3bfb33f",
+    "dist/models.mjs": "adf53002cffcf270343dfda3b897eee3158fc1e3bd573c8701d2e792a73c9063",
+    "dist/model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda",
+    "dist/gpu.mjs": "5d18a604e3f5e49b463b93eaeb6ee644ddc2783a5c3f135cc0c22a90c6d898d2",
+    "tests/dynamics.test.mjs": "18241c0c58ea4ebd8d230f3d8c5d227707bbf584c770877a5784b3c7305ab04a",
+    "tests/browser.mjs": "fd1e6b21ff479cb9ffc85b04a74df28301027a0ef8bef621956d716ad884c6da",
+    "tests/measure-dynamics.mjs": "602bbdfaed53c3eecbf85f27cbea4d1f1556e44072f211ae6910ae73ba4580c8"
+  },
+  "verification": {
+    "node": {
+      "testCases": 6,
+      "passed": true,
+      "reference": "All 128 equations at initial and archived final weights, both widths, compared with predictModel; held-out split membership, ties, history retention and histogram sign."
+    },
+    "browser": {
+      "passed": true,
+      "viewportChecks": 34,
+      "engines": [
+        "WebGPU",
+        "WASM SIMD"
+      ],
+      "scope": "Both model tabs and all four views; live diagnostics, independent state, pause/reset, full network views, no page scrolling at 320x568 through 1920x1080."
+    }
+  },
+  "timingNote": "Worker compute time excludes transfer and drawing. Full-run wall time includes polling and screenshots. Diagnostic and complete-split observations have separate timestamps; inspect diagnostic step and observation count."
+}

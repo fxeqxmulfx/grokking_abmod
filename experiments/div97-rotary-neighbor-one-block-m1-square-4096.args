@@ -1,0 +1,7 @@
+# One Neighbor mesh with Square before the residual skip, at width 4096.
+# Match the W128/W1024/W2048 five-seed protocol; only the channel count changes.
+grok-simple --model tied-rotary-residual-mesh-mlp --width 4096 --depth 1 --mesh-depth 1 --mesh-output-activation --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 4096 --depth 1 --mesh-depth 1 --mesh-output-activation --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 7
+grok-simple --model tied-rotary-residual-mesh-mlp --width 4096 --depth 1 --mesh-depth 1 --mesh-output-activation --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 8
+grok-simple --model tied-rotary-residual-mesh-mlp --width 4096 --depth 1 --mesh-depth 1 --mesh-output-activation --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 9
+grok-simple --model tied-rotary-residual-mesh-mlp --width 4096 --depth 1 --mesh-depth 1 --mesh-output-activation --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 10

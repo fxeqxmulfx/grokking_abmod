@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-12",
+  "architecture": "tied-rotary-residual-mesh-mlp",
+  "feature": "--mesh-output-activation",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "memory_mib": 4096,
+    "driver": "615.71.09",
+    "cuda": "13.4"
+  },
+  "build_command": [
+    "cargo",
+    "oxide",
+    "build",
+    "--arch",
+    "sm_86",
+    "--",
+    "--release",
+    "--locked",
+    "--bin",
+    "mesh-gpt"
+  ],
+  "verification_command": [
+    "target/release/mesh-gpt",
+    "grok-simple",
+    "--verify"
+  ],
+  "verification_binary_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086",
+  "source_sha256": {
+    "src/simple/mod.rs": "76320d2a82c1394160a774ec846c4fbbad326e96555e82f6f6883ba5331b2c5a",
+    "src/simple/gpu.rs": "9c3bb322bab6f7ebfd2442b9de88c0e86342ec8370b5e6159c62e454766c6025",
+    "src/simple/reference.rs": "fb86eec98108882685decbc4a43293ac31b1d12274d3c3706af04c1bde0cdfbc",
+    "src/bin/mesh-gpt/simple.rs": "84e4667e6f8a96079202398716f1e867dbda7ecec4e7ec4ee62fcb31469cdd98",
+    "src/bin/sharp-mesh-search.rs": "0d4668205bf5b11bc623b38ed4ec49cea38b40cbf2aaca38b85ad39e3714df17"
+  },
+  "verification_log_sha256": "49aaa02f0bff991ac74e218474b814128503b97933a5cf5df0ec06ff93d3dd18",
+  "passed_configurations": 47,
+  "validation_passed": true,
+  "candidate_results": [
+    "PASS tied-rotary-residual-mesh-mlp neighbor mesh-depth=1 activated-output square one-hot width=128 depth=1 expansion=4 modulus=97: logits (max error 4.3e-7 of max), loss, gradients (max error 3.7e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability",
+    "PASS tied-rotary-residual-mesh-mlp neighbor mesh-depth=1 activated-output square one-hot width=1024 depth=1 expansion=4 modulus=97: logits (max error 1.1e-6 of max), loss, gradients (max error 2.1e-6 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability"
+  ],
+  "host_tests": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--lib"
+    ],
+    "passed": 57,
+    "failed": 0
+  },
+  "scheduler_tests": {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--bin",
+      "sharp-mesh-search"
+    ],
+    "passed": 9,
+    "failed": 0
+  },
+  "clippy": {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "passed": true
+  },
+  "launch_contracts": "Both new kernels reject mismatched branch/gradient/output lengths before launch.",
+  "workspace": "Final activation reuses cached pre-activation and existing derivative buffers; no extra tensor allocations.",
+  "control_timing_note": "The wide no-activation control overlapped host compilation and the CUDA verification suite. Elapsed times are not a serial performance comparison."
+}

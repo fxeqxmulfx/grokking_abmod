@@ -1,0 +1,9 @@
+scope=First 512 seeded training equations; f64 scalar diagnostics. Gradients use the first 16 rows.
+variable_energy_fraction=1 minus squared batch mean divided by mean squared activation norm
+direction_variation_fraction=1 minus squared mean of unit activation vectors
+effective_channels_energy_participation=squared total energy divided by sum of squared coordinate energies
+relative_channel_threshold=0.001 of each embedding vector's largest absolute value
+initial_reference_logit_maximum_absolute_error=0.000000000000e0
+initial_gradient_batch_loss=8.314811467
+trained_reference_logit_maximum_absolute_error=0.000000000000e0
+trained_gradient_batch_loss=4.091299227

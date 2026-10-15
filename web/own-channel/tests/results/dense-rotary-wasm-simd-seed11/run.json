@@ -1,0 +1,42 @@
+{
+  "model": "dense-rotary",
+  "variant": "simd",
+  "seed": 11,
+  "blocks": 1,
+  "meshOutputActivation": false,
+  "parameters": 28800,
+  "reportEvery": 10,
+  "elapsedSeconds": 74.34676648899999,
+  "wasmSha256": "84162d2786437a1da7d440fe2bb167641f0afd0f127827c85bc4e302ad01c921",
+  "node": "v24.21.0",
+  "criterion": {
+    "plateau": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "perfect": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 657,
+    "lastLow": 332,
+    "first90": 577,
+    "rise": 245,
+    "event": {
+      "epoch": 657,
+      "delayed": false,
+      "plateauEpochs": 0,
+      "perfectTrainEpochs": 0,
+      "riseEpochs": 245
+    }
+  },
+  "sourceSha256": {
+    "wasm.mjs": "e556bc1351bcd2a80bac6542f2711163f5df44b576fd921977edc0cb0d944d60",
+    "models.mjs": "d46adbafa97eaeb80c14fbb821b88b89c6d117e94be1f10ebea60509e19478f4",
+    "model.mjs": "9ef40bc651d36cc69ad4f76913c91178dd974fbc9f7c9560bc12e317f114efda"
+  }
+}

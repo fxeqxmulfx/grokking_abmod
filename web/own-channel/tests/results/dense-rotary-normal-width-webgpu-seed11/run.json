@@ -1,0 +1,46 @@
+{
+  "model": "dense-rotary",
+  "seed": 11,
+  "embeddingInitialization": "normal-width",
+  "width": 128,
+  "parameters": 28800,
+  "reportEvery": 10,
+  "backend": "webgpu",
+  "info": {
+    "description": "WebGPU adapter",
+    "backend": "webgpu",
+    "fallback": false
+  },
+  "elapsedSeconds": 8.186699999988079,
+  "criterion": {
+    "plateau": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "perfect": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 606,
+    "lastLow": 302,
+    "first90": 509,
+    "rise": 207,
+    "event": {
+      "epoch": 606,
+      "delayed": false,
+      "plateauEpochs": 0,
+      "perfectTrainEpochs": 0,
+      "riseEpochs": 207
+    }
+  },
+  "sourceSha256": {
+    "gpu.js": "546826a7ae2ba35fe0fd28ebb6ab200a92768cd6e19e4a0a990f8e43717e9c81",
+    "models.js": "fd6003978c0f9accea8d235b36b1cea1a7405e371a42572f44de62179d9df07e",
+    "model.js": "5af16f58235283bd159b9482be7fa9f636abbec49267da02e7e56e973c4b7523",
+    "dense-rotary.wgsl": "ec47d92958c0f5635abce6b5002441c9a4b0dd255e2fdbb0e39738a4b6a2b0ba"
+  }
+}

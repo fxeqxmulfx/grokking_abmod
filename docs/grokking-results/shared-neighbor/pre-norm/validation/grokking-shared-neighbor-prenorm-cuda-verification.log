@@ -1,0 +1,5 @@
+PASS shared-neighbor-mesh-mlp neighbor embedding-depth=2 kaiming relu one-hot width=8 depth=2 expansion=4 modulus=7: logits (max error 1.4e-7 of max), loss, gradients (max error 4.7e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS shared-neighbor-mesh-mlp butterfly embedding-depth=3 identity-hidden relu one-hot width=16 depth=3 expansion=4 modulus=7: logits (max error 1.3e-7 of max), loss, gradients (max error 4.1e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS shared-neighbor-mesh-mlp neighbor embedding-depth=2 kaiming square one-hot width=8 depth=1 expansion=4 modulus=7: logits (max error 8.5e-8 of max), loss, gradients (max error 7.5e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS shared-neighbor-mesh-mlp neighbor embedding-depth=32 identity-hidden relu one-hot width=128 depth=64 expansion=4 modulus=97: logits (max error 5.4e-7 of max), loss, gradients (max error 3.2e-6 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS simple-model validation: tables, indices, minibatch ranges, parameters, launch contracts

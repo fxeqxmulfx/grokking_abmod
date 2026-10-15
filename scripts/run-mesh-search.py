@@ -36,6 +36,10 @@ def simple_parameters(settings):
     features = {"one-hot": modulus, "binary": max(1, (modulus - 1).bit_length()),
                 "scalar": 1, "discrete-log": 2}[settings.get("encoding", "one-hot")]
     model, depth = settings.get("model", "mlp"), settings.get("depth", 1)
+    if settings.get("mesh-output-activation") and model not in (
+        "residual-mesh-mlp", "tied-concat-residual-mesh-mlp", "tied-rotary-residual-mesh-mlp"
+    ):
+        raise ValueError("final mesh activation requires a residual mesh model")
     if model == "mlp":
         return 2 * features * width + (depth - 1) * width**2 + width * modulus
     if model in ("mesh-mlp", "tied-concat-mesh-mlp"):

@@ -1,0 +1,42 @@
+{
+  "model": "dense-rotary",
+  "variant": "simd",
+  "seed": 11,
+  "embeddingInitialization": "normal-width",
+  "width": 128,
+  "parameters": 28800,
+  "reportEvery": 10,
+  "elapsedSeconds": 65.450041949,
+  "wasmSha256": "99d52d49c64e685fb12f39c07cd8c99baca6722049b931a0dcb51c85ab25ad48",
+  "node": "v24.21.0",
+  "criterion": {
+    "plateau": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "perfect": {
+      "start": null,
+      "end": null,
+      "epochs": 0
+    },
+    "start": null,
+    "perfectStart": null,
+    "previous": 617,
+    "lastLow": 306,
+    "first90": 520,
+    "rise": 214,
+    "event": {
+      "epoch": 617,
+      "delayed": false,
+      "plateauEpochs": 0,
+      "perfectTrainEpochs": 0,
+      "riseEpochs": 214
+    }
+  },
+  "sourceSha256": {
+    "wasm.js": "7683de534e898f5794eaab1240cfb2b9c2d63136d6f798d1d55b1207674627c9",
+    "models.js": "fd6003978c0f9accea8d235b36b1cea1a7405e371a42572f44de62179d9df07e",
+    "model.js": "5af16f58235283bd159b9482be7fa9f636abbec49267da02e7e56e973c4b7523"
+  }
+}

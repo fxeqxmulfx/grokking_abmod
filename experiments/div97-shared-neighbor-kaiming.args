@@ -1,0 +1,3 @@
+# Same pre-RMSNorm shared Neighbor architecture as div97-shared-neighbor.args.
+# Change only the core initializer: all 64 blocks use Kaiming-normal weights.
+grok-simple --model shared-neighbor-mesh-mlp --encoding one-hot --activation relu --width 128 --embedding-mesh-depth 32 --depth 64 --connectivity neighbor --mesh-initialization kaiming --learning-rate 0.001 --weight-decay 0.1 --seed 11

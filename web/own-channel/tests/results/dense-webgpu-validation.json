@@ -1,0 +1,136 @@
+{
+  "dense-rotary": [
+    {
+      "check": "logits 0",
+      "error": 6.185159163729637e-7
+    },
+    {
+      "check": "logits 19",
+      "error": 5.893077392737922e-7
+    },
+    {
+      "check": "logits 4655",
+      "error": 5.562747640297516e-7
+    },
+    {
+      "check": "logits 4656",
+      "error": 6.723402177222226e-7
+    },
+    {
+      "check": "logits 9311",
+      "error": 4.980574148660821e-7
+    },
+    {
+      "check": "all 28800 gradients, batch 1",
+      "error": 7.871006451054541e-7
+    },
+    {
+      "check": "all 28800 gradients, batch 37",
+      "error": 4.828235858345131e-8
+    },
+    {
+      "check": "all 28800 gradients, batch 48",
+      "error": 4.564430976239375e-8
+    },
+    {
+      "check": "all 28800 gradients, batch 512",
+      "error": 1.9909586070065988e-8
+    },
+    {
+      "check": "AdamW 1",
+      "error": 2.495329886331721e-7
+    },
+    {
+      "check": "AdamW 2",
+      "error": 2.511003906746634e-7
+    },
+    {
+      "check": "AdamW 3",
+      "error": 2.5331072706080704e-7
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 4.788479328155518,
+        "trainAccuracy": 0.01009450200945139,
+        "heldoutLoss": 4.770349979400635,
+        "heldoutAccuracy": 0.013316151686012745
+      }
+    },
+    {
+      "check": "nontrivial independent gains/edges",
+      "error": 3.100821432955314e-7
+    }
+  ],
+  "dense-rotary-wide": [
+    {
+      "check": "logits 0",
+      "error": 0.0000036556486735506155
+    },
+    {
+      "check": "logits 19",
+      "error": 0.000003938919865831281
+    },
+    {
+      "check": "logits 4655",
+      "error": 0.000004909262893093569
+    },
+    {
+      "check": "logits 4656",
+      "error": 0.0000053061844909052525
+    },
+    {
+      "check": "logits 9311",
+      "error": 0.00000465315274400524
+    },
+    {
+      "check": "all 1147904 gradients, batch 1",
+      "error": 0.0000033504297429765018
+    },
+    {
+      "check": "all 1147904 gradients, batch 37",
+      "error": 2.5640881498589785e-7
+    },
+    {
+      "check": "all 1147904 gradients, batch 48",
+      "error": 2.1959081097921995e-7
+    },
+    {
+      "check": "all 1147904 gradients, batch 512",
+      "error": 1.0337489378398068e-7
+    },
+    {
+      "check": "AdamW 1",
+      "error": 0.000011059021405718239
+    },
+    {
+      "check": "AdamW 2",
+      "error": 0.000011062993544662392
+    },
+    {
+      "check": "AdamW 3",
+      "error": 0.000011062621451306265
+    },
+    {
+      "check": "complete-split metrics",
+      "row": {
+        "step": 3,
+        "epoch": 0.3,
+        "trainLoss": 6.014739513397217,
+        "trainAccuracy": 0.013101374730467796,
+        "heldoutLoss": 6.140181541442871,
+        "heldoutAccuracy": 0.012242267839610577
+      }
+    },
+    {
+      "check": "nontrivial dense parameters 0..99328",
+      "error": 0.00000726975881404357
+    },
+    {
+      "check": "nontrivial dense parameters 99328..1147904",
+      "error": 4.012580373663477e-7
+    }
+  ]
+}

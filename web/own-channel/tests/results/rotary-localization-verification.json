@@ -1,0 +1,105 @@
+{
+  "languages": [
+    "en",
+    "es",
+    "de",
+    "ja",
+    "fr",
+    "ru"
+  ],
+  "layouts": 192,
+  "automaticRegionalSelection": true,
+  "persistedManualChoice": true,
+  "browserLanguageChange": true,
+  "languageSwitchPreservesTraining": true,
+  "startupAndReopen": true,
+  "localRenderedSVG": true,
+  "errors": [],
+  "messagesPerLanguage": 246,
+  "websiteLanguageRanking": {
+    "source": "https://w3techs.com/technologies/overview/content_language",
+    "surveyDate": "2026-10-12",
+    "metric": "Website content languages",
+    "topFive": [
+      "en",
+      "es",
+      "de",
+      "ja",
+      "fr"
+    ],
+    "additionalLanguage": "ru"
+  },
+  "nodeTests": {
+    "passed": 85,
+    "failed": 0,
+    "node": "v24.21.0"
+  },
+  "twoModelUI": {
+    "passed": true,
+    "engines": [
+      "WebGPU",
+      "WASM SIMD"
+    ],
+    "viewportChecks": 34
+  },
+  "mermaid": {
+    "renderer": "@mermaid-js/tiny",
+    "version": "12.1.0",
+    "diagrams": {
+      "en": {
+        "sourceSha256": "bdd7d8e037b646adae49f391b82b60cbd523fac5c9fac553c366874a0474eec5",
+        "svgSha256": "4a39d075acacd098ecb0f8d654d41cd45eb553259ac7fab0d50215bc4238c198",
+        "bytes": 21066
+      },
+      "es": {
+        "sourceSha256": "82b25155011703dffde2fe20ba834dab34f56c6ab22dc7f9f643157f56df1d58",
+        "svgSha256": "918c99909681b994824aba0d24560fd1c13f85231ff9fbcec9a081b3478b74bd",
+        "bytes": 21110
+      },
+      "de": {
+        "sourceSha256": "1f3913565d3d2ef0af486c6bfae0d135f46c709eaa3e9e46fe94bda892758cdf",
+        "svgSha256": "487ae5c332c8bb23827feaa9d388f644d6e09149da0232976477073f23be8b22",
+        "bytes": 20727
+      },
+      "ja": {
+        "sourceSha256": "84a5b06231a0eb7e15a7d73c4a0d19b2698ef28a1bec446324b0f73300e82410",
+        "svgSha256": "66227d45acaf7eb9446f0a6c4ee40e05d8daa493f904602f2ec742285599e4d1",
+        "bytes": 20374
+      },
+      "fr": {
+        "sourceSha256": "b0a9f8ca6165125e0ec604abc9c24758f7e27fd9f524721b475a4b80bd9b9398",
+        "svgSha256": "625a8296edfdeb13693b840c14b099c45c1a164d827d05250eb70c0ee671be28",
+        "bytes": 21000
+      },
+      "ru": {
+        "sourceSha256": "bacbdbb7f16e47556ec77433e0bc67f9431ea409232088b6a4a43d6f3e58251a",
+        "svgSha256": "b08750e4776f31bffb3998fc9ac0a5f59f5392922d2f6ffa9d15f89b43fbb33a",
+        "bytes": 21058
+      }
+    }
+  },
+  "sourceSha256": {
+    "dist/app.mjs": "504365fbca845a5d1cb20aae3ea1fceeb82ccd370d71167f2a3575284b8640e9",
+    "dist/i18n.mjs": "5b94ca801abfed36a7e50c9247570d663ad3cc92d788bf04f8cc0a124038c0b1",
+    "dist/task.mjs": "0a1aab8879107ab2c3bc69eb34e73f893bac40176e0a9acb2810219e95e36fc8",
+    "dist/dynamics.mjs": "0a85629eb2d0de27d8a6434889566ca42a8dc0db286d4b9022051d2e220e2ff8",
+    "dist/index.html": "ec36e4ad8d538b2e0070de9aea3330e68f3edc5e2dd71dd8189422f1edbb7abe",
+    "dist/style.css": "ee2019ba9fb005f3e55ea5c2b1abcefa3f7d29bff358eb6920d51a847c1f9111",
+    "server.mjs": "310e1de7978a7ed969f52a74455b7b3f0cb43005049d91dbf645360a82b1871c",
+    "package.json": "b477a1f1c973359e2f5f3baad5a35065baf704755aca91254f729b26c99047c1",
+    "package-lock.json": "f2cf3bfe8a0769756a44ff33026f71127760e0e64c89c4d201b88d1162ca6b1f",
+    "scripts/translations.mjs": "83f98bf7ed23670259086983a86a98c431b248120042c4be76ba9538ab556a30",
+    "scripts/translations-accessibility.mjs": "0dc9caacf9cea6361c16455c3c227abd97d8064fc4183c83ecd85d3830e18a97",
+    "scripts/build-locales.mjs": "750ba8ad9ccacfff94b41267c39d837dd56739b3d10692c99cfc82e78d23b95e",
+    "scripts/build-diagrams.mjs": "d0b24deb736d2da9b9c152aa37289377a7fdc830fe2174da38c287788d8b9431",
+    "tests/i18n.test.mjs": "44b2b7d47b23701bf5d990c6260d9e3cd316f16d2eac461c31fc5bbc89bfe399",
+    "tests/i18n-browser.mjs": "fdc3635ffad3da6d00f1f33f8d2b84f5c427ca679b48ba5cf040459ccde43621",
+    "tests/browser.mjs": "1419778c88cfd9167e00e871e703c9a12d096f3d1bf3db36b1adbe7c2c491f59",
+    "dist/locales/en.mjs": "6ad0bdab4ecceaedc45b22db8f0899da16187d81945581b14d15f933004664e6",
+    "dist/locales/es.mjs": "2276b620812f63544ccb6789b33b4d5c4743588aab9ffecdfe199fbea0d623ec",
+    "dist/locales/de.mjs": "f471e55fcf8fae1f1f766e98f1ef69d54c9bd8b233d1fe233fd7c1f9737c2598",
+    "dist/locales/ja.mjs": "b514da0adf08620808bb65dd34c6c41002d885f87295dda52e29e82a79d77a2a",
+    "dist/locales/fr.mjs": "a0845dc85fb200a7d66b0e2bf903e3122f32ad4cfe0ba7ac7e68bbbd0f0078dd",
+    "dist/locales/ru.mjs": "daa4faf83f2423cd00aa6dc49544a1d00fdd5c5c5059df77cc35b53329536a12"
+  }
+}

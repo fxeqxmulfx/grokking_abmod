@@ -1,0 +1,1887 @@
+{
+  "date": "2026-10-12",
+  "scope": "Native Rust/CUDA block-count, branch-depth, and final-activation ablation. Five-seed positive studies and seed-11 full-budget no-activation controls.",
+  "protocol_fields_checked": [
+    "architecture",
+    "activation",
+    "encoding",
+    "operation",
+    "modulus",
+    "train_fraction",
+    "training_equations",
+    "validation_equations",
+    "seed",
+    "init_seed",
+    "inputs",
+    "abstract_symbol_permutation",
+    "loss",
+    "output_classes",
+    "normalization",
+    "initialization",
+    "bias",
+    "betas",
+    "epsilon",
+    "learning_rate",
+    "mesh_learning_rate_multiplier",
+    "weight_decay",
+    "warmup_steps",
+    "batch",
+    "report_every",
+    "evaluation",
+    "requested_epochs",
+    "steps_per_epoch",
+    "epoch_definition",
+    "epoch_tail",
+    "stop_validation_accuracy",
+    "operand_rotation",
+    "embedding_roles",
+    "connectivity",
+    "tied_mesh"
+  ],
+  "all_initial_embeddings_identical": true,
+  "all_training_protocols_identical": true,
+  "unchanged_features": [
+    "shared E for a,b,readout",
+    "fixed pairwise +90 degree rotation for b",
+    "Neighbor circular connectivity",
+    "activation flag square; effective activations depend on branch depth and final-activation switch",
+    "bias-free RMSNorm"
+  ],
+  "criterion": {
+    "minimum_plateau_epochs": 25,
+    "maximum_rise_epochs": 250
+  },
+  "reference_verification": "../rotary-neighbor-wide/verification.json",
+  "profiles": [
+    {
+      "width": 128,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "parameters": 13952,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        46,
+        56
+      ],
+      "first_test_99": [
+        123,
+        137
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.990764605
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor",
+      "summary_sha256": "198676485828226702a284a9773d06644930a817ab9880d53eb0d6e13ca3648e"
+    },
+    {
+      "width": 1024,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "parameters": 111616,
+      "plateau_epochs": [
+        41,
+        42
+      ],
+      "perfect_train_plateau_epochs": [
+        33,
+        35
+      ],
+      "rise_epochs": [
+        74,
+        80
+      ],
+      "first_test_99": [
+        175,
+        190
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.990979381
+      ],
+      "qualified_seeds": 5,
+      "seeds": 5,
+      "archive": "rotary-neighbor-wide",
+      "summary_sha256": "f492fab2c4497f58522bff9b636766c35cab0769b424a45475dbd11bc03418a6"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "parameters": 13184,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        37,
+        47
+      ],
+      "first_test_99": [
+        76,
+        92
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.991194158
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor-one-block-128",
+      "summary_sha256": "ce80daf9786eeb019203bb47f9cfcfa3a92ebf13249f93d06187c810c900f0da"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "parameters": 105472,
+      "plateau_epochs": [
+        21,
+        24
+      ],
+      "perfect_train_plateau_epochs": [
+        10,
+        17
+      ],
+      "rise_epochs": [
+        78,
+        84
+      ],
+      "first_test_99": [
+        152,
+        156
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.990549828
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor-one-block-1024",
+      "summary_sha256": "2fb335893232af09f059f18c386a486c6cd483ade04db6d8672fd5232ba8d108"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "parameters": 12928,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        50,
+        58
+      ],
+      "first_test_99": [
+        95,
+        103
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.991838488
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor-one-block-m2-128",
+      "summary_sha256": "c96ff79baa7a77fa4529c7e6958f9ffc3b100e4586da4f64b7a27db4f1594d32"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "parameters": 103424,
+      "plateau_epochs": [
+        11,
+        14
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        91,
+        95
+      ],
+      "first_test_99": [
+        157,
+        167
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.990549828
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor-one-block-m2-1024",
+      "summary_sha256": "09a5c6df5d84a3dc7ed0c14ed6f0a7c3864e4fe81ab206903e69228267bcf3cd"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 0,
+      "parameters": 12672,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": null,
+      "first_test_99": null,
+      "reached_target_seeds": 0,
+      "final_train_accuracy": [
+        0.369630584,
+        0.369630584
+      ],
+      "final_test_accuracy": [
+        0.018685567,
+        0.018685567
+      ],
+      "qualified_seeds": 0,
+      "seeds": 1,
+      "archive": "rotary-neighbor-one-block-m1-128",
+      "summary_sha256": "ac665182416f8ce020b803c40ad4d65aaf646c9d5fba7ba9b695253d5224e528"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 0,
+      "parameters": 101376,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": null,
+      "first_test_99": null,
+      "reached_target_seeds": 0,
+      "final_train_accuracy": [
+        0.752147766,
+        0.752147766
+      ],
+      "final_test_accuracy": [
+        0.01782646,
+        0.01782646
+      ],
+      "qualified_seeds": 0,
+      "seeds": 1,
+      "archive": "rotary-neighbor-one-block-m1-1024",
+      "summary_sha256": "5c503b473cd4e30d723330737b7a1dfdcb182a2612d3207182c39fccd922f1c7"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "parameters": 12672,
+      "plateau_epochs": [
+        0,
+        0
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        59,
+        72
+      ],
+      "first_test_99": [
+        105,
+        113
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990120275,
+        0.991408935
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "summary_sha256": "361b6cfeedf9478b3c00f261bf33ae2c024a4cd8b1f56fc2c1208563f0003745"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "parameters": 101376,
+      "plateau_epochs": [
+        11,
+        15
+      ],
+      "perfect_train_plateau_epochs": [
+        0,
+        0
+      ],
+      "rise_epochs": [
+        102,
+        117
+      ],
+      "first_test_99": [
+        178,
+        188
+      ],
+      "reached_target_seeds": 5,
+      "final_train_accuracy": [
+        1,
+        1
+      ],
+      "final_test_accuracy": [
+        0.990549828,
+        0.991194158
+      ],
+      "qualified_seeds": 0,
+      "seeds": 5,
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "summary_sha256": "26638f7b1e3048112b7ee69d0be941a2496e8ab95c69aca8b1c611764b86ddb6"
+    }
+  ],
+  "runs": [
+    {
+      "width": 128,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 7,
+      "parameters": 13952,
+      "initial_embedding_sha256": "21ee7a87e8fdc280df77c3fd628ad069fa1afc25a01b87f66930086c63616837",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 107,
+      "rise_epochs": 47,
+      "first_test_99": 131,
+      "qualified": false,
+      "final_epoch": 131,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 4.087672,
+      "archive": "rotary-neighbor",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w128-d2-s7-a01",
+      "history_sha256": "51e7f16db5e40cb208276f410bec1405bdc0d78e5f60d83ebe2b68ceb65a6e71",
+      "trainer_sha256": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10"
+    },
+    {
+      "width": 128,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 8,
+      "parameters": 13952,
+      "initial_embedding_sha256": "bffc395561274ba565505259720016ff89880f0a1139ac47d0919f94af5c5214",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 106,
+      "rise_epochs": 56,
+      "first_test_99": 133,
+      "qualified": false,
+      "final_epoch": 133,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 4.12911,
+      "archive": "rotary-neighbor",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w128-d2-s8-a01",
+      "history_sha256": "bb0671322155a3449d988710e456fa9c22f6126bcd28707360bd7fe689ec3322",
+      "trainer_sha256": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10"
+    },
+    {
+      "width": 128,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 9,
+      "parameters": 13952,
+      "initial_embedding_sha256": "b495739c31941abb1030ded824b702b443865a6356946467e6f730606e0d2376",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 94,
+      "rise_epochs": 46,
+      "first_test_99": 123,
+      "qualified": false,
+      "final_epoch": 123,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 3.834924,
+      "archive": "rotary-neighbor",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w128-d2-s9-a01",
+      "history_sha256": "76c4655d736c13267053410d7c6432e2e65eb5a98e25543bee0d6e3f20a80bf8",
+      "trainer_sha256": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10"
+    },
+    {
+      "width": 128,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 10,
+      "parameters": 13952,
+      "initial_embedding_sha256": "21b1b2faf9f4778a9b243db865065218b677c63117c2a26baa2aa136f06658bf",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 109,
+      "rise_epochs": 52,
+      "first_test_99": 137,
+      "qualified": false,
+      "final_epoch": 137,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 4.272573,
+      "archive": "rotary-neighbor",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w128-d2-s10-a01",
+      "history_sha256": "f6578b7ca9fa84e7229139db429b4084b9161139f970d72f452a08d4a76c19ff",
+      "trainer_sha256": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10"
+    },
+    {
+      "width": 128,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 11,
+      "parameters": 13952,
+      "initial_embedding_sha256": "d68fa4a98843b3f965e29675ebf83fa4e77a9ed497dc37095243a564b7b0bd82",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 106,
+      "rise_epochs": 49,
+      "first_test_99": 133,
+      "qualified": false,
+      "final_epoch": 133,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990764605,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 4.165004,
+      "archive": "rotary-neighbor",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w128-d2-s11-a01",
+      "history_sha256": "ba17de19921ae193d702e906e99317387f455a6cf304260d93a13cb0251ca6ce",
+      "trainer_sha256": "248ab42c10f83c81f2d58c1e79610424c55119bbb98bce349b72883a1b3e2d10"
+    },
+    {
+      "width": 1024,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 7,
+      "parameters": 111616,
+      "initial_embedding_sha256": "0ad88afc51e82b251b966ef7fe3c4151534576785bd5c5aecc1a1542cd536da7",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 42,
+        "start": 15,
+        "end": 57
+      },
+      "perfect_train_plateau": {
+        "epochs": 35,
+        "start": 22,
+        "end": 57
+      },
+      "first_test_90": 135,
+      "rise_epochs": 78,
+      "first_test_99": 187,
+      "qualified": true,
+      "final_epoch": 187,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 26.815262,
+      "archive": "rotary-neighbor-wide",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w1024-d2-s7-a01",
+      "history_sha256": "f9675d9ae2518e70b9088c89f3f33217d36ceb7721e03cc2aaf6bdd6c7814dcd",
+      "trainer_sha256": "5eb95110b1c49dabe6bf1e2e28842d1730ba85a66716d5860c6b0a2491be8bc4"
+    },
+    {
+      "width": 1024,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 8,
+      "parameters": 111616,
+      "initial_embedding_sha256": "c5d98f6c765355867299b2a797c16192ae68e25b4ecfd31a40775c90448d7b6f",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 42,
+        "start": 15,
+        "end": 57
+      },
+      "perfect_train_plateau": {
+        "epochs": 35,
+        "start": 22,
+        "end": 57
+      },
+      "first_test_90": 133,
+      "rise_epochs": 76,
+      "first_test_99": 175,
+      "qualified": true,
+      "final_epoch": 175,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 25.319828,
+      "archive": "rotary-neighbor-wide",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w1024-d2-s8-a01",
+      "history_sha256": "17480dc2b0c25fd336da703ce48b96313377069bbbff088ce3161bd1d000f53a",
+      "trainer_sha256": "5eb95110b1c49dabe6bf1e2e28842d1730ba85a66716d5860c6b0a2491be8bc4"
+    },
+    {
+      "width": 1024,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 9,
+      "parameters": 111616,
+      "initial_embedding_sha256": "cf9ec2f60804909e21f9e4dc1a450ef47c7cbdbbc69871cccf5df859b585a76b",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 42,
+        "start": 15,
+        "end": 57
+      },
+      "perfect_train_plateau": {
+        "epochs": 33,
+        "start": 24,
+        "end": 57
+      },
+      "first_test_90": 136,
+      "rise_epochs": 79,
+      "first_test_99": 190,
+      "qualified": true,
+      "final_epoch": 190,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990764605,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 27.542627,
+      "archive": "rotary-neighbor-wide",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w1024-d2-s9-a01",
+      "history_sha256": "6f8ff59ac2e0e84fcb25054fa8018e4adbb95118e4a4e6ee5e0793b4a3a83ff5",
+      "trainer_sha256": "5eb95110b1c49dabe6bf1e2e28842d1730ba85a66716d5860c6b0a2491be8bc4"
+    },
+    {
+      "width": 1024,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 10,
+      "parameters": 111616,
+      "initial_embedding_sha256": "188959a1c438a92d241c0ba9275ca4f03a6ce9d1c705ae2e5e09389a994c5625",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 41,
+        "start": 16,
+        "end": 57
+      },
+      "perfect_train_plateau": {
+        "epochs": 34,
+        "start": 23,
+        "end": 57
+      },
+      "first_test_90": 131,
+      "rise_epochs": 74,
+      "first_test_99": 176,
+      "qualified": true,
+      "final_epoch": 176,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 25.63737,
+      "archive": "rotary-neighbor-wide",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w1024-d2-s10-a01",
+      "history_sha256": "d66a26f4c21681694c35716dd73727946939141ce98db625256875d35a843438",
+      "trainer_sha256": "5eb95110b1c49dabe6bf1e2e28842d1730ba85a66716d5860c6b0a2491be8bc4"
+    },
+    {
+      "width": 1024,
+      "blocks": 2,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 11,
+      "parameters": 111616,
+      "initial_embedding_sha256": "f7894c27a2f7c863248451505209f2a4f4b49b26bca1f30309c64ebf706ce8d8",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 41,
+        "start": 15,
+        "end": 56
+      },
+      "perfect_train_plateau": {
+        "epochs": 34,
+        "start": 22,
+        "end": 56
+      },
+      "first_test_90": 136,
+      "rise_epochs": 80,
+      "first_test_99": 187,
+      "qualified": true,
+      "final_epoch": 187,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990979381,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 27.322239,
+      "archive": "rotary-neighbor-wide",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w1024-d2-s11-a01",
+      "history_sha256": "11ce9a445aedc9a3981e188f41ee5dc1c1ecec17f52bec424c0b768203234a52",
+      "trainer_sha256": "5eb95110b1c49dabe6bf1e2e28842d1730ba85a66716d5860c6b0a2491be8bc4"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 11,
+      "parameters": 13184,
+      "initial_embedding_sha256": "d68fa4a98843b3f965e29675ebf83fa4e77a9ed497dc37095243a564b7b0bd82",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 70,
+      "rise_epochs": 46,
+      "first_test_99": 86,
+      "qualified": false,
+      "final_epoch": 86,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.251906,
+      "archive": "rotary-neighbor-one-block-128",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w128-d1-s11-a01",
+      "history_sha256": "cfbc10110980e9f51fb9763e4bc6704481559a4932d83604e70851f4fe53c407",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 7,
+      "parameters": 13184,
+      "initial_embedding_sha256": "21ee7a87e8fdc280df77c3fd628ad069fa1afc25a01b87f66930086c63616837",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 70,
+      "rise_epochs": 44,
+      "first_test_99": 92,
+      "qualified": false,
+      "final_epoch": 92,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.387252,
+      "archive": "rotary-neighbor-one-block-128",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w128-d1-s7-a01",
+      "history_sha256": "72c5d268e8f37d71d81c99656e3ab67d51beeec7007178c4c74412d151a08201",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 8,
+      "parameters": 13184,
+      "initial_embedding_sha256": "bffc395561274ba565505259720016ff89880f0a1139ac47d0919f94af5c5214",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 73,
+      "rise_epochs": 47,
+      "first_test_99": 90,
+      "qualified": false,
+      "final_epoch": 90,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.991194158,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.345748,
+      "archive": "rotary-neighbor-one-block-128",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w128-d1-s8-a01",
+      "history_sha256": "d4889dc1f357b3233b1320535186b4ba03c9b0659bf456c23da5be1ca9e1da69",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 9,
+      "parameters": 13184,
+      "initial_embedding_sha256": "b495739c31941abb1030ded824b702b443865a6356946467e6f730606e0d2376",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 62,
+      "rise_epochs": 37,
+      "first_test_99": 76,
+      "qualified": false,
+      "final_epoch": 76,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.991194158,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 1.972289,
+      "archive": "rotary-neighbor-one-block-128",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w128-d1-s9-a01",
+      "history_sha256": "0db2aa4763f9c200591276b86dc018cbdd2ea0277dfa997bb6695f967fec1ee5",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 10,
+      "parameters": 13184,
+      "initial_embedding_sha256": "21b1b2faf9f4778a9b243db865065218b677c63117c2a26baa2aa136f06658bf",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 68,
+      "rise_epochs": 41,
+      "first_test_99": 87,
+      "qualified": false,
+      "final_epoch": 87,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.258735,
+      "archive": "rotary-neighbor-one-block-128",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w128-d1-s10-a01",
+      "history_sha256": "77953a2b5c3fb21f1ce237f6708a3c410af8feb6df7df82724449c4cdd2ffd7b",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 11,
+      "parameters": 105472,
+      "initial_embedding_sha256": "f7894c27a2f7c863248451505209f2a4f4b49b26bca1f30309c64ebf706ce8d8",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 21,
+        "start": 18,
+        "end": 39
+      },
+      "perfect_train_plateau": {
+        "epochs": 15,
+        "start": 24,
+        "end": 39
+      },
+      "first_test_90": 121,
+      "rise_epochs": 82,
+      "first_test_99": 152,
+      "qualified": false,
+      "final_epoch": 152,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.032768,
+      "archive": "rotary-neighbor-one-block-1024",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w1024-d1-s11-a01",
+      "history_sha256": "09a13981e7c50d8356a360d78f9cbe21b8c7fb2898e2edc49e621b5ab50fefcf",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 7,
+      "parameters": 105472,
+      "initial_embedding_sha256": "0ad88afc51e82b251b966ef7fe3c4151534576785bd5c5aecc1a1542cd536da7",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 22,
+        "start": 18,
+        "end": 40
+      },
+      "perfect_train_plateau": {
+        "epochs": 10,
+        "start": 30,
+        "end": 40
+      },
+      "first_test_90": 121,
+      "rise_epochs": 81,
+      "first_test_99": 156,
+      "qualified": false,
+      "final_epoch": 156,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.523765,
+      "archive": "rotary-neighbor-one-block-1024",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w1024-d1-s7-a01",
+      "history_sha256": "77f5ae58730b71d58c086ee98e3287bbaef890d224108534c9f04ceb8e5db175",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 8,
+      "parameters": 105472,
+      "initial_embedding_sha256": "c5d98f6c765355867299b2a797c16192ae68e25b4ecfd31a40775c90448d7b6f",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 24,
+        "start": 18,
+        "end": 42
+      },
+      "perfect_train_plateau": {
+        "epochs": 17,
+        "start": 25,
+        "end": 42
+      },
+      "first_test_90": 120,
+      "rise_epochs": 78,
+      "first_test_99": 153,
+      "qualified": false,
+      "final_epoch": 153,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.252791,
+      "archive": "rotary-neighbor-one-block-1024",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w1024-d1-s8-a01",
+      "history_sha256": "092b2cfa50c899a969309814a0ac014af927caf9665568d0fe0a4cdbc4a482d1",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 9,
+      "parameters": 105472,
+      "initial_embedding_sha256": "cf9ec2f60804909e21f9e4dc1a450ef47c7cbdbbc69871cccf5df859b585a76b",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 22,
+        "start": 17,
+        "end": 39
+      },
+      "perfect_train_plateau": {
+        "epochs": 17,
+        "start": 22,
+        "end": 39
+      },
+      "first_test_90": 120,
+      "rise_epochs": 81,
+      "first_test_99": 154,
+      "qualified": false,
+      "final_epoch": 154,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.502884,
+      "archive": "rotary-neighbor-one-block-1024",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w1024-d1-s9-a01",
+      "history_sha256": "9f4091fcd19ff7c92405ae41a01334349aaf56ca1386c97708bba32b4e8659f0",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 3,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 2,
+      "seed": 10,
+      "parameters": 105472,
+      "initial_embedding_sha256": "188959a1c438a92d241c0ba9275ca4f03a6ce9d1c705ae2e5e09389a994c5625",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 21,
+        "start": 18,
+        "end": 39
+      },
+      "perfect_train_plateau": {
+        "epochs": 10,
+        "start": 29,
+        "end": 39
+      },
+      "first_test_90": 123,
+      "rise_epochs": 84,
+      "first_test_99": 154,
+      "qualified": false,
+      "final_epoch": 154,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.604902,
+      "archive": "rotary-neighbor-one-block-1024",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w1024-d1-s10-a01",
+      "history_sha256": "8626c16065ccfe7d1b0e18f804f5b876584467a453939dc8f7faa9de6d004377",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 11,
+      "parameters": 12928,
+      "initial_embedding_sha256": "d68fa4a98843b3f965e29675ebf83fa4e77a9ed497dc37095243a564b7b0bd82",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 81,
+      "rise_epochs": 58,
+      "first_test_99": 97,
+      "qualified": false,
+      "final_epoch": 97,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.991838488,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.328189,
+      "archive": "rotary-neighbor-one-block-m2-128",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w128-d1-s11-a01",
+      "history_sha256": "b7b82ad6eefdbc91ee4ad10d581160e42bed98799beb8a64de7ab1eba6371624",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 7,
+      "parameters": 12928,
+      "initial_embedding_sha256": "21ee7a87e8fdc280df77c3fd628ad069fa1afc25a01b87f66930086c63616837",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 82,
+      "rise_epochs": 57,
+      "first_test_99": 103,
+      "qualified": false,
+      "final_epoch": 103,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.480984,
+      "archive": "rotary-neighbor-one-block-m2-128",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w128-d1-s7-a01",
+      "history_sha256": "f8bd519dd06ba11cb0e4161e74c7a4c4be51efb6e7fa9dc56b5bd7f4943f0c8f",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 8,
+      "parameters": 12928,
+      "initial_embedding_sha256": "bffc395561274ba565505259720016ff89880f0a1139ac47d0919f94af5c5214",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 81,
+      "rise_epochs": 56,
+      "first_test_99": 102,
+      "qualified": false,
+      "final_epoch": 102,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.991194158,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.455776,
+      "archive": "rotary-neighbor-one-block-m2-128",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w128-d1-s8-a01",
+      "history_sha256": "ec9579f14879e55f049eb2806162a299aae7ee4f495ca74aa0e47f6a8916149a",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 9,
+      "parameters": 12928,
+      "initial_embedding_sha256": "b495739c31941abb1030ded824b702b443865a6356946467e6f730606e0d2376",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 80,
+      "rise_epochs": 56,
+      "first_test_99": 100,
+      "qualified": false,
+      "final_epoch": 100,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.408936,
+      "archive": "rotary-neighbor-one-block-m2-128",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w128-d1-s9-a01",
+      "history_sha256": "230fa8c4b56ca8dd6bc7ba440ea85e9f669d1422e4fdcdbe5debe530ec653a00",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 10,
+      "parameters": 12928,
+      "initial_embedding_sha256": "21b1b2faf9f4778a9b243db865065218b677c63117c2a26baa2aa136f06658bf",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 75,
+      "rise_epochs": 50,
+      "first_test_99": 95,
+      "qualified": false,
+      "final_epoch": 95,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.297067,
+      "archive": "rotary-neighbor-one-block-m2-128",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w128-d1-s10-a01",
+      "history_sha256": "d5b0a34bb0469e8839763a781aaf2f10996d571febb274f484ce1d0a6b42afdd",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 11,
+      "parameters": 103424,
+      "initial_embedding_sha256": "f7894c27a2f7c863248451505209f2a4f4b49b26bca1f30309c64ebf706ce8d8",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 12,
+        "start": 26,
+        "end": 38
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 129,
+      "rise_epochs": 91,
+      "first_test_99": 162,
+      "qualified": false,
+      "final_epoch": 162,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.788422,
+      "archive": "rotary-neighbor-one-block-m2-1024",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w1024-d1-s11-a01",
+      "history_sha256": "d1c1c45cdc42532c1a467c0a6b26e0860d3e60946781f0b37262fcb43a2ac0f9",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 7,
+      "parameters": 103424,
+      "initial_embedding_sha256": "0ad88afc51e82b251b966ef7fe3c4151534576785bd5c5aecc1a1542cd536da7",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 14,
+        "start": 27,
+        "end": 41
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 132,
+      "rise_epochs": 91,
+      "first_test_99": 167,
+      "qualified": false,
+      "final_epoch": 167,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 21.366612,
+      "archive": "rotary-neighbor-one-block-m2-1024",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w1024-d1-s7-a01",
+      "history_sha256": "c17dcf45d542310e59a1fcaf508d0d5bfa6b8bb3806f4b99ddf77222ddeda69a",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 8,
+      "parameters": 103424,
+      "initial_embedding_sha256": "c5d98f6c765355867299b2a797c16192ae68e25b4ecfd31a40775c90448d7b6f",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 12,
+        "start": 28,
+        "end": 40
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 134,
+      "rise_epochs": 94,
+      "first_test_99": 166,
+      "qualified": false,
+      "final_epoch": 166,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 21.379968,
+      "archive": "rotary-neighbor-one-block-m2-1024",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w1024-d1-s8-a01",
+      "history_sha256": "c8ef43f78bbbdb29ba04019a85f2aa404a30b88a64a3bd6fba7718690f4b6157",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 9,
+      "parameters": 103424,
+      "initial_embedding_sha256": "cf9ec2f60804909e21f9e4dc1a450ef47c7cbdbbc69871cccf5df859b585a76b",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 11,
+        "start": 25,
+        "end": 36
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 127,
+      "rise_epochs": 91,
+      "first_test_99": 157,
+      "qualified": false,
+      "final_epoch": 157,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 20.367857,
+      "archive": "rotary-neighbor-one-block-m2-1024",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w1024-d1-s9-a01",
+      "history_sha256": "6b5e0d7aa679414e4fe67c53b9b769ea1812e34b9d69b11a5fc1ca3fd1a2e008",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 2,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 1,
+      "seed": 10,
+      "parameters": 103424,
+      "initial_embedding_sha256": "188959a1c438a92d241c0ba9275ca4f03a6ce9d1c705ae2e5e09389a994c5625",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 12,
+        "start": 25,
+        "end": 37
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 132,
+      "rise_epochs": 95,
+      "first_test_99": 166,
+      "qualified": false,
+      "final_epoch": 166,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 21.630351,
+      "archive": "rotary-neighbor-one-block-m2-1024",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w1024-d1-s10-a01",
+      "history_sha256": "93803e924804df6fd4568fee9310a14387cd6c19b1cf2cedb4bbe39127c49740",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 0,
+      "seed": 11,
+      "parameters": 12672,
+      "initial_embedding_sha256": "d68fa4a98843b3f965e29675ebf83fa4e77a9ed497dc37095243a564b7b0bd82",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": null,
+      "rise_epochs": null,
+      "first_test_99": null,
+      "qualified": false,
+      "final_epoch": 10000,
+      "final_train_accuracy": 0.369630584,
+      "final_test_accuracy": 0.018685567,
+      "stop_reason": "update_budget",
+      "elapsed_seconds": 222.036422,
+      "archive": "rotary-neighbor-one-block-m1-128",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w128-d1-s11-a01",
+      "history_sha256": "6c5393344325b2e5d05a91272938a7a2683daac6776c01e52fcb158f09d6a91c",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": false,
+      "pointwise_activations_per_branch": 0,
+      "seed": 11,
+      "parameters": 101376,
+      "initial_embedding_sha256": "f7894c27a2f7c863248451505209f2a4f4b49b26bca1f30309c64ebf706ce8d8",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": null,
+      "rise_epochs": null,
+      "first_test_99": null,
+      "qualified": false,
+      "final_epoch": 10000,
+      "final_train_accuracy": 0.752147766,
+      "final_test_accuracy": 0.01782646,
+      "stop_reason": "update_budget",
+      "elapsed_seconds": 1284.139371,
+      "archive": "rotary-neighbor-one-block-m1-1024",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w1024-d1-s11-a01",
+      "history_sha256": "1955306ec60360c8750f365748d34713687abcf5b6850c77ed39b12967c37637",
+      "trainer_sha256": "dac768bd5981e660c2fab83060162d1f19bde6239571d767ea02e0210b168742"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 11,
+      "parameters": 12672,
+      "initial_embedding_sha256": "d68fa4a98843b3f965e29675ebf83fa4e77a9ed497dc37095243a564b7b0bd82",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 95,
+      "rise_epochs": 72,
+      "first_test_99": 113,
+      "qualified": false,
+      "final_epoch": 113,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.494312,
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w128-d1-s11-a01",
+      "history_sha256": "b6889ad39ac2c766e493cc1c58d8ce28e7e78db07dc4a2576300114451ec2163",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 7,
+      "parameters": 12672,
+      "initial_embedding_sha256": "21ee7a87e8fdc280df77c3fd628ad069fa1afc25a01b87f66930086c63616837",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 90,
+      "rise_epochs": 64,
+      "first_test_99": 106,
+      "qualified": false,
+      "final_epoch": 106,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.991408935,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.365485,
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w128-d1-s7-a01",
+      "history_sha256": "4ef1f89badfbcd71219e1f10f105379b80cdd7a01d78702503d72cda757532aa",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 8,
+      "parameters": 12672,
+      "initial_embedding_sha256": "bffc395561274ba565505259720016ff89880f0a1139ac47d0919f94af5c5214",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 89,
+      "rise_epochs": 64,
+      "first_test_99": 109,
+      "qualified": false,
+      "final_epoch": 109,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990120275,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.486427,
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w128-d1-s8-a01",
+      "history_sha256": "224897a1c20010bfbea9dbfa38712829acd60a26a24629e20a0ff13781f85b69",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 9,
+      "parameters": 12672,
+      "initial_embedding_sha256": "b495739c31941abb1030ded824b702b443865a6356946467e6f730606e0d2376",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 87,
+      "rise_epochs": 63,
+      "first_test_99": 105,
+      "qualified": false,
+      "final_epoch": 105,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990335052,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.34445,
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w128-d1-s9-a01",
+      "history_sha256": "b48cb3d1c1e2fe6598885c50f4a09a4b5b161763497e44b943ea88c96cc18898",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 128,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 10,
+      "parameters": 12672,
+      "initial_embedding_sha256": "21b1b2faf9f4778a9b243db865065218b677c63117c2a26baa2aa136f06658bf",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 84,
+      "rise_epochs": 59,
+      "first_test_99": 105,
+      "qualified": false,
+      "final_epoch": 105,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990979381,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 2.339203,
+      "archive": "rotary-neighbor-one-block-m1-square-128",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w128-d1-s10-a01",
+      "history_sha256": "441be9d052ce1c3581ea9c0608e672baefd1dbf672bc1a99e8a2da4159ee0414",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 11,
+      "parameters": 101376,
+      "initial_embedding_sha256": "f7894c27a2f7c863248451505209f2a4f4b49b26bca1f30309c64ebf706ce8d8",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 12,
+        "start": 26,
+        "end": 38
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 147,
+      "rise_epochs": 109,
+      "first_test_99": 181,
+      "qualified": false,
+      "final_epoch": 181,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990764605,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 22.88865,
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000001-tied-rotary-residual-mesh-mlp-w1024-d1-s11-a01",
+      "history_sha256": "b9e7df7031288153837f7bea32d5cded9853cd038c9d68f1cfc110ae08543f65",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 7,
+      "parameters": 101376,
+      "initial_embedding_sha256": "0ad88afc51e82b251b966ef7fe3c4151534576785bd5c5aecc1a1542cd536da7",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 15,
+        "start": 27,
+        "end": 42
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 152,
+      "rise_epochs": 110,
+      "first_test_99": 186,
+      "qualified": false,
+      "final_epoch": 186,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 23.362279,
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000002-tied-rotary-residual-mesh-mlp-w1024-d1-s7-a01",
+      "history_sha256": "22b4b92e51911bc5e9b4ecc8c17ce93f7b20dc2108285394996f90ba4930a797",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 8,
+      "parameters": 101376,
+      "initial_embedding_sha256": "c5d98f6c765355867299b2a797c16192ae68e25b4ecfd31a40775c90448d7b6f",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 15,
+        "start": 28,
+        "end": 43
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 145,
+      "rise_epochs": 102,
+      "first_test_99": 178,
+      "qualified": false,
+      "final_epoch": 178,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990979381,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 22.57181,
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000003-tied-rotary-residual-mesh-mlp-w1024-d1-s8-a01",
+      "history_sha256": "5efa7c85788c800817aa77c6e580bfabd1d581861dd296a216b7f70d62ffd8a5",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 9,
+      "parameters": 101376,
+      "initial_embedding_sha256": "cf9ec2f60804909e21f9e4dc1a450ef47c7cbdbbc69871cccf5df859b585a76b",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 12,
+        "start": 26,
+        "end": 38
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 155,
+      "rise_epochs": 117,
+      "first_test_99": 188,
+      "qualified": false,
+      "final_epoch": 188,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.991194158,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 24.014275,
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000004-tied-rotary-residual-mesh-mlp-w1024-d1-s9-a01",
+      "history_sha256": "c41fe485f2f6ac80b224c157a7f17a888e809cffd4f5faa26ac704f45eeb4a55",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    },
+    {
+      "width": 1024,
+      "blocks": 1,
+      "mesh_depth": 1,
+      "mesh_output_activation": true,
+      "pointwise_activations_per_branch": 1,
+      "seed": 10,
+      "parameters": 101376,
+      "initial_embedding_sha256": "188959a1c438a92d241c0ba9275ca4f03a6ce9d1c705ae2e5e09389a994c5625",
+      "initial_embedding_identical_to_two_blocks": true,
+      "training_protocol_identical": true,
+      "plateau": {
+        "epochs": 11,
+        "start": 26,
+        "end": 37
+      },
+      "perfect_train_plateau": {
+        "epochs": 0,
+        "start": null,
+        "end": null
+      },
+      "first_test_90": 148,
+      "rise_epochs": 111,
+      "first_test_99": 186,
+      "qualified": false,
+      "final_epoch": 186,
+      "final_train_accuracy": 1,
+      "final_test_accuracy": 0.990549828,
+      "stop_reason": "validation_accuracy",
+      "elapsed_seconds": 23.827552,
+      "archive": "rotary-neighbor-one-block-m1-square-1024",
+      "trial": "000005-tied-rotary-residual-mesh-mlp-w1024-d1-s10-a01",
+      "history_sha256": "64caa4b7bfc09cbd1dd2053cbdbf0a638da66e342bf0e7997f7b60339e693962",
+      "trainer_sha256": "dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086"
+    }
+  ]
+}

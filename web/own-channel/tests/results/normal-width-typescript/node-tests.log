@@ -1,0 +1,38 @@
+✔ automatic language selection respects browser order and regional tags (1.207948ms)
+✔ manual choice overrides browser language, invalid choices fall back safely (0.666925ms)
+✔ all catalogs contain every message and preserve interpolation fields (7.596753ms)
+✔ all initial accessible labels and titles have translations (1.625196ms)
+✔ every division diagram is a rendered local Mermaid SVG matching its source manifest (3.065109ms)
+✔ u32 SplitMix64 matches an independent BigInt implementation (4.710312ms)
+✔ split is complete and division targets are correct; first rows match the Rust artifact (7.689173ms)
+✔ shuffled epochs contain each example once, with an exact 48-row tail (4.577268ms)
+✔ sparse input lists contain exactly the corresponding minibatch rows (12.71776ms)
+✔ short grokking requires 25 continuous epochs before a fast first 90% crossing (0.510017ms)
+✔ train dips, missing observations, and later accuracy dips cannot qualify short grokking (0.281517ms)
+✔ dense-rotary/simd has no imports and matches the seeded initialization (10.222226ms)
+✔ dense-rotary/simd logits and all gradients match f64 backpropagation (153.846663ms)
+✔ dense-rotary/simd signed dense connections and shared parameter accumulation (19.145977ms)
+✔ dense-rotary/simd AdamW matches a single state per unique parameter (447.985742ms)
+✔ dense-rotary/scalar has no imports and matches the seeded initialization (11.458808ms)
+✔ dense-rotary/scalar logits and all gradients match f64 backpropagation (169.898631ms)
+✔ dense-rotary/scalar signed dense connections and shared parameter accumulation (19.109261ms)
+✔ dense-rotary/scalar AdamW matches a single state per unique parameter (518.688431ms)
+✔ dense-rotary-wide/simd has no imports and matches the seeded initialization (140.972377ms)
+✔ dense-rotary-wide/simd logits and all gradients match f64 backpropagation (594.031056ms)
+✔ dense-rotary-wide/simd signed dense connections and shared parameter accumulation (380.358751ms)
+✔ dense-rotary-wide/simd AdamW matches a single state per unique parameter (2420.284473ms)
+✔ dense-rotary-wide/scalar has no imports and matches the seeded initialization (141.598666ms)
+✔ dense-rotary-wide/scalar logits and all gradients match f64 backpropagation (630.45459ms)
+✔ dense-rotary-wide/scalar signed dense connections and shared parameter accumulation (411.875737ms)
+✔ dense-rotary-wide/scalar AdamW matches a single state per unique parameter (5711.132685ms)
+✔ Rotary roles preserve embedding norms and distinguish swapped nonidentical operands (3.82534ms)
+✔ Normal-E and Kaiming-A checkpoints match Rust byte-for-byte at both displayed widths (87.123085ms)
+✔ Dense derivatives include the pre-norm skip, ReLU and every shared E role (26.40625ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11982.76847

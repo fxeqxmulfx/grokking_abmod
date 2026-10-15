@@ -1,0 +1,2 @@
+{"epochs":10000,"plateau_epochs":25,"jump_epochs":250,"train_accuracy":0.99,"low_accuracy":0.1,"high_accuracy":0.9,"final_accuracy":0.99,"search_seed":20261012,"timeout_seconds":3600,"batch":512,"report_every_updates":10,"report_every_epochs":1,"queue_sha256":"da75671dff5c05cd947918bb19f956ebe7ae1e7666d18b4091b218eb1219ed2a","operation":"div","modulus":97,"train_fraction":0.5,"scheduler_version":2}
+trainer_sha256=dee03d30336941797814f70cdd6dd816f4c970c0627c3b768810de2f912ee086

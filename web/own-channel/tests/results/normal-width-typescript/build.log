@@ -1,0 +1,17 @@
+Built 6 local catalogs with 259 messages each.
+dense-rotary-simd: 3,186 bytes
+dense-rotary-scalar: 2,750 bytes
+dense-rotary-wide-simd: 3,209 bytes
+dense-rotary-wide-scalar: 2,773 bytes
+model-en.svg: 6762 SVG bytes
+model-en-portrait.svg: 6122 SVG bytes
+model-es.svg: 6783 SVG bytes
+model-es-portrait.svg: 6139 SVG bytes
+model-de.svg: 6792 SVG bytes
+model-de-portrait.svg: 6152 SVG bytes
+model-ja.svg: 6816 SVG bytes
+model-ja-portrait.svg: 6169 SVG bytes
+model-fr.svg: 6791 SVG bytes
+model-fr-portrait.svg: 6145 SVG bytes
+model-ru.svg: 6901 SVG bytes
+model-ru-portrait.svg: 6234 SVG bytes

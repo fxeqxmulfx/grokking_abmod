@@ -1,0 +1,269 @@
+{
+  "scope": "Paired 1000-epoch pilots; core, split, sampler and optimizer fixed within each seed. Initial class norms and Gram energy rank matched. Orthogonality is initialization-only.",
+  "expected_pairs": 3,
+  "completed_pairs": 3,
+  "trainer_sha256": "73dad5d1b8f695b5db4b3198b5ec819d531fb541586248add740b3796dbf0b2a",
+  "analysis_script_sha256": "635d1d767cee7a78d54961412a78a8ab3d4402c4a0a44e9998ba26f3d14454fb",
+  "mean_train_accuracy_delta": 0.003293241999999997,
+  "mean_test_accuracy_delta": -0.00021477666666666617,
+  "pairs": [
+    {
+      "seed": 11,
+      "checked_settings": [
+        "architecture",
+        "activation",
+        "encoding",
+        "operation",
+        "modulus",
+        "train_fraction",
+        "seed",
+        "init_seed",
+        "width",
+        "depth",
+        "embedding_mesh_depth",
+        "connectivity",
+        "mesh_initialization",
+        "parameters",
+        "normalization",
+        "core_structure",
+        "rmsnorm_epsilon",
+        "final_rmsnorm",
+        "learning_rate",
+        "weight_decay",
+        "betas",
+        "epsilon",
+        "warmup_steps",
+        "batch",
+        "requested_epochs",
+        "report_every",
+        "embedding_column_norm_target"
+      ],
+      "core_parameters_identical": true,
+      "cpu_gpu_initial_models_identical": true,
+      "weak": {
+        "trial": "000001-shared-neighbor-mesh-mlp-w128-d64-s11-a01",
+        "final": {
+          "epoch": 1000,
+          "train": 0.065721649,
+          "test": 0.014819588,
+          "train_loss": 4.32231889,
+          "test_loss": 4.77041851
+        },
+        "first_train_99": null,
+        "grokking_matched": false,
+        "initial_geometry": {
+          "mode": "unit-norm-weak",
+          "seed": 11,
+          "parameters": 32768,
+          "min_norm": 0.999999982933,
+          "max_norm": 0.999999984054,
+          "mean_effective_channels": 1.009024832,
+          "mean_channels_covering_99pct_energy": 1.113402062,
+          "effective_gram_rank": 97
+        },
+        "initial_model_sha256": "690329f393032cb803b20eaac79f07d1be2ad23b45339e6f69c74050875ec6c1",
+        "final_model_sha256": "e308d3293507169bc325ccc0f8d974da9d38328ba46de746ff0fbf39f774a41f",
+        "history_sha256": "66212a07e76077adc20de3f4731052386d47b5a3a5fee05dc492e1b97f994eda"
+      },
+      "strong": {
+        "trial": "000002-shared-neighbor-mesh-mlp-w128-d64-s11-a01",
+        "final": {
+          "epoch": 1000,
+          "train": 0.064862543,
+          "test": 0.015034364,
+          "train_loss": 4.315807664,
+          "test_loss": 4.697024053
+        },
+        "first_train_99": null,
+        "grokking_matched": false,
+        "initial_geometry": {
+          "mode": "unit-norm-strong",
+          "seed": 11,
+          "parameters": 32768,
+          "min_norm": 0.99999996459,
+          "max_norm": 0.999999979053,
+          "mean_effective_channels": 5.554549607,
+          "mean_channels_covering_99pct_energy": 15.257731959,
+          "effective_gram_rank": 97
+        },
+        "initial_model_sha256": "0f1f3bd8b869d3c90d9761164513c5ae237c74e63743196b87952da7c2a29787",
+        "final_model_sha256": "7b5167a3f675ca7bf565646c3190192663499a78ea13600b7934e44fef0ed988",
+        "history_sha256": "974298d970d992fc4008ef4cd3b2fcb41a781361739edc6ed95c2db361462ace"
+      },
+      "train_accuracy_delta": -0.0008591059999999984,
+      "test_accuracy_delta": 0.00021477599999999986
+    },
+    {
+      "seed": 17,
+      "checked_settings": [
+        "architecture",
+        "activation",
+        "encoding",
+        "operation",
+        "modulus",
+        "train_fraction",
+        "seed",
+        "init_seed",
+        "width",
+        "depth",
+        "embedding_mesh_depth",
+        "connectivity",
+        "mesh_initialization",
+        "parameters",
+        "normalization",
+        "core_structure",
+        "rmsnorm_epsilon",
+        "final_rmsnorm",
+        "learning_rate",
+        "weight_decay",
+        "betas",
+        "epsilon",
+        "warmup_steps",
+        "batch",
+        "requested_epochs",
+        "report_every",
+        "embedding_column_norm_target"
+      ],
+      "core_parameters_identical": true,
+      "cpu_gpu_initial_models_identical": true,
+      "weak": {
+        "trial": "000003-shared-neighbor-mesh-mlp-w128-d64-s17-a01",
+        "final": {
+          "epoch": 1000,
+          "train": 0.062714777,
+          "test": 0.016323024,
+          "train_loss": 4.335312301,
+          "test_loss": 4.78116071
+        },
+        "first_train_99": null,
+        "grokking_matched": false,
+        "initial_geometry": {
+          "mode": "unit-norm-weak",
+          "seed": 17,
+          "parameters": 32768,
+          "min_norm": 0.999999982821,
+          "max_norm": 0.999999984055,
+          "mean_effective_channels": 1.012688172,
+          "mean_channels_covering_99pct_energy": 1.216494845,
+          "effective_gram_rank": 97
+        },
+        "initial_model_sha256": "406b526d0b34372c1c6307c02b19036dba28d0dae2185065275859f76a5526a4",
+        "final_model_sha256": "50549375016389336b06f741c16b6adcb6ec7678537e6c6c227e213edad32afe",
+        "history_sha256": "489b23d87333d65fad81c81f77b86ba1fc3cb599aa9afe09065ab4de814edc9c"
+      },
+      "strong": {
+        "trial": "000004-shared-neighbor-mesh-mlp-w128-d64-s17-a01",
+        "final": {
+          "epoch": 1000,
+          "train": 0.06507732,
+          "test": 0.014175258,
+          "train_loss": 4.334239565,
+          "test_loss": 4.720008833
+        },
+        "first_train_99": null,
+        "grokking_matched": false,
+        "initial_geometry": {
+          "mode": "unit-norm-strong",
+          "seed": 17,
+          "parameters": 32768,
+          "min_norm": 0.99999996459,
+          "max_norm": 0.999999979053,
+          "mean_effective_channels": 6.252189887,
+          "mean_channels_covering_99pct_energy": 16.010309278,
+          "effective_gram_rank": 97
+        },
+        "initial_model_sha256": "12f5e3f5a4aaf5b8495b521db9ce5764df316fd7c3a5f3b69e7621af229e4e8b",
+        "final_model_sha256": "0799fb341e75745fa5d35d408611f99f46da51ae2b0eaa7097e9d140cece2b30",
+        "history_sha256": "9c59b0003a21dbce2295d816e35bd7a760d1a269f171ae0369caafefac75675e"
+      },
+      "train_accuracy_delta": 0.0023625429999999947,
+      "test_accuracy_delta": -0.002147765999999999
+    },
+    {
+      "seed": 23,
+      "checked_settings": [
+        "architecture",
+        "activation",
+        "encoding",
+        "operation",
+        "modulus",
+        "train_fraction",
+        "seed",
+        "init_seed",
+        "width",
+        "depth",
+        "embedding_mesh_depth",
+        "connectivity",
+        "mesh_initialization",
+        "parameters",
+        "normalization",
+        "core_structure",
+        "rmsnorm_epsilon",
+        "final_rmsnorm",
+        "learning_rate",
+        "weight_decay",
+        "betas",
+        "epsilon",
+        "warmup_steps",
+        "batch",
+        "requested_epochs",
+        "report_every",
+        "embedding_column_norm_target"
+      ],
+      "core_parameters_identical": true,
+      "cpu_gpu_initial_models_identical": true,
+      "weak": {
+        "trial": "000005-shared-neighbor-mesh-mlp-w128-d64-s23-a01",
+        "final": {
+          "epoch": 1000,
+          "train": 0.06121134,
+          "test": 0.014175258,
+          "train_loss": 4.334294345,
+          "test_loss": 4.696734082
+        },
+        "first_train_99": null,
+        "grokking_matched": false,
+        "initial_geometry": {
+          "mode": "unit-norm-weak",
+          "seed": 23,
+          "parameters": 32768,
+          "min_norm": 0.999999982883,
+          "max_norm": 0.999999984018,
+          "mean_effective_channels": 1.010537524,
+          "mean_channels_covering_99pct_energy": 1.12371134,
+          "effective_gram_rank": 97
+        },
+        "initial_model_sha256": "6ef818d5d4d6639c301b7e318a7badefed9d8cb0431466324cb866a420b16333",
+        "final_model_sha256": "f3222755adde593d0b91f5978fa9b314e49cc0f49f2c4729731138cb2a13d680",
+        "history_sha256": "2b0e989fb6748a827aed16b26a9afa387d01ce0b66131db34c77f2c6dbce7d05"
+      },
+      "strong": {
+        "trial": "000006-shared-neighbor-mesh-mlp-w128-d64-s23-a01",
+        "final": {
+          "epoch": 1000,
+          "train": 0.069587629,
+          "test": 0.015463918,
+          "train_loss": 4.304496349,
+          "test_loss": 4.732908296
+        },
+        "first_train_99": null,
+        "grokking_matched": false,
+        "initial_geometry": {
+          "mode": "unit-norm-strong",
+          "seed": 23,
+          "parameters": 32768,
+          "min_norm": 0.99999996459,
+          "max_norm": 0.999999979053,
+          "mean_effective_channels": 5.916552627,
+          "mean_channels_covering_99pct_energy": 15.226804124,
+          "effective_gram_rank": 97
+        },
+        "initial_model_sha256": "11d8b4bae2cae4713d341f8df916bd6f02a5b492c34a57007788c462bfd38d50",
+        "final_model_sha256": "6de56d31c1d98da82be2f0a49ac8c803c41c11dc34d3b5e23441d017947e0182",
+        "history_sha256": "0034b7f6872d5e8a9470f23d5568355830c1c863634e055eae4af0126569f33b"
+      },
+      "train_accuracy_delta": 0.008376288999999995,
+      "test_accuracy_delta": 0.0012886600000000005
+    }
+  ]
+}

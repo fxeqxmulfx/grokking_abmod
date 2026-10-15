@@ -1,0 +1,3 @@
+phase,core_connectivity,weighted_interaction_fraction,mean_class_interaction_fraction,nonzero_grid_accuracy
+initial,butterfly,0.120846978678,0.156766389034,0.011176215278
+trained,butterfly,0.397687723328,0.391560741526,0.034505208333

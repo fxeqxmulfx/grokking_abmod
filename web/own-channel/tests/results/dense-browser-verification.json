@@ -1,0 +1,201 @@
+{
+  "node": "v24.21.0",
+  "models": [
+    "dense-rotary",
+    "dense-rotary-wide"
+  ],
+  "preNorm": true,
+  "finalNorm": true,
+  "nodeTests": 105,
+  "uiViewportChecks": 34,
+  "i18n": {
+    "languages": [
+      "en",
+      "es",
+      "de",
+      "ja",
+      "fr",
+      "ru"
+    ],
+    "layouts": 240,
+    "automaticRegionalSelection": true,
+    "persistedManualChoice": true,
+    "browserLanguageChange": true,
+    "languageSwitchPreservesTraining": true,
+    "startupAndReopen": true,
+    "localRenderedSVG": true,
+    "errors": []
+  },
+  "topology": {
+    "connections": 1346560,
+    "parameters": 1147904,
+    "viewport": [
+      1250,
+      520
+    ],
+    "precision": "float16",
+    "renderer": "ANGLE (AMD, AMD Radeon Graphics (radeonsi renoir ACO), OpenGL ES 3.2)",
+    "gpuMs": [
+      19.80000001192093,
+      4.599999964237213,
+      3.699999988079071,
+      3.699999988079071,
+      4.099999964237213,
+      5.300000011920929,
+      3.800000011920929,
+      3.800000011920929,
+      3.5,
+      4.199999988079071,
+      4.300000011920929,
+      3.799999952316284
+    ],
+    "gpuMedianMs": 3.800000011920929,
+    "canvasFallbackMs": 119.59999996423721,
+    "zoomReusesTexture": true,
+    "canvasFallbackIncludesAllConnections": true,
+    "canvasFallbackShowsWeakChanges": true,
+    "realPointerPan": true,
+    "fitRestoresDiagram": true,
+    "note": "Standalone arrow drawing with initial seed-11 weights, including texture uploads, accumulation/composite and gl.finish; excludes node overlay, probe, training and other dashboard panels. Median excludes two warmup draws."
+  },
+  "training": [
+    {
+      "directory": "dense-rotary-wasm-simd-seed11",
+      "model": "dense-rotary",
+      "backend": "wasm-simd",
+      "final": {
+        "step": 6570,
+        "epoch": 657,
+        "trainLoss": 0.00021691000438295305,
+        "trainAccuracy": 1,
+        "heldoutLoss": 0.05607723444700241,
+        "heldoutAccuracy": 0.9901202917098999,
+        "phase": "Generalized"
+      },
+      "criterion": {
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "perfect": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "start": null,
+        "perfectStart": null,
+        "previous": 657,
+        "lastLow": 332,
+        "first90": 577,
+        "rise": 245,
+        "event": {
+          "epoch": 657,
+          "delayed": false,
+          "plateauEpochs": 0,
+          "perfectTrainEpochs": 0,
+          "riseEpochs": 245
+        }
+      },
+      "elapsedSeconds": 74.34676648899999
+    },
+    {
+      "directory": "dense-rotary-webgpu-seed11",
+      "model": "dense-rotary",
+      "backend": "webgpu",
+      "final": {
+        "step": 6450,
+        "epoch": 645,
+        "trainLoss": 0.00021258549531921744,
+        "trainAccuracy": 1,
+        "heldoutLoss": 0.05794947221875191,
+        "heldoutAccuracy": 0.9909793734550476,
+        "phase": "Generalized"
+      },
+      "criterion": {
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "perfect": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "start": null,
+        "perfectStart": null,
+        "previous": 645,
+        "lastLow": 324,
+        "first90": 562,
+        "rise": 238,
+        "event": {
+          "epoch": 645,
+          "delayed": false,
+          "plateauEpochs": 0,
+          "perfectTrainEpochs": 0,
+          "riseEpochs": 238
+        }
+      },
+      "elapsedSeconds": 9.27469999998808
+    },
+    {
+      "directory": "dense-rotary-wide-webgpu-seed11",
+      "model": "dense-rotary-wide",
+      "backend": "webgpu",
+      "final": {
+        "step": 6340,
+        "epoch": 634,
+        "trainLoss": 0,
+        "trainAccuracy": 1,
+        "heldoutLoss": 0.09041311591863632,
+        "heldoutAccuracy": 0.9901202917098999,
+        "phase": "Generalized"
+      },
+      "criterion": {
+        "plateau": {
+          "start": 15,
+          "end": 192,
+          "epochs": 177
+        },
+        "perfect": {
+          "start": 86,
+          "end": 192,
+          "epochs": 106
+        },
+        "start": null,
+        "perfectStart": null,
+        "previous": 634,
+        "lastLow": 192,
+        "first90": 516,
+        "rise": 324,
+        "event": {
+          "epoch": 634,
+          "delayed": false,
+          "plateauEpochs": 177,
+          "perfectTrainEpochs": 106,
+          "riseEpochs": 324
+        }
+      },
+      "elapsedSeconds": 226.19710000002385
+    }
+  ],
+  "sourceSha256": {
+    "app.mjs": "3fa6d48dfc2902fa6c452be33f2c8223b61f9b2c43638e6de8550f9bb57c2515",
+    "index.html": "0223de7f23b8dcd8696af6311ff601edad22c007145f7d85c11363e504c751f1",
+    "models.mjs": "d46adbafa97eaeb80c14fbb821b88b89c6d117e94be1f10ebea60509e19478f4",
+    "gpu.mjs": "ae2bc86d4c5aea253a23ce1dd3dc2a76a4d022ef89378323f0e19928c50ad4e8",
+    "wasm.mjs": "e556bc1351bcd2a80bac6542f2711163f5df44b576fd921977edc0cb0d944d60",
+    "worker.mjs": "9d270f6f6590a88a28e09a1b7131a0c873f6b56d0e51769b682056b484d17392",
+    "dynamics.mjs": "d09db9c7e45e2ffe115b22265169484d5877d0fb9bb1d9ff2282530ff8b74368",
+    "dynamics-worker.mjs": "782c2d8426f67a1164d0d34a731dc2541b6f069703df673d5cca2a76c586ec29",
+    "topology.mjs": "7919089ba8a88816c0ee9618815b1eacaacc0c3bc2299349a7d40035c9e93566",
+    "task.mjs": "4753c495c8417771c43bb016a003d1f80eef004e048c72fd99b4fc90086f83e0",
+    "style.css": "b34ec7d61cc6abb482440ae9745750ec4bd571f59c773f76aaa9b2a47de07134",
+    "dense-rotary.wgsl": "ec47d92958c0f5635abce6b5002441c9a4b0dd255e2fdbb0e39738a4b6a2b0ba",
+    "dense-rotary-wide.wgsl": "3808b8eb0eda3b01bbb9f1ecd84ea04c38216523025d66b0b8ad9c6873fb097f",
+    "locales/en.mjs": "7bfdb0f9dbfd0488d76cbe64b3358cd669f20ed3ea62d6367bb558ba5d9e4d92",
+    "locales/ru.mjs": "307a23824fec47d33c321010bad9327fffc9620fb8fff9f6e66e33c7006e89ba"
+  },
+  "note": "Local-only frontend. Complete WASM convergence measured for W128; both WebGPU models reach 99%. W1024 WebGPU does not meet the 250-epoch rise criterion. Native results remain separate."
+}

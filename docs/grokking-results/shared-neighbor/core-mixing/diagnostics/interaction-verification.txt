@@ -1,0 +1,6 @@
+scope=All 9216 nonzero a/b pairs; exclude trivial a=0 and answer class 0
+source=Independent ReferenceSimpleModel f64 logits
+centering=Subtract each row's mean across nonzero class logits
+decomposition=f(a,b)=grand_mean+a_effect(a)+b_effect(b)+joint_residual(a,b)
+class_variance_floor=1e-20
+ideal_division_mean_class_interaction_fraction=1.000000000000

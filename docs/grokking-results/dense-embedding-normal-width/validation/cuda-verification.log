@@ -1,0 +1,5 @@
+PASS tied-rotary-residual-dense-mlp embedding-init=normal-width relu one-hot width=6 depth=2 expansion=4 modulus=7: logits (max error 2.0e-7 of max), loss, gradients (max error 6.1e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS tied-rotary-residual-dense-mlp embedding-init=normal-width relu one-hot width=128 depth=1 expansion=4 modulus=97: logits (max error 4.4e-7 of max), loss, gradients (max error 4.0e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS tied-rotary-residual-dense-mlp embedding-init=uniform-fan-in relu one-hot width=6 depth=2 expansion=4 modulus=7: logits (max error 2.1e-7 of max), loss, gradients (max error 1.2e-6 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS tied-rotary-residual-dense-mlp embedding-init=uniform-fan-in square one-hot width=32 depth=1 expansion=4 modulus=97: logits (max error 2.7e-7 of max), loss, gradients (max error 3.4e-7 of max) for 1/37/130 gathered rows, offset AdamW steps, repeatability
+PASS simple-model validation: tables, indices, minibatch ranges, parameters, launch contracts

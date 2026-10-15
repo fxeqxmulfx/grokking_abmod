@@ -90,16 +90,35 @@ def profile(run):
                                       "model", "heads", "layers", "attention_mesh_depth", "ffn_mesh_depth",
                                       "embeddings", "mesh_connectivity", "embedding_norm", "initialization_gain",
                                       "embedding_output_gain", "embedding_init_unit", "qk_signs",
-                                      "rope", "qk_norm_enabled", "xsa_enabled"))
+                                      "rope", "qk_norm_enabled", "xsa_enabled")) + (
+        s.get("mesh_output_activation", "false"), s.get("embedding_mesh_depth"), s.get("mesh_initialization"),
+        s.get("normalization"), s.get("core_structure"),
+        s.get("shared_embedding_initialization", "near-identity"),
+        s.get("dense_embedding_initialization", "uniform-fan-in"))
 
 
 def title(run):
     s = run["settings"]
+    if s.get("architecture") == "tied-rotary-residual-dense-mlp":
+        mode = s.get("dense_embedding_initialization", "uniform-fan-in")
+        return f"Shared-E Rotate90 dense residual W{s['width']}, B{s['depth']}, {s['activation']}, Kaiming A\nE: {mode}"
+    if s.get("architecture") == "full-mesh-mlp":
+        return f"Full two-parent {s['connectivity']} W{s['width']}, D{s['depth']}, {s['activation']}, {s['mesh_initialization']}"
+    if s.get("architecture") == "shared-neighbor-mesh-mlp":
+        normalization = ("pre-RMSNorm residual blocks + final RMSNorm"
+                         if s.get("normalization") == "pre_rmsnorm_blocks_and_final" else "no normalization")
+        return (f"Shared Neighbor E{s['embedding_mesh_depth']}, {s['connectivity']} core D{s['depth']}, W{s['width']}, {s['activation']}\n"
+                f"{s['mesh_initialization']}, {normalization}\n"
+                f"embedding init: {s.get('shared_embedding_initialization', 'near-identity')}")
     if s.get("model") == "mesh_gpt":
         return f"Mesh Transformer W{s['width']}, L{s['layers']}, H{s['heads']}, A{s['attention_mesh_depth']}, F{s['ffn_mesh_depth']}"
     if s.get("architecture") in ("residual-mesh-mlp", "tied-concat-residual-mesh-mlp", "tied-rotary-residual-mesh-mlp"):
         prefix = {"residual-mesh-mlp": "", "tied-concat-residual-mesh-mlp": "Shared-E concat ", "tied-rotary-residual-mesh-mlp": "Shared-E Rotate90 "}[s["architecture"]]
-        return f"{prefix}{s['connectivity'].capitalize()} residual mesh W{s['width']}, B{s['depth']}, M{s['mesh_depth']}, {s['activation']}"
+        activated_output = s.get("mesh_output_activation", "false") == "true"
+        activation = "no pointwise activation" if s["mesh_depth"] == "1" and not activated_output else s["activation"]
+        if activated_output:
+            activation += " at branch output"
+        return f"{prefix}{s['connectivity'].capitalize()} residual mesh W{s['width']}, B{s['depth']}, M{s['mesh_depth']}, {activation}"
     return f"{s['connectivity'].capitalize()} mesh W{s['width']}, depth {s['depth']}, {s['activation']}"
 
 
@@ -160,24 +179,39 @@ def save(figure, destination, name):
     for extension in ("png", "svg"):
         path = destination / f"{name}.{extension}"
         figure.savefig(path, dpi=180, metadata={"Date": None} if extension == "svg" else {})
+        if extension == "svg":
+            path.write_text("\n".join(line.rstrip() for line in path.read_text().splitlines()) + "\n")
         print(path)
     plt.close(figure)
 
 
 def plot(groups, destination, detail_seed):
-    preferred = [("tied-rotary-residual-mesh-mlp", "square", "128", "neighbor", "rotary-neighbor-short-plateau"),
-                 ("tied-rotary-residual-mesh-mlp", "square", "1024", "neighbor", "rotary-neighbor-wide-short-plateau"),
-                 ("tied-concat-residual-mesh-mlp", "square", "128", "neighbor", "tied-concat-neighbor-short-plateau"),
-                 ("residual-mesh-mlp", "square", "128", "neighbor", "neighbor-mesh-short-plateau"),
-                 ("residual-mesh-mlp", "square", "128", "butterfly", "residual-mesh-short-plateau"),
-                 ("mesh-mlp", "relu", "384", "butterfly", "relu-mesh-short-plateau"),
-                 ("residual-mesh-mlp", "square", "96", "butterfly", None),
-                 ("residual-mesh-mlp", "square", "64", "butterfly", None)]
+    preferred = [("tied-rotary-residual-dense-mlp", "relu", "128", "1", None, "none", "rotary-dense-relu-w128"),
+                 ("shared-neighbor-mesh-mlp", "relu", "128", "64", None, "neighbor", "shared-neighbor-w128"),
+                 ("shared-neighbor-mesh-mlp", "relu", "128", "64", None, "butterfly", "shared-neighbor-core-mixing-w128"),
+                 ("tied-rotary-residual-dense-mlp", "relu", "1024", "1", None, "none", "rotary-dense-relu-w1024"),
+                 ("tied-rotary-residual-dense-mlp", "square", "128", "1", None, "none", "rotary-dense-square-w128"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "128", "2", "3", "neighbor", "rotary-neighbor-short-plateau"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "1024", "2", "3", "neighbor", "rotary-neighbor-wide-short-plateau"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "128", "1", "3", "neighbor", "rotary-neighbor-one-block"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "1024", "1", "3", "neighbor", "rotary-neighbor-wide-one-block"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "128", "1", "2", "neighbor", "rotary-neighbor-one-block-m2"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "1024", "1", "2", "neighbor", "rotary-neighbor-wide-one-block-m2"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "128", "1", "1", "neighbor", "rotary-neighbor-one-block-m1"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "1024", "1", "1", "neighbor", "rotary-neighbor-wide-one-block-m1"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "2048", "1", "1", "neighbor", "rotary-neighbor-w2048-one-block-m1"),
+                 ("tied-rotary-residual-mesh-mlp", "square", "4096", "1", "1", "neighbor", "rotary-neighbor-w4096-one-block-m1"),
+                 ("tied-concat-residual-mesh-mlp", "square", "128", None, None, "neighbor", "tied-concat-neighbor-short-plateau"),
+                 ("residual-mesh-mlp", "square", "128", None, None, "neighbor", "neighbor-mesh-short-plateau"),
+                 ("residual-mesh-mlp", "square", "128", None, None, "butterfly", "residual-mesh-short-plateau"),
+                 ("mesh-mlp", "relu", "384", None, None, "butterfly", "relu-mesh-short-plateau"),
+                 ("residual-mesh-mlp", "square", "96", None, None, "butterfly", None),
+                 ("residual-mesh-mlp", "square", "64", None, None, "butterfly", None)]
     selected = []
-    for model, activation, width, connectivity, filename in preferred:
+    for model, activation, width, blocks, mesh_depth, connectivity, filename in preferred:
         values = next((values for key, values in groups.items()
                        if key[:3] == (model, activation, width) and key[5] == connectivity
-                       and (not model.startswith("tied-rotary") or key[3:5] == ("2", "3"))), [])
+                       and (blocks is None or key[3:5] == (blocks, mesh_depth))), [])
         if values:
             selected.append((values, filename))
     for values in groups.values():
@@ -209,6 +243,12 @@ def plot(groups, destination, detail_seed):
     figure.suptitle("Division modulo 97: full-split evaluation every epoch, independent seeds")
     save(figure, destination, "short-mesh-seeds")
     for values, filename in selected:
+        settings = values[0][0]["settings"]
+        mode = settings.get("shared_embedding_initialization")
+        if settings.get("architecture") == "tied-rotary-residual-dense-mlp" and settings.get("dense_embedding_initialization", "uniform-fan-in") != "uniform-fan-in":
+            filename = f"rotary-dense-{settings['activation']}-{settings['dense_embedding_initialization']}-w{settings['width']}"
+        if settings.get("architecture") == "shared-neighbor-mesh-mlp" and mode in ("unit-norm-weak", "unit-norm-strong"):
+            filename = f"shared-neighbor-{mode}-w{settings['width']}"
         if filename:
             run, rows = next((item for item in values if int(item[0]["settings"]["seed"]) == detail_seed), values[0])
             plot_details(run, rows, destination, filename)
@@ -232,12 +272,54 @@ def plot_details(run, rows, destination, filename):
                          label=f"Train =100%, test ≤10%\n{perfect['epochs']:g} epochs")
     axes[0].set(ylabel="Accuracy (%)", ylim=(0, 101))
     axes[1].set(ylabel="Cross entropy (log scale)")
-    for axis, location in zip(axes, ("lower right", "upper right"), strict=True):
+    accuracy_legend = "upper left" if int(run["settings"]["width"]) >= 2048 else "lower right"
+    for axis, location in zip(axes, (accuracy_legend, "upper right"), strict=True):
         axis.set(xlabel="Complete training epochs", xlim=(0, rows[-1]["epoch"]))
         axis.grid(alpha=.2)
         axis.legend(fontsize=8, loc=location)
     figure.suptitle(f"{title(run)}, seed {run['settings']['seed']}\nMeasured accuracy, loss, and memorization intervals")
     save(figure, destination, filename)
+
+
+def plot_dense_embedding_comparison(report, reference_path, destination):
+    """Overlay archived uniform-E histories with the normal-width E control."""
+    reference = json.loads(reference_path.read_text())
+    figure, axes = plt.subplots(2, 2, figsize=(12, 8), layout="constrained")
+    protocol = ("architecture", "activation", "encoding", "operation", "modulus",
+                "train_fraction", "seed", "init_seed", "width", "depth", "normalization",
+                "learning_rate", "weight_decay", "betas", "epsilon", "warmup_steps", "batch",
+                "requested_epochs", "report_every", "steps_per_epoch")
+    for index, width in enumerate((128, 1024)):
+        selected = [run for run in report["runs"] if int(run["settings"]["width"]) == width]
+        if len(selected) != 1:
+            raise ValueError(f"Dense comparison needs exactly one W{width} control")
+        control = selected[0]
+        matched = [run for run in reference["runs"]
+                   if all(run["settings"].get(key) == control["settings"].get(key) for key in protocol)]
+        if len(matched) != 1:
+            raise ValueError(f"Dense comparison needs exactly one matching W{width} reference")
+        for run, folder, color, name in ((matched[0], reference_path.parent, "#da7c30", "Uniform E"),
+                                         (control, destination, "#3978b5", "Normal E, variance 1/W")):
+            path = folder / run["history_file"]
+            if digest(path) != run["history_sha256"]:
+                raise ValueError("Comparison history hash differs from its archive")
+            with path.open(newline="") as source:
+                rows = list(csv.DictReader(source))
+            x = [float(row["completed_epochs"]) for row in rows]
+            for split, style in (("validation", "-"), ("train", "--")):
+                axes[index, 0].plot(x, [100 * float(row[f"{split}_accuracy"]) for row in rows],
+                                    color=color, linestyle=style, label=f"{name}: {split}")
+                axes[index, 1].semilogy(x, [max(1e-10, float(row[f"{split}_cross_entropy"])) for row in rows],
+                                       color=color, linestyle=style, label=f"{name}: {split}")
+        axes[index, 0].set(title=f"W{width}: accuracy", ylabel="Accuracy (%)", ylim=(0, 101))
+        axes[index, 1].set(title=f"W{width}: loss", ylabel="Cross entropy (log scale)")
+        for axis in axes[index]:
+            axis.set(xlabel="Complete training epochs")
+            axis.grid(alpha=.2)
+            axis.legend(fontsize=8)
+    figure.suptitle("Dense + ReLU, seed 11: shared E initialization control\n"
+                   "Rust/CUDA, identical initial A, split and optimizer; complete splits every epoch")
+    save(figure, destination, "dense-embedding-comparison")
 
 
 def main():
@@ -249,6 +331,8 @@ def main():
     parser.add_argument("--detail-seed", type=int, default=7)
     parser.add_argument("--replay-reference", type=Path,
                         help="Compare a matching coarse-cadence trial at all shared epochs; fail on any difference")
+    parser.add_argument("--compare-dense-archive", type=Path,
+                        help="Overlay uniform-E Dense histories from an archived summary.json")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     runs, groups = [], {}
@@ -279,6 +363,8 @@ def main():
     if args.replay_reference:
         check_replay(args.replay_reference, runs, args.output)
     plot(groups, args.output, args.detail_seed)
+    if args.compare_dense_archive:
+        plot_dense_embedding_comparison(report, args.compare_dense_archive, args.output)
     print(json.dumps({"completed": len(runs), "matches": sum(r["statistics"]["matched"] for r in runs),
                       "profiles": [{"model": title(values[0][0]), "parameters": values[0][0]["parameters"],
                                     "seeds": [int(r["settings"]["seed"]) for r, _ in values],

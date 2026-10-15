@@ -1,0 +1,183 @@
+{
+  "seed": 11,
+  "inputs": [
+    {
+      "model": "neighbor-rotary",
+      "state": "initial",
+      "path": "initialModelWeights(11, model)",
+      "sha256": "f0d28c681b9be479b436c23ec3894e7b0fe61e6acce8c373cc25846a5cd9e230"
+    },
+    {
+      "model": "neighbor-rotary",
+      "state": "final",
+      "path": "web/own-channel/tests/results/neighbor-rotary-m1-square-wasm-simd-seed11/weights.f32",
+      "sha256": "d2785e54a60ad5ceccdeb68da6b39353d90deff3878b82160ccf6589c284e603"
+    },
+    {
+      "model": "neighbor-rotary-wide",
+      "state": "initial",
+      "path": "initialModelWeights(11, model)",
+      "sha256": "cb9e3a7662ab24c46cafe99776240a42be4eb393dc3db81ef63cf4abe64ee447"
+    },
+    {
+      "model": "neighbor-rotary-wide",
+      "state": "final",
+      "path": "web/own-channel/tests/results/neighbor-rotary-wide-m1-square-wasm-simd-seed11/weights.f32",
+      "sha256": "637dd6acf06a017f2898c8bf357b50bef0c5fce070aedaa5d5c04c8e1738830d"
+    }
+  ],
+  "initializationSourceSha256": "adf53002cffcf270343dfda3b897eee3158fc1e3bd573c8701d2e792a73c9063",
+  "diagnostics": {
+    "operation": "division modulo 97",
+    "embeddingOnly": true,
+    "zeroResidueExcludedFromFourier": true,
+    "order": "powers of the smallest primitive root, 5",
+    "cycleLength": 96,
+    "frequencies": "real DFT k=1..48; conjugate power doubled except Nyquist",
+    "centering": "subtract the nonzero-residue row mean before the DFT",
+    "effectiveRank": "exp(entropy(normalized squared singular values)) of all 97 centered rows",
+    "permutationControl": {
+      "count": 100,
+      "seed": 123
+    },
+    "interpretation": "Descriptive endpoint geometry. No causal circuit ablation was performed."
+  },
+  "measurements": [
+    {
+      "model": "neighbor-rotary",
+      "state": "initial",
+      "root": 5,
+      "fiveFrequencyShare": 0.11788120504842545,
+      "strongest": [
+        {
+          "k": 24,
+          "share": 0.024055276924543376
+        },
+        {
+          "k": 15,
+          "share": 0.024000887692291147
+        },
+        {
+          "k": 7,
+          "share": 0.02348341565561411
+        },
+        {
+          "k": 14,
+          "share": 0.02324873751944738
+        },
+        {
+          "k": 22,
+          "share": 0.02309288725652943
+        }
+      ],
+      "permutationMean": 0.12126085139932245,
+      "permutationP99": 0.1258146875791708,
+      "effectiveRank": 66.39998581822485,
+      "embeddingRMS": 0.05910064609101482,
+      "selfMean": 1,
+      "neighborRMS": 0
+    },
+    {
+      "model": "neighbor-rotary",
+      "state": "final",
+      "root": 5,
+      "fiveFrequencyShare": 0.31438433239619706,
+      "strongest": [
+        {
+          "k": 48,
+          "share": 0.10388529364457562
+        },
+        {
+          "k": 44,
+          "share": 0.07754362795690029
+        },
+        {
+          "k": 20,
+          "share": 0.04960352764374385
+        },
+        {
+          "k": 35,
+          "share": 0.04266178482557241
+        },
+        {
+          "k": 7,
+          "share": 0.0406900983254049
+        }
+      ],
+      "permutationMean": 0.13242121408648125,
+      "permutationP99": 0.14058596690035807,
+      "effectiveRank": 50.02052453643441,
+      "embeddingRMS": 0.19139077893604126,
+      "selfMean": 0.8233663253486156,
+      "neighborRMS": 0.2809027653981132
+    },
+    {
+      "model": "neighbor-rotary-wide",
+      "state": "initial",
+      "root": 5,
+      "fiveFrequencyShare": 0.1105497657954462,
+      "strongest": [
+        {
+          "k": 47,
+          "share": 0.02235478689625834
+        },
+        {
+          "k": 13,
+          "share": 0.022309740198686416
+        },
+        {
+          "k": 46,
+          "share": 0.022067484581634655
+        },
+        {
+          "k": 38,
+          "share": 0.021912159010858714
+        },
+        {
+          "k": 1,
+          "share": 0.021905595108008085
+        }
+      ],
+      "permutationMean": 0.11095535754504296,
+      "permutationP99": 0.1131481555524773,
+      "effectiveRank": 91.50593227778124,
+      "embeddingRMS": 0.05864282295365568,
+      "selfMean": 1,
+      "neighborRMS": 0
+    },
+    {
+      "model": "neighbor-rotary-wide",
+      "state": "final",
+      "root": 5,
+      "fiveFrequencyShare": 0.13406852520326465,
+      "strongest": [
+        {
+          "k": 3,
+          "share": 0.027566410095413395
+        },
+        {
+          "k": 16,
+          "share": 0.027123776105134043
+        },
+        {
+          "k": 47,
+          "share": 0.026837503473907807
+        },
+        {
+          "k": 10,
+          "share": 0.02671408310942448
+        },
+        {
+          "k": 37,
+          "share": 0.025826752419384914
+        }
+      ],
+      "permutationMean": 0.1108993430750379,
+      "permutationP99": 0.11247808159894086,
+      "effectiveRank": 91.38307747331551,
+      "embeddingRMS": 0.08810727213308635,
+      "selfMean": 0.7867531065712683,
+      "neighborRMS": 0.2189310318351542
+    }
+  ]
+}

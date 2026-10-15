@@ -1,0 +1,5 @@
+# Matched E initialization control: E ~ Normal(0, variance=1/W).
+# Box-Muller consumes one uniform draw per E parameter, preserving the exact
+# Kaiming A of the previous seed-11 uniform-E runs. No training constraints.
+grok-simple --model tied-rotary-residual-dense-mlp --width 128 --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-dense-mlp --width 1024 --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --learning-rate 0.001 --weight-decay 0.1 --seed 11

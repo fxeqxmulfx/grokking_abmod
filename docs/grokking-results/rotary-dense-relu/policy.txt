@@ -1,0 +1,7 @@
+Dense Rotate90 Rust/CUDA study
+One shared E and one residual Dense + ReLU branch. A uses Kaiming normal, fan-in, ReLU gain sqrt(2). E retains the existing seeded uniform initialization.
+Division modulo 97, 50/50 split, seed 11, one visit to every training equation per epoch, minibatches 512 with a 48-row tail.
+AdamW: learning rate 0.001, weight decay 0.1, betas 0.9/0.98, epsilon 1e-8, warmup 10 updates. Evaluate both complete splits every epoch.
+Budget: 1000 epochs, stop at held-out accuracy >=99%. W128 runs first, then W1024, without concurrent GPU training.
+Grokking criterion remains a continuous >=25-epoch train >=99% / test <=10% plateau, then test >=90% within 250 epochs of its last <=10% observation and a later test >=99%.
+Frontend replacement follows Rust validation. Other architectures remain experiments until their results warrant new tabs.

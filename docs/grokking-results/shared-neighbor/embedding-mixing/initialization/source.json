@@ -1,0 +1,23 @@
+{
+  "source_sha256": "3bceb9a5e70af95ad2b7b1ffd6541f649985414349749fb174c4b90f8d10f9db",
+  "audit_source_sha256": "e868739ae2d508de5a47eb5b314e0f5c7e2605492487b8d58b04f28e7926278c",
+  "queue_sha256": "71b9d61588037b0d3efcf2d11e00cff952c90fd33f9dbf632600307ff5560415",
+  "seeds": [
+    11,
+    17,
+    23
+  ],
+  "architecture": "shared-neighbor-mesh-mlp",
+  "width": 128,
+  "embedding_depth": 32,
+  "core_depth": 64,
+  "parameters": 32768,
+  "normalization": "pre_rmsnorm_blocks_and_final",
+  "core_connectivity": "neighbor",
+  "initial_column_norm_target": 1,
+  "initial_gram_energy_rank": 97,
+  "parameter_sharing": "a,b,transposed_readout",
+  "invariant_scope": "Initialization only; all sparse weights train independently thereafter.",
+  "first_gpu_initial_model_matches_cpu_audit": true,
+  "first_initial_model_sha256": "690329f393032cb803b20eaac79f07d1be2ad23b45339e6f69c74050875ec6c1"
+}

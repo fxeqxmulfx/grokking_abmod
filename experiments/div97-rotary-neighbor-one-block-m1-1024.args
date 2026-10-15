@@ -1,0 +1,7 @@
+# One residual block with one Neighbor mesh layer; Square is not applied at mesh-depth 1.
+# Keep the activation flag and all other training settings matched to M2/M3.
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 1 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 11
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 1 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 7
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 1 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 8
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 1 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 9
+grok-simple --model tied-rotary-residual-mesh-mlp --width 1024 --depth 1 --mesh-depth 1 --activation square --encoding one-hot --connectivity neighbor --learning-rate 0.001 --weight-decay 0.1 --seed 10
