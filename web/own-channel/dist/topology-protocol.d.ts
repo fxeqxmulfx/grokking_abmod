@@ -27,6 +27,8 @@ export type TopologyResponse = {
     backgroundPaints: number;
     buildMs: number;
     drawMs: number;
+    memoryBytes: number;
+    rasterPixels: number;
 } | {
     type: 'error';
     message: string;

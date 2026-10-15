@@ -14,9 +14,14 @@ export declare class WeightTopology {
     private job;
     private weights;
     private initial;
+    private generation;
+    private transferred;
+    private initializing;
     constructor(element: HTMLCanvasElement, invalidate: () => void);
+    private start;
     private fallback;
     clear(): void;
     draw(_overlay: CanvasRenderingContext2D, layout: TopologyLayout, weights: Weights, selected: number, view: NetworkView, focus?: number, options?: DrawOptions): void;
+    release(): boolean;
     destroy(): void;
 }

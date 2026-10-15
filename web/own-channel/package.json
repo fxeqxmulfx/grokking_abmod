@@ -20,6 +20,7 @@
     "test:browser": "node build/tests/browser.js",
     "test:settings-browser": "node build/tests/settings-browser.js",
     "test:mobile-browser": "node build/tests/mobile-browser.js",
+    "test:mobile-memory": "node build/tests/mobile-memory.js",
     "test:pages-browser": "node build/tests/pages-browser.js",
     "test:export-browser": "node build/tests/export-browser.js",
     "test:rendering": "node build/tests/rendering.js",

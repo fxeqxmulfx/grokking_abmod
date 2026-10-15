@@ -49,7 +49,7 @@ try {
       if(!bandVisibility().every(n=>n>1250/4))throw new Error('Weak changes disappeared');
       // Explicitly exercise the main-thread fallback with the real wrapper.
       const fallbackCanvas=document.createElement('canvas');Object.defineProperty(fallbackCanvas,'transferControlToOffscreen',{value:undefined});
-      let fallback;await new Promise(resolve=>{fallback=new WeightTopology(fallbackCanvas,resolve)});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
+      let fallback;await new Promise(resolve=>{fallback=new WeightTopology(fallbackCanvas,resolve);fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights})});fallback.draw(ctx,layout,weights,32,view,-1,{initial:weights});
       if(fallbackCanvas.dataset.thread!=='main'||Number(fallbackCanvas.dataset.connections)!==3*97*width+width*width)throw new Error('CPU fallback failed');fallback.destroy();
       const median=values=>values.slice(2).sort((a,b)=>a-b)[Math.floor((values.length-2)/2)];
       results.push({width,connections:3*97*width+width*width,freshMs:fresh,freshMedianMs:median(fresh),panMs:pan,panMedianMs:median(pan),highlightMs,classificationReuse:true,backgroundReuse:true,allBandsVisible:true,weakChangesVisible:true,fallbackWorks:true});

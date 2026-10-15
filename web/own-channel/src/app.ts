@@ -10,6 +10,7 @@ import {initializeTask} from './task.ts';
 import {pytorchSource} from './pytorch-export.ts';
 import {modelInfo, modelPresets, optimizerProfile, initialModelWeights, predictModel, inputMatrix} from './models.ts';
 import {WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges} from './topology.ts';
+import {compactRendering, displayScale} from './render-policy.ts';
 
 type AtlasType = 'a' | 'b' | 'r';
 interface Experiment {
@@ -43,11 +44,12 @@ const orange = '#dd6b3c', blue = '#49849c', ink = '#252d28', muted = '#96988e', 
 const fixed = (value: number, digits: number) => number(value, {minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false});
 const format = (value: number) => value === 0 ? '0' : Math.abs(value) < .001 ? value.toExponential(2) : fixed(value, 3);
 function canvas(id: CanvasId) {
-  const element = $(id), rect = element.getBoundingClientRect(), scale = Math.min(devicePixelRatio || 1, 2);
+  const element = $(id), rect = element.getBoundingClientRect();
   const width = Math.round(rect.width), height = Math.round(rect.height);
+  const scale = displayScale(width, height);
   if (element.width !== Math.round(width * scale) || element.height !== Math.round(height * scale)) { element.width = Math.round(width * scale); element.height = Math.round(height * scale); }
   // Software rasterization keeps the node overlay independent of the driver.
-  const ctx = element.getContext('2d', id === 'mesh' ? {willReadFrequently: true} : undefined);
+  const ctx = element.getContext('2d', {willReadFrequently: true});
   if (!ctx) throw new Error('Canvas 2D is unavailable.');
   ctx.setTransform(scale, 0, 0, scale, 0, 0); ctx.clearRect(0, 0, width, height);
   return {ctx, width, height};
@@ -109,6 +111,7 @@ function rgb(value: number, range: number) {
 }
 function denseMesh(result: Prediction | null, scales: Float64Array) {
   $('mesh-edges').hidden = state.meshView !== 'topology'; $('network-zoom').hidden = state.meshView !== 'topology'; $('network-options').hidden = state.meshView !== 'topology';
+  if (state.meshView !== 'topology') topology.release();
   return state.meshView === 'topology' ? denseTopology(result, scales) : denseChannel(result, scales);
 }
 function denseChannel(result: Prediction | null, scales: Float64Array) {
@@ -296,14 +299,25 @@ function invalidate(target = state, immediate = true) {
 function renderCanvas(id: CanvasId, inputs: readonly unknown[], render: () => void) {
   const rect = $(id).getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return;
-  const next = [...inputs, Math.round(rect.width), Math.round(rect.height), Math.min(devicePixelRatio || 1, 2), document.documentElement.lang];
+  const next = [...inputs, Math.round(rect.width), Math.round(rect.height), displayScale(Math.round(rect.width), Math.round(rect.height)), document.documentElement.lang];
   const previous = renderInputs.get(id);
   if (previous && previous.length === next.length && next.every((value, i) => value === previous[i])) return;
   render(); renderInputs.set(id, next);
 }
+function visibleCanvas(id: CanvasId) {const rect = $(id).getBoundingClientRect(); return !document.hidden && rect.width > 0 && rect.height > 0;}
+function releaseHiddenGraphics() {
+  // Free old surfaces before the next view allocates its own backing stores.
+  for (const id of ['curve', 'mesh', 'scales', 'input-a', 'input-b', 'readout'] as const) if (!visibleCanvas(id)) {
+    const element = $(id);
+    if (element.width !== 1 || element.height !== 1) element.width = element.height = 1;
+    renderInputs.delete(id);
+  }
+  if (!visibleCanvas('mesh-edges') && topology.release()) renderInputs.delete('mesh');
+}
 function draw() {
   pendingFrame = null;
-  if (!state.dirty || document.hidden) return;
+  releaseHiddenGraphics();
+  if (!state.dirty || document.hidden || (compactRendering && state.suspension)) return;
   state.dirty = false;
   if (state.metricsDirty) refreshMetrics();
   renderCanvas('curve', [state, state.history.length, state.metric, state.criterion], curve);
@@ -418,6 +432,15 @@ function suspendExperiment(target: Experiment): Promise<void> {
   send(target.worker, {type: 'suspend'});
   return target.suspension;
 }
+function parkTrainingForView() {
+  if (compactRendering && (!state.running || state.label === 'Pausing') && state.worker && (document.hidden || document.body.dataset.view !== 'training')) void suspendExperiment(state);
+}
+async function resumeTrainingForView() {
+  const target = state, request = activation;
+  await target.suspension;
+  if (state !== target || request !== activation || document.hidden || document.body.dataset.view !== 'training') return;
+  if (!target.worker) startEngine(target.checkpoint);
+}
 function initialize() {
   if (!$('seed').reportValidity() || !$('limit').reportValidity()) return;
   activation++;
@@ -438,13 +461,14 @@ function startEngine(checkpoint?: TrainingCheckpoint) {
     if (target.worker !== worker) return;
     if (data.type === 'suspended') {
       target.checkpoint = data.checkpoint; target.ready = false; target.running = false;
-      releaseWorker(target); return;
+      releaseWorker(target); if (state === target) invalidate(); return;
     }
     if (data.type === 'ready') { target.ready = !target.suspension; target.info = data.info; }
     else if (data.type === 'status') status(data.status, target);
     else if (data.type === 'weights') { target.weights = data.weights; target.step = data.step; target.activeMs = data.activeMs; }
     else if (data.type === 'metrics') { target.history.push(data.row); target.criterion = data.criterion; }
     else if (data.type === 'error') { status('Unavailable', target); target.ready = false; target.error = data.message; }
+    if (data.type === 'status' && state === target) parkTrainingForView();
     target.metricsDirty = true;
     if (state === target && (data.type === 'ready' || data.type === 'status' || data.type === 'error')) refresh();
     else invalidate(target, data.type !== 'metrics');
@@ -506,7 +530,11 @@ $('settings-form').onsubmit = event => {
     ui('custom-error', error instanceof Error ? error.message : String(error)); $('custom-error').hidden = false;
   }
 };
-$('train').onclick = () => { if (state.ready) send(state.worker, {type: state.running ? 'pause' : 'train'}); };
+$('train').onclick = () => {
+  if (!state.ready) return;
+  if (state.running) {send(state.worker, {type: 'pause'}); status('Pausing');}
+  else send(state.worker, {type: 'train'});
+};
 $('step').onclick = () => send(state.worker, {type: 'step'});
 $('reset').onclick = initialize;
 $('seed').onchange = initialize;
@@ -607,7 +635,7 @@ $('export-metrics').onclick = () => {
   download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}${presetSuffix()}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
 };
 const resizeObserver = new ResizeObserver(() => { invalidate(); });
-for (const element of document.querySelectorAll('main, canvas')) resizeObserver.observe(element);
+for (const element of document.querySelectorAll('main, .chart-card, .mesh-canvas, .scale-card, .heatmap-card')) resizeObserver.observe(element);
 window.addEventListener('resize', () => { invalidate(); });
 function selectView(view: string) {
   document.body.dataset.view = view;
@@ -622,6 +650,8 @@ function selectView(view: string) {
   for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-view-tab]')) {
     const selected = tab.dataset.viewTab === view; tab.classList.toggle('active', selected); tab.setAttribute('aria-pressed', String(selected));
   }
+  releaseHiddenGraphics(); parkTrainingForView();
+  if (compactRendering && view === 'training' && (state.suspension || state.checkpoint)) void resumeTrainingForView();
   invalidate();
 }
 for (const button of document.querySelectorAll<HTMLButtonElement>('[data-view-tab]')) button.onclick = () => selectView(button.dataset.viewTab!);
@@ -632,7 +662,12 @@ $('about').onclick = () => {
 };
 $('close-about').onclick = () => $('about-dialog').close();
 $('error').onclick = () => $('about').click();
-document.addEventListener('visibilitychange', () => { send(state.worker, {type: 'capture', hz: document.hidden ? 1 : Number($('capture').value)}); invalidate(); });
+document.addEventListener('visibilitychange', () => {
+  send(state.worker, {type: 'capture', hz: document.hidden ? 1 : Number($('capture').value)});
+  releaseHiddenGraphics(); parkTrainingForView();
+  if (compactRendering && !document.hidden && document.body.dataset.view === 'training' && (state.suspension || state.checkpoint)) void resumeTrainingForView();
+  invalidate();
+});
 document.fonts.ready.then(() => { invalidate(); });
 window.addEventListener('localechange', () => { refresh(); summarizeSettings(); });
 initialize(); initializeTask(); invalidate();

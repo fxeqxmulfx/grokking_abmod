@@ -93,11 +93,20 @@ experiment archives remain available in
 [the historical studies](../../docs/grokking-browser-models.md).
 
 Only the active experiment retains a training worker and its CPU thread pool.
-Inactive experiments keep compact checkpoints containing weights, both AdamW
-moments, bias corrections, shuffled sampler state and the grokking criterion.
-Returning restores those states without adding a duplicate observation. The
-network raster is capped at 524,288 pixels; its text overlay keeps its separate
-display resolution.
+On touch devices, leaving Training while paused also releases that pool;
+returning restores it. Inactive experiments keep compact checkpoints containing
+weights, both AdamW moments, bias corrections, shuffled sampler state and the
+grokking criterion.
+Returning restores those states without adding a duplicate observation.
+
+Hidden canvases release their backing stores and keep 1×1 placeholders. The
+network renderer starts only when visible and is terminated on leaving the
+view, releasing its WASM memory and intermediate image. Resize observation uses
+stable containers so replaced canvas elements are not retained. Mobile display
+surfaces use at most one pixel per CSS pixel, with a 262,144-pixel budget per
+surface and a 131,072-pixel budget for the network raster. Desktop budgets are
+1,048,576 and 524,288 pixels respectively. The renderer keeps all connections
+and restores the selected channel, zoom and pan when reopened.
 
 ## Architecture and initialization
 
@@ -420,6 +429,11 @@ startup, repeatedly switches views at four screen sizes, checks bounded worker
 counts, suspends running training and verifies bit-for-bit continuation. It also
 checks that all six translated Dense/ReLU/skip/RMSNorm captions fit their
 backgrounds.
+The mobile memory regression trains W128 for 15 epochs, visits Network and
+Weights, and checks 12 complete render/release cycles plus 80 rapid view
+switches. Hidden surfaces must be 1×1, network raster memory must remain below
+4 MiB, and paused Weights must retain no dedicated workers. Returning to
+Training must reproduce the uninterrupted epoch-16 weights bit-for-bit.
 The Pages check loads all 20 packaged training modules, verifies the isolation
 bootstrap without server headers, and trains every width with custom AdamW
 parameters on four CPU threads under the `/grokking_abmod/` prefix.
@@ -479,10 +493,15 @@ describes the retired frontend.
 To rerun browser checks after building, use an isolated Chrome profile on the
 selected CDP port. Hardware acceleration is not required:
 
+Run the memory regression in a fresh profile so dedicated-worker counts include
+only that run. Its resource limits and exact continuation were also checked
+with graphics compositing enabled and a 48 MiB V8 heap limit.
+
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
 GROKKING_CDP_PORT=9224 npm run test:settings-browser
 GROKKING_CDP_PORT=9224 npm run test:mobile-browser
+GROKKING_CDP_PORT=9224 npm run test:mobile-memory
 GROKKING_CDP_PORT=9224 GROKKING_PREVIEW_ORIGIN=http://127.0.0.1:8081/grokking_abmod npm run test:pages-browser
 GROKKING_CDP_PORT=9224 npm run test:export-browser
 GROKKING_CDP_PORT=9224 node build/tests/optimizer-browser.js

@@ -1,6 +1,7 @@
 import { errorText } from './types.js';
 import { CPUScene, topologyLayout, NETWORK_LEVELS } from './topology-scene.js';
 import { initialWeightRanges } from './weight-colors.js';
+import { networkScale } from './render-policy.js';
 export { topologyLayout };
 export { weightColor, weightPalette, weightMagnitude, weightGradient, initialWeightRanges } from './weight-colors.js';
 export class WeightTopology {
@@ -13,14 +14,28 @@ export class WeightTopology {
     job = 0;
     weights = null;
     initial = null;
+    generation = 0;
+    transferred = false;
+    initializing = false;
     constructor(element, invalidate) {
         this.element = element;
         this.invalidate = invalidate;
-        if (typeof Worker === 'function' && typeof element.transferControlToOffscreen === 'function') {
+        element.width = element.height = 1;
+        element.dataset.thread = 'inactive';
+        element.dataset.memoryBytes = element.dataset.rasterPixels = '0';
+    }
+    start() {
+        if (this.worker || this.ctx || this.initializing)
+            return;
+        const generation = this.generation;
+        if (typeof Worker === 'function' && typeof this.element.transferControlToOffscreen === 'function') {
             try {
                 this.worker = new Worker(new URL('./topology-worker.js', import.meta.url), { type: 'module' });
-                const canvas = element.transferControlToOffscreen();
+                const canvas = this.element.transferControlToOffscreen();
+                this.transferred = true;
                 this.worker.onmessage = ({ data }) => {
+                    if (generation !== this.generation)
+                        return;
                     if (data.type === 'error') {
                         this.fallback(data.message);
                         return;
@@ -31,10 +46,13 @@ export class WeightTopology {
                     dataset.backgroundPaints = String(data.backgroundPaints);
                     dataset.buildMs = String(data.buildMs);
                     dataset.drawMs = String(data.drawMs);
+                    dataset.memoryBytes = String(data.memoryBytes);
+                    dataset.rasterPixels = String(data.rasterPixels);
                 };
-                this.worker.onerror = event => this.fallback(event.message);
+                this.worker.onerror = event => { if (generation === this.generation)
+                    this.fallback(event.message); };
                 this.worker.postMessage({ type: 'initialize', canvas }, [canvas]);
-                element.dataset.thread = 'worker';
+                this.element.dataset.thread = 'worker';
             }
             catch (error) {
                 this.fallback(errorText(error));
@@ -44,27 +62,33 @@ export class WeightTopology {
             this.fallback();
     }
     fallback(message) {
+        this.generation++;
         this.worker?.terminate();
         this.worker = null;
         // A transferred canvas cannot regain a 2D context; replace it on failure.
-        try {
-            this.ctx = this.element.getContext('2d', { willReadFrequently: true });
-        }
-        catch {
+        if (this.transferred) {
             const replacement = this.element.cloneNode(false);
+            replacement.width = replacement.height = 1;
             this.element.replaceWith(replacement);
             this.element = replacement;
-            this.ctx = replacement.getContext('2d', { willReadFrequently: true });
         }
+        this.ctx = this.element.getContext('2d', { willReadFrequently: true });
         if (!this.ctx)
             throw new Error('Canvas 2D is unavailable.');
+        this.transferred = false;
         this.scene = null;
         this.weights = this.initial = null;
         this.element.dataset.thread = 'main';
         if (message)
             this.element.dataset.error = message;
-        // Constructors run before the app's render functions are initialized.
-        void CPUScene.create().then(scene => { this.scene = scene; this.invalidate(); }).catch(error => { this.element.dataset.error = errorText(error); });
+        const generation = this.generation;
+        this.initializing = true;
+        void CPUScene.create().then(scene => { if (generation !== this.generation)
+            return; this.scene = scene; this.initializing = false; this.invalidate(); })
+            .catch(error => { if (generation === this.generation) {
+            this.initializing = false;
+            this.element.dataset.error = errorText(error);
+        } });
     }
     clear() {
         const job = ++this.job;
@@ -78,9 +102,10 @@ export class WeightTopology {
         }
     }
     draw(_overlay, layout, weights, selected, view, focus = -1, options = {}) {
+        this.start();
         // Dense connections need less resolution than the separate text overlay.
         // Bound the f32 accumulation buffer when a tab expands to the full screen.
-        const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = Math.min(devicePixelRatio || 1, 2, Math.sqrt(524288 / (layout.width * layout.height)));
+        const initial = options.initial ?? weights, mode = options.mode ?? 'weight', scale = networkScale(layout.width, layout.height);
         const dataset = this.element.dataset, ranges = initialWeightRanges(initial, layout.channels).map(value => value * (mode === 'delta' ? .25 : 1));
         dataset.connections = String(3 * 97 * layout.channels + layout.channels * layout.channels);
         dataset.parameters = String(weights.length);
@@ -124,11 +149,40 @@ export class WeightTopology {
             dataset.backgroundPaints = String(this.scene.backgroundPaints);
             dataset.buildMs = String(this.scene.buildMs);
             dataset.drawMs = String(this.scene.drawMs);
+            dataset.memoryBytes = String(this.scene.exports.memory.buffer.byteLength);
+            dataset.rasterPixels = String(width * height);
         }
         this.weights = weights;
         this.initial = initial;
         dataset.uploads = String(this.uploads);
     }
-    destroy() { this.worker?.terminate(); this.worker = null; this.scene = null; }
+    release() {
+        if (!this.worker && !this.ctx && !this.initializing)
+            return false;
+        this.generation++;
+        this.worker?.terminate();
+        this.worker = null;
+        if (this.transferred) {
+            // A transferred canvas cannot be transferred again after its worker exits.
+            const replacement = this.element.cloneNode(false);
+            replacement.width = replacement.height = 1;
+            this.element.replaceWith(replacement);
+            this.element = replacement;
+        }
+        else
+            this.element.width = this.element.height = 1;
+        this.transferred = false;
+        this.ctx = null;
+        this.scene = null;
+        this.initializing = false;
+        this.weights = this.initial = null;
+        const dataset = this.element.dataset;
+        dataset.thread = 'inactive';
+        dataset.memoryBytes = dataset.rasterPixels = '0';
+        delete dataset.frame;
+        delete dataset.request;
+        return true;
+    }
+    destroy() { this.release(); }
 }
 //# sourceMappingURL=topology.js.map

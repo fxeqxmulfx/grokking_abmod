@@ -7,6 +7,7 @@ import { initializeTask } from './task.js';
 import { pytorchSource } from './pytorch-export.js';
 import { modelInfo, modelPresets, optimizerProfile, initialModelWeights, predictModel, inputMatrix } from './models.js';
 import { WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges } from './topology.js';
+import { compactRendering, displayScale } from './render-policy.js';
 await initializeI18n();
 function experiment(model, preset) {
     const info = modelInfo(model), seed = info.seed, initial = initialModelWeights(seed, model);
@@ -26,14 +27,15 @@ const orange = '#dd6b3c', blue = '#49849c', ink = '#252d28', muted = '#96988e', 
 const fixed = (value, digits) => number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false });
 const format = (value) => value === 0 ? '0' : Math.abs(value) < .001 ? value.toExponential(2) : fixed(value, 3);
 function canvas(id) {
-    const element = $(id), rect = element.getBoundingClientRect(), scale = Math.min(devicePixelRatio || 1, 2);
+    const element = $(id), rect = element.getBoundingClientRect();
     const width = Math.round(rect.width), height = Math.round(rect.height);
+    const scale = displayScale(width, height);
     if (element.width !== Math.round(width * scale) || element.height !== Math.round(height * scale)) {
         element.width = Math.round(width * scale);
         element.height = Math.round(height * scale);
     }
     // Software rasterization keeps the node overlay independent of the driver.
-    const ctx = element.getContext('2d', id === 'mesh' ? { willReadFrequently: true } : undefined);
+    const ctx = element.getContext('2d', { willReadFrequently: true });
     if (!ctx)
         throw new Error('Canvas 2D is unavailable.');
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -129,6 +131,8 @@ function denseMesh(result, scales) {
     $('mesh-edges').hidden = state.meshView !== 'topology';
     $('network-zoom').hidden = state.meshView !== 'topology';
     $('network-options').hidden = state.meshView !== 'topology';
+    if (state.meshView !== 'topology')
+        topology.release();
     return state.meshView === 'topology' ? denseTopology(result, scales) : denseChannel(result, scales);
 }
 function denseChannel(result, scales) {
@@ -423,16 +427,30 @@ function renderCanvas(id, inputs, render) {
     const rect = $(id).getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0)
         return;
-    const next = [...inputs, Math.round(rect.width), Math.round(rect.height), Math.min(devicePixelRatio || 1, 2), document.documentElement.lang];
+    const next = [...inputs, Math.round(rect.width), Math.round(rect.height), displayScale(Math.round(rect.width), Math.round(rect.height)), document.documentElement.lang];
     const previous = renderInputs.get(id);
     if (previous && previous.length === next.length && next.every((value, i) => value === previous[i]))
         return;
     render();
     renderInputs.set(id, next);
 }
+function visibleCanvas(id) { const rect = $(id).getBoundingClientRect(); return !document.hidden && rect.width > 0 && rect.height > 0; }
+function releaseHiddenGraphics() {
+    // Free old surfaces before the next view allocates its own backing stores.
+    for (const id of ['curve', 'mesh', 'scales', 'input-a', 'input-b', 'readout'])
+        if (!visibleCanvas(id)) {
+            const element = $(id);
+            if (element.width !== 1 || element.height !== 1)
+                element.width = element.height = 1;
+            renderInputs.delete(id);
+        }
+    if (!visibleCanvas('mesh-edges') && topology.release())
+        renderInputs.delete('mesh');
+}
 function draw() {
     pendingFrame = null;
-    if (!state.dirty || document.hidden)
+    releaseHiddenGraphics();
+    if (!state.dirty || document.hidden || (compactRendering && state.suspension))
         return;
     state.dirty = false;
     if (state.metricsDirty)
@@ -589,6 +607,18 @@ function suspendExperiment(target) {
     send(target.worker, { type: 'suspend' });
     return target.suspension;
 }
+function parkTrainingForView() {
+    if (compactRendering && (!state.running || state.label === 'Pausing') && state.worker && (document.hidden || document.body.dataset.view !== 'training'))
+        void suspendExperiment(state);
+}
+async function resumeTrainingForView() {
+    const target = state, request = activation;
+    await target.suspension;
+    if (state !== target || request !== activation || document.hidden || document.body.dataset.view !== 'training')
+        return;
+    if (!target.worker)
+        startEngine(target.checkpoint);
+}
 function initialize() {
     if (!$('seed').reportValidity() || !$('limit').reportValidity())
         return;
@@ -625,6 +655,8 @@ function startEngine(checkpoint) {
             target.ready = false;
             target.running = false;
             releaseWorker(target);
+            if (state === target)
+                invalidate();
             return;
         }
         if (data.type === 'ready') {
@@ -647,6 +679,8 @@ function startEngine(checkpoint) {
             target.ready = false;
             target.error = data.message;
         }
+        if (data.type === 'status' && state === target)
+            parkTrainingForView();
         target.metricsDirty = true;
         if (state === target && (data.type === 'ready' || data.type === 'status' || data.type === 'error'))
             refresh();
@@ -736,8 +770,16 @@ $('settings-form').onsubmit = event => {
         $('custom-error').hidden = false;
     }
 };
-$('train').onclick = () => { if (state.ready)
-    send(state.worker, { type: state.running ? 'pause' : 'train' }); };
+$('train').onclick = () => {
+    if (!state.ready)
+        return;
+    if (state.running) {
+        send(state.worker, { type: 'pause' });
+        status('Pausing');
+    }
+    else
+        send(state.worker, { type: 'train' });
+};
 $('step').onclick = () => send(state.worker, { type: 'step' });
 $('reset').onclick = initialize;
 $('seed').onchange = initialize;
@@ -892,7 +934,7 @@ $('export-metrics').onclick = () => {
     download(keys.join(',') + '\n' + state.history.map(r => keys.map(k => r[k]).join(',')).join('\n') + '\n', `${state.model}${presetSuffix()}-w${W}-seed${state.seed}-metrics.csv`, 'text/csv');
 };
 const resizeObserver = new ResizeObserver(() => { invalidate(); });
-for (const element of document.querySelectorAll('main, canvas'))
+for (const element of document.querySelectorAll('main, .chart-card, .mesh-canvas, .scale-card, .heatmap-card'))
     resizeObserver.observe(element);
 window.addEventListener('resize', () => { invalidate(); });
 function selectView(view) {
@@ -912,6 +954,10 @@ function selectView(view) {
         tab.classList.toggle('active', selected);
         tab.setAttribute('aria-pressed', String(selected));
     }
+    releaseHiddenGraphics();
+    parkTrainingForView();
+    if (compactRendering && view === 'training' && (state.suspension || state.checkpoint))
+        void resumeTrainingForView();
     invalidate();
 }
 for (const button of document.querySelectorAll('[data-view-tab]'))
@@ -923,7 +969,14 @@ $('about').onclick = () => {
 };
 $('close-about').onclick = () => $('about-dialog').close();
 $('error').onclick = () => $('about').click();
-document.addEventListener('visibilitychange', () => { send(state.worker, { type: 'capture', hz: document.hidden ? 1 : Number($('capture').value) }); invalidate(); });
+document.addEventListener('visibilitychange', () => {
+    send(state.worker, { type: 'capture', hz: document.hidden ? 1 : Number($('capture').value) });
+    releaseHiddenGraphics();
+    parkTrainingForView();
+    if (compactRendering && !document.hidden && document.body.dataset.view === 'training' && (state.suspension || state.checkpoint))
+        void resumeTrainingForView();
+    invalidate();
+});
 document.fonts.ready.then(() => { invalidate(); });
 window.addEventListener('localechange', () => { refresh(); summarizeSettings(); });
 initialize();
