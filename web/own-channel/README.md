@@ -55,6 +55,14 @@ preserves weights, optimizer and curves when switching to presets and back.
 Applying again replaces only the custom experiment. Reset and PyTorch exports
 retain its width, lr and wd.
 
+Every control group, metric and chart has a **?** button. The 31 help topics
+explain the current display in short paragraphs, with a link to the relevant
+introduction page where more detail is useful. The same dialog supports all
+six languages, touch, keyboard activation and Escape, and restores focus on
+close. Help does not change experiment settings or start training.
+On phones shorter than 701 CSS pixels, the workspace scrolls internally to
+keep plots readable; the header and workspace tabs remain visible.
+
 The width selector uses exactly the five prebuilt architectures. Every width
 supports SIMD and scalar WASM, private memory and shared CPU workers. Learning
 rate and weight decay are supplied to AdamW at runtime.
@@ -517,6 +525,7 @@ with graphics compositing enabled and a 48 MiB V8 heap limit.
 ```sh
 GROKKING_CDP_PORT=9224 npm run test:browser
 GROKKING_CDP_PORT=9224 npm run test:settings-browser
+GROKKING_CDP_PORT=9224 npm run test:help-browser
 GROKKING_CDP_PORT=9224 npm run test:mobile-browser
 GROKKING_CDP_PORT=9224 npm run test:mobile-memory
 GROKKING_CDP_PORT=9224 GROKKING_PREVIEW_ORIGIN=http://127.0.0.1:8081/grokking_abmod npm run test:pages-browser

@@ -33,7 +33,6 @@ async function assertFits(label: string) {
       const rect = element.getBoundingClientRect();
       if (!rect.width || !rect.height) continue;
       const name = element.id || element.className || element.tagName;
-      if (rect.left < -1 || rect.top < -1 || rect.right > innerWidth + 1 || rect.bottom > innerHeight + 1) issues.push(name + ' leaves the viewport');
       if (element.matches('.card, .topbar, footer, .weight-heading') && (element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1)) issues.push(name + ' clips its content');
       if (element.tagName === 'CANVAS' && (rect.width < 50 || rect.height < 50)) issues.push(name + ' is too small to read');
       const panel = element.closest('.card');
@@ -41,6 +40,14 @@ async function assertFits(label: string) {
         const bounds = panel.getBoundingClientRect();
         if (rect.left < bounds.left - 1 || rect.right > bounds.right + 1 || rect.top < bounds.top - 1 || rect.bottom > bounds.bottom + 1) issues.push(name + ' leaves its panel');
       }
+      let top = rect.top, bottom = rect.bottom;
+      const scroller = element.closest('.dashboard');
+      if (scroller && /auto|scroll/.test(getComputedStyle(scroller).overflowY)) {
+        const viewport = scroller.getBoundingClientRect();
+        if (bottom <= viewport.top || top >= viewport.bottom) continue;
+        top = Math.max(top, viewport.top); bottom = Math.min(bottom, viewport.bottom);
+      }
+      if (rect.left < -1 || top < -1 || rect.right > innerWidth + 1 || bottom > innerHeight + 1) issues.push(name + ' leaves the viewport');
     }
     return issues;
   })()`);

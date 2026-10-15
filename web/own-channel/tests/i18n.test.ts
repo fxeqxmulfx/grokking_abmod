@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {chooseLocale, LANGUAGES, t} from '../dist/i18n.js';
 import {languages, rows} from '../scripts/translations.ts';
+import {HELP_TOPICS} from '../dist/help-content.js';
 
 test('automatic language selection respects browser order and regional tags', () => {
   assert.equal(chooseLocale(['es-MX', 'en-US']), 'es');
@@ -42,6 +43,9 @@ test('all initial accessible labels and titles have translations', async () => {
   assert.ok(!html.includes('EOS') && !html.includes('causal mask'));
   assert.equal((html.match(/data-task-tab=/g) ?? []).length, 5);
   assert.equal((html.match(/data-intro-tab=/g) ?? []).length, 8);
+  const topics = new Set(Array.from(html.matchAll(/data-help="([^"]+)"/g), match => match[1]));
+  assert.deepEqual(topics, new Set(Object.keys(HELP_TOPICS)), 'Every context help topic must have a visible entry point.');
+  for (const topic of Object.values(HELP_TOPICS)) for (const text of [topic.title, ...topic.paragraphs]) assert.ok(Object.hasOwn(source, text), `Untranslated help: ${text}`);
 });
 test('every division diagram is a rendered local Mermaid SVG matching its source manifest', async () => {
   const manifest = JSON.parse(await readFile(new URL('diagrams/manifest.json', root), 'utf8'));

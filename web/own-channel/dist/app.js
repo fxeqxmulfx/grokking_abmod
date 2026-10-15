@@ -4,6 +4,7 @@ import { modelId, modelForWidth, trainingOptimizer } from './models.js';
 import { P } from './model.js';
 import { initializeI18n, t, number, runtimeText } from './i18n.js';
 import { initializeTask } from './task.js';
+import { initializeHelp } from './help.js';
 import { pytorchSource } from './pytorch-export.js';
 import { modelInfo, modelPresets, optimizerProfile, initialModelWeights, predictModel, inputMatrix } from './models.js';
 import { WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges } from './topology.js';
@@ -953,6 +954,8 @@ for (const element of document.querySelectorAll('main, .chart-card, .mesh-canvas
     resizeObserver.observe(element);
 window.addEventListener('resize', () => { invalidate(); });
 function selectView(view) {
+    if (document.body.dataset.view !== view)
+        document.querySelector('.dashboard').scrollTop = 0;
     document.body.dataset.view = view;
     $('settings-panel').hidden = view !== 'settings';
     if (view === 'settings') {
@@ -996,6 +999,7 @@ document.fonts.ready.then(() => { invalidate(); });
 window.addEventListener('localechange', () => { refresh(); summarizeSettings(); });
 initialize();
 initializeTask();
+initializeHelp();
 invalidate();
 function ui(id, value) {
     const element = $(id), next = runtimeText(String(value));

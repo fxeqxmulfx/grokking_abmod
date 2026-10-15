@@ -1,8 +1,10 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
+import {helpRows} from './help-translations.ts';
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  ...helpRows,
   ["Explain Probe contributions", "Explicar las contribuciones al ejemplo", "Beiträge zum Testbeispiel erklären", "テスト式への寄与を説明", "Expliquer les contributions à l’exemple", "Объяснить вклады в ответ"],
-  ["Reading Probe contributions", "Cómo leer las contribuciones al ejemplo", "Beiträge zum Testbeispiel lesen", "テスト式への寄与の読み方", "Lire les contributions à l’exemple", "Как читать Probe contributions — вклады в ответ"],
+  ["Reading Probe contributions","Cómo leer las contribuciones al ejemplo","Beiträge zum Testbeispiel lesen","テスト式への寄与の読み方","Lire les contributions à l’exemple","Как читать график вкладов в ответ"],
   ["One input pair", "Un par de entrada", "Ein Eingabepaar", "1組の入力", "Une paire d’entrée", "Одна пара входов"],
   [
     "The bars describe the current a and b in Probe the model. Changing either input or training the model changes the scores. They are specific to this example.",
@@ -18,7 +20,7 @@ export const rows: readonly (readonly string[])[] = [
     "Jeder Kanal trägt einen Vektor mit 97 Logits bei, einen je Antwort. Der Wert misst dessen Länge nach Abzug des gemeinsamen Versatzes.",
     "各チャネルは、97個の答えそれぞれに対応するロジットのベクトルを加えます。スコアは共通のオフセットを除いたベクトルの長さです。",
     "Chaque canal apporte un vecteur de 97 logits, un par réponse. Le score mesure sa longueur après retrait de son décalage commun.",
-    "Каждый канал добавляет вектор из 97 логитов — по одному на ответ. Оценка измеряет длину этого вектора после удаления общего смещения."
+    "Каждый канал добавляет оценки для 97 возможных ответов. Эти оценки до преобразования в вероятности называются логитами. Вклад канала измеряется длиной вектора оценок после вычитания их общего среднего."
   ],
   ["How the score is computed", "Cómo se calcula la puntuación", "Berechnung des Werts", "スコアの計算方法", "Calcul du score", "Как вычисляется оценка"],
   [
@@ -27,7 +29,7 @@ export const rows: readonly (readonly string[])[] = [
     "h[c] ist die Kanalaktivierung nach der letzten RMSNorm. Die Norm des zentrierten Readouts misst, wie stark seine Gewichte die 97 Antworten unterscheiden. Ihr Produkt ist der angezeigte Wert.",
     "h[c]は最後のRMSNorm後のチャネルの活性値です。中心化した読み出しのノルムは、重みが97個の答えをどの程度区別するかを表します。その積が表示スコアです。",
     "h[c] est l’activation du canal après la RMSNorm finale. La norme de la sortie centrée mesure à quel point ses poids distinguent les 97 réponses. Leur produit est le score affiché.",
-    "h[c] — активация канала после последней RMSNorm. Норма центрированных выходных весов показывает, насколько сильно они различают 97 ответов. Их произведение и есть оценка на графике."
+    "h[c] — значение канала после последней нормализации RMSNorm. Длина вектора центрированных выходных весов показывает, насколько сильно канал различает 97 ответов. Умножаем модуль h[c] на эту длину и получаем оценку на графике."
   ],
   [
     "The score always uses centered readout weights, regardless of the Center R display setting.",
@@ -35,7 +37,7 @@ export const rows: readonly (readonly string[])[] = [
     "Der Wert verwendet immer zentrierte Ausgabegewichte, unabhängig von der Anzeigeoption R zentrieren.",
     "表示設定「Rを中心化」に関係なく、スコアには常に中心化した読み出し重みを使います。",
     "Le score utilise toujours les poids de sortie centrés, quel que soit le réglage d’affichage Centrer R.",
-    "Оценка всегда использует центрированные выходные веса, независимо от переключателя отображения Center R."
+    "Оценка всегда рассчитывается по центрированным выходным весам, независимо от переключателя «Центрировать R»."
   ],
   ["Bars and Top 16", "Barras y 16 mayores", "Balken und Top 16", "棒と上位16", "Barres et 16 premiers", "Столбцы и Топ-16"],
   [
@@ -88,7 +90,7 @@ export const rows: readonly (readonly string[])[] = [
     "E: Zeilen sind die Reste 0–96, Spalten die Kanäle. Dasselbe Embedding dient beiden Eingaben und der Ausgabe.",
     "Eの行は剰余0〜96、列はチャネルです。同じ埋め込みを2つの入力と出力の読み出しに使います。",
     "E : les lignes sont les résidus 0–96 et les colonnes les canaux. Le même embedding sert aux deux entrées et à la sortie.",
-    "E: строки — остатки 0–96, столбцы — каналы. Одна и та же матрица эмбеддингов используется для обоих входов и выходного readout."
+    "E: строки соответствуют остаткам от 0 до 96, столбцы — каналам. Эта матрица переводит числа в значения каналов. Она используется для обоих входов и для выходного преобразования."
   ],
   [
     "A: rows are input channels; columns are output channels. Each cell is one learned connection in the Dense layer.",
@@ -104,7 +106,7 @@ export const rows: readonly (readonly string[])[] = [
     "In der Ausgabekarte sind die Zeilen die 97 Antworten und die Spalten die Kanäle. E und Readout teilen Gewichte: Sie zeigen zwei Rollen derselben gelernten Matrix.",
     "読み出しマップの行は97個の答え、列はチャネルです。Eと読み出しは重みを共有し、同じ学習行列の2つの役割を表示します。",
     "Sur la carte de sortie, les lignes sont les 97 réponses et les colonnes les canaux. E et la sortie partagent leurs poids : deux rôles d’une même matrice apprise.",
-    "На карте readout строки — 97 ответов, столбцы — каналы. E и readout используют общие веса: это две роли одной обучаемой матрицы."
+    "На карте выходных весов строки соответствуют 97 ответам, столбцы — каналам. Здесь используются те же веса, что и в E: это две роли одной обучаемой матрицы."
   ],
   ["Colors and scale", "Colores y escala", "Farben und Skala", "色とスケール", "Couleurs et échelle", "Цвета и шкала"],
   [
@@ -156,14 +158,14 @@ export const rows: readonly (readonly string[])[] = [
     "Dans Variation ×4, Centrer R centre les variations sur les réponses.",
     "В режиме «Изменение ×4» переключатель «Центр R» центрирует изменения по ответам."
   ],
-  ["What does Center R mean?", "¿Qué significa Centrar R?", "Was bedeutet R zentrieren?", "Rの中心化とは？", "Que signifie Centrer R ?", "Что означает «Центр R»?"],
+  ["What does Center R mean?", "¿Qué significa Centrar R?", "Was bedeutet R zentrieren?", "Rの中心化とは？", "Que signifie Centrer R ?", "Что означает «Центрировать R»?"],
   [
     "R means readout: the model's output weights, here Eᵀ.",
     "R significa readout: los pesos de salida del modelo, aquí Eᵀ.",
     "R steht für Readout: die Ausgabegewichte des Modells, hier Eᵀ.",
     "Rはreadout、つまりモデルの出力重みです。このモデルではEᵀです。",
     "R signifie readout : les poids de sortie du modèle, ici Eᵀ.",
-    "R означает readout — выходные веса модели. Здесь это Eᵀ."
+    "R — выходные веса модели (от английского readout). В этой архитектуре R = Eᵀ."
   ],
   [
     "For each channel, Center R subtracts the mean weight across all 97 answers. Colors show each answer's deviation from that channel's average weight.",
@@ -171,7 +173,7 @@ export const rows: readonly (readonly string[])[] = [
     "R zentrieren zieht für jeden Kanal den mittleren Wert über alle 97 Antworten ab. Die Farben zeigen die Abweichung jeder Antwort vom mittleren Gewicht dieses Kanals.",
     "Rの中心化は、各チャネルで97個の答えに対する重みの平均を引きます。色は各回答の重みがそのチャネルの平均からどれだけずれるかを示します。",
     "Centrer R soustrait, pour chaque canal, la moyenne des poids sur les 97 réponses. Les couleurs montrent l’écart de chaque réponse par rapport au poids moyen du canal.",
-    "«Центр R» вычитает для каждого канала средний вес по всем 97 ответам. Цвета показывают отклонение веса каждого ответа от среднего по каналу."
+    "«Центрировать R» вычитает для каждого канала средний вес по всем 97 ответам. Цвет показывает, насколько вес конкретного ответа отличается от среднего для этого канала."
   ],
   [
     "This changes only the readout heatmap. Weights, training and predictions stay the same.",
@@ -212,7 +214,7 @@ export const rows: readonly (readonly string[])[] = [
     "Rust/CUDA, Seeds {seeds}: Epochen bis ≥99% Testgenauigkeit: {epochs}. Ein Strich bedeutet: in {budget} Epochen nicht erreicht. Browser-Schwellen können abweichen.",
     "Rust/CUDA、シード{seeds}：テスト99%以上までのエポック数は{epochs}。ダッシュは{budget}エポック以内に未達を示します。ブラウザーでは到達時期が異なる場合があります。",
     "Rust/CUDA, graines {seeds} : époques jusqu’à ≥99% au test : {epochs}. Un tiret signifie non atteint en {budget} époques. Le navigateur peut différer.",
-    "Rust/CUDA, seed {seeds}: эпохи до ≥99% на тесте: {epochs}. Прочерк означает, что порог не достигнут за {budget} эпох. В браузере моменты достижения могут отличаться."
+    "Контрольные запуски Rust/CUDA с seed {seeds}: число эпох до точности теста не ниже 99% — {epochs}. Прочерк означает, что порог не достигнут за {budget} эпох. В браузере результат может отличаться."
   ],
   ["Start", "Inicio", "Start", "導入", "Début", "Начало"],
   ["Idea", "Idea", "Idee", "狙い", "Idée", "Идея"],
@@ -238,7 +240,7 @@ export const rows: readonly (readonly string[])[] = [
     "Dieses Labor versucht herauszufinden, wie das im Detail funktioniert. Trainiere dieselbe Aufgabe im Browser, ändere Breite, Lernrate (lr), Weight Decay (wd) und Seed und verfolge Genauigkeit, Loss und jedes Gewicht Epoche für Epoche.",
     "この実験は、その仕組みを詳しく調べる試みです。同じ課題をブラウザーで学習させ、幅、学習率（lr）、重み減衰（wd）、シードを変えながら、正解率、損失、すべての重みをエポックごとに追えます。",
     "Ce laboratoire tente de comprendre en détail comment cela fonctionne. Entraînez la même tâche dans le navigateur, changez la largeur, le taux d’apprentissage (lr), la décroissance des poids (wd) et la graine, et suivez exactitude, perte et chaque poids, époque après époque.",
-    "Эта лаборатория — попытка подробно разобраться, как это работает. Обучайте ту же задачу в браузере, меняйте ширину, скорость обучения (lr), weight decay (wd) и seed и следите за точностью, loss и каждым весом от эпохи к эпохе."
+    "Эта лаборатория помогает подробно разобраться в таком обучении. Обучайте модель в браузере, меняйте ширину, скорость обучения (lr), затухание весов (wd) и seed — число для начальных условий. Следите за точностью, ошибкой и изменением весов от эпохи к эпохе."
   ],
   [
     "The Findings tab summarizes what the experiments have shown so far.",
@@ -298,7 +300,7 @@ export const rows: readonly (readonly string[])[] = [
     "Loss misst den Vorhersagefehler: kleiner ist besser. Genauigkeit ist der Anteil richtiger Antworten: größer ist besser.",
     "損失は予測の誤差で、低いほど良好です。正解率は正答の割合で、高いほど良好です。",
     "La perte mesure l’erreur : plus faible est mieux. L’exactitude est la proportion de bonnes réponses : plus élevée est mieux.",
-    "Loss измеряет ошибку предсказания: меньше — лучше. Точность — доля правильных ответов: больше — лучше."
+    "Ошибка (loss) оценивает качество предсказаний: чем она меньше, тем лучше. Точность — доля правильных ответов: чем она выше, тем лучше."
   ],
   ["Reading the learning curves", "Leer las curvas de aprendizaje", "Lernkurven lesen", "学習曲線の見方", "Lire les courbes d’apprentissage", "Как читать график обучения"],
   [
@@ -307,7 +309,7 @@ export const rows: readonly (readonly string[])[] = [
     "Orange steht für Training, Blau für zurückgehaltene Testdaten. Vergleiche die Kurven, um das Lernen neuer Paare zu erkennen.",
     "オレンジは学習、青は未学習のテストデータです。曲線を比べると未知の組への汎化が分かります。",
     "L’orange représente l’entraînement, le bleu le test. Comparez les courbes pour voir si le modèle apprend les paires nouvelles.",
-    "Оранжевый — обучение; синий — отложенный тест. Сравнивайте кривые, чтобы увидеть, научилась ли модель решать новые пары."
+    "Оранжевая кривая показывает результат на обучающих парах, синяя — на тестовых. Сравнивайте их, чтобы понять, научилась ли модель решать новые пары."
   ],
   [
     "Beige marks the longest continuous interval with train ≥99% and test ≤10%, before the first test ≥90% crossing.",
@@ -315,7 +317,7 @@ export const rows: readonly (readonly string[])[] = [
     "Beige markiert das längste durchgehende Intervall mit Training ≥99% und Test ≤10%, bevor der Test erstmals ≥90% erreicht.",
     "ベージュは、テストが初めて90%以上になる前の、学習99%以上・テスト10%以下が最長で続く区間です。",
     "Le beige marque le plus long intervalle continu avec entraînement ≥99% et test ≤10%, avant le premier test ≥90%.",
-    "Бежевый выделяет самый длинный непрерывный интервал с train ≥99% и test ≤10% до первого достижения 90% на тесте."
+    "Бежевым выделен самый длинный непрерывный период, когда точность обучения не ниже 99%, а точность теста — не выше 10%. Учитывается время до первого достижения 90% на тесте."
   ],
   [
     "Violet marks the same conditions with exactly 100% train accuracy.",
@@ -323,7 +325,7 @@ export const rows: readonly (readonly string[])[] = [
     "Violett markiert dieselben Bedingungen mit exakt 100% Trainingsgenauigkeit.",
     "紫は同じ条件で学習正解率がちょうど100%の区間です。",
     "Le violet marque les mêmes conditions avec exactement 100% à l’entraînement.",
-    "Фиолетовый выделяет те же условия при точности train ровно 100%."
+    "Фиолетовый показывает такой же период, но с точностью обучения ровно 100%."
   ],
   [
     "Shading describes accuracy conditions, even on the loss view. It does not mean the loss or weights stopped changing.",
@@ -331,7 +333,7 @@ export const rows: readonly (readonly string[])[] = [
     "Die Flächen beschreiben Genauigkeitsbedingungen, auch in der Loss-Ansicht. Loss und Gewichte können sich dabei weiter ändern.",
     "損失の表示中も色分けは正解率の条件を示します。損失や重みの変化が止まったという意味ではありません。",
     "Les zones décrivent l’exactitude, même dans la vue des pertes. Elles ne signifient pas que les pertes ou les poids ne changent plus.",
-    "Выделение описывает условия по точности даже в режиме loss. Оно не означает, что loss или веса перестали меняться."
+    "Выделенные области показывают условия по точности, даже когда открыт график ошибки. Они не означают, что ошибка или веса перестали меняться."
   ],
   ["When does it count as grokking?", "¿Cuándo cuenta como grokking?", "Wann zählt es als Grokking?", "Grokkingの判定条件", "Quand parle-t-on de grokking ?", "Когда это считается grokking?"],
   [
@@ -411,7 +413,7 @@ export const rows: readonly (readonly string[])[] = [
     "Vergleiche eine dichte Rotate90-Architektur mit gemeinsamem Embedding in den Breiten 16, 32, 64, 128 und 256. Trainiere im Browser mit Verlust, Genauigkeit und Gewichten in Echtzeit.",
     "共有埋め込みを使う全結合Rotate90を幅16、32、64、128、256で比較。ブラウザー内で学習し、損失・正解率・重みをリアルタイムに確認できます。",
     "Comparez une architecture Rotate90 dense à embedding partagé, de largeurs 16, 32, 64, 128 et 256. Entraînez-la dans votre navigateur avec pertes, exactitude et poids en direct.",
-    "Сравните плотную архитектуру Rotate90 с общим эмбеддингом на 16, 32, 64, 128 и 256 каналов. Обучение в браузере с loss, точностью и весами в реальном времени."
+    "Сравните одну полносвязную архитектуру Rotate90 с общими эмбеддингами при ширине 16, 32, 64, 128 и 256 каналов. Обучайте её в браузере и наблюдайте за ошибкой, точностью и весами."
   ],
   ["One architecture, five widths", "Una arquitectura, cinco anchuras", "Eine Architektur, fünf Breiten", "同じ構造、5つの幅", "Une architecture, cinq largeurs", "Одна архитектура, пять ширин"],
   [
@@ -636,7 +638,7 @@ export const rows: readonly (readonly string[])[] = [
     "Verlust",
     "損失",
     "Perte",
-    "Loss"
+    "Ошибка"
   ],
   [
     "Accuracy",
@@ -692,7 +694,7 @@ export const rows: readonly (readonly string[])[] = [
     "{count} Messungen",
     "評価 {count} 回",
     "{count} mesures",
-    "{count} измерений"
+    "Измерений: {count}"
   ],
   [
     "0 observations",
@@ -700,7 +702,7 @@ export const rows: readonly (readonly string[])[] = [
     "0 Messungen",
     "評価 0 回",
     "0 mesures",
-    "0 измерений"
+    "Измерений: 0"
   ],
   [
     "EPOCH",
@@ -972,7 +974,7 @@ export const rows: readonly (readonly string[])[] = [
     "Gebundene Ausgabe Eᵀ",
     "共有出力 Eᵀ",
     "Sortie partagée Eᵀ",
-    "Общий readout Eᵀ"
+    "Выходные веса Eᵀ"
   ],
   [
     "Tied readout",
@@ -980,7 +982,7 @@ export const rows: readonly (readonly string[])[] = [
     "Gebundene Ausgabe",
     "共有出力",
     "Sortie partagée",
-    "Общий readout"
+    "Выходные веса"
   ],
   [
     "Residue ↓ · channel →",
@@ -1100,7 +1102,7 @@ export const rows: readonly (readonly string[])[] = [
     "Trainingsverlust",
     "学習の損失",
     "Perte d’entraînement",
-    "Loss обучения"
+    "Ошибка обучения"
   ],
   [
     "Held-out loss",
@@ -1108,7 +1110,7 @@ export const rows: readonly (readonly string[])[] = [
     "Testverlust",
     "テストの損失",
     "Perte de test",
-    "Loss теста"
+    "Ошибка теста"
   ],
   [
     "Seed",
@@ -2156,7 +2158,7 @@ export const rows: readonly (readonly string[])[] = [
     "|hidden꜀ des Beispiels| × ‖zentriertes Eᵀ꜀‖ misst den Ausgabebeitrag eines Kanals. Teilen sich Kanäle ein Pixel, zeigt der Balken ihr Maximum und wählt diesen Kanal. Das Eingabefeld wählt jeden Kanal exakt.",
     "|テスト式のhidden꜀| × ‖中心化したEᵀ꜀‖ がチャネルの出力寄与を表します。複数チャネルが1画素を共有する場合、棒は最大値を示し、そのチャネルを選びます。数値入力で任意のチャネルを正確に選べます。",
     "|hidden꜀ de l’exemple| × ‖Eᵀ꜀ centré‖ mesure la contribution d’un canal à la sortie. Si plusieurs canaux partagent un pixel, la barre affiche leur maximum et sélectionne ce canal. Le champ numérique permet un choix exact.",
-    "|hidden꜀ примера| × ‖центрированная Eᵀ꜀‖ измеряет вклад канала в readout. Если несколько каналов попали в один пиксель, столбец показывает максимум и выбирает этот канал. Поле канала позволяет точно выбрать любой."
+    "Вклад канала — модуль его значения в текущем примере, умноженный на длину вектора центрированных выходных весов. Если в одном столбце объединены несколько каналов, показан наибольший вклад. Поле «Канал» позволяет выбрать нужный индекс точно."
   ],
   [
     "Workspace view",
@@ -2260,7 +2262,7 @@ export const rows: readonly (readonly string[])[] = [
     "Ausgabe über Antwortklassen zentrieren",
     "答えのクラスに対して出力を中心化",
     "Centrer la sortie sur les classes de réponse",
-    "Центрировать readout по классам ответа"
+    "Вычесть средний выходной вес по всем ответам"
   ],
   [
     "Raw weights or change from initialization",
@@ -2276,7 +2278,7 @@ export const rows: readonly (readonly string[])[] = [
     "Gemeinsame Embedding-Gewichte für Operanden und Ausgabe",
     "両オペランドと出力で共有する埋め込みの重み",
     "Poids de l’embedding partagé par les opérandes et la sortie",
-    "Общие веса эмбеддинга для операндов и readout"
+    "Общие веса для обоих входов и выходного преобразования"
   ],
   [
     "Shared embedding rotated by 90 degrees for operand b",
@@ -2292,7 +2294,7 @@ export const rows: readonly (readonly string[])[] = [
     "Ausgabegewichte, über Antwortklassen zentriert",
     "答えのクラスに対して中心化した出力の重み",
     "Poids de sortie centrés sur les classes de réponse",
-    "Веса readout, центрированные по классам ответа"
+    "Выходные веса с вычитанием среднего по всем ответам"
   ],
   [
     "Centered channel scales for all 64 channels",
@@ -2364,7 +2366,7 @@ export const rows: readonly (readonly string[])[] = [
     "Ausgabebeiträge aller {width} Kanäle",
     "全{width}チャネルの出力寄与",
     "Contributions des {width} canaux à la sortie",
-    "Вклады в readout всех {width} каналов"
+    "Вклады всех {width} каналов в ответ на проверяемый пример"
   ],
   [
     "weights",
@@ -2453,14 +2455,6 @@ export const rows: readonly (readonly string[])[] = [
     "ピンク：不正解の答えが優勢。緑：正解が優勢。各列は実際の記録で、エポック表示が時点を示します。",
     "Rose : une mauvaise réponse est devant. Vert : la bonne est devant. Chaque colonne est une vraie capture avec son époque.",
     "Розовый: впереди ошибочный ответ. Зелёный: впереди правильный. Каждая колонка — реальный снимок, время указано в эпохах."
-  ],
-  [
-    "Wolfram: mesh topology reference ↗",
-    "Wolfram: topología de malla ↗",
-    "Wolfram: Mesh-Topologie ↗",
-    "Wolfram：Meshの構造 ↗",
-    "Wolfram : topologie du maillage ↗",
-    "Wolfram: топология Mesh ↗"
   ],
   [
     "RoFormer: pairwise rotations ↗",

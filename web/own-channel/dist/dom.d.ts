@@ -113,6 +113,12 @@ declare const tags: {
     readonly "about-dialog": "dialog";
     readonly "about-title": "h2";
     readonly "close-about": "button";
+    readonly "help-dialog": "dialog";
+    readonly "help-title": "h2";
+    readonly "help-content": "div";
+    readonly "help-close": "button";
+    readonly "help-guide": "button";
+    readonly "help-done": "button";
     readonly "model-description": "p";
     readonly "criterion-description": "p";
     readonly "reference-description": "p";

@@ -19,8 +19,8 @@ async function assertFits(label: string, modal = false) {
       if(element.closest('[hidden]'))continue;
       let rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
       const name=element.id||element.className||element.tagName;
-      const scroller=element.closest('.intro-panels');
-      if(scroller&&scroller!==element){const viewport=scroller.getBoundingClientRect();if(rect.bottom<=viewport.top||rect.top>=viewport.bottom)continue;rect={left:rect.left,right:rect.right,top:Math.max(rect.top,viewport.top),bottom:Math.min(rect.bottom,viewport.bottom)};}
+      const scroller=element.closest('.intro-panels,.dashboard');
+      if(scroller&&scroller!==element&&/auto|scroll/.test(getComputedStyle(scroller).overflowY)){const viewport=scroller.getBoundingClientRect();if(rect.bottom<=viewport.top||rect.top>=viewport.bottom)continue;rect={left:rect.left,right:rect.right,top:Math.max(rect.top,viewport.top),bottom:Math.min(rect.bottom,viewport.bottom)};}
       if(rect.left<-.5||rect.top<-.5||rect.right>innerWidth+.5||rect.bottom>innerHeight+.5)issues.push(name+' leaves viewport');
       if(element.matches('.intro-panels')&&element.scrollWidth>element.clientWidth+1)issues.push('introduction requires horizontal scrolling');
       if(element.matches('.card,.topbar,.header-tools,.task-dialog,.task-page,.task-pages,table')&&(element.scrollWidth>element.clientWidth+1||element.scrollHeight>element.clientHeight+1))issues.push(name+' clips content');
@@ -112,8 +112,12 @@ try {
   await evaluate(`document.getElementById('task-open').click();document.getElementById('task-help').click()`);
   if(!await evaluate(`document.getElementById('task-dialog').open&&document.querySelectorAll('[data-task-tab]').length===5&&!document.getElementById('task-dialog').textContent.includes('EOS')`))throw new Error('Reopening the dialog or reference-free content failed.');
   await evaluate(`document.getElementById('task-open').click();document.getElementById('chart-help').click()`);
+  if(!await evaluate(`document.getElementById('help-dialog').open`))throw new Error('Chart context help did not open.');
+  await evaluate(`document.getElementById('help-guide').click()`);
   if(!await evaluate(`document.getElementById('task-dialog').open&&!document.getElementById('task-page-intro').hidden&&!document.getElementById('intro-page-chart').hidden&&document.getElementById('intro-tab-chart').getAttribute('aria-selected')==='true'`))throw new Error('Chart guide did not open the shading explanation.');
   await evaluate(`document.getElementById('task-open').click();document.getElementById('scales-help').click()`);
+  if(!await evaluate(`document.getElementById('help-dialog').open`))throw new Error('Contribution context help did not open.');
+  await evaluate(`document.getElementById('help-guide').click()`);
   if(!await evaluate(`document.getElementById('task-dialog').open&&!document.getElementById('task-page-intro').hidden&&!document.getElementById('intro-page-probe').hidden&&document.getElementById('intro-tab-probe').getAttribute('aria-selected')==='true'`))throw new Error('Probe contributions guide did not open.');
   if(errors.length)throw new Error(JSON.stringify(errors));
   await writeFile('/tmp/grokking-i18n-verification.json',JSON.stringify({languages,layouts,automaticRegionalSelection:true,persistedManualChoice:true,browserLanguageChange:true,languageSwitchPreservesTraining:true,startupAndReopen:true,localRenderedSVG:true,errors},null,2)+'\n');

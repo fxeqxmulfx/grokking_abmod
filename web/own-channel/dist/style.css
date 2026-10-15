@@ -44,11 +44,12 @@ main { min-height: 0; min-width: 0; padding: 12px 16px; display: grid; grid-temp
 .settings-panel { width: min(100%, 680px); align-self: start; justify-self: center; display: grid; gap: 18px; overflow: auto; max-height: 100%; }
 .settings-panel form { display: grid; gap: 18px; }
 .settings-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.settings-fields label { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; font-size: 11px; }
+.settings-fields .form-field { display: grid; grid-template-rows: 1fr auto; gap: 6px; min-width: 0; }
+.settings-fields label { font-size: 11px; }
 .settings-fields input[type=number], .settings-fields select { width: 100%; min-width: 0; height: 30px; margin: 0; padding: 6px; font: 11px var(--mono); }
 .settings-panel .primary { justify-self: start; }
 body[data-view="settings"] .dashboard { display: none; }
-.visuals { display: grid; min-width: 0; min-height: 0; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(100px, .45fr); grid-template-areas: 'curve mesh' 'weights weights' 'scales probe'; }
+.visuals { display: grid; min-width: 0; min-height: 0; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(112px, .45fr); grid-template-areas: 'curve mesh' 'weights weights' 'scales probe'; }
 .card { min-width: 0; min-height: 0; background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 12px; }
 .card-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-width: 0; }
 h2 { font-size: 15px; letter-spacing: -.25px; font-weight: 500; margin: 0; }
@@ -60,7 +61,6 @@ h3 span { font: 10px var(--mono); color: var(--muted); margin-left: 6px; }
 .chart-card { grid-area: curve; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 7px; }
 .chart-help { margin-left: auto; border-radius: 50%; flex-shrink: 0; width: 22px; height: 22px; padding: 0; font-size: 10px; }
 .scale-card .card-heading { flex-wrap: wrap; gap: 5px 8px; }
-.scale-card .chart-help { width: 16px; height: 16px; font-size: 9px; }
 .chart-legend { display: flex; align-items: center; gap: 12px; font-size: 10px; color: var(--muted); flex-wrap: wrap; }
 .chart-legend > span { display: flex; align-items: center; gap: 5px; }
 #axis-note { margin-left: auto; font-size: 9px; }
@@ -120,7 +120,7 @@ body[data-view="channels"] .weight-panel { display: none; }
 .equation > span:nth-of-type(2) { font-size: 11px; color: var(--muted); white-space: nowrap; }
 .equation strong { font-weight: 400; color: var(--orange); }
 .probe .helper { font-size: 9px; }
-.controls { display: flex; flex-direction: column; gap: 14px; }
+.controls { display: flex; flex-direction: column; gap: 10px; }
 .status { font: 9px var(--mono); background: #efefe5; padding: 5px 7px; border-radius: 4px; max-width: 95px; text-align: center; }
 .progress-label { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font: 10px var(--mono); }
 .progress-label strong { color: var(--ink); }
@@ -265,7 +265,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .controls { gap: 10px; }
   .metrics { gap: 10px 8px; }
   .metrics strong { font-size: 16px; }
-  .visuals { gap: 10px; grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr) 100px; }
+  .visuals { gap: 10px; grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr) 112px; }
   .card { padding: 10px; }
   .probe .equation { gap: 7px; }
   .settings-panel, .settings-panel form { gap: 10px; }
@@ -307,7 +307,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .experiment-nav { display: contents; }
   .experiment-nav > .model-nav:first-child { flex: 1 1 100%; }
   .model-nav button { flex: 1; padding: 4px 8px; }
-  .model-nav:has(#custom-tab:not([hidden])) button { padding-inline: 5px; }
+  .model-nav:has(#custom-tab:not([hidden])) button:not(.help-button) { padding-inline: 5px; }
   .preset-nav button { padding: 4px 6px; }
   .topbar { gap: 12px; padding: 0 12px; }
   .brand > span:last-child { display: none; }
@@ -368,7 +368,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   #weight-view { max-width: 156px; }
   .weight-view-label > span { display: none; }
   .heatmap-card { gap: 5px; }
-  body[data-view="channels"] .visuals { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(100px, .35fr) 100px; grid-template-areas: 'mesh' 'scales' 'probe'; gap: 8px; }
+  body[data-view="channels"] .visuals { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(112px, .35fr) 100px; grid-template-areas: 'mesh' 'scales' 'probe'; gap: 8px; }
   .mesh-card > .helper { font-size: 9px; }
   .map-foot { font-size: 9px; }
   footer { padding: 0 10px; font-size: 8px; gap: 6px; }
@@ -476,16 +476,19 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .intro-paper, .intro-epoch { padding: 8px; }
   .dashboard { grid-template-columns: minmax(0, 1fr) minmax(440px, 1.4fr); }
   .controls { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
-  .controls > .card-heading { grid-column: 1 / 3; }
+  .controls > .card-heading { grid-column: 1 / 3; gap: 6px; }
+  .controls > .card-heading h2 { font-size: 12px; }
   .progress-block { grid-column: 3 / 5; }
   .form-row { grid-column: 1 / 3; }
   .stop-check { grid-column: auto; font-size: 9px; }
   .capture-row { flex-direction: column; align-items: stretch; gap: 3px; font-size: 9px; }
-  .throughput { flex-direction: column; align-items: flex-end; justify-content: center; }
+  .throughput { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px; align-content: center; align-items: center; }
+  .throughput > span:first-child { grid-column: 1 / -1; }
   .primary { font-size: 10px; }
   .button-row button { font-size: 9px; }
   .phase { grid-column: 1 / 3; }
   .export { grid-column: 3 / 5; }
+  .export button { font-size: 9px; padding: 5px 3px; }
   .chart-legend #axis-note { width: 100%; margin-left: 0; }
   .chart-foot { font-size: 8px; }
   body[data-view="channels"] .visuals { grid-template-columns: minmax(0, 2fr) minmax(250px, 1fr); grid-template-rows: repeat(2, minmax(0, 1fr)); grid-template-areas: 'mesh scales' 'mesh probe'; }
@@ -502,4 +505,59 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
 
 @media (max-width: 379px) {
   .intro-tabs button { padding-left: 2px; padding-right: 2px; }
+}
+
+/* Context help uses the same button and dialog throughout the workspace. */
+button.help-button { position: relative; width: 22px; height: 22px; min-width: 22px; flex: 0 0 22px; padding: 0; align-self: center; border-radius: 50%; color: var(--muted); font: 11px var(--mono); line-height: 1; }
+button.help-button::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; }
+button.help-button:hover { color: var(--ink); }
+button.help-button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.field-label, .control-help { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.field-label { display: flex; justify-content: space-between; }
+.form-row .form-field { flex: 1; min-width: 0; display: grid; grid-template-rows: 1fr auto; gap: 3px; }
+.form-row input[type=number] { margin-top: 0; }
+.form-row .field-label label { flex: 1; }
+.metrics > div { min-width: 0; }
+.metrics .metric-label { flex-direction: row; align-items: center; justify-content: space-between; gap: 2px; }
+.metric-label > span { min-width: 0; }
+.phase-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.throughput > span:first-child { flex: 1; }
+.weight-title-group, .weight-options, .network-options { gap: 6px; }
+.weight-heading { padding: 3px; }
+.heatmap-card .card-heading { gap: 6px; }
+.heatmap-card h3 { min-width: 0; overflow-wrap: anywhere; }
+.heatmap-card small { margin-left: auto; }
+.mesh-card .card-heading { gap: 6px; }
+.mesh-tools { margin-left: auto; }
+.network-options { flex-wrap: wrap; }
+.network-zoom { bottom: 22px; align-items: center; }
+.help-dialog { width: min(480px, calc(100% - 24px)); max-height: calc(100dvh - 24px); padding: 20px; overflow: hidden; }
+.help-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 14px; }
+.help-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.help-heading h2 { font-size: 18px; line-height: 1.35; }
+#help-close { width: 28px; height: 28px; flex-shrink: 0; padding: 0; font-size: 20px; }
+.help-content { min-height: 0; overflow: auto; overscroll-behavior: contain; font-size: 14px; line-height: 1.55; }
+.help-content p { margin: 0 0 12px; }
+.help-content p:last-child { margin-bottom: 0; }
+.help-content code { display: block; overflow-wrap: anywhere; white-space: normal; font: 12px/1.6 var(--mono); padding: 10px; border-radius: 6px; background: #f1f1e9; }
+.help-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.help-actions button { min-height: 34px; font-size: 12px; }
+#help-guide { margin-right: auto; }
+@media (max-width: 649px) and (max-height: 700px), (min-width: 650px) and (max-height: 499px) {
+  .controls button.help-button { width: 18px; height: 18px; min-width: 18px; flex-basis: 18px; font-size: 10px; }
+}
+@media (max-width: 649px) {
+  .help-dialog { padding: 16px; }
+  .network-row { gap: 4px; }
+  .weight-options .control-help { gap: 3px; }
+}
+/* Keep plots readable on short phones; only the workspace scrolls. */
+@media (max-width: 649px) and (max-height: 700px) {
+  .dashboard { display: block; overflow: auto; overscroll-behavior: contain; }
+  .visuals { height: 250px; min-height: 250px; grid-template-rows: minmax(0, 1fr); }
+  .controls { margin-top: 8px; }
+  body[data-view="weights"] .visuals { display: block; height: auto; }
+  body[data-view="weights"] .weight-panel { grid-template-rows: auto auto; }
+  body[data-view="weights"] .atlas { grid-template-rows: repeat(3, 180px); }
+  body[data-view="channels"] .visuals { height: auto; grid-template-rows: 360px 140px 120px; }
 }

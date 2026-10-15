@@ -100,8 +100,6 @@ export function initializeTask() {
   $('task-next').onclick = () => advance(1);
   for (const id of ['close-task', 'task-open'] as const) $(id).onclick = () => dialog.close();
   $('task-help').onclick = () => { select(0); selectIntro(0); dialog.showModal(); };
-  $('chart-help').onclick = () => { select(0); selectIntro(3); dialog.showModal(); };
-  $('scales-help').onclick = () => { select(0); selectIntro(introPages.indexOf('probe')); dialog.showModal(); };
   window.addEventListener('localechange', localizeDiagrams);
   localizeDiagrams(); selectModel(0); selectIntro(0); select(0); dialog.showModal();
 }

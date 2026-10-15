@@ -7,6 +7,7 @@ import {modelId, modelForWidth, trainingOptimizer} from './models.ts';
 import {P} from './model.ts';
 import {initializeI18n, t, number, runtimeText} from './i18n.ts';
 import {initializeTask} from './task.ts';
+import {initializeHelp} from './help.ts';
 import {pytorchSource} from './pytorch-export.ts';
 import {modelInfo, modelPresets, optimizerProfile, initialModelWeights, predictModel, inputMatrix} from './models.ts';
 import {WeightTopology, topologyLayout, weightGradient, weightMagnitude, weightColor, weightPalette, initialWeightRanges} from './topology.ts';
@@ -647,6 +648,7 @@ for (const id of ['curve', 'mesh', 'scales', 'input-a', 'input-b', 'readout'] as
 for (const element of document.querySelectorAll('main, .chart-card, .mesh-canvas, .scale-card, .heatmap-card')) resizeObserver.observe(element);
 window.addEventListener('resize', () => { invalidate(); });
 function selectView(view: string) {
+  if (document.body.dataset.view !== view) document.querySelector('.dashboard')!.scrollTop = 0;
   document.body.dataset.view = view;
   $('settings-panel').hidden = view !== 'settings';
   if (view === 'settings') {
@@ -679,7 +681,7 @@ document.addEventListener('visibilitychange', () => {
 });
 document.fonts.ready.then(() => { invalidate(); });
 window.addEventListener('localechange', () => { refresh(); summarizeSettings(); });
-initialize(); initializeTask(); invalidate();
+initialize(); initializeTask(); initializeHelp(); invalidate();
 
 function ui(id: string, value: string | number) {
   const element = $(id), next = runtimeText(String(value));

@@ -49,7 +49,7 @@
 <g id="relu" class="fixed"><rect x="102" y="362" width="196" height="40" rx="10"/><text x="200" y="382" text-anchor="middle" dominant-baseline="central" class="label">ReLU</text></g>
 <g id="residual-sum" class="fixed"><circle cx="200" cy="430" r="18"/><path class="operator" d="M195 430H205M200 425V435"/><text x="229" y="430" dominant-baseline="central" class="formula">x₁</text></g>
 <g id="output-norm" class="fixed"><rect x="136" y="462" width="128" height="40" rx="10"/><text x="200" y="482" text-anchor="middle" dominant-baseline="central" class="label">RMSNorm</text></g>
-<g id="readout" class="learned"><rect x="65" y="516" width="270" height="52" rx="10"/><text x="200" y="532" text-anchor="middle" dominant-baseline="central" class="label">Общий readout</text><text x="200" y="553" text-anchor="middle" dominant-baseline="central" class="formula">logits = h · Eᵀ</text></g>
+<g id="readout" class="learned"><rect x="65" y="516" width="270" height="52" rx="10"/><text x="200" y="532" text-anchor="middle" dominant-baseline="central" class="label">Выходные веса</text><text x="200" y="553" text-anchor="middle" dominant-baseline="central" class="formula">logits = h · Eᵀ</text></g>
 <g id="answer" class="answer"><rect x="65" y="584" width="270" height="50" rx="10"/><text x="200" y="599" text-anchor="middle" dominant-baseline="central" class="label">97 логитов</text><text x="200" y="620" text-anchor="middle" dominant-baseline="central" class="formula">q̂ = argmax(logits)</text></g>
 <text x="35" y="320" text-anchor="end" class="muted formula">x₀</text>
 <text x="282" y="257" class="formula">r</text>
