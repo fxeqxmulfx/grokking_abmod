@@ -17,7 +17,7 @@ async function apply(width: number, lr: number, wd: number) {
 }
 async function fits(label: string) {
   await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
-  const issues = await evaluate<string[]>(`(() => {const issues=[];if(document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight)issues.push('page scrolling');for(const element of document.querySelectorAll('.workspace-nav button,#settings-panel,#settings-panel input,#settings-panel button')){if(!element.getClientRects().length)continue;const r=element.getBoundingClientRect();if(r.left<0||r.top<0||r.right>innerWidth+.5||r.bottom>innerHeight+.5)issues.push(element.id||element.textContent);if(element.id==='settings-panel'&&(element.scrollHeight>element.clientHeight+1||element.scrollWidth>element.clientWidth+1))issues.push('settings content clipped');}return issues})()`);
+  const issues = await evaluate<string[]>(`(() => {const issues=[];if(document.documentElement.scrollWidth>innerWidth||document.documentElement.scrollHeight>innerHeight)issues.push('page scrolling');for(const element of document.querySelectorAll('.workspace-nav button,#settings-panel,#settings-panel input,#settings-panel select,#settings-panel button')){if(!element.getClientRects().length)continue;const r=element.getBoundingClientRect();if(r.left<0||r.top<0||r.right>innerWidth+.5||r.bottom>innerHeight+.5)issues.push(element.id||element.textContent);if(element.id==='settings-panel'&&(element.scrollHeight>element.clientHeight+1||element.scrollWidth>element.clientWidth+1))issues.push('settings content clipped');}if(innerWidth>=650){const fields=['custom-width','custom-lr','custom-wd'].map(id=>document.getElementById(id).getBoundingClientRect());if(fields.some(r=>Math.abs(r.top-fields[0].top)>.5||Math.abs(r.bottom-fields[0].bottom)>.5))issues.push('settings fields misaligned');}return issues})()`);
   assert.deepEqual(issues, [], label);
 }
 try {
@@ -25,7 +25,7 @@ try {
   await client.call('Emulation.setDeviceMetricsOverride', {width: 1366, height: 768, deviceScaleFactor: 1, mobile: false});
   await client.call('Page.navigate', {url: origin + '?lang=en'});
   await wait(`document.getElementById('task-dialog')?.open&&document.getElementById('status')?.textContent==='Ready'`);
-  const route = [...['why', 'epoch', 'paper', 'chart', 'grokking', 'findings'].map(name => 'intro/' + name), 'task', 'solution', 'examples', ...['diagram', 'types', 'equations'].map(name => 'model/' + name)];
+  const route = [...['why', 'epoch', 'paper', 'chart', 'weights', 'grokking', 'findings'].map(name => 'intro/' + name), 'task', 'solution', 'examples', ...['diagram', 'types', 'equations'].map(name => 'model/' + name)];
   const current = `(() => {const page=document.querySelector('[data-task-tab][aria-selected="true"]').dataset.taskTab;return page==='intro'?page+'/'+document.querySelector('[data-intro-tab][aria-selected="true"]').dataset.introTab:page==='model'?page+'/'+document.querySelector('[data-model-explanation][aria-selected="true"]').dataset.modelExplanation:page})()`;
   assert.ok(await evaluate(`document.getElementById('task-back').disabled`));
   for (const [index, page] of route.entries()) {
@@ -84,5 +84,5 @@ try {
     }
   }
   assert.deepEqual(client.errors, []);
-  console.log('Introduction: all 12 pages forward and backward. Custom W32 SIMD and W64 scalar: training, reset, independent presets, export and validation passed. Settings: five widths and 30 localized layouts passed.');
+  console.log('Introduction: all 13 pages forward and backward. Custom W32 SIMD and W64 scalar: training, reset, independent presets, export and validation passed. Settings: five widths and 30 localized layouts with aligned fields passed.');
 } finally {client.close();}

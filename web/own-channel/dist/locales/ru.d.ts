@@ -1,4 +1,22 @@
 declare const _default: {
+    "Introduction text": string;
+    "Reading the weight maps": string;
+    "The three matrices": string;
+    "E: rows are residues 0–96; columns are channels. The same embedding supplies both inputs and the output readout.": string;
+    "A: rows are input channels; columns are output channels. Each cell is one learned connection in the Dense layer.": string;
+    "On the readout map, rows are the 97 answers and columns are channels. E and the readout share weights: they show two roles of one learned matrix.": string;
+    "Colors and scale": string;
+    "Pink means positive, blue means negative; darker colors mean a larger magnitude. Exactly zero has a neutral background.": string;
+    "The scale is logarithmic and fixed over time. E and A use separate initial reference scales; the max label shows the largest displayed magnitude.": string;
+    "Weights and Change ×4": string;
+    "Weights shows current values. Change ×4 shows the current weight minus its initial value, with a four-times more sensitive color scale.": string;
+    "In Change ×4, pink marks an increase and blue a decrease. A neutral cell has no change.": string;
+    "Hover a cell to see its raw current weight, even in centered or change views. Click a column to select its channel; the border marks that channel across the maps.": string;
+    "In Change ×4, Center R centers the changes across answers.": string;
+    "What does Center R mean?": string;
+    "R means readout: the model's output weights, here Eᵀ.": string;
+    "For each channel, Center R subtracts the mean weight across all 97 answers. Colors show each answer's deviation from that channel's average weight.": string;
+    "This changes only the readout heatmap. Weights, training and predictions stay the same.": string;
     Settings: string;
     Custom: string;
     "Custom experiment": string;

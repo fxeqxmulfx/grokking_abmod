@@ -277,7 +277,12 @@ native model SVGs, tensor types and quantified equations. The ∑ button reopens
 it. English, Spanish, German, Japanese, French and Russian are available.
 Automatic selection follows browser preference order and regional tags;
 manual choice persists locally. Language changes preserve training.
-Next and Back traverse all six introduction pages, the task, solution and
+The Weights introduction explains the E, A and tied readout maps, their axes,
+sign colors and fixed logarithmic scales, raw values and Change ×4, tooltips,
+channel selection and Center R. Centering subtracts each channel's average
+readout value over 97 answers and changes only the heatmap display. Introduction
+text scrolls within its panel when needed, keeping navigation visible.
+Next and Back traverse all seven introduction pages, the task, solution and
 examples, then the model diagram, types and equations in sequence.
 
 Translation sources are `scripts/translations.ts`. Model SVGs are generated
@@ -393,7 +398,8 @@ for both previously displayed widths and CPU variants.
 The real UI trains W128 and W256 with GPU APIs forbidden,
 pauses/resets, restores independent states, switches the W128 Fast, Plateau
 and Slow presets, updates weights, and fits all three views. Localization
-checks pass 432 desktop/mobile dialog and workspace layouts, including Settings.
+checks pass 480 desktop/mobile dialog and workspace layouts, including Settings
+and the complete scrollable weights explanation.
 Custom-setting checks validate the five supported widths, custom AdamW updates,
 and four shared workers. The settings browser check follows
 every introduction page forward and backward, trains W32 SIMD and W64 scalar,

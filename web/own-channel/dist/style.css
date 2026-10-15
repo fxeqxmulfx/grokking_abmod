@@ -44,8 +44,8 @@ main { min-height: 0; min-width: 0; padding: 12px 16px; display: grid; grid-temp
 .settings-panel { width: min(100%, 680px); align-self: start; justify-self: center; display: grid; gap: 18px; overflow: auto; max-height: 100%; }
 .settings-panel form { display: grid; gap: 18px; }
 .settings-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.settings-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; }
-.settings-fields input, .settings-fields select { width: 100%; min-width: 0; margin: 0; }
+.settings-fields label { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; font-size: 11px; }
+.settings-fields input[type=number], .settings-fields select { width: 100%; min-width: 0; height: 30px; margin: 0; padding: 6px; font: 11px var(--mono); }
 .settings-panel .primary { justify-self: start; }
 body[data-view="settings"] .dashboard { display: none; }
 .visuals { display: grid; min-width: 0; min-height: 0; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(100px, .45fr); grid-template-areas: 'curve mesh' 'weights weights' 'scales probe'; }
@@ -172,10 +172,15 @@ dialog h3 { margin-top: 14px; }
 .task-page { height: 100%; font-size: 14px; line-height: 1.55; }
 .task-page p { margin: 0 0 12px; }
 .task-intro { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 16px; }
-.intro-tabs { width: fit-content; }
+.intro-tabs { width: fit-content; flex-wrap: wrap; }
 .intro-tabs button { padding: 6px 12px; white-space: nowrap; }
 .intro-panels, .intro-page { min-height: 0; min-width: 0; }
-.intro-page { height: 100%; }
+.intro-panels { overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.intro-page { height: auto; min-height: 100%; }
+.intro-weight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+.intro-weight-grid > section { min-width: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+.intro-weight-grid h4 { margin: 0 0 8px; font-size: 14px; font-weight: 500; }
+.intro-weight-grid code { white-space: normal; }
 .intro-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: center; }
 .intro-page h3 { font-size: 16px; margin: 0 0 14px; }
 .intro-paper { padding: 16px; background: #f1f1e9; border-radius: 8px; }
@@ -320,6 +325,7 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .view-nav button { flex: 1; }
   .settings-panel { gap: 14px; }
   .settings-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .settings-fields input[type=number], .settings-fields select { height: 26px; padding: 5px; font-size: 10px; }
   .settings-panel form { gap: 14px; }
   .settings-panel .primary { justify-self: stretch; }
   .dashboard { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
@@ -380,6 +386,8 @@ html[lang="ja"] { --sans: 'DM Sans', system-ui, 'Noto Sans CJK JP', sans-serif; 
   .intro-tabs { width: 100%; }
   .intro-tabs button { flex: 1; padding: 5px; font-size: 10px; }
   .intro-columns { gap: 14px; }
+  .intro-weight-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .intro-weight-grid h4 { font-size: 12px; }
   .intro-paper, .intro-epoch { padding: 10px; }
   .intro-epoch > code { margin-bottom: 9px; padding: 8px; font-size: 11px; }
   .intro-paper a, .intro-page .helper { font-size: 10px; }

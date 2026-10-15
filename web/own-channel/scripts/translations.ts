@@ -1,6 +1,108 @@
 // English source messages with Spanish, German, Japanese, French and Russian.
 export const languages = ["en","es","de","ja","fr","ru"] as const;
 export const rows: readonly (readonly string[])[] = [
+  ["Introduction text", "Texto de introducción", "Einführungstext", "導入の本文", "Texte d’introduction", "Текст вступления"],
+  ["Reading the weight maps", "Cómo leer los mapas de pesos", "Gewichtskarten lesen", "重みマップの読み方", "Lire les cartes de poids", "Как читать карты весов"],
+  ["The three matrices", "Las tres matrices", "Die drei Matrizen", "3つの行列", "Les trois matrices", "Три матрицы"],
+  [
+    "E: rows are residues 0–96; columns are channels. The same embedding supplies both inputs and the output readout.",
+    "E: las filas son residuos 0–96 y las columnas son canales. El mismo embedding sirve para ambas entradas y la salida.",
+    "E: Zeilen sind die Reste 0–96, Spalten die Kanäle. Dasselbe Embedding dient beiden Eingaben und der Ausgabe.",
+    "Eの行は剰余0〜96、列はチャネルです。同じ埋め込みを2つの入力と出力の読み出しに使います。",
+    "E : les lignes sont les résidus 0–96 et les colonnes les canaux. Le même embedding sert aux deux entrées et à la sortie.",
+    "E: строки — остатки 0–96, столбцы — каналы. Одна и та же матрица эмбеддингов используется для обоих входов и выходного readout."
+  ],
+  [
+    "A: rows are input channels; columns are output channels. Each cell is one learned connection in the Dense layer.",
+    "A: las filas son canales de entrada y las columnas canales de salida. Cada celda es una conexión aprendida de la capa densa.",
+    "A: Zeilen sind Eingabekanäle, Spalten Ausgabekanäle. Jede Zelle ist eine gelernte Verbindung der Dense-Schicht.",
+    "Aの行は入力チャネル、列は出力チャネルです。各セルは全結合層で学習する1つの接続を表します。",
+    "A : les lignes sont les canaux d’entrée et les colonnes les canaux de sortie. Chaque cellule est une connexion apprise de la couche dense.",
+    "A: строки — входные каналы, столбцы — выходные. Каждая ячейка — одна обучаемая связь полносвязного слоя."
+  ],
+  [
+    "On the readout map, rows are the 97 answers and columns are channels. E and the readout share weights: they show two roles of one learned matrix.",
+    "En el mapa de salida, las filas son las 97 respuestas y las columnas los canales. E y la salida comparten pesos: muestran dos funciones de una sola matriz aprendida.",
+    "In der Ausgabekarte sind die Zeilen die 97 Antworten und die Spalten die Kanäle. E und Readout teilen Gewichte: Sie zeigen zwei Rollen derselben gelernten Matrix.",
+    "読み出しマップの行は97個の答え、列はチャネルです。Eと読み出しは重みを共有し、同じ学習行列の2つの役割を表示します。",
+    "Sur la carte de sortie, les lignes sont les 97 réponses et les colonnes les canaux. E et la sortie partagent leurs poids : deux rôles d’une même matrice apprise.",
+    "На карте readout строки — 97 ответов, столбцы — каналы. E и readout используют общие веса: это две роли одной обучаемой матрицы."
+  ],
+  ["Colors and scale", "Colores y escala", "Farben und Skala", "色とスケール", "Couleurs et échelle", "Цвета и шкала"],
+  [
+    "Pink means positive, blue means negative; darker colors mean a larger magnitude. Exactly zero has a neutral background.",
+    "El rosa indica valores positivos y el azul negativos; un color más oscuro indica mayor magnitud. El cero exacto tiene un fondo neutro.",
+    "Rosa steht für positive, Blau für negative Werte. Dunklere Farben bedeuten einen größeren Betrag. Genau null hat einen neutralen Hintergrund.",
+    "ピンクは正、青は負の値を示し、色が濃いほど絶対値が大きくなります。ちょうど0のセルは中立色です。",
+    "Le rose indique une valeur positive, le bleu une valeur négative ; une couleur plus sombre indique une amplitude plus grande. Zéro a un fond neutre.",
+    "Розовый означает положительное значение, синий — отрицательное. Чем темнее цвет, тем больше модуль. Точному нулю соответствует нейтральный фон."
+  ],
+  [
+    "The scale is logarithmic and fixed over time. E and A use separate initial reference scales; the max label shows the largest displayed magnitude.",
+    "La escala es logarítmica y permanece fija. E y A usan referencias iniciales distintas; la etiqueta max muestra la mayor magnitud visualizada.",
+    "Die Skala ist logarithmisch und bleibt über die Zeit gleich. E und A haben getrennte Anfangsreferenzen; max zeigt den größten dargestellten Betrag.",
+    "スケールは対数的で、学習中も固定です。EとAは別々の初期基準値を使います。maxは表示値の絶対値の最大を示します。",
+    "L’échelle est logarithmique et reste fixe. E et A ont des références initiales distinctes ; max indique la plus grande amplitude affichée.",
+    "Шкала логарифмическая и не меняется со временем. Для E и A используются отдельные начальные масштабы. Подпись «макс» показывает наибольший модуль отображаемых значений."
+  ],
+  ["Weights and Change ×4", "Pesos y Cambio ×4", "Gewichte und Änderung ×4", "重みと変化×4", "Poids et Variation ×4", "Веса и Изменение ×4"],
+  [
+    "Weights shows current values. Change ×4 shows the current weight minus its initial value, with a four-times more sensitive color scale.",
+    "Pesos muestra los valores actuales. Cambio ×4 muestra el peso actual menos su valor inicial, con una escala de color cuatro veces más sensible.",
+    "Gewichte zeigt die aktuellen Werte. Änderung ×4 zeigt aktuelles Gewicht minus Anfangswert, mit einer viermal empfindlicheren Farbskala.",
+    "重みは現在の値を表示します。変化×4は現在の重みから初期値を引き、色の感度を4倍にして表示します。",
+    "Poids affiche les valeurs actuelles. Variation ×4 affiche le poids actuel moins sa valeur initiale, avec une échelle de couleur quatre fois plus sensible.",
+    "Режим «Веса» показывает текущие значения. «Изменение ×4» показывает разность текущего и начального веса с вчетверо более чувствительной цветовой шкалой."
+  ],
+  [
+    "In Change ×4, pink marks an increase and blue a decrease. A neutral cell has no change.",
+    "En Cambio ×4, el rosa indica un aumento y el azul una disminución. Una celda neutra no ha cambiado.",
+    "In Änderung ×4 bedeutet Rosa eine Zunahme und Blau eine Abnahme. Eine neutrale Zelle hat sich nicht verändert.",
+    "変化×4ではピンクが増加、青が減少を示します。中立色のセルは変化していません。",
+    "Dans Variation ×4, le rose indique une hausse et le bleu une baisse. Une cellule neutre n’a pas changé.",
+    "В режиме «Изменение ×4» розовый означает увеличение, синий — уменьшение. Нейтральная ячейка означает отсутствие изменения."
+  ],
+  [
+    "Hover a cell to see its raw current weight, even in centered or change views. Click a column to select its channel; the border marks that channel across the maps.",
+    "Pasa el cursor sobre una celda para ver su peso actual sin transformar, incluso al centrar o mostrar cambios. Haz clic en una columna para seleccionar su canal; el borde lo marca en los mapas.",
+    "Beim Überfahren einer Zelle erscheint ihr aktuelles Rohgewicht, auch in zentrierter oder Änderungsansicht. Ein Klick auf eine Spalte wählt ihren Kanal; der Rahmen markiert ihn in allen Karten.",
+    "セルにポインターを合わせると、中心化や変化の表示中でも現在の生の重みを確認できます。列をクリックするとチャネルを選択し、各マップで枠が付きます。",
+    "Survolez une cellule pour voir son poids actuel brut, même en vue centrée ou de variation. Cliquez sur une colonne pour sélectionner son canal ; le cadre le repère sur les cartes.",
+    "Наведите курсор на ячейку, чтобы увидеть её текущий исходный вес, даже при центрировании или просмотре изменений. Нажатие на столбец выбирает канал; рамка отмечает его на всех картах."
+  ],
+  [
+    "In Change ×4, Center R centers the changes across answers.",
+    "En Cambio ×4, Centrar R centra los cambios entre respuestas.",
+    "In Änderung ×4 zentriert R zentrieren die Änderungen über die Antworten.",
+    "変化×4では、Rの中心化が答え全体にわたる変化量の平均を引きます。",
+    "Dans Variation ×4, Centrer R centre les variations sur les réponses.",
+    "В режиме «Изменение ×4» переключатель «Центр R» центрирует изменения по ответам."
+  ],
+  ["What does Center R mean?", "¿Qué significa Centrar R?", "Was bedeutet R zentrieren?", "Rの中心化とは？", "Que signifie Centrer R ?", "Что означает «Центр R»?"],
+  [
+    "R means readout: the model's output weights, here Eᵀ.",
+    "R significa readout: los pesos de salida del modelo, aquí Eᵀ.",
+    "R steht für Readout: die Ausgabegewichte des Modells, hier Eᵀ.",
+    "Rはreadout、つまりモデルの出力重みです。このモデルではEᵀです。",
+    "R signifie readout : les poids de sortie du modèle, ici Eᵀ.",
+    "R означает readout — выходные веса модели. Здесь это Eᵀ."
+  ],
+  [
+    "For each channel, Center R subtracts the mean weight across all 97 answers. Colors show each answer's deviation from that channel's average weight.",
+    "Para cada canal, Centrar R resta el peso medio de las 97 respuestas. Los colores muestran la desviación de cada respuesta respecto al peso medio del canal.",
+    "R zentrieren zieht für jeden Kanal den mittleren Wert über alle 97 Antworten ab. Die Farben zeigen die Abweichung jeder Antwort vom mittleren Gewicht dieses Kanals.",
+    "Rの中心化は、各チャネルで97個の答えに対する重みの平均を引きます。色は各回答の重みがそのチャネルの平均からどれだけずれるかを示します。",
+    "Centrer R soustrait, pour chaque canal, la moyenne des poids sur les 97 réponses. Les couleurs montrent l’écart de chaque réponse par rapport au poids moyen du canal.",
+    "«Центр R» вычитает для каждого канала средний вес по всем 97 ответам. Цвета показывают отклонение веса каждого ответа от среднего по каналу."
+  ],
+  [
+    "This changes only the readout heatmap. Weights, training and predictions stay the same.",
+    "Esto solo cambia el mapa de calor de salida. Los pesos, el entrenamiento y las predicciones se mantienen.",
+    "Das ändert nur die Heatmap der Ausgabegewichte. Gewichte, Training und Vorhersagen bleiben gleich.",
+    "変わるのは出力重みのヒートマップ表示だけです。重み、学習、予測は変わりません。",
+    "Seule la carte des poids de sortie change. Les poids, l’entraînement et les prédictions restent identiques.",
+    "Меняется только отображение выходных весов на тепловой карте. Веса модели, обучение и предсказания остаются прежними."
+  ],
   ["Settings", "Ajustes", "Einstellungen", "設定", "Réglages", "Настройки"],
   ["Custom", "Propio", "Eigene", "カスタム", "Perso", "Свои"],
   ["Custom experiment", "Experimento propio", "Eigenes Experiment", "カスタム実験", "Expérience personnalisée", "Свой эксперимент"],

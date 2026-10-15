@@ -2,7 +2,7 @@ import {element as $} from './dom.ts';
 import {t, currentLocale} from './i18n.ts';
 
 const pages = ['intro', 'task', 'solution', 'examples', 'model'];
-const introPages = ['why', 'epoch', 'paper', 'chart', 'grokking', 'findings'];
+const introPages = ['why', 'epoch', 'paper', 'chart', 'weights', 'grokking', 'findings'];
 const modelViews = ['diagram', 'types', 'equations'];
 const examples = [[6,4,50], [10,3,68], [1,2,49], [1,96,96], [96,2,48], [0,7,0], [42,42,1], [7,1,7]];
 
@@ -15,6 +15,7 @@ export function initializeTask() {
   }
   function selectIntro(index: number) {
     introView = index;
+    dialog.querySelector<HTMLElement>('.intro-panels')!.scrollTop = 0;
     for (const [i, name] of introPages.entries()) {
       $(`intro-page-${name}`).hidden = i !== index;
       const button = $(`intro-tab-${name}`);

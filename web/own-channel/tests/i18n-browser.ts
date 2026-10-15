@@ -8,18 +8,21 @@ const client = await CDP.connect(port);
 const call = client.call.bind(client), evaluate = client.evaluate.bind(client), errors = client.errors;
 const waitFor = client.wait.bind(client), wait = waitFor;
 let layouts = 0;
-async function frames() { await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))'); }
+async function frames() { await evaluate('document.fonts.ready'); await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))'); }
 async function assertFits(label: string, modal = false) {
   await frames();
   const issues = await evaluate<string[]>(`(() => {
     const issues=[],root=document.documentElement;
     if(root.scrollWidth>innerWidth||root.scrollHeight>innerHeight)issues.push('page scrolling');
-    const selector=${JSON.stringify(modal ? '#task-dialog, #task-dialog .task-heading, #task-dialog .task-tabs, #task-dialog .task-pages, #task-dialog .task-page, #task-dialog .task-footer, #task-dialog p, #task-dialog code, #task-dialog button, #task-dialog select, #task-dialog img, #task-dialog table' : '.topbar, main .card, main button, main input, main select, main canvas, .header-tools')};
+    const selector=${JSON.stringify(modal ? '#task-dialog, #task-dialog .task-heading, #task-dialog .task-tabs, #task-dialog .task-pages, #task-dialog .task-page, #task-dialog .intro-panels, #task-dialog .task-footer, #task-dialog h4, #task-dialog p, #task-dialog code, #task-dialog button, #task-dialog select, #task-dialog img, #task-dialog table' : '.topbar, main .card, main button, main input, main select, main canvas, .header-tools')};
     for(const element of document.querySelectorAll(selector)) {
       if(element.closest('[hidden]'))continue;
-      const rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
+      let rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
       const name=element.id||element.className||element.tagName;
+      const scroller=element.closest('.intro-panels');
+      if(scroller&&scroller!==element){const viewport=scroller.getBoundingClientRect();if(rect.bottom<=viewport.top||rect.top>=viewport.bottom)continue;rect={left:rect.left,right:rect.right,top:Math.max(rect.top,viewport.top),bottom:Math.min(rect.bottom,viewport.bottom)};}
       if(rect.left<-.5||rect.top<-.5||rect.right>innerWidth+.5||rect.bottom>innerHeight+.5)issues.push(name+' leaves viewport');
+      if(element.matches('.intro-panels')&&element.scrollWidth>element.clientWidth+1)issues.push('introduction requires horizontal scrolling');
       if(element.matches('.card,.topbar,.header-tools,.task-dialog,.task-page,.task-pages,table')&&(element.scrollWidth>element.clientWidth+1||element.scrollHeight>element.clientHeight+1))issues.push(name+' clips content');
       if(${modal}&&!element.matches('#task-dialog')){const panel=document.getElementById('task-dialog').getBoundingClientRect();if(rect.left<panel.left||rect.right>panel.right||rect.top<panel.top||rect.bottom>panel.bottom)issues.push(name+' leaves dialog');}
       if(element.tagName==='IMG'&&(!element.complete||!element.naturalWidth))issues.push('SVG missing');
@@ -55,9 +58,14 @@ try {
       for (const page of ['intro','task','solution','examples','model']) {
         await evaluate(`document.querySelector('[data-task-tab="${page}"]').click()`);
         await assertFits(`${language} ${width}×${height} intro ${page}`,true);
-        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','grokking','findings']) {
+        if (page === 'intro') for (const detail of ['why','epoch','paper','chart','weights','grokking','findings']) {
           await evaluate(`document.querySelector('[data-intro-tab="${detail}"]').click()`);
           await assertFits(`${language} ${width}×${height} introduction ${detail}`,true);
+          if(detail==='weights') {
+            await evaluate(`document.querySelector('.intro-panels').scrollTop=document.querySelector('.intro-panels').scrollHeight`);
+            await assertFits(`${language} ${width}×${height} weights guide end`,true);
+            if(!await evaluate(`(() => {const frame=document.querySelector('.intro-panels');return [...document.querySelectorAll('#intro-page-weights p')].every(paragraph=>{paragraph.scrollIntoView({block:'nearest'});const viewport=frame.getBoundingClientRect(),rect=paragraph.getBoundingClientRect();return rect.top>=viewport.top-1&&rect.bottom<=viewport.bottom+1})})()`))throw new Error(`${language} ${width}×${height}: the complete weights explanation is not reachable.`);
+          }
         }
         if (page === 'model') {
           for (const view of ['types','equations']) {
