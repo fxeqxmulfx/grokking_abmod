@@ -440,7 +440,7 @@ function startEngine(checkpoint?: TrainingCheckpoint) {
       target.checkpoint = data.checkpoint; target.ready = false; target.running = false;
       releaseWorker(target); return;
     }
-    if (data.type === 'ready') { target.ready = true; target.info = data.info; }
+    if (data.type === 'ready') { target.ready = !target.suspension; target.info = data.info; }
     else if (data.type === 'status') status(data.status, target);
     else if (data.type === 'weights') { target.weights = data.weights; target.step = data.step; target.activeMs = data.activeMs; }
     else if (data.type === 'metrics') { target.history.push(data.row); target.criterion = data.criterion; }

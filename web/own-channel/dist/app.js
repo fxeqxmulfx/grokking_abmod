@@ -628,7 +628,7 @@ function startEngine(checkpoint) {
             return;
         }
         if (data.type === 'ready') {
-            target.ready = true;
+            target.ready = !target.suspension;
             target.info = data.info;
         }
         else if (data.type === 'status')
