@@ -1,0 +1,1541 @@
+{
+  "width": 32,
+  "seeds": [
+    11,
+    17,
+    23
+  ],
+  "epochs": 10000,
+  "learningRates": [
+    0.0001,
+    0.0003,
+    0.001,
+    0.003,
+    0.01,
+    0.1,
+    1
+  ],
+  "weightDecays": [
+    0,
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    0.3,
+    1
+  ],
+  "latest": {
+    "learningRate": 0.0003,
+    "weightDecay": 0.1,
+    "seeds": [
+      11,
+      17,
+      23
+    ],
+    "firstTrain99": [
+      4205,
+      2601,
+      3469
+    ],
+    "firstTest99": [
+      5199,
+      3885,
+      5462
+    ],
+    "plateauEpochs": [
+      0,
+      0,
+      0
+    ],
+    "riseEpochs": [
+      1863,
+      632,
+      1416
+    ],
+    "delayed": [
+      false,
+      false,
+      false
+    ],
+    "successes": 3
+  },
+  "longestPlateau": null,
+  "longestDelayedPlateau": null,
+  "results": [
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 0,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        3341
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        8818
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        4019
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 0.001,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        3768
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 0.01,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        9417
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        3966
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 0.1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        8094
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        3531
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 0.3,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0001,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 0,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        2525,
+        2649,
+        3348
+      ],
+      "firstTest99": [
+        3920,
+        2924,
+        3720
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        1019,
+        674,
+        936
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        2525,
+        2610,
+        3433
+      ],
+      "firstTest99": [
+        3801,
+        2910,
+        3714
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        1000,
+        628,
+        944
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 0.001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        2675,
+        2560,
+        3702
+      ],
+      "firstTest99": [
+        7184,
+        2834,
+        3978
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        1148,
+        563,
+        1223
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        2607,
+        2572,
+        3441
+      ],
+      "firstTest99": [
+        4107,
+        2796,
+        3854
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        1066,
+        576,
+        1016
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 0.1,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        4205,
+        2601,
+        3469
+      ],
+      "firstTest99": [
+        5199,
+        3885,
+        5462
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        1863,
+        632,
+        1416
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 0.3,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        6491,
+        1942,
+        null
+      ],
+      "firstTest99": [
+        7457,
+        2582,
+        null
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        2027,
+        466,
+        null
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 2
+    },
+    {
+      "learningRate": 0.0003,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 0,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        854,
+        725,
+        875
+      ],
+      "firstTest99": [
+        1172,
+        846,
+        1053
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        368,
+        216,
+        269
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        845,
+        725,
+        1072
+      ],
+      "firstTest99": [
+        2735,
+        847,
+        1587
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        370,
+        213,
+        548
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 0.001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        1121,
+        821,
+        1085
+      ],
+      "firstTest99": [
+        1633,
+        1175,
+        1508
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        374,
+        313,
+        536
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        861,
+        763,
+        905
+      ],
+      "firstTest99": [
+        1773,
+        1087,
+        1120
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        424,
+        260,
+        299
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 0.1,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        931,
+        839,
+        820
+      ],
+      "firstTest99": [
+        3690,
+        1332,
+        1079
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        496,
+        372,
+        270
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 0.3,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        1264
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.001,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 0,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        287,
+        262,
+        368
+      ],
+      "firstTest99": [
+        379,
+        292,
+        391
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        117,
+        89,
+        202
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        278,
+        236,
+        392
+      ],
+      "firstTest99": [
+        369,
+        269,
+        413
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        102,
+        76,
+        222
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 0.001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        289,
+        246,
+        413
+      ],
+      "firstTest99": [
+        409,
+        286,
+        445
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        124,
+        91,
+        241
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        278,
+        289,
+        332
+      ],
+      "firstTest99": [
+        379,
+        329,
+        355
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        113,
+        135,
+        171
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 0.1,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        298,
+        271,
+        2555
+      ],
+      "firstTest99": [
+        736,
+        324,
+        2809
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        130,
+        123,
+        2381
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 0.3,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        532,
+        247,
+        733
+      ],
+      "firstTest99": [
+        1037,
+        297,
+        1189
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        227,
+        104,
+        570
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.003,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 0,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        104,
+        89,
+        110
+      ],
+      "firstTest99": [
+        135,
+        96,
+        123
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        48,
+        23,
+        43
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        89,
+        93,
+        123
+      ],
+      "firstTest99": [
+        99,
+        111,
+        137
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        38,
+        24,
+        51
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 0.001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        93,
+        96,
+        105
+      ],
+      "firstTest99": [
+        105,
+        108,
+        113
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        43,
+        30,
+        38
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        103,
+        86,
+        107
+      ],
+      "firstTest99": [
+        203,
+        94,
+        114
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        50,
+        20,
+        39
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 0.1,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        128,
+        74,
+        109
+      ],
+      "firstTest99": [
+        177,
+        85,
+        145
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        65,
+        22,
+        42
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 0.3,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        139,
+        113,
+        265
+      ],
+      "firstTest99": [
+        198,
+        195,
+        null
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        69,
+        44,
+        60
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 2
+    },
+    {
+      "learningRate": 0.01,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 0,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        54,
+        64,
+        26
+      ],
+      "firstTest99": [
+        63,
+        90,
+        30
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        25,
+        42,
+        10
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        32,
+        34,
+        24
+      ],
+      "firstTest99": [
+        39,
+        43,
+        27
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        16,
+        18,
+        9
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 0.001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        52,
+        33,
+        27
+      ],
+      "firstTest99": [
+        67,
+        44,
+        31
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        24,
+        18,
+        9
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        29,
+        43,
+        29
+      ],
+      "firstTest99": [
+        32,
+        50,
+        35
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        10,
+        28,
+        12
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 0.1,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        155,
+        34,
+        307
+      ],
+      "firstTest99": [
+        213,
+        71,
+        565
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        56,
+        14,
+        29
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 0.3,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 0.1,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 0,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        260
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        63
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 0.0001,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "firstTrain99": [
+        263,
+        305,
+        5261
+      ],
+      "firstTest99": [
+        883,
+        1045,
+        8985
+      ],
+      "plateauEpochs": [
+        0,
+        0,
+        0
+      ],
+      "riseEpochs": [
+        105,
+        165,
+        1614
+      ],
+      "delayed": [
+        false,
+        false,
+        false
+      ],
+      "successes": 3
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 0.001,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        5684
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        695
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 0.01,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 0.1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 0.3,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    },
+    {
+      "learningRate": 1,
+      "weightDecay": 1,
+      "seeds": [
+        11
+      ],
+      "firstTrain99": [
+        null
+      ],
+      "firstTest99": [
+        null
+      ],
+      "plateauEpochs": [
+        0
+      ],
+      "riseEpochs": [
+        null
+      ],
+      "delayed": [
+        false
+      ],
+      "successes": 0
+    }
+  ]
+}

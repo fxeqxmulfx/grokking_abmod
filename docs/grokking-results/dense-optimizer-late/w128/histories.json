@@ -1,0 +1,662 @@
+[
+  {
+    "directory": "screen-w128-s11-lr0.0003-wd1",
+    "historySha256": "34514b51015d8f6d7be79fba2c93e4ba3d4eb3c3b34aaccf49f0877c433fd4ed"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.001-wd0",
+    "historySha256": "c22a0c566799975dee5a59b2c6832a533b81ae00cc2989abe0cfa6d4184aab66"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.001-wd0.0001",
+    "historySha256": "f6203a79e72a3ca6e38eb7d1b2f9b88e263e2cec3cb073d9468c2369b3dd7992"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.001-wd0.001",
+    "historySha256": "6514238138be4f4a357d86426d080f518ddcd72932ad4e10d699ccb1a9ea43b1"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.001-wd0.01",
+    "historySha256": "fa729815b322421ed38e307bf1d915e902d6cd1c47d29012cd155497e1a58e3b"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.001-wd0.1",
+    "historySha256": "ed4fd9ace50bff5baf8d84d782a0f68b3faa21d640ace48e451ccb24454f3357"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.001-wd0.1",
+    "historySha256": "8b472f3a04410f6d0ec51af9c1d9daa3fc188a464b6a919a4050f2574ad25032"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.001-wd0.1",
+    "historySha256": "a9843c1108234ddfd73949103dd3dd0192f7346469e2a13e333c61b015f6f716"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.001-wd1",
+    "historySha256": "afd295deecd5bc2d1ff1d1a71de25783675873d480e2e3903d2b5a8f726e0a2b"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.003-wd0",
+    "historySha256": "7d687685eec4870083ae661b979d94efda7bec2bdb932e648bdedd1185e6c7dc"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.003-wd0.01",
+    "historySha256": "b9719365a2b80e0a73d59807ff79bef33d614908f7490e3affcd42ba07bcc79b"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.003-wd0.1",
+    "historySha256": "284c8965ebbcc9d5b98aa0f735e0e83731d477319940ff5c490843d3161b3671"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.003-wd0.1",
+    "historySha256": "e5db0be4d2d9bf5a213a2cccfbd6505eb32a810e36a9d193561d7043f94ef6d9"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.003-wd0.1",
+    "historySha256": "5dc31fc80d7206df8fbdbfc89978c19878e52ed3c2a7fa1000700dc6104f2843"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.003-wd1",
+    "historySha256": "ce8998b9119429ffb5242327a98804889eec3a0751eaad890bfee3b562d15cc8"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.003-wd1",
+    "historySha256": "7bca08015326065f9b3facc211d0845efb82d35f6bde8bdb48e5f630a5a5a033"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.003-wd1",
+    "historySha256": "7b0653dc2834356e6d054ee0b274fa8d17b476102a94e6684a72e8e972a45854"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.01-wd0",
+    "historySha256": "e3b061aae9251f45a4a4d02d7211e8a7cc6c27a120f6158e5f9480d530ccd4e2"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.01-wd0.0001",
+    "historySha256": "4c9977c61948fa3d1df9db73b4b83f1f2890b7ec34cb26639e09b33f096e0ebb"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.01-wd0.001",
+    "historySha256": "ac8e014bf453df3ebad7c6ea9231174e5684ce46b614f400bedbec57ea272feb"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.01-wd0.01",
+    "historySha256": "8678b499a9773849fc5d28efd24f1a207b2be9eed6d35cbe4c8dda7f0ef3138f"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.01-wd0.1",
+    "historySha256": "cc11ef9f39667795657eb3db6a4d8d4f71bd7e0ed5a5411553834f1115ea5c92"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.01-wd0.1",
+    "historySha256": "c4400e8c3dc4a4438b58c4bdec484214080907dba591b3b4a0f8c9ba27053b54"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.01-wd0.1",
+    "historySha256": "5f69348eb4b8a9c6f42eb38e27fe15fedee076b7510090142971166d4e63f696"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.01-wd1",
+    "historySha256": "5c19be983272149c04af3490876c8571dae0a3c9a3b54f88841518042d7fe0fb"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.01-wd1",
+    "historySha256": "c7dfaaebdb2e1e8869bab31ee714c52c5999f9568f5e71f63fb6c29b44288696"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.01-wd1",
+    "historySha256": "6209ec2bc4da5e9facf2bf2928b0243cde210c74890414f0dba154b0cfacbbe4"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.1-wd0",
+    "historySha256": "dd761b0f555720698e28a2814ee67b420550ae49aeec29b7b8bd2db17539b66f"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.1-wd0.0001",
+    "historySha256": "436f3e5712e6daebfdcddcff9adc7105207a29f8ab510a0dd5ef3f84c926dc4c"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.1-wd0.001",
+    "historySha256": "13801380548c65d71dd2dae440206646352f2b94035ef1ba2107e497e60e7b3c"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.1-wd0.01",
+    "historySha256": "9b646325d2ff7156ee59447c2ecb2e5e60fdcd76c849e2c6bfe9bf09bf1a4cdc"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.1-wd0.01",
+    "historySha256": "09a3f7bc5aa59d50dca64f7abb48cca92be04702b8509d8a1bc83d512151658d"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.1-wd0.01",
+    "historySha256": "29df21d46f10b24c24b9fdccf02532f085c3ea710ca73afd8175e57c8772b762"
+  },
+  {
+    "directory": "screen-w128-s11-lr0.1-wd0.1",
+    "historySha256": "d7b11c97ef3f397a5b7cceae8806068ac8bbfdd94f932b8c0bbc1807e0761a65"
+  },
+  {
+    "directory": "confirm-w128-s17-lr0.1-wd0.1",
+    "historySha256": "83ae687eef5cbd64fc7e430d6a4b250257b5b4d4dfec051fa103529831ba72ec"
+  },
+  {
+    "directory": "confirm-w128-s23-lr0.1-wd0.1",
+    "historySha256": "5a5b23fc3887a8b91a1e5822b557f09d0f408930dcc6b5570485df46cbf8d1e3"
+  },
+  {
+    "directory": "screen-w128-s11-lr1-wd0.0001",
+    "historySha256": "ca9499c410af81d7fdbf68145e10e3ecbb1f8f902f14893a4fc896b5ffc601f7"
+  },
+  {
+    "directory": "w128-s11-lr0.0001-wd0",
+    "historySha256": "c26d1c2c401cd155859f3ae87e03fa19d969a2f2d6d8422bada2429853026451"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd0",
+    "historySha256": "0147dcade7e4e33a2eabc831e1b44a4e20bc9c99cbd5b6925eadaaec36e00cd1"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd0",
+    "historySha256": "41c7c63886013405940bd15320d1df58fa2d37766a9da484a20fe81874ce5939"
+  },
+  {
+    "directory": "w128-s11-lr0.0001-wd0.0001",
+    "historySha256": "cd7ab69545e4f6e671910417dd6826c7f6efa9d00e6dcd93f8d7da0f5012ba5a"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd0.0001",
+    "historySha256": "86ae9a96f565c0c799cfd867286352d387c26352a75e57e7733084b5174fef45"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd0.0001",
+    "historySha256": "4cd5d2c4f79f952c2b42547e71926b2f5b1f1b19bf49a9734081578527443717"
+  },
+  {
+    "directory": "w128-s11-lr0.0001-wd0.001",
+    "historySha256": "b41fbe1a447ea50127bf1e8b1f2069605fce29b79b1011959d37333e066c07da"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd0.001",
+    "historySha256": "439a8a9dadda9f99899c948867c24cb8e45defef2e4bdacb7a0c252ef48caf22"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd0.001",
+    "historySha256": "2541b46d4a26a877a73880c88e6c11bb97b5f760b8e8093e890cfe7bed73faf1"
+  },
+  {
+    "directory": "w128-s11-lr0.0001-wd0.01",
+    "historySha256": "c742727d1cab554cf27fa5dbbb2fa4da98368ac412e45ac4e61a5aba39c085a2"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd0.01",
+    "historySha256": "e6c287e5f04c4bd3845c5891f62d3ce686147ccc84ab6ef387e28d107cc5752e"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd0.01",
+    "historySha256": "58467ac62c827e02a912a6cabb7d1865fc8cb2d05a36a608815efced86f6df41"
+  },
+  {
+    "directory": "w128-s11-lr0.0001-wd0.1",
+    "historySha256": "5af00b8bdf8178d4d2ea2ff9d450e70835f7fe5b2d722934d118ab8ebbbc7a47"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd0.1",
+    "historySha256": "913e101611ef21582e09b16d2a8200a962574d891e854ac35738812980207e6e"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd0.1",
+    "historySha256": "d50b475f6966ab14bb1b90b013d7b449268ab0a29ce7ed6ebcad14b9de1ede92"
+  },
+  {
+    "directory": "w128-s11-lr0.0001-wd1",
+    "historySha256": "b3c62fcbe987e9436c6520dc31b65e3f43f6b5e16680a78ea22641ba32e11a30"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd1",
+    "historySha256": "cb5bb70f70b2936bec8f7760e387d5c096f2d029f1afc710bb832fe0c134366f"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd1",
+    "historySha256": "c7d6d9c5cf7243f9c81841dea00610dacb3e45139bdbf2ac375e80c094778fbe"
+  },
+  {
+    "directory": "w128-s11-lr0.0003-wd0",
+    "historySha256": "10bf7f566ba208a5ef479d5bcbf03e4543385f1968fc37d9ad3e80a8398e03b6"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd0",
+    "historySha256": "445eccbfb9d9e742be21948f7015c2aa47ce466dfcd178c8a3bce96be6cac7d3"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd0",
+    "historySha256": "9143d81bae1012f4174cf0733584e86db7edf72a884b8012834caf848bd6cabe"
+  },
+  {
+    "directory": "w128-s11-lr0.0003-wd0.0001",
+    "historySha256": "295507c2c87804639fce2464f35fc809dc20d4a90db997f07d2e6fa5f0541678"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd0.0001",
+    "historySha256": "8485a2b2962bed6294448f47a1f76a112df7e9176639bc733c01be90d09f7565"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd0.0001",
+    "historySha256": "ef2735c79feb732970ef79498285df228ea218a4deb198664e06b9af1398f399"
+  },
+  {
+    "directory": "w128-s11-lr0.0003-wd0.001",
+    "historySha256": "90c9a0a2e0e2ee305bfd8027c09a28928cc4dd8382e5eab9a185def3b5b20704"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd0.001",
+    "historySha256": "79cbe518bb819aa5888defcaf342ff67599c546ffd916ebe16e4c1bf2f0099e3"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd0.001",
+    "historySha256": "ea10a387cffb377cb71c0d2af224ad448c9fa446dd55d99b94a0c0edce132dcb"
+  },
+  {
+    "directory": "w128-s11-lr0.0003-wd0.01",
+    "historySha256": "eaf289f5d9f9dacdccc47b88dda5dbe19ea9d9938c7d00095f853896d4abe7d0"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd0.01",
+    "historySha256": "109bedc142de15a52d4ec27277a31b840e197ba1ae47132d88ad7292461d9962"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd0.01",
+    "historySha256": "ddf7461f215f7c5ce7585171c887591cc3e0bfc6c3b864a6c4296aa73b70061d"
+  },
+  {
+    "directory": "w128-s11-lr0.0003-wd0.1",
+    "historySha256": "bf93a45f9fe8702ddc0702279417039a6733c94852d1586869ea335c41185f07"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd0.1",
+    "historySha256": "012ccb67c57936c4eb06de7145f07502bfa27850be5b6056d052ff40e828c638"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd0.1",
+    "historySha256": "bd0a26e8021ad624cc92e46d3b2ff54765513f3d05e6bd17eae401bc10ee03b0"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd1",
+    "historySha256": "f2b58b7e27823201e07277fefe5f347cc532c6ecc62955545d4e7b22b0417512"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd1",
+    "historySha256": "9d07c55cf1b94026f837e9decfc6d1da27f5e1d382aed9105e054978e469f50b"
+  },
+  {
+    "directory": "w128-s17-lr0.001-wd0",
+    "historySha256": "c72721612b25991c3665d962d07c2ecb8b3203dd6742b5cb676171d51558e451"
+  },
+  {
+    "directory": "w128-s23-lr0.001-wd0",
+    "historySha256": "be779140bff30b66acc13b5cb302bce465fc69f95bc093c4ee44ba1873a1a38e"
+  },
+  {
+    "directory": "w128-s17-lr0.001-wd0.0001",
+    "historySha256": "b946c2a13d61dbf49bebc8f3b1ea1f6c0bb78a4f0e5711678118986082a9f1af"
+  },
+  {
+    "directory": "w128-s23-lr0.001-wd0.0001",
+    "historySha256": "4bd62db5721cb25ecbfe5d951b593529d2994ad35061d5302ea56cb28b79e9ef"
+  },
+  {
+    "directory": "w128-s17-lr0.001-wd0.001",
+    "historySha256": "c53355da38a5a79800ed2671a3989bddd270d46ba98c75851cfe8a8296d88753"
+  },
+  {
+    "directory": "w128-s23-lr0.001-wd0.001",
+    "historySha256": "395bc59b8eee7b1842cc6e16f0a577a51b8a9b7d1bba4980c3282e07439b39f9"
+  },
+  {
+    "directory": "w128-s17-lr0.001-wd0.01",
+    "historySha256": "e3108031720378177af1c54e211412d679a84d1acd26b1ebcb726ea450e34ee6"
+  },
+  {
+    "directory": "w128-s23-lr0.001-wd0.01",
+    "historySha256": "49dcdb16a03e98144a9f4d0c024a700f852d6e1b69a354b4da00f2e657f02e41"
+  },
+  {
+    "directory": "w128-s17-lr0.001-wd1",
+    "historySha256": "516655b9c36a1d394d09d5fe6979715ab4cf8b02c10f754d8fbbc4e06020638e"
+  },
+  {
+    "directory": "w128-s23-lr0.001-wd1",
+    "historySha256": "d5417ecaa79b77a4a19af7cee5970924707a476d629b906efdf08a781660a704"
+  },
+  {
+    "directory": "w128-s17-lr0.003-wd0",
+    "historySha256": "5dec2b2026cf8252533d9461abf7b8687af4767d5b2d04fc6d8c833c830fb33c"
+  },
+  {
+    "directory": "w128-s23-lr0.003-wd0",
+    "historySha256": "b2b6a54b8c8ff23d9aa7863af0be78b937a822b135f076fd4d4028760f0e4d71"
+  },
+  {
+    "directory": "w128-s11-lr0.003-wd0.0001",
+    "historySha256": "cdcedd2242f43fef69d0360253d487d54bf05b204d1bf60b022f0dbbf97a9415"
+  },
+  {
+    "directory": "w128-s17-lr0.003-wd0.0001",
+    "historySha256": "fb9cfc1000852aaf94399319e9d158a91291718b37c6ad844745872bbc638f4e"
+  },
+  {
+    "directory": "w128-s23-lr0.003-wd0.0001",
+    "historySha256": "ab3bc30aa3a85f328982f42fb7d3b589fe43d6fa02aa83949c9f57c29a81d7de"
+  },
+  {
+    "directory": "w128-s11-lr0.003-wd0.001",
+    "historySha256": "772703841ff16235afcd67d42a6117906c37ee66c9f9596a2f72ba2c16e7d95b"
+  },
+  {
+    "directory": "w128-s17-lr0.003-wd0.001",
+    "historySha256": "e0e443508d932d51deae3e2c37ab664f3effd12f5272cd0aeb4c9b4d9533cc06"
+  },
+  {
+    "directory": "w128-s23-lr0.003-wd0.001",
+    "historySha256": "fa42d28818b90a9459d7eaef1085c42f5d486e6395da1c2eb3b8b1aae1420e7a"
+  },
+  {
+    "directory": "w128-s17-lr0.003-wd0.01",
+    "historySha256": "65267e6860734cbe897bf7a070db81d3692903a91b4f124f726d3955d248aaca"
+  },
+  {
+    "directory": "w128-s23-lr0.003-wd0.01",
+    "historySha256": "b6b7ff851bf79cdac8e950f43c6d8e6dab8b6b4819dad98a47188527e0f9468f"
+  },
+  {
+    "directory": "w128-s17-lr0.01-wd0",
+    "historySha256": "2f9bc8aa86074f47d43f3652a31c2be38c7496db86f79a438af70dccf3df5d4a"
+  },
+  {
+    "directory": "w128-s23-lr0.01-wd0",
+    "historySha256": "b900742f58a109550c409a88a2280c178e36d4829833d1d2eec308292f301cae"
+  },
+  {
+    "directory": "w128-s17-lr0.01-wd0.0001",
+    "historySha256": "03c7a47b265b56743b95b82ec8c602dbd3a4b86d23ba64bff07cfca67bcb3f0c"
+  },
+  {
+    "directory": "w128-s23-lr0.01-wd0.0001",
+    "historySha256": "951c8db1695380b1ab8a5791648b46bcdb4ab65056c25752b23131cf1b08d043"
+  },
+  {
+    "directory": "w128-s17-lr0.01-wd0.001",
+    "historySha256": "22a974c539f1e6dd4d4ff843fd2adb4bac5c357c9bf98f83a5601d052ff98ff0"
+  },
+  {
+    "directory": "w128-s23-lr0.01-wd0.001",
+    "historySha256": "709c435fca6e6f21a3361cbf7c01893f8ec942d3f3a9b12f56ac516f062c9e44"
+  },
+  {
+    "directory": "w128-s17-lr0.01-wd0.01",
+    "historySha256": "e0b4e5f26522ee6748f63ba188b9eadd7320a30715bc55d04f85939c33c0eb70"
+  },
+  {
+    "directory": "w128-s23-lr0.01-wd0.01",
+    "historySha256": "9c5491b065b6e519fe49d32c1f16c7b06170be8bbfe3617dec5e023d9396f456"
+  },
+  {
+    "directory": "w128-s17-lr0.1-wd0",
+    "historySha256": "efa3624be54a8f54504faa8dd5f631cdc49a5bc06e47378c64319da9db00b5ff"
+  },
+  {
+    "directory": "w128-s23-lr0.1-wd0",
+    "historySha256": "ba1d414e58ff1fa0e2ce343965f04bfc9b7b2c7b3fab57f5c52e7cb2a06e844a"
+  },
+  {
+    "directory": "w128-s17-lr0.1-wd0.0001",
+    "historySha256": "8353797482be0cbc9ccd967c47a01b6a256c6d1676bb8de1f93b157ea47925a0"
+  },
+  {
+    "directory": "w128-s23-lr0.1-wd0.0001",
+    "historySha256": "21d4bb5493a674a0f0b86db452d58acf5bf6508557be24724af04e15d695ef87"
+  },
+  {
+    "directory": "w128-s17-lr0.1-wd0.001",
+    "historySha256": "a3995bdbb3735d4ba636982e1fc407a566bdc9cd518788ea386d24d2eda49c44"
+  },
+  {
+    "directory": "w128-s23-lr0.1-wd0.001",
+    "historySha256": "60f0aaf35d53f18707cc689aac7c255adb5cac376a2351139a36a65ee0da6eec"
+  },
+  {
+    "directory": "w128-s11-lr0.1-wd1",
+    "historySha256": "4df4b510d1c2f193ecb73b55108a540e52f7e28a7222cb3cabe83bb3ded61e30"
+  },
+  {
+    "directory": "w128-s17-lr0.1-wd1",
+    "historySha256": "dea0dc92813e349e75b79d0e0d2c2f4099fef5423f025147666812c7db08aacf"
+  },
+  {
+    "directory": "w128-s23-lr0.1-wd1",
+    "historySha256": "d331ef0a7296eb98b287111867455552c09087b6b3dca18ee58ec71f40eb6974"
+  },
+  {
+    "directory": "w128-s11-lr1-wd0",
+    "historySha256": "272c5f1f9bf9f0bd8f18c9617004a8b107c3dcbb78d98fb258f6e295b43ff2e6"
+  },
+  {
+    "directory": "w128-s17-lr1-wd0",
+    "historySha256": "69b69c68c4d513b547a1fa5be53cde5e5e8135852aa930ffc55b552b525a60a9"
+  },
+  {
+    "directory": "w128-s23-lr1-wd0",
+    "historySha256": "858aecb086037262a3b1a380384f8c0b926412454709f4e0688f01046c1d0caf"
+  },
+  {
+    "directory": "w128-s17-lr1-wd0.0001",
+    "historySha256": "3c60d9150d8ba8f774343f60a32ebd660bc219a522704426f238b2bdcae36ce6"
+  },
+  {
+    "directory": "w128-s23-lr1-wd0.0001",
+    "historySha256": "b8a2380512af763c77057c71f5c37e97ae9a3ecfef38b02e206e515ed92862fe"
+  },
+  {
+    "directory": "w128-s11-lr1-wd0.001",
+    "historySha256": "24349d70a77d030ddb343a5269ce5f55b3b887b249190c7f4e3b2d697e997690"
+  },
+  {
+    "directory": "w128-s17-lr1-wd0.001",
+    "historySha256": "0e40eccdb77f9a5d3e8322426e8db574b2efe73e1d61083c1f27b84ffd0618e8"
+  },
+  {
+    "directory": "w128-s23-lr1-wd0.001",
+    "historySha256": "8934f266b01f31ed9dedc1b8396ced9ea77fcf6ad4f96fb20408a6c49b064e8c"
+  },
+  {
+    "directory": "w128-s11-lr1-wd0.01",
+    "historySha256": "8cae874546a64b92b6f829546dd7c7f8d34c6c064deca40aecf3ad3bb42a144b"
+  },
+  {
+    "directory": "w128-s17-lr1-wd0.01",
+    "historySha256": "5fa45c5ad28f1df0d5a560d9817b169e1016959ad2749c4a43d52f026b59b766"
+  },
+  {
+    "directory": "w128-s23-lr1-wd0.01",
+    "historySha256": "14bfb69a14358e4fcacc05b3fd7a96feb6302981f842fe3c843713c31f527d15"
+  },
+  {
+    "directory": "w128-s11-lr1-wd0.1",
+    "historySha256": "f3aebe70c95abf07606201d971cecd7566f69e570077c0d0491eca69d6dd7803"
+  },
+  {
+    "directory": "w128-s17-lr1-wd0.1",
+    "historySha256": "7d2ffca375fbd25f8ee91ec74df824b6920d5155dd6098d3d3d4ff86f5c77236"
+  },
+  {
+    "directory": "w128-s23-lr1-wd0.1",
+    "historySha256": "8053036df4bfe9a50e27b19d55cef0a1bdb4b3f3ab00cc55e720ec8ca0992922"
+  },
+  {
+    "directory": "w128-s11-lr1-wd1",
+    "historySha256": "702e48fad7bbe025066e956baad13690d92abf3170689193ab80097123d2ecc5"
+  },
+  {
+    "directory": "w128-s17-lr1-wd1",
+    "historySha256": "de6346ea7b8d7684a54e83518f552d8c0ca11081074f46dcb10c9449b1f988e3"
+  },
+  {
+    "directory": "w128-s23-lr1-wd1",
+    "historySha256": "5e88ae56dd3d782ee4a664c20c403e7fe369780b8973518333285f5096927fb0"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd0",
+    "historySha256": "97cdeda3b21b6dfd6c29ea5771f34caba2d2b921ef54a4d1ecb209da8a7baf11"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd0.0001",
+    "historySha256": "99fe5424a77105f17d24d5d5511c474e57a7918064ddf55890a48689089dd545"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd0.001",
+    "historySha256": "ff00a3a623a7b41d93346900ebb7cf44ec2810c6bbcbc131949eb81abfde3d3b"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd0.01",
+    "historySha256": "61be5cd0d58de5aa88b3be96c4e7d39780683fab1c251591c12bd13675f3ec6a"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd0.1",
+    "historySha256": "99ef053f4e10d16a87d2e4c3094772c75d0e1d698c357ead5d1d938a75cefd7b"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd0.3",
+    "historySha256": "ebb689d2a962aae3e6a14b5b316566a3c34d9474d4198e9a438efc38341e98c8"
+  },
+  {
+    "directory": "w128-s11-lr0.00003-wd1",
+    "historySha256": "411d3d0284b8c1752a80647ba031837d7590d46b77a18ed19afd68aa60cede16"
+  },
+  {
+    "directory": "w128-s17-lr0.00003-wd1",
+    "historySha256": "e60d211c989510e1a026e2e5c0ee795d5190b6dce693372fd3332678526b8beb"
+  },
+  {
+    "directory": "w128-s23-lr0.00003-wd1",
+    "historySha256": "2f7e7955682210a3dbc2658d1be1ed1f002629b01cdd53f2203118ea5560bc3e"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd0",
+    "historySha256": "1785a8ca2a2ccf933ab2a9de88ad64b1181879229d8a6b11eafb9e8b7aeb583c"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd0.0001",
+    "historySha256": "322ed3c442cd28765ce450e6ea8fbe7d4b04b98035257159890601d72635e0ed"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd0.001",
+    "historySha256": "1df10fd64585a04939d5cbdf8e351fec99411f232f1a777a3301b8d6f2069c5c"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd0.01",
+    "historySha256": "011ca1e882d17e1cd34d1931f76dc76e546eff6e77cbb0ac121d5989ce17629d"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd0.1",
+    "historySha256": "591dccf91d52ef20d87fa5c8af889d48ffc083247188ed939a9fb1c0c1e36af6"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd0.3",
+    "historySha256": "469ce629e1092e26dda2805dd6302dc66985d09966b1ebda11be6d9be40be2c6"
+  },
+  {
+    "directory": "w128-s17-lr0.00005-wd0.3",
+    "historySha256": "7ab74e768417356ec98866405b51f66fbdbf42adeb5eb0ff3d7101461b33245a"
+  },
+  {
+    "directory": "w128-s23-lr0.00005-wd0.3",
+    "historySha256": "593bf7e2080186afb7744a2ed0476795b082c4b3644575aabf12faf9abacf33a"
+  },
+  {
+    "directory": "w128-s11-lr0.00005-wd1",
+    "historySha256": "93cfae842840de00569dcc465388f3bcd382ff960bd6b530e81415ef67a379f1"
+  },
+  {
+    "directory": "w128-s17-lr0.00005-wd1",
+    "historySha256": "942379cb4385aa7dd2629757e0531a76a2abbeafe52216cf1ecbebb44d57ebc4"
+  },
+  {
+    "directory": "w128-s23-lr0.00005-wd1",
+    "historySha256": "0cdcd6cbe164c2ee8e48d1612baf52ed4cc56b255b2f7f7015aa2581892f8749"
+  },
+  {
+    "directory": "plateau-w128-s11-lr0.0001-wd0.3",
+    "historySha256": "9329f47b9fc4fc786d515d20a1f3c85559bf8c8ca9a059d20aff8ae8383e212c"
+  },
+  {
+    "directory": "w128-s17-lr0.0001-wd0.3",
+    "historySha256": "956e9f9ac23e82c1fae8cc48696060b64579cd85e1cd2afe1c27849e2db4de5e"
+  },
+  {
+    "directory": "w128-s23-lr0.0001-wd0.3",
+    "historySha256": "0b7396078a5fbb1270e6076c8eb48dbb80d32a5122166865dd7be0e75717e7d3"
+  },
+  {
+    "directory": "plateau-w128-s11-lr0.0003-wd0.3",
+    "historySha256": "20ecf9197a8663a24edec4a01f8071b76d8be179c5d9050aace4c869679148c3"
+  },
+  {
+    "directory": "w128-s17-lr0.0003-wd0.3",
+    "historySha256": "6fe63bd8d34d02935b0d1137762af5d17cbe987d81bcf60374abf20a89830401"
+  },
+  {
+    "directory": "w128-s23-lr0.0003-wd0.3",
+    "historySha256": "31f3956ff2131cc728dbd113ee8488aac4fd549e95b45d97c66e857b781cb852"
+  },
+  {
+    "directory": "plateau-w128-s11-lr0.001-wd0.3",
+    "historySha256": "68bc49bee7b89ec4140a35dc5c82f9906a260dd658a3d46a333087bac10f9baf"
+  },
+  {
+    "directory": "w128-s17-lr0.001-wd0.3",
+    "historySha256": "919f9013b940fab00543210ef28847de70a81c2ddf3e136096c21bf0dd50e434"
+  },
+  {
+    "directory": "w128-s23-lr0.001-wd0.3",
+    "historySha256": "ec52167fae7372855a6d63f47044de8cab8389e1cdf5efe63f79d2291f2200bc"
+  },
+  {
+    "directory": "plateau-w128-s11-lr0.003-wd0.3",
+    "historySha256": "206eb9d381c3c026370d1422c7fa0b92d0020d4a53bdf4259ffb5374bc21431f"
+  },
+  {
+    "directory": "w128-s17-lr0.003-wd0.3",
+    "historySha256": "2ef568c71714429da30bea5355596ec44c1b1bdb07754eb1a247d465ec6fd489"
+  },
+  {
+    "directory": "w128-s23-lr0.003-wd0.3",
+    "historySha256": "890dcb14827b39f38291bffa07215ae235284e53d38e163b2fa9396f595aea33"
+  },
+  {
+    "directory": "plateau-w128-s11-lr0.01-wd0.3",
+    "historySha256": "ed2be4b978e2063f17946299f45736e1b563b1ba589bd55bb1fd61025a404c8c"
+  },
+  {
+    "directory": "w128-s17-lr0.01-wd0.3",
+    "historySha256": "5f37d62cf98461867b5a9a0e36a83bba1517f06c24d88447e7e4de46dc4eed1c"
+  },
+  {
+    "directory": "w128-s23-lr0.01-wd0.3",
+    "historySha256": "e09014a53ac086eaa8163561b51442c49acac2352bf27711fd4adcb84302775a"
+  },
+  {
+    "directory": "w128-s11-lr0.1-wd0.3",
+    "historySha256": "19003f5eab494f1fb3c44937b629292cc209bd0052a8ce7d025746cce68a49b8"
+  },
+  {
+    "directory": "w128-s17-lr0.1-wd0.3",
+    "historySha256": "c092942b6cc3564b8d305f097fbe18fbe0b9a4c32bbaf29b9fb850e210d16b9c"
+  },
+  {
+    "directory": "w128-s23-lr0.1-wd0.3",
+    "historySha256": "0c1f0c3a79442f6f105ee9d6034e5f6037414b52e573681d996999964c7f0b85"
+  },
+  {
+    "directory": "w128-s11-lr1-wd0.3",
+    "historySha256": "71896854f8bbed45d635019d54266b1d3a9c576865816801612013b516d59b9b"
+  }
+]

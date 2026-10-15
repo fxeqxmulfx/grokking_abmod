@@ -1,4 +1,5 @@
 // Sequential CUDA training avoids contention and retains every trial history.
+// Usage: node scripts/optimizer-grid.mjs [output] [plan]
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdir, readFile, writeFile, open, stat, rename} from 'node:fs/promises';
@@ -7,7 +8,7 @@ import {eligible,rank,screenBudget,robustBound} from './optimizer-grid-policy.mj
 
 const root = resolve(new URL('..', import.meta.url).pathname);
 const directory = resolve(process.argv[2] ?? join(root,'target/optimizer-grid/search'));
-const plan = JSON.parse(await readFile(join(root,'experiments/div97-dense-optimizer-grid.json'),'utf8'));
+const plan = JSON.parse(await readFile(resolve(process.argv[3] ?? join(root,'experiments/div97-dense-optimizer-grid.json')),'utf8'));
 const original = join(root,'target/grok-div97-dense-embedding-normal-width/bin/mesh-gpt');
 const readyPath = join(root,'target/optimizer-grid/cuda-ready.json');
 await mkdir(directory,{recursive:true});
@@ -43,11 +44,12 @@ function metrics(rows) {
     peakTrain:Math.max(...rows.map(row=>row.train_accuracy)),peakTest:Math.max(...rows.map(row=>row.validation_accuracy)),
     finalTrain:final.train_accuracy,finalTest:final.validation_accuracy,finalTestLoss:final.validation_cross_entropy,completedEpochs:final.completed_epochs};
 }
+// A verified binary serves the widths it lists, by default only W1024.
 async function trainer(width) {
-  if (width!==1024) return original;
   while(!stopped) {
-    try {const ready=JSON.parse(await readFile(readyPath,'utf8')); if(ready.verified) {await stat(ready.binary);return ready.binary;}}
+    try {const ready=JSON.parse(await readFile(readyPath,'utf8')); if(ready.verified&&(ready.widths??[1024]).includes(width)) {await stat(ready.binary);return ready.binary;}}
     catch(error) {if(error.code!=='ENOENT')throw error;}
+    if(width!==1024)return original;
     await pause(1000);
   }
   throw new Error('Search stopped.');
@@ -113,5 +115,7 @@ for(const width of plan.widths) {
 }
 const hash=async path=>createHash('sha256').update(await readFile(path)).digest('hex');
 const ready=JSON.parse(await readFile(readyPath,'utf8'));
-await writeFile(join(directory,'source.json'),JSON.stringify({originalBinarySha256:await hash(original),wideBinarySha256:await hash(ready.binary),sourceSha256:await hash(new URL(import.meta.url)),completed:true},null,2)+'\n');
+const binaries={};
+for(const binary of new Set(runs.map(run=>run.binary)))binaries[binary]=await hash(binary);
+await writeFile(join(directory,'source.json'),JSON.stringify({originalBinarySha256:await hash(original),wideBinarySha256:await hash(ready.binary),binarySha256:binaries,sourceSha256:await hash(new URL(import.meta.url)),completed:true},null,2)+'\n');
 console.log('COMPLETE: optimizer grid and independent-seed confirmations.');

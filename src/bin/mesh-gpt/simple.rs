@@ -2,9 +2,11 @@ use std::{
     fs::{File, OpenOptions},
     io::{BufWriter, Write},
     path::{Path, PathBuf},
+    sync::mpsc::{self, Receiver, Sender, SyncSender},
     time::Instant,
 };
 
+use cuda_core::PinnedHostBuffer;
 use grokking_abmod::{
     Result,
     gpt::{AdamWOptions, EquationDataset, EquationSampler, ModularOperation},
@@ -543,60 +545,75 @@ fn train(mut options: Options) -> Result<()> {
     )?;
     let start = Instant::now();
     let mut thresholds = Thresholds::default();
-    let mut validation_accuracy = record(
-        &mut history,
-        &mut model,
-        &splits,
-        &options.output,
-        [0, 0],
-        0.0,
-        start.elapsed().as_secs_f64(),
-        &mut thresholds,
-    )?;
-    std::fs::copy(
-        options.output.join("model.bin"),
-        options.output.join("initial-model.bin"),
-    )?;
+    let mut validation_accuracy = 0.0;
     let (mut step, mut trained_examples) = (0, 0);
-    let mut epoch = Epoch::sample(
-        &model,
-        &splits[0],
-        &mut sampler,
-        batch,
-        steps_per_epoch.min(options.steps),
-    )?;
-    // The stopping rule only sees complete-split evaluations, never training batches.
-    while step < options.steps
-        && !reached_stop(options.stop_validation_accuracy, validation_accuracy)
-    {
-        if epoch.next == epoch.minibatches.len() {
-            epoch = Epoch::sample(
+    let targets = [splits[0].targets.as_slice(), splits[1].targets.as_slice()];
+    let (directory, classes) = (options.output.as_path(), model.config().modulus);
+    // A writer thread scores and saves each record while training continues,
+    // then returns its page-locked buffers for later records.
+    std::thread::scope(|scope| -> Result<()> {
+        let (records, queue) = mpsc::sync_channel(2);
+        let (returns, returned) = mpsc::channel();
+        let writer = scope.spawn(move || {
+            write_records(queue, returns, history, targets, directory, classes)
+                .map_err(|error| error.to_string())
+        });
+        let records = (records, returned);
+        let trained = (|| -> Result<()> {
+            validation_accuracy = record(
+                &records,
+                &mut model,
+                &splits,
+                [0, 0],
+                0.0,
+                start.elapsed().as_secs_f64(),
+                &mut thresholds,
+            )?;
+            let mut epoch = Epoch::sample(
                 &model,
                 &splits[0],
                 &mut sampler,
                 batch,
-                steps_per_epoch.min(options.steps - step),
+                steps_per_epoch.min(options.steps),
             )?;
-        }
-        let [offset, rows] = epoch.minibatches[epoch.next];
-        epoch.next += 1;
-        step += 1;
-        let optimizer = warmed_optimizer(options.optimizer, step);
-        model.train_batch(&splits[0].table, &epoch.batches, offset, rows, optimizer)?;
-        trained_examples += rows;
-        if step.is_multiple_of(options.report_every) || step == options.steps {
-            validation_accuracy = record(
-                &mut history,
-                &mut model,
-                &splits,
-                &options.output,
-                [step, trained_examples],
-                optimizer.learning_rate,
-                start.elapsed().as_secs_f64(),
-                &mut thresholds,
-            )?;
-        }
-    }
+            // The stopping rule only sees complete-split evaluations, never training batches.
+            while step < options.steps
+                && !reached_stop(options.stop_validation_accuracy, validation_accuracy)
+            {
+                if epoch.next == epoch.minibatches.len() {
+                    epoch = Epoch::sample(
+                        &model,
+                        &splits[0],
+                        &mut sampler,
+                        batch,
+                        steps_per_epoch.min(options.steps - step),
+                    )?;
+                }
+                let [offset, rows] = epoch.minibatches[epoch.next];
+                epoch.next += 1;
+                step += 1;
+                let optimizer = warmed_optimizer(options.optimizer, step);
+                model.train_batch(&splits[0].table, &epoch.batches, offset, rows, optimizer)?;
+                trained_examples += rows;
+                if step.is_multiple_of(options.report_every) || step == options.steps {
+                    validation_accuracy = record(
+                        &records,
+                        &mut model,
+                        &splits,
+                        [step, trained_examples],
+                        optimizer.learning_rate,
+                        start.elapsed().as_secs_f64(),
+                        &mut thresholds,
+                    )?;
+                }
+            }
+            Ok(())
+        })();
+        drop(records);
+        // A writer error explains a failed send, so it comes first.
+        writer.join().map_err(|_| "the record writer panicked")??;
+        trained
+    })?;
     let stop_reason = if reached_stop(options.stop_validation_accuracy, validation_accuracy) {
         "validation_accuracy"
     } else {
@@ -671,83 +688,174 @@ fn family(config: SimpleConfig) -> String {
     }
 }
 
-struct Metrics {
-    loss: f64,
-    accuracy: f64,
-}
-
 /// Cross-entropy and prediction of every row, as for Mesh GPT answers.
-fn row_results(model: &mut GpuSimpleModel, split: &Split) -> Result<Vec<(f64, usize)>> {
-    let logits = model.logits(&split.table)?;
-    Ok(logits
-        .chunks_exact(model.config().modulus)
-        .zip(&split.targets)
-        .map(|(row, &target)| row_metrics(row, target as usize))
-        .collect())
-}
-
-fn evaluate(model: &mut GpuSimpleModel, split: &Split) -> Result<Metrics> {
-    let rows = row_results(model, split)?;
-    let (mut loss, mut correct) = (0.0, 0);
-    for ((cross_entropy, prediction), &target) in rows.iter().zip(&split.targets) {
-        loss += cross_entropy;
-        correct += usize::from(*prediction == target as usize);
-    }
-    Ok(Metrics {
-        loss: loss / rows.len() as f64,
-        accuracy: correct as f64 / rows.len() as f64,
+/// Rows are independent: worker threads score contiguous chunks, and the
+/// results keep the row order, so every later sum is unchanged.
+fn score_rows(logits: &[f32], targets: &[u32], classes: usize) -> Result<Vec<(f64, usize)>> {
+    let rows = targets.len();
+    let workers = std::thread::available_parallelism().map_or(1, usize::from);
+    let chunk = rows.div_ceil(workers).max(1);
+    std::thread::scope(|scope| {
+        let workers: Vec<_> = logits
+            .chunks(chunk * classes)
+            .zip(targets.chunks(chunk))
+            .map(|(logits, targets)| {
+                scope.spawn(move || {
+                    logits
+                        .chunks_exact(classes)
+                        .zip(targets)
+                        .map(|(row, &target)| row_metrics(row, target as usize))
+                        .collect::<Vec<_>>()
+                })
+            })
+            .collect();
+        let mut results = Vec::with_capacity(rows);
+        for worker in workers {
+            results.extend(
+                worker
+                    .join()
+                    .map_err(|_| "row evaluation thread panicked")?,
+            );
+        }
+        Ok(results)
     })
 }
 
-/// `progress` holds the completed updates and the training examples they saw.
-#[allow(clippy::too_many_arguments)]
+fn row_results(model: &mut GpuSimpleModel, split: &Split) -> Result<Vec<(f64, usize)>> {
+    let logits = model.logits(&split.table)?;
+    score_rows(&logits, &split.targets, model.config().modulus)
+}
+
+/// The fraction of rows whose prediction is the target.
+fn split_accuracy(predictions: &[u32], targets: &[u32]) -> f64 {
+    let correct = predictions
+        .iter()
+        .zip(targets)
+        .filter(|(prediction, target)| prediction == target)
+        .count();
+    correct as f64 / targets.len() as f64
+}
+
+/// The device results of one record, which the writer thread scores.
+struct Snapshot {
+    /// The completed updates and the training examples they saw.
+    progress: [usize; 2],
+    learning_rate: f32,
+    elapsed: f64,
+    /// Logits and accuracy of the training and validation splits.
+    logits: [PinnedHostBuffer<f32>; 2],
+    accuracy: [f64; 2],
+    parameters: PinnedHostBuffer<f32>,
+}
+
+/// Evaluates both splits on the device and queues the record. Returns the
+/// validation accuracy, the only record value that can stop training.
+/// `records` also carries back the buffers of written records.
 fn record(
-    history: &mut impl Write,
+    records: &(SyncSender<Snapshot>, Receiver<PinnedHostBuffer<f32>>),
     model: &mut GpuSimpleModel,
     splits: &[Split],
-    directory: &Path,
     progress: [usize; 2],
     learning_rate: f32,
     elapsed: f64,
     thresholds: &mut Thresholds,
 ) -> Result<f64> {
-    let [step, trained_examples] = progress;
-    let train = evaluate(model, &splits[0])?;
-    let validation = evaluate(model, &splits[1])?;
-    if train.accuracy >= 0.99 && thresholds.training.is_none() {
+    let (records, returned) = records;
+    for buffer in returned.try_iter() {
+        model.reuse(buffer);
+    }
+    let step = progress[0];
+    let evaluations = model.evaluate([&splits[0].table, &splits[1].table])?;
+    let accuracy = [0, 1].map(|i| split_accuracy(&evaluations[i].predictions, &splits[i].targets));
+    let logits = evaluations.map(|evaluation| evaluation.logits);
+    if accuracy[0] >= 0.99 && thresholds.training.is_none() {
         thresholds.training = Some(step);
     }
-    if validation.accuracy >= 0.99 && thresholds.validation.is_none() {
+    if accuracy[1] >= 0.99 && thresholds.validation.is_none() {
         thresholds.validation = Some(step);
     }
-    let parameters = model.parameters()?;
-    let norm = parameters
-        .iter()
-        .map(|&x| f64::from(x).powi(2))
-        .sum::<f64>()
-        .sqrt();
-    let count = splits[0].targets.len();
-    writeln!(
-        history,
-        "{step},{trained_examples},{},{},{:.9},{:.9},{:.9},{:.9},{norm:.9},{learning_rate:.9},{elapsed:.6}",
-        trained_examples / count,
-        trained_examples % count,
-        train.loss,
-        validation.loss,
-        train.accuracy,
-        validation.accuracy
-    )?;
-    history.flush()?;
-    let bytes: Vec<_> = parameters.iter().flat_map(|x| x.to_le_bytes()).collect();
-    std::fs::write(directory.join("model.bin"), bytes)?;
-    println!(
-        "step {step:>7}: train CE={:.5} accuracy={:.2}%; validation CE={:.5} accuracy={:.2}%",
-        train.loss,
-        100.0 * train.accuracy,
-        validation.loss,
-        100.0 * validation.accuracy
-    );
-    Ok(validation.accuracy)
+    let snapshot = Snapshot {
+        progress,
+        learning_rate,
+        elapsed,
+        logits,
+        accuracy,
+        parameters: model.pinned_parameters()?,
+    };
+    records
+        .send(snapshot)
+        .map_err(|_| "the record writer stopped")?;
+    Ok(accuracy[1])
+}
+
+/// The mean cross-entropy, summed in row order.
+fn mean_cross_entropy(logits: &[f32], targets: &[u32], classes: usize) -> Result<f64> {
+    let rows = score_rows(logits, targets, classes)?;
+    let mut loss = 0.0;
+    for (cross_entropy, _) in &rows {
+        loss += cross_entropy;
+    }
+    Ok(loss / rows.len() as f64)
+}
+
+/// Writes records in order: a `loss.csv` line, `model.bin` and a console
+/// line each. The first record's parameters also become `initial-model.bin`.
+/// Each record's buffers then go back through `returns`.
+fn write_records(
+    records: Receiver<Snapshot>,
+    returns: Sender<PinnedHostBuffer<f32>>,
+    mut history: impl Write,
+    targets: [&[u32]; 2],
+    directory: &Path,
+    classes: usize,
+) -> Result<()> {
+    for snapshot in records {
+        let Snapshot {
+            progress: [step, trained_examples],
+            learning_rate,
+            elapsed,
+            logits,
+            accuracy,
+            parameters,
+        } = snapshot;
+        let train_loss = mean_cross_entropy(&logits[0], targets[0], classes)?;
+        let validation_loss = mean_cross_entropy(&logits[1], targets[1], classes)?;
+        let norm = parameters
+            .iter()
+            .map(|&x| f64::from(x).powi(2))
+            .sum::<f64>()
+            .sqrt();
+        let count = targets[0].len();
+        writeln!(
+            history,
+            "{step},{trained_examples},{},{},{:.9},{:.9},{:.9},{:.9},{norm:.9},{learning_rate:.9},{elapsed:.6}",
+            trained_examples / count,
+            trained_examples % count,
+            train_loss,
+            validation_loss,
+            accuracy[0],
+            accuracy[1]
+        )?;
+        history.flush()?;
+        let bytes: Vec<_> = parameters.iter().flat_map(|x| x.to_le_bytes()).collect();
+        std::fs::write(directory.join("model.bin"), bytes)?;
+        if step == 0 {
+            std::fs::copy(
+                directory.join("model.bin"),
+                directory.join("initial-model.bin"),
+            )?;
+        }
+        println!(
+            "step {step:>7}: train CE={train_loss:.5} accuracy={:.2}%; validation CE={validation_loss:.5} accuracy={:.2}%",
+            100.0 * accuracy[0],
+            100.0 * accuracy[1]
+        );
+        // Once training has ended, a failed send just drops the buffer.
+        for buffer in logits.into_iter().chain([parameters]) {
+            let _ = returns.send(buffer);
+        }
+    }
+    Ok(())
 }
 
 fn write_predictions(

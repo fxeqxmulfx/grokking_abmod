@@ -14,7 +14,7 @@ use crate::{
     mesh::Random,
 };
 
-pub use gpu::{DeviceBatches, DeviceTable, GpuSimpleModel};
+pub use gpu::{DeviceBatches, DeviceTable, Evaluation, GpuSimpleModel};
 pub use reference::ReferenceSimpleModel;
 
 /// Largest supported layer width, including a residual block's expansion.

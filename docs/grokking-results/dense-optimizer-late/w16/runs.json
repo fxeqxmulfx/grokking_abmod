@@ -1,0 +1,1983 @@
+[
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.1,
+    "weightDecay": 0,
+    "stage": "screen",
+    "budget": 2000,
+    "directory": "screen-w16-s11-lr0.1-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-dense-embedding-normal-width/bin/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 11.671,
+    "firstTrain99": 159,
+    "firstTest90": 92,
+    "firstTest99": 1033,
+    "peakTrain": 1,
+    "peakTest": 0.990120275,
+    "finalTrain": 1,
+    "finalTest": 0.990120275,
+    "finalTestLoss": 0.045183978,
+    "completedEpochs": 1033,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 78,
+      "event": {
+        "epoch": 1033,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 78
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.1,
+    "weightDecay": 0,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s17-lr0.1-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 2.457,
+    "firstTrain99": 165,
+    "firstTest90": 95,
+    "firstTest99": 407,
+    "peakTrain": 1,
+    "peakTest": 0.990120275,
+    "finalTrain": 1,
+    "finalTest": 0.990120275,
+    "finalTestLoss": 0.078920986,
+    "completedEpochs": 407,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 75,
+      "event": {
+        "epoch": 407,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 75
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 23,
+    "learningRate": 0.1,
+    "weightDecay": 0,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s23-lr0.1-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 1.684,
+    "firstTrain99": 94,
+    "firstTest90": 60,
+    "firstTest99": 163,
+    "peakTrain": 0.999140893,
+    "peakTest": 0.990549828,
+    "finalTrain": 0.998926117,
+    "finalTest": 0.990549828,
+    "finalTestLoss": 0.177070103,
+    "completedEpochs": 163,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 41,
+      "event": {
+        "epoch": 163,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 41
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.1,
+    "weightDecay": 0.0001,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s11-lr0.1-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.804,
+    "firstTrain99": null,
+    "firstTest90": null,
+    "firstTest99": null,
+    "peakTrain": 0.800902062,
+    "peakTest": 0.614261168,
+    "finalTrain": 0.785008591,
+    "finalTest": 0.611254296,
+    "finalTestLoss": 0.976752808,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.1,
+    "weightDecay": 0.001,
+    "stage": "screen",
+    "budget": 2000,
+    "directory": "screen-w16-s11-lr0.1-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/grok-div97-dense-embedding-normal-width/bin/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 5.036,
+    "firstTrain99": 180,
+    "firstTest90": 103,
+    "firstTest99": 418,
+    "peakTrain": 1,
+    "peakTest": 0.993127148,
+    "finalTrain": 1,
+    "finalTest": 0.993127148,
+    "finalTestLoss": 0.135369497,
+    "completedEpochs": 418,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 88,
+      "event": {
+        "epoch": 418,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 88
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.1,
+    "weightDecay": 0.001,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s17-lr0.1-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.001,
+    "firstTrain99": 278,
+    "firstTest90": 189,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.970790378,
+    "finalTrain": 1,
+    "finalTest": 0.963487973,
+    "finalTestLoss": 0.126828107,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 166,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.1,
+    "weightDecay": 0.01,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s11-lr0.1-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.591,
+    "firstTrain99": null,
+    "firstTest90": null,
+    "firstTest99": null,
+    "peakTrain": 0.948883162,
+    "peakTest": 0.886383162,
+    "finalTrain": 0.923539519,
+    "finalTest": 0.859750859,
+    "finalTestLoss": 0.613472585,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 1,
+    "weightDecay": 0,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s11-lr1-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.99,
+    "firstTrain99": null,
+    "firstTest90": null,
+    "firstTest99": null,
+    "peakTrain": 0.694158076,
+    "peakTest": 0.578178694,
+    "finalTrain": 0.618341924,
+    "finalTest": 0.530068729,
+    "finalTestLoss": 1.759044578,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 1,
+    "weightDecay": 0.0001,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s11-lr1-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.976,
+    "firstTrain99": null,
+    "firstTest90": null,
+    "firstTest99": null,
+    "peakTrain": 0.400987973,
+    "peakTest": 0.327749141,
+    "finalTrain": 0.359106529,
+    "finalTest": 0.286082474,
+    "finalTestLoss": 2.231386829,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 1,
+    "weightDecay": 0.001,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s11-lr1-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.963,
+    "firstTrain99": null,
+    "firstTest90": null,
+    "firstTest99": null,
+    "peakTrain": 0.379725086,
+    "peakTest": 0.299828179,
+    "finalTrain": 0.312070447,
+    "finalTest": 0.276202749,
+    "finalTestLoss": 2.355953377,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 1,
+    "weightDecay": 0.01,
+    "stage": "confirm",
+    "budget": 10000,
+    "directory": "confirm-w16-s11-lr1-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.685,
+    "firstTrain99": null,
+    "firstTest90": null,
+    "firstTest99": null,
+    "peakTrain": 0.12371134,
+    "peakTest": 0.100515464,
+    "finalTrain": 0.091924399,
+    "finalTest": 0.08161512,
+    "finalTestLoss": 3.625701852,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.02,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.02-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.781,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.918814433,
+    "peakTest": 0.736469072,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.02,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.02-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.201,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.900558419,
+    "peakTest": 0.726804124,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.02,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.02-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.693,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.851589347,
+    "peakTest": 0.659579038,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.02,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.02-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.791,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.941580756,
+    "peakTest": 0.838917526,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.03,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.03-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.508,
+    "firstTrain99": 319,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.968427835,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 162,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.03,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.03-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.582,
+    "firstTrain99": 295,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.988831615,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 158,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.03,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.03-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 2.819,
+    "firstTrain99": 258,
+    "firstTest99": 490,
+    "peakTrain": 0.999785223,
+    "peakTest": 0.990335052,
+    "completedEpochs": 490,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 111,
+      "event": {
+        "epoch": 490,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 111
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.03,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.03-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.314,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.701245704,
+    "peakTest": 0.45919244,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.03,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.03-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 7.669,
+    "firstTrain99": 402,
+    "firstTest99": 1967,
+    "peakTrain": 0.999140893,
+    "peakTest": 0.990120275,
+    "completedEpochs": 1967,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 146,
+      "event": {
+        "epoch": 1967,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 146
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.03,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.03-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.077,
+    "firstTrain99": 5938,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.98217354,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 327,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.05,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.05-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.199,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.805412371,
+    "peakTest": 0.60588488,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.05,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.05-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.531,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.757087629,
+    "peakTest": 0.546391753,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.05,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.05-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.199,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.58225945,
+    "peakTest": 0.39475945,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.05,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.05-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.854,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.919888316,
+    "peakTest": 0.833118557,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.07,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.07-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 34.543,
+    "firstTrain99": 490,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.971005155,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 347,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.07,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.07-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.503,
+    "firstTrain99": 263,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.979381443,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 148,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.07,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.07-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 40.356,
+    "firstTrain99": 256,
+    "firstTest99": null,
+    "peakTrain": 1,
+    "peakTest": 0.981743986,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 153,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.07,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.07-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 39.904,
+    "firstTrain99": 181,
+    "firstTest99": null,
+    "peakTrain": 0.998496564,
+    "peakTest": 0.988187285,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 74,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.15,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.15-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.077,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.608032646,
+    "peakTest": 0.427190722,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.15,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.15-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.286,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.701675258,
+    "peakTest": 0.459407216,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.15,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.15-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 17.242,
+    "firstTrain99": 146,
+    "firstTest99": 5079,
+    "peakTrain": 1,
+    "peakTest": 0.990335052,
+    "completedEpochs": 5079,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 62,
+      "event": {
+        "epoch": 5079,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 62
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.15,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.15-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 5.078,
+    "firstTrain99": 959,
+    "firstTest99": 1219,
+    "peakTrain": 1,
+    "peakTest": 0.990335052,
+    "completedEpochs": 1219,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 905,
+      "event": {
+        "epoch": 1219,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 905
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 23,
+    "learningRate": 0.15,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s23-lr0.15-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 6.756,
+    "firstTrain99": 1603,
+    "firstTest99": 1705,
+    "peakTrain": 1,
+    "peakTest": 0.990335052,
+    "completedEpochs": 1705,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 1570,
+      "event": {
+        "epoch": 1705,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 1570
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.15,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.15-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.656,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.821950172,
+    "peakTest": 0.74871134,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.2,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.2-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 1.729,
+    "firstTrain99": 116,
+    "firstTest99": 158,
+    "peakTrain": 0.99806701,
+    "peakTest": 0.991194158,
+    "completedEpochs": 158,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 57,
+      "event": {
+        "epoch": 158,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 57
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.2,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.2-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 2.262,
+    "firstTrain99": 215,
+    "firstTest99": 327,
+    "peakTrain": 0.99871134,
+    "peakTest": 0.991194158,
+    "completedEpochs": 327,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 78,
+      "event": {
+        "epoch": 327,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 78
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 23,
+    "learningRate": 0.2,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s23-lr0.2-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.765,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.522766323,
+    "peakTest": 0.301116838,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.2,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.2-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.868,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.680841924,
+    "peakTest": 0.45919244,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.2,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.2-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 17.543,
+    "firstTrain99": 3679,
+    "firstTest99": 5182,
+    "peakTrain": 1,
+    "peakTest": 0.990764605,
+    "completedEpochs": 5182,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 3632,
+      "event": {
+        "epoch": 5182,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 3632
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.2,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.2-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 5.394,
+    "firstTrain99": 516,
+    "firstTest99": 1333,
+    "peakTrain": 0.998496564,
+    "peakTest": 0.990120275,
+    "completedEpochs": 1333,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 194,
+      "event": {
+        "epoch": 1333,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 194
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 23,
+    "learningRate": 0.2,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s23-lr0.2-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 23.667,
+    "firstTrain99": 2934,
+    "firstTest99": 7117,
+    "peakTrain": 1,
+    "peakTest": 0.990120275,
+    "completedEpochs": 7117,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 2907,
+      "event": {
+        "epoch": 7117,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 2907
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.2,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.2-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.857,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.978092784,
+    "peakTest": 0.955756014,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 45,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.3,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.3-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 1.828,
+    "firstTrain99": 129,
+    "firstTest99": 187,
+    "peakTrain": 0.998926117,
+    "peakTest": 0.990764605,
+    "completedEpochs": 187,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 38,
+      "event": {
+        "epoch": 187,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 38
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.3,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.3-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.799,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.372852234,
+    "peakTest": 0.218427835,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.3,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.3-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 2.02,
+    "firstTrain99": 199,
+    "firstTest99": 231,
+    "peakTrain": 0.998281787,
+    "peakTest": 0.991194158,
+    "completedEpochs": 231,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 68,
+      "event": {
+        "epoch": 231,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 68
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.3,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.3-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.495,
+    "firstTrain99": 3020,
+    "firstTest99": null,
+    "peakTrain": 0.997637457,
+    "peakTest": 0.878651203,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.3,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.3-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.863,
+    "firstTrain99": 2458,
+    "firstTest99": null,
+    "peakTrain": 0.996993127,
+    "peakTest": 0.970146048,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 870,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.3,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.3-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.703,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.537156357,
+    "peakTest": 0.466280069,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.5,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.5-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 4.672,
+    "firstTrain99": 569,
+    "firstTest99": 1079,
+    "peakTrain": 0.998496564,
+    "peakTest": 0.990335052,
+    "completedEpochs": 1079,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 228,
+      "event": {
+        "epoch": 1079,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 228
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.5,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.5-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.896,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.620919244,
+    "peakTest": 0.448453608,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.5,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.5-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.43,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.683848797,
+    "peakTest": 0.570446735,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.5,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.5-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.506,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.540378007,
+    "peakTest": 0.458118557,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.5,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.5-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 32.669,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.793814433,
+    "peakTest": 0.740549828,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.7,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.7-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 7.068,
+    "firstTrain99": 634,
+    "firstTest99": 1817,
+    "peakTrain": 1,
+    "peakTest": 0.990979381,
+    "completedEpochs": 1817,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 153,
+      "event": {
+        "epoch": 1817,
+        "delayed": false,
+        "plateauEpochs": 0,
+        "perfectTrainEpochs": 0,
+        "riseEpochs": 153
+      }
+    }
+  },
+  {
+    "width": 16,
+    "seed": 17,
+    "learningRate": 0.7,
+    "weightDecay": 0,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s17-lr0.7-wd0",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.998,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.483462199,
+    "peakTest": 0.309063574,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.7,
+    "weightDecay": 0.0001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.7-wd0.0001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 34.285,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.653350515,
+    "peakTest": 0.591280069,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.7,
+    "weightDecay": 0.001,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.7-wd0.001",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.525,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.976159794,
+    "peakTest": 0.95661512,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": 1801,
+      "event": null
+    }
+  },
+  {
+    "width": 16,
+    "seed": 11,
+    "learningRate": 0.7,
+    "weightDecay": 0.01,
+    "stage": "late",
+    "budget": 10000,
+    "directory": "w16-s11-lr0.7-wd0.01",
+    "binary": "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt",
+    "exitCode": 0,
+    "wallSeconds": 33.766,
+    "firstTrain99": null,
+    "firstTest99": null,
+    "peakTrain": 0.235180412,
+    "peakTest": 0.189218213,
+    "completedEpochs": 10000,
+    "grokking": {
+      "plateau": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "perfect": {
+        "start": null,
+        "end": null,
+        "epochs": 0
+      },
+      "riseEpochs": null,
+      "event": null
+    }
+  }
+]

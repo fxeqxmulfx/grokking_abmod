@@ -1,0 +1,602 @@
+[
+  {
+    "directory": "plateau-w64-s11-lr0.0001-wd0",
+    "historySha256": "32a78a2fd1e89efe0ace114308b5be3db6567f50a8b3cee97f643858cccd48a9"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.0001-wd0.01",
+    "historySha256": "5c89af71a675c6bf144e731348b500ec637b17a5ec58859c37e85dae99ff4c45"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.0001-wd0.1",
+    "historySha256": "acd1d59d5d5d8f695d5e065b6e6af680371ed8cee8c6827b04fbd5d9a762b8b8"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.0003-wd0",
+    "historySha256": "0854f112b672e2b60d869c559a46a2c1271b3ebbbac916ed249dc76131c5c2cf"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.0003-wd0.01",
+    "historySha256": "3f09531e919461849587c37d8856d238d4131eac613604dedab2ad44c3226dc3"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.0003-wd0.1",
+    "historySha256": "f4acdc0c6c18a1aa11549145ecdf3e961764ec1ed98d43cfedad75d637b87414"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.001-wd0",
+    "historySha256": "2aebbde704351802b67e9ec4b4fe1f8c8d63a1e353736aa9d0a6e63862410b30"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.001-wd0.01",
+    "historySha256": "8112e2bbbc6acb865dd2a08bcdd405a1a7c5726a2bd3e1440d5187274854c04d"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.001-wd0.1",
+    "historySha256": "2cc0c9374a4bf6b78a7f14e860886ba5f685cb7f07f1a5eeb43cf0f86041218a"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.003-wd0",
+    "historySha256": "3358f5f4a0ea7747b6c50aea73b7fa1c80c09c54a1e3dd1e4fc4299cf0f6cdd7"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.003-wd0.01",
+    "historySha256": "b56bc5bfcd753a1502d14915ecaae68df6a053e9a4c0123815ba687179c842c4"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.003-wd0.1",
+    "historySha256": "e54959a100bcecbf3c9a2841855b54976aeeb5f3a98efa8db5b3b5851b3cbf91"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.01-wd0",
+    "historySha256": "49f8da5cc736720088f79126ab480aaa38a52568cb6cbf48a9b0ada7d41517a0"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.01-wd0.01",
+    "historySha256": "77a165bfda88f095a7ae70fb3d291d1562c56cc93d08f4612bb7f409bdcfef28"
+  },
+  {
+    "directory": "plateau-w64-s11-lr0.01-wd0.1",
+    "historySha256": "61da33abb582c01992d3a5f0fc564aac640d51af670552329918780e5faee1c0"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd0",
+    "historySha256": "8f426d38c482f05926e127dfb49b56857b5c7d42f7fd5fbed108a379a00c7d90"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd0",
+    "historySha256": "6296087977f70a1ddcb1a51d8d202c287051ee82032e0bf0e5481d4cb5bee910"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd0.0001",
+    "historySha256": "ba74c4e1c59e2fcfb5f9eb123592da23c1a74a3ce4e3d8ba8cd85cd5cfc20e84"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd0.001",
+    "historySha256": "7532f0ac36f7d52c732343cdbb9644ff8dd378f98039799f2b6f57d5af47c23d"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd0.01",
+    "historySha256": "80df7150625141c3635e5170b607627f24f9bc756a19d21850bb163eeaf784ae"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd0.1",
+    "historySha256": "b05f4dcafa20e1b35fbd7e2b9ee17e5b84189a40a3bdd369d76c53d94937a125"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd0.3",
+    "historySha256": "25d0c200bc2afeefda5713a168992f846f7d0239b528c835f2325ada6428ca07"
+  },
+  {
+    "directory": "w64-s11-lr0.00003-wd1",
+    "historySha256": "f635b289d3b217be63d218af817281b4193bee96f066be77d746961db6ec7cec"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd0",
+    "historySha256": "f89449b9ddc3da26ec4460eb238e5525af24100e8c905fe92ef0478ee42adcab"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd0.0001",
+    "historySha256": "2d100a489fc95af8361a84cc386539223cc49f670795dd8b3fed57c6dcb9a327"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd0.001",
+    "historySha256": "ba2b22f2685d0ffaa17408fcf0645530e4af1540bb991117ccdffe6fd4d147bb"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd0.01",
+    "historySha256": "8ad4ff9f7372586e7b0ad3fba733c87e26d74e0cd8d5d5107e67f6a1f1dbc322"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd0.1",
+    "historySha256": "d0bed1e0b64ade431f69f30f9c58e013e9a72d622c7949c6b569613736c760a0"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd0.3",
+    "historySha256": "31a5a7359f3201073019bb4b69c845784d390718e49f84f927e54082149b7f04"
+  },
+  {
+    "directory": "w64-s17-lr0.00005-wd0.3",
+    "historySha256": "bd9d58a665ba1020b7256d41836e34e1a06ca5912834676259d2ddecf6ef9e55"
+  },
+  {
+    "directory": "w64-s23-lr0.00005-wd0.3",
+    "historySha256": "65d8d76014206f0ba8dcdc0995ba153189aacc1d138cbca7bacd60d62d34c1a7"
+  },
+  {
+    "directory": "w64-s11-lr0.00005-wd1",
+    "historySha256": "f12400ae8eff02364e87fb9cbee61bf50974e5b262714b55af89e3f995e9ca92"
+  },
+  {
+    "directory": "w64-s17-lr0.00005-wd1",
+    "historySha256": "3a126243af0eb6aca15fe8f875339232899b8a8a5799f915c7f37171c0cf541c"
+  },
+  {
+    "directory": "w64-s23-lr0.00005-wd1",
+    "historySha256": "43d3959adcc7d0d0a064c488a0c4ca6c0c975a28a46ac6a984d6e76afd7cc6ab"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd0",
+    "historySha256": "77f0459abe98cb541cf6fdf8bd045cd66be84e2aca919f992e20c6d30495888e"
+  },
+  {
+    "directory": "w64-s11-lr0.0001-wd0.0001",
+    "historySha256": "c1ee49046f1a966300a7bbffee00003dfc2bdb8aae4fdb67db11513c3a531969"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd0.0001",
+    "historySha256": "9d788d37f37c1e88ff0727dcf8f7de1a53653eaed9a30193c913a0d6a4e0b6ec"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd0.0001",
+    "historySha256": "86cc858fc7c146cc0f9db4841c784e0763975916feaaacac32da5d1ea0d12a14"
+  },
+  {
+    "directory": "w64-s11-lr0.0001-wd0.001",
+    "historySha256": "0d0cd255a552b93220ca7fc9fd8aaa98af8aeb4f63d65da89a45885d5e4542d7"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd0.001",
+    "historySha256": "bf907012028e27f18eec6350ff7bd8cb5fb8a81f33acb84d528e36f81f7ac905"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd0.001",
+    "historySha256": "d9d31475ab31da6c0b3babaa7eaad7f82b079ee67efccb30b97787545c82b397"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd0.01",
+    "historySha256": "f626ed005eb7b28b6c926f48eba60b42d34610740c7b3ae5bda0b8d90af6d25c"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd0.01",
+    "historySha256": "c6a2c498ea6532ee45ab64835a78c8aa0064ff214f5a35a93c28948330b3ecb8"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd0.1",
+    "historySha256": "ee4b1586fa8dd766189883541aee38103470bd414d5724d5b0576bc0f610bb57"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd0.1",
+    "historySha256": "39d1fab448809afbe57d1be5e3d3f61d01e4eded5a181e1b7784a35680b01402"
+  },
+  {
+    "directory": "w64-s11-lr0.0001-wd0.3",
+    "historySha256": "a8df9a4bfc0c625e400a2a20aaec7f6ee74f90d5c53e1a71f2f1a54e47e53091"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd0.3",
+    "historySha256": "29a19825a51c6bfd64a62c90346b29f0e093bc1852257a25dd351dce091445eb"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd0.3",
+    "historySha256": "d91139ab7d74ca2a12b5ef532b4e870747855560ae1517c68128f5ffec3f71eb"
+  },
+  {
+    "directory": "w64-s11-lr0.0001-wd1",
+    "historySha256": "9fd87ff23c8ef3fd9045640567e30f12f5ce7d47685e6229b776a7cd9a4a0f2d"
+  },
+  {
+    "directory": "w64-s17-lr0.0001-wd1",
+    "historySha256": "7506f4598e92b86e7c566500a90fc5177e9e64a30623ffa787f2bb98a98999b2"
+  },
+  {
+    "directory": "w64-s23-lr0.0001-wd1",
+    "historySha256": "4343d97eea361858e64a5b41f335d805d18f3fe09c887b458404d60fbb9131f2"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd0",
+    "historySha256": "714d9368cf0b1c52ff4db63cb03aa087cc8cef69dfc4d395d9c1ef53d722a40b"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd0",
+    "historySha256": "30cd3dc1386f04e55be91a7bcac123fc2eea0bcd97539c8af5ece5096fc02ce1"
+  },
+  {
+    "directory": "w64-s11-lr0.0003-wd0.0001",
+    "historySha256": "8c575aa12b7462d7f8a68ba247fa546ef3c5af2327983f3f96c3fe60c978b722"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd0.0001",
+    "historySha256": "91d8322121716ef73c21614d611d3869b76e6061422247c5ae62384f889b7dda"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd0.0001",
+    "historySha256": "0ae1f688a5894d34780341c916f961ca5c54a8300f1c97c339d1d3213ac145a6"
+  },
+  {
+    "directory": "w64-s11-lr0.0003-wd0.001",
+    "historySha256": "20545c4d533d56e3dde1347f5e183dd6f2e1a474aaf82d5fd57f47d8d62e39db"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd0.001",
+    "historySha256": "f3da4c2801f1d5e65e07ac9ff92aac3a550ac388f1314a086490411bc79c1a81"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd0.001",
+    "historySha256": "d9fe67b7e8dcff4126202d8943c6543a0376b489681481d1e982758eaa9b2a59"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd0.01",
+    "historySha256": "526dd900f8ebc16f244b0cee0c4eec931c47339dd85fc15a6dbb469e160d3cbf"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd0.01",
+    "historySha256": "2c27c202e776aacf6c328203173e1df29473043d3e6a38cca389efe1cfd6f8f1"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd0.1",
+    "historySha256": "e7198a1edd5fa3d5ff0f6dd349d0a4dbf0ea42b90a2198ad054f76b04d81b00d"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd0.1",
+    "historySha256": "3df5a6bb621dc4dcd1a61cde58a2ae88c3c2b894bec916d6f40f866d91c7f27a"
+  },
+  {
+    "directory": "w64-s11-lr0.0003-wd0.3",
+    "historySha256": "39578b91885b23b51492df3ff663a8efa0ffaf7c33a844c0cd7842761f770eff"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd0.3",
+    "historySha256": "b4e10d85c71c9af486f78cda3973fe50c6fefe39f88da0029d44b2248d853393"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd0.3",
+    "historySha256": "1d4496cae413e302110a8cd33d05e92fc09be53dd80777722c9007888e3055b4"
+  },
+  {
+    "directory": "w64-s11-lr0.0003-wd1",
+    "historySha256": "ca2738eb2fa474586cfe07c8e57482f5d73a2f1d7767cb7af9ccea8b4ae96bc9"
+  },
+  {
+    "directory": "w64-s17-lr0.0003-wd1",
+    "historySha256": "e5ccfc39a0c33d11fddc549e8cfb9dedecf52bd83410cb3e3fbf110bb033f90a"
+  },
+  {
+    "directory": "w64-s23-lr0.0003-wd1",
+    "historySha256": "48453ddd680aa365ee61a6435476c8bb50cc62bafccdbc6ab66da9394be818e2"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd0",
+    "historySha256": "5691e232241b0fc7d9d69c8d1a5784b15991960f6537f55f212d7aadc2ec2b72"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd0",
+    "historySha256": "173b2247b3d79f68c339af438b0eeb65394ae11f0abd3348964a3dd7c46745c3"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.001-wd0.0001",
+    "historySha256": "2152eefa67150fc05932fb1f2a4f281c0faa7d47d5cb568cf689307db9f813f6"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd0.0001",
+    "historySha256": "40c1689e069ea71e5bf916cb0b23b8859726a06dd2e1be19cfff1524678b23dc"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd0.0001",
+    "historySha256": "61ad26d91fa167c0e3fe5fa2ab04117307d9602107892105f447efe2002d40f1"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.001-wd0.001",
+    "historySha256": "adc5f5ff59263324f02c20e0bf32f0999893faeebf363b593efd938c39f9f9ce"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd0.001",
+    "historySha256": "8510d4a2cd58a583dcc8d5f2a8284ae192d5c874277a37b1816cef87c4c6bd6a"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd0.001",
+    "historySha256": "4c7cd6945c0933d4262661240dcfdd7e26e88e249bb06197c3e093b4563637ea"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd0.01",
+    "historySha256": "7168fab541272e6953fa6348c6f3392f53a113733f064ddbd22a8a24ac697dee"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd0.01",
+    "historySha256": "86aa4edfdb878fa723fa5a0cf4cf335a8a42b01b6b82c871d3a5bbd5a8861d83"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd0.1",
+    "historySha256": "9f3d816971b89d802c1cb3ff14c7e0d448e60a420fa38a0a79104940a68a1f1d"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd0.1",
+    "historySha256": "7221cdac9ccdee5fe8f8d0bc02da1123f84c96bb751fa1fe6a40bc18aa58f9dc"
+  },
+  {
+    "directory": "w64-s11-lr0.001-wd0.3",
+    "historySha256": "296d685b5d1b3c4e7011d5ea6a9c024da69139b6ba1315796d67fd4254476998"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd0.3",
+    "historySha256": "b16543930018af562579f0061c3835781b7fd3a651fb830abfa5eac275785d5b"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd0.3",
+    "historySha256": "7d6c980d562061835188186301a9e9b49fd848ec6fc742216d62b27264674ea0"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.001-wd1",
+    "historySha256": "7c925714643ae5d540b8ed9a5867da9f568444f007afa3151739145725d45a35"
+  },
+  {
+    "directory": "w64-s17-lr0.001-wd1",
+    "historySha256": "84217119aad5cbbb2ddeceee23faab8c0825d1185e76354b80c9617769465c90"
+  },
+  {
+    "directory": "w64-s23-lr0.001-wd1",
+    "historySha256": "b88654a737a36de58e04f16ac48c6e645904872073d5aea7de70400104d65550"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd0",
+    "historySha256": "40d13dc2e8cfd275380f9cab41a0e285d34ae0589ce442993b39206d6fb1f29c"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd0",
+    "historySha256": "cf3e297c634443ef615cff4534f420b7433d62fe36ec3f740df19d8093e530a9"
+  },
+  {
+    "directory": "w64-s11-lr0.003-wd0.0001",
+    "historySha256": "540543fabef297046483bc42747d4023ad0bc48c6d9571a3f4f85ec6b13b0ccc"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd0.0001",
+    "historySha256": "6666be3d448f450082a1ae16a039352c39b45002f4a076fcd9ede60bf678a025"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd0.0001",
+    "historySha256": "b90558638dd92e563e51fe4aa025f9cf50c26a3a550f20f01dbe0dee606eee57"
+  },
+  {
+    "directory": "w64-s11-lr0.003-wd0.001",
+    "historySha256": "d34ab9b71632a28af3954c0a1060b186e9044d1dd874c1b74fe62b1cb5b4af7f"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd0.001",
+    "historySha256": "e96c963e46f9ed01e5b6adc126acfc41340a4f3c21f5dce0483d4537e94bd06b"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd0.001",
+    "historySha256": "a5cb472c76dae27f06e71c5cdb9ded7fdc4343550699c1fc55f312311954fe36"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd0.01",
+    "historySha256": "32dee97699b92e4c059c15bd783664af377ea22a14e6c4d402c051b4d5625e30"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd0.01",
+    "historySha256": "f824513b58a1683901ea654bee4c651a308cad07ee288b0f4c49626fa9f05b2d"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd0.1",
+    "historySha256": "eb18742a6ed7c931742bac604bb98e44314636636e7ace5c231dbc66f26f5d71"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd0.1",
+    "historySha256": "51347a4566c8bde031f279d53b46b2d99670ba78421513891b264a310f122083"
+  },
+  {
+    "directory": "w64-s11-lr0.003-wd0.3",
+    "historySha256": "1ac70f6afc96767596616b587f5984dc2a91c825838cc75e42b99b442fbe6b14"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd0.3",
+    "historySha256": "07eb089417698db57f2cf96a9b408270891ddee9f6c04c3347fde2ad2fbae04d"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd0.3",
+    "historySha256": "40f6f65e9f31b1da80db6807ab708f79e7be0ab123312c35d24a91455d9536eb"
+  },
+  {
+    "directory": "w64-s11-lr0.003-wd1",
+    "historySha256": "62b3253c9f8dea91b2d54ade573ef17e1d0a44a2932818aa1b720ea2c0fd0d10"
+  },
+  {
+    "directory": "w64-s17-lr0.003-wd1",
+    "historySha256": "388f857e6d60b709adbd9e90d30e9c04eb84e062fd0e2493a40962d9226b4dd8"
+  },
+  {
+    "directory": "w64-s23-lr0.003-wd1",
+    "historySha256": "08a7959533d4f39ee2979c3fa13f7e873d3be56096b40ac4f12817362a7755a3"
+  },
+  {
+    "directory": "w64-s17-lr0.01-wd0",
+    "historySha256": "3670463009d0255ebc5f7dbee2dec7abc5dd1cea7eed101dad6d258ffab4cf12"
+  },
+  {
+    "directory": "w64-s23-lr0.01-wd0",
+    "historySha256": "e1e73f3d592d331144cd5bde45723b042d183e770d3b7c33912d21530f41e66f"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.01-wd0.0001",
+    "historySha256": "1043076b9c084c64c3d9e250856690e9307cc81f7b677fba0f2149913d63ad3a"
+  },
+  {
+    "directory": "w64-s17-lr0.01-wd0.0001",
+    "historySha256": "24cbbba51c9c7dc272e38e76c06572ae4a77bd361d2eb408f0123654f223539d"
+  },
+  {
+    "directory": "w64-s23-lr0.01-wd0.0001",
+    "historySha256": "04c9d9f9b094e7c4231d3def5844caf15fcef21d944f3e9ce56213c7f62a93ca"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.01-wd0.001",
+    "historySha256": "2fb84febc255e51966b58af1f37a762a0a242ca87cd2e2ce9e838f6c02f989ae"
+  },
+  {
+    "directory": "w64-s17-lr0.01-wd0.001",
+    "historySha256": "6dddf7f1f31b8b40c23c4cffa75030c04757e8ef348aad90480e3c1b9eff51b9"
+  },
+  {
+    "directory": "w64-s23-lr0.01-wd0.001",
+    "historySha256": "a6c02b643fdcb5e19717e50d65447d4610c4cf0844a66a0e396a6a5ec16ab020"
+  },
+  {
+    "directory": "w64-s17-lr0.01-wd0.01",
+    "historySha256": "a5c1d0a43cb8ff0121a14536bae2a174a4be8fa91cfec294b0258711698aac09"
+  },
+  {
+    "directory": "w64-s23-lr0.01-wd0.01",
+    "historySha256": "64e03a418346c78457cc23dbb7920d065e21b9e49c1f4865f65e03898eb3ca61"
+  },
+  {
+    "directory": "w64-s17-lr0.01-wd0.1",
+    "historySha256": "fb8866a1864a7572ade30fd5bd0dc983b4a0a95141caa45a12314f4c164769e7"
+  },
+  {
+    "directory": "w64-s23-lr0.01-wd0.1",
+    "historySha256": "3fcb4b5cf7309588e9b447a5585f8df828015c32ddad140fe53957ff234fb05d"
+  },
+  {
+    "directory": "w64-s11-lr0.01-wd0.3",
+    "historySha256": "f10f1dbfab709c30c7b7356f5c27e6697c71ce5db52d93ebcc1f07b567e86270"
+  },
+  {
+    "directory": "w64-s17-lr0.01-wd0.3",
+    "historySha256": "88f9ac4940f8962e2a7a7d684cbda7a7ad07fbff8f560dfc41e7f25a71216cfb"
+  },
+  {
+    "directory": "w64-s23-lr0.01-wd0.3",
+    "historySha256": "ac85863e26fb692bdd2dfa03143a1514881efbcab8e7d6a7e9d3c196f7f26a68"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.01-wd1",
+    "historySha256": "11f05fd07a2badcb2cbb5ed7e3a7c5b671d29c9f834e2cfd9850bb6c06a66a1c"
+  },
+  {
+    "directory": "confirm-w64-s17-lr0.01-wd1",
+    "historySha256": "04bd237803e446c8d6d553c65a71b85eca43bbca0ba687e4b261c675c330f982"
+  },
+  {
+    "directory": "confirm-w64-s23-lr0.01-wd1",
+    "historySha256": "a4821bd13ef4d04abfe88cb6c39b061628c2f7c66f7ff8c5d2e5920d313bc5de"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.1-wd0",
+    "historySha256": "df26ae270ad454dd82bc0e39e62aa354c32c2b1a3a296cec10c9362d225bbf93"
+  },
+  {
+    "directory": "confirm-w64-s17-lr0.1-wd0",
+    "historySha256": "d245fe29004aa5eddecc503a61c2f93e82e0183b9b93fb18db1a1f69b26e718e"
+  },
+  {
+    "directory": "w64-s23-lr0.1-wd0",
+    "historySha256": "970fe305b12b19719300e08cb628711970cfdfd1bd3d8078b3c9e1e389c33685"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.1-wd0.0001",
+    "historySha256": "7ce01d639e09511bd788475f615a85f838b878463fd359cf1ed1d069ac4108cd"
+  },
+  {
+    "directory": "confirm-w64-s17-lr0.1-wd0.0001",
+    "historySha256": "84690c5588868ee568f09c3412fb2876830a558291c4a6c5f06a0a0edfbbdab3"
+  },
+  {
+    "directory": "confirm-w64-s23-lr0.1-wd0.0001",
+    "historySha256": "68970a513779dee8fd956fd425382afc2c129aae320126495c0a228742b4e082"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.1-wd0.001",
+    "historySha256": "871ed0f5d266fa45341692a6eb2b806042b88a7e408162ad5fc9f27fdc55050e"
+  },
+  {
+    "directory": "confirm-w64-s17-lr0.1-wd0.001",
+    "historySha256": "7bb428c91b6ee4c38698350c9fd43e136f2ef87e78cb0937f4b65aad9529699b"
+  },
+  {
+    "directory": "w64-s23-lr0.1-wd0.001",
+    "historySha256": "c86f1928825e93a9546fd1e2b4033d3b790db438184007c50303842c460a1010"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.1-wd0.01",
+    "historySha256": "93f995f173e1c4665e9cf51bf26b44a91f982b318d5372b98e565d94e58f3684"
+  },
+  {
+    "directory": "confirm-w64-s17-lr0.1-wd0.01",
+    "historySha256": "62fe6cb5418a80c050481b5715b7c3685a20042d82d279b9120aab62657f5438"
+  },
+  {
+    "directory": "confirm-w64-s23-lr0.1-wd0.01",
+    "historySha256": "0fc14b138ab4c773a730a98e7dd89a13452724ebf11b9b3dbb2b12852edd8918"
+  },
+  {
+    "directory": "screen-w64-s11-lr0.1-wd0.1",
+    "historySha256": "e3fe3eef3ac038da0286ae6e81a16303553b24bb6d36bfe98b365c6ecc2e8111"
+  },
+  {
+    "directory": "confirm-w64-s17-lr0.1-wd0.1",
+    "historySha256": "97dde615a12f4d3140d3ea73b4c6322c32e120f8cbf7c3e3c08ed75e301d64d6"
+  },
+  {
+    "directory": "confirm-w64-s23-lr0.1-wd0.1",
+    "historySha256": "1eee214e8113e8c1408c0c17075461c188a8cbd9e6f858335f51beb34ec23a7c"
+  },
+  {
+    "directory": "w64-s11-lr0.1-wd0.3",
+    "historySha256": "beacf776d4a0d314b5a448b56c719065fd12a47bd14602d8d55aa7e670732e1b"
+  },
+  {
+    "directory": "w64-s11-lr0.1-wd1",
+    "historySha256": "6f227f84eaab19d1327149ebdf0fa036603ca8b3ad0903498b7aade5c159a614"
+  },
+  {
+    "directory": "w64-s11-lr1-wd0",
+    "historySha256": "cfee827ce9bab4f580923868d1c25c02179debbc0053270675618ade3fb22761"
+  },
+  {
+    "directory": "w64-s11-lr1-wd0.0001",
+    "historySha256": "38c192a066bc72ee0bc3d10d07e6d264f89296b6bc7daf9dfa07a4889ddc1c91"
+  },
+  {
+    "directory": "w64-s17-lr1-wd0.0001",
+    "historySha256": "fa0f12d2eeae2f037f068943f4850736ef724693501aa192861edb4b664dfb08"
+  },
+  {
+    "directory": "w64-s23-lr1-wd0.0001",
+    "historySha256": "a607015929cefa6d8cdeb5e9f96fb0cc0cb41214e5b5292b3bc7e379345a4e52"
+  },
+  {
+    "directory": "w64-s11-lr1-wd0.001",
+    "historySha256": "ebb1b36067fc6ec2d3f88884d2a461fef2e670978b7aacbb6ce762e537a02e8e"
+  },
+  {
+    "directory": "w64-s17-lr1-wd0.001",
+    "historySha256": "e8177da157bd03a022c837300138f7a158af1b3ae732d28564c4c229eb79c402"
+  },
+  {
+    "directory": "w64-s11-lr1-wd0.01",
+    "historySha256": "94a3c76c1393ceb37de8e5423ff2d994b77d228b1d05edf928b5f34fec6aaf1a"
+  },
+  {
+    "directory": "w64-s11-lr1-wd0.1",
+    "historySha256": "89f269838c5060c1881fff74361928dd5f5673cc10906170ffbea73165637c58"
+  },
+  {
+    "directory": "w64-s11-lr1-wd0.3",
+    "historySha256": "03cbf9bcc1f2584e15b395f8564a0587b781c3d3fae70fcf179d5ae49372c6b4"
+  },
+  {
+    "directory": "w64-s11-lr1-wd1",
+    "historySha256": "5a03696ff86e50b025013e2351954bf6a511c8dd6c4cc5c007f9a02c72900211"
+  }
+]

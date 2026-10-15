@@ -237,7 +237,9 @@ pub fn piecewise_target(x: f32) -> f32 {
 }
 
 pub(crate) fn validate_finite(values: &[f32], name: &str) -> Result<()> {
-    if values.iter().any(|x| !x.is_finite()) {
+    // Folding a chunk without an early exit lets the compiler vectorize it.
+    let nonfinite = |chunk: &[f32]| chunk.iter().fold(false, |any, x| any | !x.is_finite());
+    if values.chunks(1024).any(nonfinite) {
         return Err(format!("{name} must contain only finite values").into());
     }
     Ok(())

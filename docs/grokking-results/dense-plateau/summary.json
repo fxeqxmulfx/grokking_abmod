@@ -1,0 +1,5230 @@
+{
+  "epochs": 10000,
+  "seeds": [
+    11,
+    17,
+    23
+  ],
+  "minimumPlateauEpochs": 25,
+  "onset": {
+    "plateau": 120,
+    "robustGeneralizingPlateau": 128,
+    "robustDelayed": 256
+  },
+  "results": [
+    {
+      "width": 32,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.001,
+        "weightDecay": 0.01,
+        "seed": 11,
+        "firstTrain99": 861,
+        "testAtTrain99": 0.908505155,
+        "firstTest90": 827,
+        "firstTest99": 1773,
+        "completedEpochs": 1773,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 424,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.001,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 854,
+        "testAtTrain99": 0.934278351,
+        "firstTest90": 780,
+        "firstTest99": 1172,
+        "completedEpochs": 1172,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 368,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.001,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 854,
+        "testAtTrain99": 0.934278351,
+        "firstTest90": 780,
+        "firstTest99": 1172,
+        "completedEpochs": 1172,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 368,
+        "delayed": false
+      },
+      "robust": null,
+      "robustDelayed": null,
+      "configurations": [
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": null,
+              "testAtTrain99": null,
+              "firstTest90": 7467,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 3341,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 9417,
+              "testAtTrain99": 0.929768041,
+              "firstTest90": 8056,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 3966,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 8094,
+              "testAtTrain99": 0.927620275,
+              "firstTest90": 7152,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 3531,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 2525,
+              "testAtTrain99": 0.915592784,
+              "firstTest90": 2426,
+              "firstTest99": 3920,
+              "completedEpochs": 3920,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1019,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 2607,
+              "testAtTrain99": 0.925042955,
+              "firstTest90": 2467,
+              "firstTest99": 4107,
+              "completedEpochs": 4107,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1066,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 4205,
+              "testAtTrain99": 0.934063574,
+              "firstTest90": 3101,
+              "firstTest99": 5199,
+              "completedEpochs": 5199,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1863,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 854,
+              "testAtTrain99": 0.934278351,
+              "firstTest90": 780,
+              "firstTest99": 1172,
+              "completedEpochs": 1172,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 368,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 861,
+              "testAtTrain99": 0.908505155,
+              "firstTest90": 827,
+              "firstTest99": 1773,
+              "completedEpochs": 1773,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 424,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 931,
+              "testAtTrain99": 0.912800687,
+              "firstTest90": 858,
+              "firstTest99": 3690,
+              "completedEpochs": 3690,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 496,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 287,
+              "testAtTrain99": 0.934063574,
+              "firstTest90": 267,
+              "firstTest99": 379,
+              "completedEpochs": 379,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 117,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 278,
+              "testAtTrain99": 0.929768041,
+              "firstTest90": 256,
+              "firstTest99": 379,
+              "completedEpochs": 379,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 113,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 298,
+              "testAtTrain99": 0.929338488,
+              "firstTest90": 260,
+              "firstTest99": 736,
+              "completedEpochs": 736,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 130,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 104,
+              "testAtTrain99": 0.930841924,
+              "firstTest90": 93,
+              "firstTest99": 135,
+              "completedEpochs": 135,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 48,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 103,
+              "testAtTrain99": 0.933204467,
+              "firstTest90": 94,
+              "firstTest99": 203,
+              "completedEpochs": 203,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 50,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 128,
+              "testAtTrain99": 0.939003436,
+              "firstTest90": 103,
+              "firstTest99": 177,
+              "completedEpochs": 177,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 65,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 64,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.003,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 199,
+        "testAtTrain99": 0.712843643,
+        "firstTest90": 245,
+        "firstTest99": 360,
+        "completedEpochs": 360,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 112,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 1637,
+        "testAtTrain99": 0.786082474,
+        "firstTest90": 1721,
+        "firstTest99": 2006,
+        "completedEpochs": 2006,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 490,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 1637,
+        "testAtTrain99": 0.786082474,
+        "firstTest90": 1721,
+        "firstTest99": 2006,
+        "completedEpochs": 2006,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 490,
+        "delayed": false
+      },
+      "robust": null,
+      "robustDelayed": null,
+      "configurations": [
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 5125,
+              "testAtTrain99": 0.777061856,
+              "firstTest90": 5417,
+              "firstTest99": 6278,
+              "completedEpochs": 6278,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1497,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 5052,
+              "testAtTrain99": 0.76975945,
+              "firstTest90": 5372,
+              "firstTest99": 6383,
+              "completedEpochs": 6383,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1507,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 4553,
+              "testAtTrain99": 0.838487973,
+              "firstTest90": 4689,
+              "firstTest99": 5437,
+              "completedEpochs": 5437,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1290,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1637,
+              "testAtTrain99": 0.786082474,
+              "firstTest90": 1721,
+              "firstTest99": 2006,
+              "completedEpochs": 2006,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 490,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1621,
+              "testAtTrain99": 0.783505155,
+              "firstTest90": 1715,
+              "firstTest99": 1965,
+              "completedEpochs": 1965,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 505,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1423,
+              "testAtTrain99": 0.844501718,
+              "firstTest90": 1462,
+              "firstTest99": 1699,
+              "completedEpochs": 1699,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 392,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 522,
+              "testAtTrain99": 0.782860825,
+              "firstTest90": 557,
+              "firstTest99": 666,
+              "completedEpochs": 666,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 167,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 532,
+              "testAtTrain99": 0.752147766,
+              "firstTest90": 574,
+              "firstTest99": 699,
+              "completedEpochs": 699,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 191,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 460,
+              "testAtTrain99": 0.828393471,
+              "firstTest90": 477,
+              "firstTest99": 560,
+              "completedEpochs": 560,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 141,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 199,
+              "testAtTrain99": 0.712843643,
+              "firstTest90": 245,
+              "firstTest99": 360,
+              "completedEpochs": 360,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 112,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 197,
+              "testAtTrain99": 0.77362543,
+              "firstTest90": 238,
+              "firstTest99": 294,
+              "completedEpochs": 294,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 105,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 173,
+              "testAtTrain99": 0.856099656,
+              "firstTest90": 183,
+              "firstTest99": 222,
+              "completedEpochs": 222,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 71,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 61,
+              "testAtTrain99": 0.816151203,
+              "firstTest90": 65,
+              "firstTest99": 78,
+              "completedEpochs": 78,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 20,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 63,
+              "testAtTrain99": 0.807345361,
+              "firstTest90": 67,
+              "firstTest99": 84,
+              "completedEpochs": 84,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 22,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 51,
+              "testAtTrain99": 0.903565292,
+              "firstTest90": 51,
+              "firstTest99": 63,
+              "completedEpochs": 63,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 14,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 96,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 5566,
+        "testAtTrain99": 0.223582474,
+        "firstTest90": 8508,
+        "firstTest99": null,
+        "completedEpochs": 10000,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 3550,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.0001,
+        "weightDecay": 0.01,
+        "seed": 11,
+        "firstTrain99": 5470,
+        "testAtTrain99": 0.27040378,
+        "firstTest90": 7836,
+        "firstTest99": 9413,
+        "completedEpochs": 9413,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 3043,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.0001,
+        "weightDecay": 0.01,
+        "seed": 11,
+        "firstTrain99": 5470,
+        "testAtTrain99": 0.27040378,
+        "firstTest90": 7836,
+        "firstTest99": 9413,
+        "completedEpochs": 9413,
+        "plateau": {
+          "start": null,
+          "end": null,
+          "epochs": 0
+        },
+        "riseEpochs": 3043,
+        "delayed": false
+      },
+      "robust": null,
+      "robustDelayed": null,
+      "configurations": [
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 5566,
+              "testAtTrain99": 0.223582474,
+              "firstTest90": 8508,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 3550,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 5470,
+              "testAtTrain99": 0.27040378,
+              "firstTest90": 7836,
+              "firstTest99": 9413,
+              "completedEpochs": 9413,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 3043,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 4736,
+              "testAtTrain99": 0.429982818,
+              "firstTest90": 6132,
+              "firstTest99": 7565,
+              "completedEpochs": 7565,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 2141,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1742,
+              "testAtTrain99": 0.256872852,
+              "firstTest90": 2729,
+              "firstTest99": 3440,
+              "completedEpochs": 3440,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1228,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1698,
+              "testAtTrain99": 0.275558419,
+              "firstTest90": 2529,
+              "firstTest99": 3101,
+              "completedEpochs": 3101,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1074,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1517,
+              "testAtTrain99": 0.394974227,
+              "firstTest90": 1894,
+              "firstTest99": 2199,
+              "completedEpochs": 2199,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 633,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 527,
+              "testAtTrain99": 0.305627148,
+              "firstTest90": 748,
+              "firstTest99": 907,
+              "completedEpochs": 907,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 308,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 516,
+              "testAtTrain99": 0.31121134,
+              "firstTest90": 717,
+              "firstTest99": 854,
+              "completedEpochs": 854,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 282,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 450,
+              "testAtTrain99": 0.481314433,
+              "firstTest90": 545,
+              "firstTest99": 643,
+              "completedEpochs": 643,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 182,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 176,
+              "testAtTrain99": 0.305627148,
+              "firstTest90": 256,
+              "firstTest99": 335,
+              "completedEpochs": 335,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 108,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 172,
+              "testAtTrain99": 0.343857388,
+              "firstTest90": 244,
+              "firstTest99": 332,
+              "completedEpochs": 332,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 101,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 154,
+              "testAtTrain99": 0.501073883,
+              "firstTest90": 183,
+              "firstTest99": 223,
+              "completedEpochs": 223,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 59,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 61,
+              "testAtTrain99": 0.316365979,
+              "firstTest90": 117,
+              "firstTest99": 175,
+              "completedEpochs": 175,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 70,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 62,
+              "testAtTrain99": 0.362757732,
+              "firstTest90": 119,
+              "firstTest99": 196,
+              "completedEpochs": 196,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 71,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 50,
+              "testAtTrain99": 0.564003436,
+              "firstTest90": 67,
+              "firstTest99": 91,
+              "completedEpochs": 91,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 30,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 112,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 17,
+        "firstTrain99": 1519,
+        "testAtTrain99": 0.097079038,
+        "firstTest90": 2405,
+        "firstTest99": 2815,
+        "completedEpochs": 2815,
+        "plateau": {
+          "start": 1519,
+          "end": 1520,
+          "epochs": 1
+        },
+        "riseEpochs": 882,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 17,
+        "firstTrain99": 1519,
+        "testAtTrain99": 0.097079038,
+        "firstTest90": 2405,
+        "firstTest99": 2815,
+        "completedEpochs": 2815,
+        "plateau": {
+          "start": 1519,
+          "end": 1520,
+          "epochs": 1
+        },
+        "riseEpochs": 882,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 17,
+        "firstTrain99": 1519,
+        "testAtTrain99": 0.097079038,
+        "firstTest90": 2405,
+        "firstTest99": 2815,
+        "completedEpochs": 2815,
+        "plateau": {
+          "start": 1519,
+          "end": 1520,
+          "epochs": 1
+        },
+        "riseEpochs": 882,
+        "delayed": false
+      },
+      "robust": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 1446,
+            "testAtTrain99": 0.110395189,
+            "firstTest90": 3091,
+            "firstTest99": 3639,
+            "completedEpochs": 3639,
+            "plateau": {
+              "start": null,
+              "end": null,
+              "epochs": 0
+            },
+            "riseEpochs": 1690,
+            "delayed": false
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 1519,
+            "testAtTrain99": 0.097079038,
+            "firstTest90": 2405,
+            "firstTest99": 2815,
+            "completedEpochs": 2815,
+            "plateau": {
+              "start": 1519,
+              "end": 1520,
+              "epochs": 1
+            },
+            "riseEpochs": 882,
+            "delayed": false
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 1331,
+            "testAtTrain99": 0.138960481,
+            "firstTest90": 2113,
+            "firstTest99": 2388,
+            "completedEpochs": 2388,
+            "plateau": {
+              "start": null,
+              "end": null,
+              "epochs": 0
+            },
+            "riseEpochs": 856,
+            "delayed": false
+          }
+        ]
+      },
+      "robustDelayed": null,
+      "configurations": [
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 4236,
+              "testAtTrain99": 0.127147766,
+              "firstTest90": 9569,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 5544,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 4393,
+              "testAtTrain99": 0.109106529,
+              "firstTest90": 6546,
+              "firstTest99": 7444,
+              "completedEpochs": 7444,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 2212,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 4119,
+              "testAtTrain99": 0.129939863,
+              "firstTest90": 5713,
+              "firstTest99": 6469,
+              "completedEpochs": 6469,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1727,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 4221,
+              "testAtTrain99": 0.132302405,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": null,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 3834,
+              "testAtTrain99": 0.213917526,
+              "firstTest90": 6424,
+              "firstTest99": 7604,
+              "completedEpochs": 7604,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 3057,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1446,
+              "testAtTrain99": 0.110395189,
+              "firstTest90": 3091,
+              "firstTest99": 3639,
+              "completedEpochs": 3639,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1690,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 1519,
+              "testAtTrain99": 0.097079038,
+              "firstTest90": 2405,
+              "firstTest99": 2815,
+              "completedEpochs": 2815,
+              "plateau": {
+                "start": 1519,
+                "end": 1520,
+                "epochs": 1
+              },
+              "riseEpochs": 882,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 1331,
+              "testAtTrain99": 0.138960481,
+              "firstTest90": 2113,
+              "firstTest99": 2388,
+              "completedEpochs": 2388,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 856,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1417,
+              "testAtTrain99": 0.114261168,
+              "firstTest90": 2745,
+              "firstTest99": 3200,
+              "completedEpochs": 3200,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1370,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1338,
+              "testAtTrain99": 0.199527491,
+              "firstTest90": 2226,
+              "firstTest99": 2534,
+              "completedEpochs": 2534,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1055,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 433,
+              "testAtTrain99": 0.124785223,
+              "firstTest90": 953,
+              "firstTest99": 1358,
+              "completedEpochs": 1358,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 539,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 425,
+              "testAtTrain99": 0.142396907,
+              "firstTest90": 617,
+              "firstTest99": 707,
+              "completedEpochs": 707,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 215,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 406,
+              "testAtTrain99": 0.148195876,
+              "firstTest90": 630,
+              "firstTest99": 738,
+              "completedEpochs": 738,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 248,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 434,
+              "testAtTrain99": 0.129080756,
+              "firstTest90": 970,
+              "firstTest99": 1214,
+              "completedEpochs": 1214,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 560,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 387,
+              "testAtTrain99": 0.224656357,
+              "firstTest90": 620,
+              "firstTest99": 716,
+              "completedEpochs": 716,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 290,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 141,
+              "testAtTrain99": 0.174613402,
+              "firstTest90": 331,
+              "firstTest99": 485,
+              "completedEpochs": 485,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 209,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 134,
+              "testAtTrain99": 0.169888316,
+              "firstTest90": 293,
+              "firstTest99": 373,
+              "completedEpochs": 373,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 176,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 128,
+              "testAtTrain99": 0.274914089,
+              "firstTest90": 202,
+              "firstTest99": 242,
+              "completedEpochs": 242,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 97,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 52,
+              "testAtTrain99": 0.182560137,
+              "firstTest90": 119,
+              "firstTest99": 195,
+              "completedEpochs": 195,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 74,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 51,
+              "testAtTrain99": 0.198238832,
+              "firstTest90": 92,
+              "firstTest99": 122,
+              "completedEpochs": 122,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 48,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 47,
+              "testAtTrain99": 0.382302405,
+              "firstTest90": 62,
+              "firstTest99": 77,
+              "completedEpochs": 77,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 24,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 120,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 4174,
+        "testAtTrain99": 0.06378866,
+        "firstTest90": 8722,
+        "firstTest99": null,
+        "completedEpochs": 10000,
+        "plateau": {
+          "start": 4174,
+          "end": 4679,
+          "epochs": 505
+        },
+        "riseEpochs": 4018,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 4174,
+        "testAtTrain99": 0.06378866,
+        "firstTest90": 8722,
+        "firstTest99": null,
+        "completedEpochs": 10000,
+        "plateau": {
+          "start": 4174,
+          "end": 4679,
+          "epochs": 505
+        },
+        "riseEpochs": 4018,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 11,
+        "firstTrain99": 1391,
+        "testAtTrain99": 0.067869416,
+        "firstTest90": 2496,
+        "firstTest99": 2983,
+        "completedEpochs": 2983,
+        "plateau": {
+          "start": 1391,
+          "end": 1511,
+          "epochs": 120
+        },
+        "riseEpochs": 985,
+        "delayed": false
+      },
+      "robust": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 1391,
+            "testAtTrain99": 0.067869416,
+            "firstTest90": 2496,
+            "firstTest99": 2983,
+            "completedEpochs": 2983,
+            "plateau": {
+              "start": 1391,
+              "end": 1511,
+              "epochs": 120
+            },
+            "riseEpochs": 985,
+            "delayed": false
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 1281,
+            "testAtTrain99": 0.085695876,
+            "firstTest90": 2337,
+            "firstTest99": 2800,
+            "completedEpochs": 2800,
+            "plateau": {
+              "start": 1284,
+              "end": 1317,
+              "epochs": 33
+            },
+            "riseEpochs": 1020,
+            "delayed": false
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 1172,
+            "testAtTrain99": 0.104381443,
+            "firstTest90": 1779,
+            "firstTest99": 1991,
+            "completedEpochs": 1991,
+            "plateau": {
+              "start": null,
+              "end": null,
+              "epochs": 0
+            },
+            "riseEpochs": 612,
+            "delayed": false
+          }
+        ]
+      },
+      "robustDelayed": null,
+      "configurations": [
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 4174,
+              "testAtTrain99": 0.06378866,
+              "firstTest90": 8722,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 4174,
+                "end": 4679,
+                "epochs": 505
+              },
+              "riseEpochs": 4018,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 3899,
+              "testAtTrain99": 0.096434708,
+              "firstTest90": 8637,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 3899,
+                "end": 3925,
+                "epochs": 26
+              },
+              "riseEpochs": 4712,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 3526,
+              "testAtTrain99": 0.089561856,
+              "firstTest90": 5619,
+              "firstTest99": 6533,
+              "completedEpochs": 6533,
+              "plateau": {
+                "start": 3529,
+                "end": 3595,
+                "epochs": 66
+              },
+              "riseEpochs": 2016,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1391,
+              "testAtTrain99": 0.067869416,
+              "firstTest90": 2496,
+              "firstTest99": 2983,
+              "completedEpochs": 2983,
+              "plateau": {
+                "start": 1391,
+                "end": 1511,
+                "epochs": 120
+              },
+              "riseEpochs": 985,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 1281,
+              "testAtTrain99": 0.085695876,
+              "firstTest90": 2337,
+              "firstTest99": 2800,
+              "completedEpochs": 2800,
+              "plateau": {
+                "start": 1284,
+                "end": 1317,
+                "epochs": 33
+              },
+              "riseEpochs": 1020,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 1172,
+              "testAtTrain99": 0.104381443,
+              "firstTest90": 1779,
+              "firstTest99": 1991,
+              "completedEpochs": 1991,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 612,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 407,
+              "testAtTrain99": 0.068728522,
+              "firstTest90": 812,
+              "firstTest99": 1087,
+              "completedEpochs": 1087,
+              "plateau": {
+                "start": 409,
+                "end": 439,
+                "epochs": 30
+              },
+              "riseEpochs": 373,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 396,
+              "testAtTrain99": 0.082689003,
+              "firstTest90": 888,
+              "firstTest99": 1405,
+              "completedEpochs": 1405,
+              "plateau": {
+                "start": 396,
+                "end": 414,
+                "epochs": 18
+              },
+              "riseEpochs": 471,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 349,
+              "testAtTrain99": 0.116623711,
+              "firstTest90": 572,
+              "firstTest99": 698,
+              "completedEpochs": 698,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 234,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 128,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 23,
+        "firstTrain99": 4283,
+        "testAtTrain99": 0.04467354,
+        "firstTest90": null,
+        "firstTest99": null,
+        "completedEpochs": 10000,
+        "plateau": {
+          "start": 4286,
+          "end": 5038,
+          "epochs": 752
+        },
+        "riseEpochs": 3560,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 23,
+        "firstTrain99": 4283,
+        "testAtTrain99": 0.04467354,
+        "firstTest90": null,
+        "firstTest99": null,
+        "completedEpochs": 10000,
+        "plateau": {
+          "start": 4286,
+          "end": 5038,
+          "epochs": 752
+        },
+        "riseEpochs": 3560,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "seed": 23,
+        "firstTrain99": 1366,
+        "testAtTrain99": 0.045317869,
+        "firstTest90": null,
+        "firstTest99": 2880,
+        "completedEpochs": 2880,
+        "plateau": {
+          "start": 1366,
+          "end": 1576,
+          "epochs": 210
+        },
+        "riseEpochs": 892,
+        "delayed": false
+      },
+      "robust": {
+        "learningRate": 0.0003,
+        "weightDecay": 0,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 1165,
+            "testAtTrain99": 0.060352234,
+            "firstTest90": null,
+            "firstTest99": 3375,
+            "completedEpochs": 3375,
+            "plateau": {
+              "start": 1168,
+              "end": 1334,
+              "epochs": 166
+            },
+            "riseEpochs": 1092,
+            "delayed": false
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 1082,
+            "testAtTrain99": 0.059707904,
+            "firstTest90": null,
+            "firstTest99": 3770,
+            "completedEpochs": 3770,
+            "plateau": {
+              "start": 1085,
+              "end": 1235,
+              "epochs": 150
+            },
+            "riseEpochs": 1362,
+            "delayed": false
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 1366,
+            "testAtTrain99": 0.045317869,
+            "firstTest90": null,
+            "firstTest99": 2880,
+            "completedEpochs": 2880,
+            "plateau": {
+              "start": 1366,
+              "end": 1576,
+              "epochs": 210
+            },
+            "riseEpochs": 892,
+            "delayed": false
+          }
+        ]
+      },
+      "robustDelayed": null,
+      "configurations": [
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 3541,
+              "testAtTrain99": 0.062714777,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 3548,
+                "end": 3981,
+                "epochs": 433
+              },
+              "riseEpochs": 3298,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 3314,
+              "testAtTrain99": 0.063359107,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 3326,
+                "end": 3795,
+                "epochs": 469
+              },
+              "riseEpochs": 4750,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 4283,
+              "testAtTrain99": 0.04467354,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 4286,
+                "end": 5038,
+                "epochs": 752
+              },
+              "riseEpochs": 3560,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 3524,
+              "testAtTrain99": 0.062070447,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 3524,
+                "end": 3944,
+                "epochs": 420
+              },
+              "riseEpochs": 3156,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 3319,
+              "testAtTrain99": 0.107603093,
+              "firstTest90": null,
+              "firstTest99": 5952,
+              "completedEpochs": 5952,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1823,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 2880,
+              "testAtTrain99": 0.253651203,
+              "firstTest90": 3667,
+              "firstTest99": 4093,
+              "completedEpochs": 4093,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 1081,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 2004,
+              "testAtTrain99": 0.724441581,
+              "firstTest90": null,
+              "firstTest99": 2341,
+              "completedEpochs": 2341,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 466,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1165,
+              "testAtTrain99": 0.060352234,
+              "firstTest90": null,
+              "firstTest99": 3375,
+              "completedEpochs": 3375,
+              "plateau": {
+                "start": 1168,
+                "end": 1334,
+                "epochs": 166
+              },
+              "riseEpochs": 1092,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 1082,
+              "testAtTrain99": 0.059707904,
+              "firstTest90": null,
+              "firstTest99": 3770,
+              "completedEpochs": 3770,
+              "plateau": {
+                "start": 1085,
+                "end": 1235,
+                "epochs": 150
+              },
+              "riseEpochs": 1362,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 1366,
+              "testAtTrain99": 0.045317869,
+              "firstTest90": null,
+              "firstTest99": 2880,
+              "completedEpochs": 2880,
+              "plateau": {
+                "start": 1366,
+                "end": 1576,
+                "epochs": 210
+              },
+              "riseEpochs": 892,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1160,
+              "testAtTrain99": 0.063573883,
+              "firstTest90": null,
+              "firstTest99": 2927,
+              "completedEpochs": 2927,
+              "plateau": {
+                "start": 1163,
+                "end": 1314,
+                "epochs": 151
+              },
+              "riseEpochs": 1088,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1109,
+              "testAtTrain99": 0.100085911,
+              "firstTest90": null,
+              "firstTest99": 2031,
+              "completedEpochs": 2031,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 636,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 977,
+              "testAtTrain99": 0.263960481,
+              "firstTest90": 1233,
+              "firstTest99": 1374,
+              "completedEpochs": 1374,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 370,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 681,
+              "testAtTrain99": 0.721434708,
+              "firstTest90": 722,
+              "firstTest99": 780,
+              "completedEpochs": 780,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 177,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 338,
+              "testAtTrain99": 0.068513746,
+              "firstTest90": 716,
+              "firstTest99": 945,
+              "completedEpochs": 945,
+              "plateau": {
+                "start": 338,
+                "end": 364,
+                "epochs": 26
+              },
+              "riseEpochs": 352,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 337,
+              "testAtTrain99": 0.071950172,
+              "firstTest90": 695,
+              "firstTest99": 861,
+              "completedEpochs": 861,
+              "plateau": {
+                "start": 337,
+                "end": 363,
+                "epochs": 26
+              },
+              "riseEpochs": 332,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 315,
+              "testAtTrain99": 0.117912371,
+              "firstTest90": 510,
+              "firstTest99": 605,
+              "completedEpochs": 605,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 203,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 271,
+              "testAtTrain99": 0.288445017,
+              "firstTest90": 351,
+              "firstTest99": 403,
+              "completedEpochs": 403,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 114,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 195,
+              "testAtTrain99": 0.736683849,
+              "firstTest90": 209,
+              "firstTest99": 234,
+              "completedEpochs": 234,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 54,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 119,
+              "testAtTrain99": 0.080111684,
+              "firstTest90": 270,
+              "firstTest99": 416,
+              "completedEpochs": 416,
+              "plateau": {
+                "start": 119,
+                "end": 126,
+                "epochs": 7
+              },
+              "riseEpochs": 144,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 119,
+              "testAtTrain99": 0.073883162,
+              "firstTest90": 265,
+              "firstTest99": 383,
+              "completedEpochs": 383,
+              "plateau": {
+                "start": 119,
+                "end": 126,
+                "epochs": 7
+              },
+              "riseEpochs": 139,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 108,
+              "testAtTrain99": 0.149054983,
+              "firstTest90": 167,
+              "firstTest99": 211,
+              "completedEpochs": 211,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 66,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 99,
+              "testAtTrain99": 0.336340206,
+              "firstTest90": 123,
+              "firstTest99": 145,
+              "completedEpochs": 145,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 38,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 69,
+              "testAtTrain99": 0.781357388,
+              "firstTest90": 73,
+              "firstTest99": 81,
+              "completedEpochs": 81,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 18,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 44,
+              "testAtTrain99": 0.088702749,
+              "firstTest90": 176,
+              "firstTest99": 394,
+              "completedEpochs": 394,
+              "plateau": {
+                "start": 44,
+                "end": 45,
+                "epochs": 1
+              },
+              "riseEpochs": 131,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 45,
+              "testAtTrain99": 0.092998282,
+              "firstTest90": 139,
+              "firstTest99": 318,
+              "completedEpochs": 318,
+              "plateau": {
+                "start": 45,
+                "end": 45,
+                "epochs": 0
+              },
+              "riseEpochs": 94,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 41,
+              "testAtTrain99": 0.18556701,
+              "firstTest90": 74,
+              "firstTest99": 95,
+              "completedEpochs": 95,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 37,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 35,
+              "testAtTrain99": 0.43621134,
+              "firstTest90": 47,
+              "firstTest99": 56,
+              "completedEpochs": 56,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 18,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 26,
+              "testAtTrain99": 0.91387457,
+              "firstTest90": 26,
+              "firstTest99": 30,
+              "completedEpochs": 30,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 7,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 256,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0001,
+        "weightDecay": 0.3,
+        "seed": 11,
+        "firstTrain99": 966,
+        "testAtTrain99": 0.01911512,
+        "firstTest90": 3112,
+        "firstTest99": 3828,
+        "completedEpochs": 3828,
+        "plateau": {
+          "start": 968,
+          "end": 1798,
+          "epochs": 830
+        },
+        "riseEpochs": 1314,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.00005,
+        "weightDecay": 0.3,
+        "seed": 11,
+        "firstTrain99": 1908,
+        "testAtTrain99": 0.019329897,
+        "firstTest90": 6281,
+        "firstTest99": 7632,
+        "completedEpochs": 7632,
+        "plateau": {
+          "start": 1916,
+          "end": 3560,
+          "epochs": 1644
+        },
+        "riseEpochs": 2721,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.00005,
+        "weightDecay": 0.3,
+        "seed": 11,
+        "firstTrain99": 1908,
+        "testAtTrain99": 0.019329897,
+        "firstTest90": 6281,
+        "firstTest99": 7632,
+        "completedEpochs": 7632,
+        "plateau": {
+          "start": 1916,
+          "end": 3560,
+          "epochs": 1644
+        },
+        "riseEpochs": 2721,
+        "delayed": false
+      },
+      "robust": {
+        "learningRate": 0.00005,
+        "weightDecay": 0.3,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 1908,
+            "testAtTrain99": 0.019329897,
+            "firstTest90": 6281,
+            "firstTest99": 7632,
+            "completedEpochs": 7632,
+            "plateau": {
+              "start": 1916,
+              "end": 3560,
+              "epochs": 1644
+            },
+            "riseEpochs": 2721,
+            "delayed": false
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 1983,
+            "testAtTrain99": 0.01911512,
+            "firstTest90": 5651,
+            "firstTest99": 6777,
+            "completedEpochs": 6777,
+            "plateau": {
+              "start": 1983,
+              "end": 3386,
+              "epochs": 1403
+            },
+            "riseEpochs": 2265,
+            "delayed": false
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 1989,
+            "testAtTrain99": 0.01911512,
+            "firstTest90": 5477,
+            "firstTest99": 6593,
+            "completedEpochs": 6593,
+            "plateau": {
+              "start": 1989,
+              "end": 3351,
+              "epochs": 1362
+            },
+            "riseEpochs": 2126,
+            "delayed": false
+          }
+        ]
+      },
+      "robustDelayed": {
+        "learningRate": 0.001,
+        "weightDecay": 0.3,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 101,
+            "testAtTrain99": 0.02040378,
+            "firstTest90": 308,
+            "firstTest99": 368,
+            "completedEpochs": 368,
+            "plateau": {
+              "start": 103,
+              "end": 179,
+              "epochs": 76
+            },
+            "riseEpochs": 129,
+            "delayed": true
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 107,
+            "testAtTrain99": 0.019544674,
+            "firstTest90": 302,
+            "firstTest99": 346,
+            "completedEpochs": 346,
+            "plateau": {
+              "start": 107,
+              "end": 176,
+              "epochs": 69
+            },
+            "riseEpochs": 126,
+            "delayed": true
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 104,
+            "testAtTrain99": 0.020189003,
+            "firstTest90": 277,
+            "firstTest99": 336,
+            "completedEpochs": 336,
+            "plateau": {
+              "start": 104,
+              "end": 162,
+              "epochs": 58
+            },
+            "riseEpochs": 115,
+            "delayed": true
+          }
+        ]
+      },
+      "configurations": [
+        {
+          "learningRate": 0.00005,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1908,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": 6281,
+              "firstTest99": 7632,
+              "completedEpochs": 7632,
+              "plateau": {
+                "start": 1916,
+                "end": 3560,
+                "epochs": 1644
+              },
+              "riseEpochs": 2721,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 1983,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 5651,
+              "firstTest99": 6777,
+              "completedEpochs": 6777,
+              "plateau": {
+                "start": 1983,
+                "end": 3386,
+                "epochs": 1403
+              },
+              "riseEpochs": 2265,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 1989,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 5477,
+              "firstTest99": 6593,
+              "completedEpochs": 6593,
+              "plateau": {
+                "start": 1989,
+                "end": 3351,
+                "epochs": 1362
+              },
+              "riseEpochs": 2126,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.00005,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 1891,
+              "testAtTrain99": 0.023195876,
+              "firstTest90": 3568,
+              "firstTest99": 4038,
+              "completedEpochs": 4038,
+              "plateau": {
+                "start": 1908,
+                "end": 2411,
+                "epochs": 503
+              },
+              "riseEpochs": 1157,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 948,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 948,
+                "end": 2478,
+                "epochs": 1530
+              },
+              "riseEpochs": null,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 1005,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 9251,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 1005,
+                "end": 2294,
+                "epochs": 1289
+              },
+              "riseEpochs": 6957,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 970,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 9176,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 975,
+                "end": 2282,
+                "epochs": 1307
+              },
+              "riseEpochs": 6894,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 945,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": null,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 945,
+                "end": 2433,
+                "epochs": 1488
+              },
+              "riseEpochs": null,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 950,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": 5343,
+              "firstTest99": 8188,
+              "completedEpochs": 8188,
+              "plateau": {
+                "start": 960,
+                "end": 2177,
+                "epochs": 1217
+              },
+              "riseEpochs": 3162,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 1007,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": 4053,
+              "firstTest99": 6203,
+              "completedEpochs": 6203,
+              "plateau": {
+                "start": 1009,
+                "end": 1999,
+                "epochs": 990
+              },
+              "riseEpochs": 2054,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 979,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 3949,
+              "firstTest99": 6230,
+              "completedEpochs": 6230,
+              "plateau": {
+                "start": 979,
+                "end": 2007,
+                "epochs": 1028
+              },
+              "riseEpochs": 1942,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 966,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 3112,
+              "firstTest99": 3828,
+              "completedEpochs": 3828,
+              "plateau": {
+                "start": 968,
+                "end": 1798,
+                "epochs": 830
+              },
+              "riseEpochs": 1314,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 976,
+              "testAtTrain99": 0.024484536,
+              "firstTest90": 1777,
+              "firstTest99": 2039,
+              "completedEpochs": 2039,
+              "plateau": {
+                "start": 976,
+                "end": 1208,
+                "epochs": 232
+              },
+              "riseEpochs": 569,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 315,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": 4332,
+              "firstTest99": 6700,
+              "completedEpochs": 6700,
+              "plateau": {
+                "start": 315,
+                "end": 851,
+                "epochs": 536
+              },
+              "riseEpochs": 3481,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 314,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": 3803,
+              "firstTest99": 5568,
+              "completedEpochs": 5568,
+              "plateau": {
+                "start": 314,
+                "end": 820,
+                "epochs": 506
+              },
+              "riseEpochs": 2983,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 314,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": 1647,
+              "firstTest99": 2508,
+              "completedEpochs": 2508,
+              "plateau": {
+                "start": 317,
+                "end": 724,
+                "epochs": 407
+              },
+              "riseEpochs": 923,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 321,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": 1003,
+              "firstTest99": 1202,
+              "completedEpochs": 1202,
+              "plateau": {
+                "start": 323,
+                "end": 589,
+                "epochs": 266
+              },
+              "riseEpochs": 414,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 320,
+              "testAtTrain99": 0.024699313,
+              "firstTest90": 586,
+              "firstTest99": 661,
+              "completedEpochs": 661,
+              "plateau": {
+                "start": 324,
+                "end": 402,
+                "epochs": 78
+              },
+              "riseEpochs": 184,
+              "delayed": true
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 322,
+              "testAtTrain99": 0.030713058,
+              "firstTest90": 537,
+              "firstTest99": 604,
+              "completedEpochs": 604,
+              "plateau": {
+                "start": 322,
+                "end": 377,
+                "epochs": 55
+              },
+              "riseEpochs": 160,
+              "delayed": true
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 330,
+              "testAtTrain99": 0.035223368,
+              "firstTest90": 552,
+              "firstTest99": 634,
+              "completedEpochs": 634,
+              "plateau": {
+                "start": 333,
+                "end": 374,
+                "epochs": 41
+              },
+              "riseEpochs": 178,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 100,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": 1181,
+              "firstTest99": 1780,
+              "completedEpochs": 1780,
+              "plateau": {
+                "start": 100,
+                "end": 264,
+                "epochs": 164
+              },
+              "riseEpochs": 917,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 100,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": 1052,
+              "firstTest99": 1587,
+              "completedEpochs": 1587,
+              "plateau": {
+                "start": 100,
+                "end": 257,
+                "epochs": 157
+              },
+              "riseEpochs": 795,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 100,
+              "testAtTrain99": 0.019974227,
+              "firstTest90": 453,
+              "firstTest99": 686,
+              "completedEpochs": 686,
+              "plateau": {
+                "start": 100,
+                "end": 226,
+                "epochs": 126
+              },
+              "riseEpochs": 227,
+              "delayed": true
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 106,
+              "testAtTrain99": 0.01911512,
+              "firstTest90": 479,
+              "firstTest99": 673,
+              "completedEpochs": 673,
+              "plateau": {
+                "start": 106,
+                "end": 214,
+                "epochs": 108
+              },
+              "riseEpochs": 265,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 103,
+              "testAtTrain99": 0.019974227,
+              "firstTest90": 392,
+              "firstTest99": 569,
+              "completedEpochs": 569,
+              "plateau": {
+                "start": 103,
+                "end": 199,
+                "epochs": 96
+              },
+              "riseEpochs": 193,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 101,
+              "testAtTrain99": 0.02040378,
+              "firstTest90": 308,
+              "firstTest99": 368,
+              "completedEpochs": 368,
+              "plateau": {
+                "start": 103,
+                "end": 179,
+                "epochs": 76
+              },
+              "riseEpochs": 129,
+              "delayed": true
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 107,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": 302,
+              "firstTest99": 346,
+              "completedEpochs": 346,
+              "plateau": {
+                "start": 107,
+                "end": 176,
+                "epochs": 69
+              },
+              "riseEpochs": 126,
+              "delayed": true
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 104,
+              "testAtTrain99": 0.020189003,
+              "firstTest90": 277,
+              "firstTest99": 336,
+              "completedEpochs": 336,
+              "plateau": {
+                "start": 104,
+                "end": 162,
+                "epochs": 58
+              },
+              "riseEpochs": 115,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 101,
+              "testAtTrain99": 0.027920962,
+              "firstTest90": 175,
+              "firstTest99": 203,
+              "completedEpochs": 203,
+              "plateau": {
+                "start": 101,
+                "end": 119,
+                "epochs": 18
+              },
+              "riseEpochs": 56,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 41,
+              "testAtTrain99": 0.020189003,
+              "firstTest90": 517,
+              "firstTest99": 735,
+              "completedEpochs": 735,
+              "plateau": {
+                "start": 41,
+                "end": 118,
+                "epochs": 77
+              },
+              "riseEpochs": 399,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 40,
+              "testAtTrain99": 0.02040378,
+              "firstTest90": 480,
+              "firstTest99": 649,
+              "completedEpochs": 649,
+              "plateau": {
+                "start": 40,
+                "end": 113,
+                "epochs": 73
+              },
+              "riseEpochs": 367,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 41,
+              "testAtTrain99": 0.020189003,
+              "firstTest90": 231,
+              "firstTest99": 282,
+              "completedEpochs": 282,
+              "plateau": {
+                "start": 41,
+                "end": 92,
+                "epochs": 51
+              },
+              "riseEpochs": 139,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 42,
+              "testAtTrain99": 0.021477663,
+              "firstTest90": 126,
+              "firstTest99": 151,
+              "completedEpochs": 151,
+              "plateau": {
+                "start": 42,
+                "end": 68,
+                "epochs": 26
+              },
+              "riseEpochs": 58,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 40,
+              "testAtTrain99": 0.055841924,
+              "firstTest90": 67,
+              "firstTest99": 79,
+              "completedEpochs": 79,
+              "plateau": {
+                "start": 40,
+                "end": 42,
+                "epochs": 2
+              },
+              "riseEpochs": 25,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 20,
+              "testAtTrain99": 0.022121993,
+              "firstTest90": 439,
+              "firstTest99": 515,
+              "completedEpochs": 515,
+              "plateau": {
+                "start": 20,
+                "end": 59,
+                "epochs": 39
+              },
+              "riseEpochs": 380,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 20,
+              "testAtTrain99": 0.020833333,
+              "firstTest90": 314,
+              "firstTest99": 487,
+              "completedEpochs": 487,
+              "plateau": {
+                "start": 20,
+                "end": 57,
+                "epochs": 37
+              },
+              "riseEpochs": 257,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 20,
+              "testAtTrain99": 0.0229811,
+              "firstTest90": 105,
+              "firstTest99": 134,
+              "completedEpochs": 134,
+              "plateau": {
+                "start": 20,
+                "end": 41,
+                "epochs": 21
+              },
+              "riseEpochs": 64,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 20,
+              "testAtTrain99": 0.026202749,
+              "firstTest90": 53,
+              "firstTest99": 62,
+              "completedEpochs": 62,
+              "plateau": {
+                "start": 20,
+                "end": 27,
+                "epochs": 7
+              },
+              "riseEpochs": 26,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 20,
+              "testAtTrain99": 0.360180412,
+              "firstTest90": 27,
+              "firstTest99": 32,
+              "completedEpochs": 32,
+              "plateau": {
+                "start": null,
+                "end": null,
+                "epochs": 0
+              },
+              "riseEpochs": 10,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 512,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 23,
+        "firstTrain99": 281,
+        "testAtTrain99": 0.018256014,
+        "firstTest90": 3975,
+        "firstTest99": 5837,
+        "completedEpochs": 5837,
+        "plateau": {
+          "start": 281,
+          "end": 1124,
+          "epochs": 843
+        },
+        "riseEpochs": 2849,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.00003,
+        "weightDecay": 0.1,
+        "seed": 11,
+        "firstTrain99": 905,
+        "testAtTrain99": 0.018900344,
+        "firstTest90": 8001,
+        "firstTest99": null,
+        "completedEpochs": 10000,
+        "plateau": {
+          "start": 905,
+          "end": 3445,
+          "epochs": 2540
+        },
+        "riseEpochs": 4556,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.00003,
+        "weightDecay": 0.3,
+        "seed": 11,
+        "firstTrain99": 906,
+        "testAtTrain99": 0.018900344,
+        "firstTest90": 5161,
+        "firstTest99": 7041,
+        "completedEpochs": 7041,
+        "plateau": {
+          "start": 906,
+          "end": 3131,
+          "epochs": 2225
+        },
+        "riseEpochs": 2024,
+        "delayed": false
+      },
+      "robust": {
+        "learningRate": 0.00003,
+        "weightDecay": 0.3,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 906,
+            "testAtTrain99": 0.018900344,
+            "firstTest90": 5161,
+            "firstTest99": 7041,
+            "completedEpochs": 7041,
+            "plateau": {
+              "start": 906,
+              "end": 3131,
+              "epochs": 2225
+            },
+            "riseEpochs": 2024,
+            "delayed": false
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 932,
+            "testAtTrain99": 0.018685567,
+            "firstTest90": 5568,
+            "firstTest99": 7907,
+            "completedEpochs": 7907,
+            "plateau": {
+              "start": 937,
+              "end": 3138,
+              "epochs": 2201
+            },
+            "riseEpochs": 2430,
+            "delayed": false
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 916,
+            "testAtTrain99": 0.018256014,
+            "firstTest90": 5546,
+            "firstTest99": 7873,
+            "completedEpochs": 7873,
+            "plateau": {
+              "start": 921,
+              "end": 3102,
+              "epochs": 2181
+            },
+            "riseEpochs": 2444,
+            "delayed": false
+          }
+        ]
+      },
+      "robustDelayed": {
+        "learningRate": 0.0003,
+        "weightDecay": 0.3,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 100,
+            "testAtTrain99": 0.018900344,
+            "firstTest90": 542,
+            "firstTest99": 734,
+            "completedEpochs": 734,
+            "plateau": {
+              "start": 100,
+              "end": 332,
+              "epochs": 232
+            },
+            "riseEpochs": 210,
+            "delayed": true
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 101,
+            "testAtTrain99": 0.018685567,
+            "firstTest90": 558,
+            "firstTest99": 756,
+            "completedEpochs": 756,
+            "plateau": {
+              "start": 101,
+              "end": 331,
+              "epochs": 230
+            },
+            "riseEpochs": 227,
+            "delayed": true
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 98,
+            "testAtTrain99": 0.018256014,
+            "firstTest90": 571,
+            "firstTest99": 807,
+            "completedEpochs": 807,
+            "plateau": {
+              "start": 98,
+              "end": 327,
+              "epochs": 229
+            },
+            "riseEpochs": 244,
+            "delayed": true
+          }
+        ]
+      },
+      "configurations": [
+        {
+          "learningRate": 0.00003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 905,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 8001,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 905,
+                "end": 3445,
+                "epochs": 2540
+              },
+              "riseEpochs": 4556,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 938,
+              "testAtTrain99": 0.018685567,
+              "firstTest90": 8879,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 941,
+                "end": 3455,
+                "epochs": 2514
+              },
+              "riseEpochs": 5424,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 908,
+              "testAtTrain99": 0.018256014,
+              "firstTest90": 8854,
+              "firstTest99": null,
+              "completedEpochs": 10000,
+              "plateau": {
+                "start": 908,
+                "end": 3399,
+                "epochs": 2491
+              },
+              "riseEpochs": 5455,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.00003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 906,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 5161,
+              "firstTest99": 7041,
+              "completedEpochs": 7041,
+              "plateau": {
+                "start": 906,
+                "end": 3131,
+                "epochs": 2225
+              },
+              "riseEpochs": 2024,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 932,
+              "testAtTrain99": 0.018685567,
+              "firstTest90": 5568,
+              "firstTest99": 7907,
+              "completedEpochs": 7907,
+              "plateau": {
+                "start": 937,
+                "end": 3138,
+                "epochs": 2201
+              },
+              "riseEpochs": 2430,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 916,
+              "testAtTrain99": 0.018256014,
+              "firstTest90": 5546,
+              "firstTest99": 7873,
+              "completedEpochs": 7873,
+              "plateau": {
+                "start": 921,
+                "end": 3102,
+                "epochs": 2181
+              },
+              "riseEpochs": 2444,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.00003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 909,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 3477,
+              "firstTest99": 3911,
+              "completedEpochs": 3911,
+              "plateau": {
+                "start": 920,
+                "end": 2474,
+                "epochs": 1554
+              },
+              "riseEpochs": 1003,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.00005,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 540,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 4973,
+              "firstTest99": 6977,
+              "completedEpochs": 6977,
+              "plateau": {
+                "start": 540,
+                "end": 2060,
+                "epochs": 1520
+              },
+              "riseEpochs": 2913,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.00005,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 544,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 3155,
+              "firstTest99": 4339,
+              "completedEpochs": 4339,
+              "plateau": {
+                "start": 546,
+                "end": 1872,
+                "epochs": 1326
+              },
+              "riseEpochs": 1283,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.00005,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 553,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 2087,
+              "firstTest99": 2369,
+              "completedEpochs": 2369,
+              "plateau": {
+                "start": 553,
+                "end": 1472,
+                "epochs": 919
+              },
+              "riseEpochs": 615,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 275,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 3545,
+              "firstTest99": 4971,
+              "completedEpochs": 4971,
+              "plateau": {
+                "start": 275,
+                "end": 1106,
+                "epochs": 831
+              },
+              "riseEpochs": 2439,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 288,
+              "testAtTrain99": 0.018685567,
+              "firstTest90": 3853,
+              "firstTest99": 5251,
+              "completedEpochs": 5251,
+              "plateau": {
+                "start": 288,
+                "end": 1115,
+                "epochs": 827
+              },
+              "riseEpochs": 2738,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 281,
+              "testAtTrain99": 0.018256014,
+              "firstTest90": 3975,
+              "firstTest99": 5837,
+              "completedEpochs": 5837,
+              "plateau": {
+                "start": 281,
+                "end": 1124,
+                "epochs": 843
+              },
+              "riseEpochs": 2849,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 275,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 3448,
+              "firstTest99": 4808,
+              "completedEpochs": 4808,
+              "plateau": {
+                "start": 275,
+                "end": 1101,
+                "epochs": 826
+              },
+              "riseEpochs": 2347,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 275,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 2489,
+              "firstTest99": 3550,
+              "completedEpochs": 3550,
+              "plateau": {
+                "start": 275,
+                "end": 1045,
+                "epochs": 770
+              },
+              "riseEpochs": 1444,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 278,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 1543,
+              "firstTest99": 2192,
+              "completedEpochs": 2192,
+              "plateau": {
+                "start": 278,
+                "end": 943,
+                "epochs": 665
+              },
+              "riseEpochs": 600,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 284,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 1050,
+              "firstTest99": 1200,
+              "completedEpochs": 1200,
+              "plateau": {
+                "start": 284,
+                "end": 741,
+                "epochs": 457
+              },
+              "riseEpochs": 309,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 98,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 1262,
+              "firstTest99": 1740,
+              "completedEpochs": 1740,
+              "plateau": {
+                "start": 98,
+                "end": 394,
+                "epochs": 296
+              },
+              "riseEpochs": 868,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 96,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 1177,
+              "firstTest99": 1604,
+              "completedEpochs": 1604,
+              "plateau": {
+                "start": 98,
+                "end": 389,
+                "epochs": 291
+              },
+              "riseEpochs": 788,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 97,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 844,
+              "firstTest99": 1204,
+              "completedEpochs": 1204,
+              "plateau": {
+                "start": 97,
+                "end": 370,
+                "epochs": 273
+              },
+              "riseEpochs": 474,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 100,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 542,
+              "firstTest99": 734,
+              "completedEpochs": 734,
+              "plateau": {
+                "start": 100,
+                "end": 332,
+                "epochs": 232
+              },
+              "riseEpochs": 210,
+              "delayed": true
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 101,
+              "testAtTrain99": 0.018685567,
+              "firstTest90": 558,
+              "firstTest99": 756,
+              "completedEpochs": 756,
+              "plateau": {
+                "start": 101,
+                "end": 331,
+                "epochs": 230
+              },
+              "riseEpochs": 227,
+              "delayed": true
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 98,
+              "testAtTrain99": 0.018256014,
+              "firstTest90": 571,
+              "firstTest99": 807,
+              "completedEpochs": 807,
+              "plateau": {
+                "start": 98,
+                "end": 327,
+                "epochs": 229
+              },
+              "riseEpochs": 244,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 103,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 364,
+              "firstTest99": 415,
+              "completedEpochs": 415,
+              "plateau": {
+                "start": 103,
+                "end": 254,
+                "epochs": 151
+              },
+              "riseEpochs": 110,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 35,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 466,
+              "firstTest99": 630,
+              "completedEpochs": 630,
+              "plateau": {
+                "start": 35,
+                "end": 152,
+                "epochs": 117
+              },
+              "riseEpochs": 314,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 35,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 448,
+              "firstTest99": 605,
+              "completedEpochs": 605,
+              "plateau": {
+                "start": 35,
+                "end": 149,
+                "epochs": 114
+              },
+              "riseEpochs": 299,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 36,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 302,
+              "firstTest99": 424,
+              "completedEpochs": 424,
+              "plateau": {
+                "start": 36,
+                "end": 135,
+                "epochs": 99
+              },
+              "riseEpochs": 167,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 37,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 203,
+              "firstTest99": 252,
+              "completedEpochs": 252,
+              "plateau": {
+                "start": 37,
+                "end": 115,
+                "epochs": 78
+              },
+              "riseEpochs": 88,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 37,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 124,
+              "firstTest99": 143,
+              "completedEpochs": 143,
+              "plateau": {
+                "start": 37,
+                "end": 81,
+                "epochs": 44
+              },
+              "riseEpochs": 43,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 19,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 317,
+              "firstTest99": 378,
+              "completedEpochs": 378,
+              "plateau": {
+                "start": 19,
+                "end": 92,
+                "epochs": 73
+              },
+              "riseEpochs": 225,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 18,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 290,
+              "firstTest99": 351,
+              "completedEpochs": 351,
+              "plateau": {
+                "start": 18,
+                "end": 94,
+                "epochs": 76
+              },
+              "riseEpochs": 196,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 19,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 181,
+              "firstTest99": 222,
+              "completedEpochs": 222,
+              "plateau": {
+                "start": 19,
+                "end": 72,
+                "epochs": 53
+              },
+              "riseEpochs": 109,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 19,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 106,
+              "firstTest99": 132,
+              "completedEpochs": 132,
+              "plateau": {
+                "start": 19,
+                "end": 53,
+                "epochs": 34
+              },
+              "riseEpochs": 53,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 19,
+              "testAtTrain99": 0.020189003,
+              "firstTest90": 52,
+              "firstTest99": 61,
+              "completedEpochs": 61,
+              "plateau": {
+                "start": 19,
+                "end": 32,
+                "epochs": 13
+              },
+              "riseEpochs": 20,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 12,
+              "testAtTrain99": 0.019544674,
+              "firstTest90": 303,
+              "firstTest99": 359,
+              "completedEpochs": 359,
+              "plateau": {
+                "start": 12,
+                "end": 82,
+                "epochs": 70
+              },
+              "riseEpochs": 221,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 12,
+              "testAtTrain99": 0.02040378,
+              "firstTest90": 259,
+              "firstTest99": 321,
+              "completedEpochs": 321,
+              "plateau": {
+                "start": 12,
+                "end": 73,
+                "epochs": 61
+              },
+              "riseEpochs": 186,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 12,
+              "testAtTrain99": 0.020189003,
+              "firstTest90": 85,
+              "firstTest99": 113,
+              "completedEpochs": 113,
+              "plateau": {
+                "start": 12,
+                "end": 43,
+                "epochs": 31
+              },
+              "riseEpochs": 41,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 12,
+              "testAtTrain99": 0.021907216,
+              "firstTest90": 40,
+              "firstTest99": 52,
+              "completedEpochs": 52,
+              "plateau": {
+                "start": 12,
+                "end": 24,
+                "epochs": 12
+              },
+              "riseEpochs": 16,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 12,
+              "testAtTrain99": 0.068513746,
+              "firstTest90": 21,
+              "firstTest99": 24,
+              "completedEpochs": 24,
+              "plateau": {
+                "start": 12,
+                "end": 12,
+                "epochs": 0
+              },
+              "riseEpochs": 9,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "lowestTestAtTrain99": {
+        "learningRate": 0.0001,
+        "weightDecay": 0,
+        "seed": 23,
+        "firstTrain99": 88,
+        "testAtTrain99": 0.009235395,
+        "firstTest90": 1714,
+        "firstTest99": 2269,
+        "completedEpochs": 2269,
+        "plateau": {
+          "start": 88,
+          "end": 589,
+          "epochs": 501
+        },
+        "riseEpochs": 1123,
+        "delayed": false
+      },
+      "longestRun": {
+        "learningRate": 0.00001,
+        "weightDecay": 1,
+        "seed": 23,
+        "firstTrain99": 806,
+        "testAtTrain99": 0.009235395,
+        "firstTest90": 6296,
+        "firstTest99": 7763,
+        "completedEpochs": 7763,
+        "plateau": {
+          "start": 806,
+          "end": 4438,
+          "epochs": 3632
+        },
+        "riseEpochs": 1854,
+        "delayed": false
+      },
+      "longestGeneralizedRun": {
+        "learningRate": 0.00001,
+        "weightDecay": 1,
+        "seed": 23,
+        "firstTrain99": 806,
+        "testAtTrain99": 0.009235395,
+        "firstTest90": 6296,
+        "firstTest99": 7763,
+        "completedEpochs": 7763,
+        "plateau": {
+          "start": 806,
+          "end": 4438,
+          "epochs": 3632
+        },
+        "riseEpochs": 1854,
+        "delayed": false
+      },
+      "robust": {
+        "learningRate": 0.00001,
+        "weightDecay": 1,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 814,
+            "testAtTrain99": 0.011168385,
+            "firstTest90": 6050,
+            "firstTest99": 7244,
+            "completedEpochs": 7244,
+            "plateau": {
+              "start": 816,
+              "end": 4300,
+              "epochs": 3484
+            },
+            "riseEpochs": 1750,
+            "delayed": false
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 816,
+            "testAtTrain99": 0.009450172,
+            "firstTest90": 5992,
+            "firstTest99": 7240,
+            "completedEpochs": 7240,
+            "plateau": {
+              "start": 816,
+              "end": 4252,
+              "epochs": 3436
+            },
+            "riseEpochs": 1738,
+            "delayed": false
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 806,
+            "testAtTrain99": 0.009235395,
+            "firstTest90": 6296,
+            "firstTest99": 7763,
+            "completedEpochs": 7763,
+            "plateau": {
+              "start": 806,
+              "end": 4438,
+              "epochs": 3632
+            },
+            "riseEpochs": 1854,
+            "delayed": false
+          }
+        ]
+      },
+      "robustDelayed": {
+        "learningRate": 0.0001,
+        "weightDecay": 1,
+        "runs": [
+          {
+            "seed": 11,
+            "firstTrain99": 90,
+            "testAtTrain99": 0.011168385,
+            "firstTest90": 643,
+            "firstTest99": 773,
+            "completedEpochs": 773,
+            "plateau": {
+              "start": 90,
+              "end": 447,
+              "epochs": 357
+            },
+            "riseEpochs": 196,
+            "delayed": true
+          },
+          {
+            "seed": 17,
+            "firstTrain99": 90,
+            "testAtTrain99": 0.009450172,
+            "firstTest90": 628,
+            "firstTest99": 743,
+            "completedEpochs": 743,
+            "plateau": {
+              "start": 90,
+              "end": 441,
+              "epochs": 351
+            },
+            "riseEpochs": 187,
+            "delayed": true
+          },
+          {
+            "seed": 23,
+            "firstTrain99": 89,
+            "testAtTrain99": 0.009235395,
+            "firstTest90": 661,
+            "firstTest99": 792,
+            "completedEpochs": 792,
+            "plateau": {
+              "start": 89,
+              "end": 458,
+              "epochs": 369
+            },
+            "riseEpochs": 203,
+            "delayed": true
+          }
+        ]
+      },
+      "configurations": [
+        {
+          "learningRate": 0.00001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 814,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 6050,
+              "firstTest99": 7244,
+              "completedEpochs": 7244,
+              "plateau": {
+                "start": 816,
+                "end": 4300,
+                "epochs": 3484
+              },
+              "riseEpochs": 1750,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 816,
+              "testAtTrain99": 0.009450172,
+              "firstTest90": 5992,
+              "firstTest99": 7240,
+              "completedEpochs": 7240,
+              "plateau": {
+                "start": 816,
+                "end": 4252,
+                "epochs": 3436
+              },
+              "riseEpochs": 1738,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 806,
+              "testAtTrain99": 0.009235395,
+              "firstTest90": 6296,
+              "firstTest99": 7763,
+              "completedEpochs": 7763,
+              "plateau": {
+                "start": 806,
+                "end": 4438,
+                "epochs": 3632
+              },
+              "riseEpochs": 1854,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 1628,
+              "firstTest99": 2083,
+              "completedEpochs": 2083,
+              "plateau": {
+                "start": 90,
+                "end": 576,
+                "epochs": 486
+              },
+              "riseEpochs": 1052,
+              "delayed": false
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.009450172,
+              "firstTest90": 1526,
+              "firstTest99": 2021,
+              "completedEpochs": 2021,
+              "plateau": {
+                "start": 90,
+                "end": 561,
+                "epochs": 471
+              },
+              "riseEpochs": 965,
+              "delayed": false
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 88,
+              "testAtTrain99": 0.009235395,
+              "firstTest90": 1714,
+              "firstTest99": 2269,
+              "completedEpochs": 2269,
+              "plateau": {
+                "start": 88,
+                "end": 589,
+                "epochs": 501
+              },
+              "riseEpochs": 1123,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 1613,
+              "firstTest99": 2076,
+              "completedEpochs": 2076,
+              "plateau": {
+                "start": 90,
+                "end": 572,
+                "epochs": 482
+              },
+              "riseEpochs": 1041,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 1395,
+              "firstTest99": 1779,
+              "completedEpochs": 1779,
+              "plateau": {
+                "start": 90,
+                "end": 558,
+                "epochs": 468
+              },
+              "riseEpochs": 837,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 1051,
+              "firstTest99": 1374,
+              "completedEpochs": 1374,
+              "plateau": {
+                "start": 90,
+                "end": 524,
+                "epochs": 434
+              },
+              "riseEpochs": 527,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 643,
+              "firstTest99": 773,
+              "completedEpochs": 773,
+              "plateau": {
+                "start": 90,
+                "end": 447,
+                "epochs": 357
+              },
+              "riseEpochs": 196,
+              "delayed": true
+            },
+            {
+              "seed": 17,
+              "firstTrain99": 90,
+              "testAtTrain99": 0.009450172,
+              "firstTest90": 628,
+              "firstTest99": 743,
+              "completedEpochs": 743,
+              "plateau": {
+                "start": 90,
+                "end": 441,
+                "epochs": 351
+              },
+              "riseEpochs": 187,
+              "delayed": true
+            },
+            {
+              "seed": 23,
+              "firstTrain99": 89,
+              "testAtTrain99": 0.009235395,
+              "firstTest90": 661,
+              "firstTest99": 792,
+              "completedEpochs": 792,
+              "plateau": {
+                "start": 89,
+                "end": 458,
+                "epochs": 369
+              },
+              "riseEpochs": 203,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 36,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 614,
+              "firstTest99": 788,
+              "completedEpochs": 788,
+              "plateau": {
+                "start": 36,
+                "end": 231,
+                "epochs": 195
+              },
+              "riseEpochs": 383,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 36,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 593,
+              "firstTest99": 764,
+              "completedEpochs": 764,
+              "plateau": {
+                "start": 36,
+                "end": 229,
+                "epochs": 193
+              },
+              "riseEpochs": 364,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 36,
+              "testAtTrain99": 0.011168385,
+              "firstTest90": 519,
+              "firstTest99": 660,
+              "completedEpochs": 660,
+              "plateau": {
+                "start": 36,
+                "end": 220,
+                "epochs": 184
+              },
+              "riseEpochs": 299,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 36,
+              "testAtTrain99": 0.011383162,
+              "firstTest90": 387,
+              "firstTest99": 506,
+              "completedEpochs": 506,
+              "plateau": {
+                "start": 36,
+                "end": 204,
+                "epochs": 168
+              },
+              "riseEpochs": 183,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.0003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 37,
+              "testAtTrain99": 0.011812715,
+              "firstTest90": 242,
+              "firstTest99": 282,
+              "completedEpochs": 282,
+              "plateau": {
+                "start": 37,
+                "end": 164,
+                "epochs": 127
+              },
+              "riseEpochs": 78,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 18,
+              "testAtTrain99": 0.015034364,
+              "firstTest90": 277,
+              "firstTest99": 336,
+              "completedEpochs": 336,
+              "plateau": {
+                "start": 18,
+                "end": 124,
+                "epochs": 106
+              },
+              "riseEpochs": 153,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 18,
+              "testAtTrain99": 0.015463918,
+              "firstTest90": 271,
+              "firstTest99": 334,
+              "completedEpochs": 334,
+              "plateau": {
+                "start": 18,
+                "end": 122,
+                "epochs": 104
+              },
+              "riseEpochs": 149,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 18,
+              "testAtTrain99": 0.015893471,
+              "firstTest90": 226,
+              "firstTest99": 270,
+              "completedEpochs": 270,
+              "plateau": {
+                "start": 18,
+                "end": 110,
+                "epochs": 92
+              },
+              "riseEpochs": 116,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 18,
+              "testAtTrain99": 0.016967354,
+              "firstTest90": 188,
+              "firstTest99": 223,
+              "completedEpochs": 223,
+              "plateau": {
+                "start": 18,
+                "end": 92,
+                "epochs": 74
+              },
+              "riseEpochs": 96,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.001,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 18,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 106,
+              "firstTest99": 134,
+              "completedEpochs": 134,
+              "plateau": {
+                "start": 18,
+                "end": 64,
+                "epochs": 46
+              },
+              "riseEpochs": 42,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 10,
+              "testAtTrain99": 0.014604811,
+              "firstTest90": 318,
+              "firstTest99": 362,
+              "completedEpochs": 362,
+              "plateau": {
+                "start": 10,
+                "end": 107,
+                "epochs": 97
+              },
+              "riseEpochs": 211,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 10,
+              "testAtTrain99": 0.014390034,
+              "firstTest90": 304,
+              "firstTest99": 343,
+              "completedEpochs": 343,
+              "plateau": {
+                "start": 10,
+                "end": 102,
+                "epochs": 92
+              },
+              "riseEpochs": 202,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 10,
+              "testAtTrain99": 0.014390034,
+              "firstTest90": 194,
+              "firstTest99": 227,
+              "completedEpochs": 227,
+              "plateau": {
+                "start": 10,
+                "end": 78,
+                "epochs": 68
+              },
+              "riseEpochs": 116,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 11,
+              "testAtTrain99": 0.018685567,
+              "firstTest90": 104,
+              "firstTest99": 125,
+              "completedEpochs": 125,
+              "plateau": {
+                "start": 11,
+                "end": 49,
+                "epochs": 38
+              },
+              "riseEpochs": 55,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.003,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 11,
+              "testAtTrain99": 0.018900344,
+              "firstTest90": 48,
+              "firstTest99": 65,
+              "completedEpochs": 65,
+              "plateau": {
+                "start": 11,
+                "end": 30,
+                "epochs": 19
+              },
+              "riseEpochs": 18,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 11,
+              "testAtTrain99": 0.018256014,
+              "firstTest90": 339,
+              "firstTest99": 409,
+              "completedEpochs": 409,
+              "plateau": {
+                "start": 11,
+                "end": 147,
+                "epochs": 136
+              },
+              "riseEpochs": 184,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.01,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 10,
+              "testAtTrain99": 0.01847079,
+              "firstTest90": 297,
+              "firstTest99": 332,
+              "completedEpochs": 332,
+              "plateau": {
+                "start": 10,
+                "end": 125,
+                "epochs": 115
+              },
+              "riseEpochs": 147,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 10,
+              "testAtTrain99": 0.018256014,
+              "firstTest90": 114,
+              "firstTest99": 142,
+              "completedEpochs": 142,
+              "plateau": {
+                "start": 10,
+                "end": 55,
+                "epochs": 45
+              },
+              "riseEpochs": 57,
+              "delayed": true
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 0.3,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 11,
+              "testAtTrain99": 0.019329897,
+              "firstTest90": 49,
+              "firstTest99": 68,
+              "completedEpochs": 68,
+              "plateau": {
+                "start": 11,
+                "end": 32,
+                "epochs": 21
+              },
+              "riseEpochs": 15,
+              "delayed": false
+            }
+          ]
+        },
+        {
+          "learningRate": 0.01,
+          "weightDecay": 1,
+          "runs": [
+            {
+              "seed": 11,
+              "firstTrain99": 10,
+              "testAtTrain99": 0.02040378,
+              "firstTest90": 24,
+              "firstTest99": 35,
+              "completedEpochs": 35,
+              "plateau": {
+                "start": 10,
+                "end": 14,
+                "epochs": 4
+              },
+              "riseEpochs": 10,
+              "delayed": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

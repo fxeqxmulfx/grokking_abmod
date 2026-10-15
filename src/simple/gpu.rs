@@ -1,7 +1,12 @@
-use std::sync::Arc;
+use std::{
+    any::{Any, TypeId},
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
 use cuda_core::{
-    CudaContext, CudaStream, DeviceBuffer, LaunchConfig1D, LaunchContractError, LaunchDimension,
+    CudaContext, CudaStream, DeviceBuffer, KernelLaunchContract, LaunchConfig1D,
+    LaunchContractError, LaunchDimension, PinnedHostBuffer, PreparedLaunch,
 };
 use cuda_device::{DisjointSlice, device, kernel, launch_bounds, launch_contract, thread, warp};
 use cuda_host::cuda_module;
@@ -153,102 +158,6 @@ mod kernels {
         let _ = (rows, pairs);
     }
 
-    /// `out[r][o] = sum_i f(input[r][offset + i]) W[i][o]`; input rows have
-    /// `stride` values and `f` is the `ACTIVATION` code.
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, inputs >= 1, outputs >= 1, offset + inputs <= stride,
-        input.len() == rows * stride, weights.len() == inputs * outputs,
-        out.len() == rows * outputs))]
-    pub fn simple_dense<const ACTIVATION: usize>(
-        rows: usize,
-        inputs: usize,
-        outputs: usize,
-        stride: usize,
-        offset: usize,
-        input: &[f32],
-        weights: &[[f32; 3]],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let start = item / outputs * stride + offset;
-            let column = item % outputs;
-            let mut total = 0.0;
-            for feature in 0..inputs {
-                total += simple_activate(input[start + feature], ACTIVATION)
-                    * weights[feature * outputs + column][0];
-            }
-            *output = total;
-        }
-        let _ = rows;
-    }
-
-    /// `out[r][i] = f'(before[r][i]) sum_o gradient[r][o] W[i][o]`.
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, inputs >= 1, outputs >= 1,
-        gradient.len() == rows * outputs, weights.len() == inputs * outputs,
-        before.len() == rows * inputs, out.len() == rows * inputs))]
-    pub fn simple_dense_input_gradient<const ACTIVATION: usize>(
-        rows: usize,
-        inputs: usize,
-        outputs: usize,
-        gradient: &[f32],
-        weights: &[[f32; 3]],
-        before: &[f32],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let start = item / inputs * outputs;
-            let row = item % inputs * outputs;
-            let mut total = 0.0;
-            for column in 0..outputs {
-                total += gradient[start + column] * weights[row + column][0];
-            }
-            *output = total * simple_slope(before[item], ACTIVATION);
-        }
-        let _ = rows;
-    }
-
-    /// `out[i][o] = sum_r f(input[r][offset + i]) gradient[r][o]`. One thread owns
-    /// each weight and adds the rows in order, so the result is deterministic.
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, inputs >= 1, outputs >= 1, offset + inputs <= stride,
-        input.len() == rows * stride, gradient.len() == rows * outputs,
-        out.len() == inputs * outputs))]
-    pub fn simple_dense_weight_gradient<const ACTIVATION: usize>(
-        rows: usize,
-        inputs: usize,
-        outputs: usize,
-        stride: usize,
-        offset: usize,
-        input: &[f32],
-        gradient: &[f32],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let feature = offset + item / outputs;
-            let column = item % outputs;
-            let mut total = 0.0;
-            for row in 0..rows {
-                total += simple_activate(input[row * stride + feature], ACTIVATION)
-                    * gradient[row * outputs + column];
-            }
-            *output = total;
-        }
-        let _ = inputs;
-    }
-
     /// Two operand embeddings share E; the output row is [E(a) | E(b)].
     #[kernel]
     #[launch_bounds(128)]
@@ -276,147 +185,6 @@ mod kernels {
                 total += input[start + residue] * weights[residue * width + channel][0];
             }
             *output = total;
-        }
-        let _ = rows;
-    }
-
-    /// E(a) + J E(b), where J rotates each adjacent pair by +90 degrees.
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, classes >= 2, pairs >= 1, width == 2 * pairs,
-        input.len() == rows * 2 * classes, weights.len() == classes * width,
-        out.len() == rows * width))]
-    pub fn simple_rotary_embedding<const S: usize>(
-        rows: usize,
-        classes: usize,
-        width: usize,
-        pairs: usize,
-        input: &[f32],
-        weights: &[[f32; 3]],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let _ = S;
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let channel = item % width;
-            let start = item / width * 2 * classes;
-            let mut left = 0.0;
-            let mut right = 0.0;
-            for residue in 0..classes {
-                left += input[start + residue] * weights[residue * width + channel][0];
-                right +=
-                    input[start + classes + residue] * weights[residue * width + (channel ^ 1)][0];
-            }
-            *output = left
-                + if channel.is_multiple_of(2) {
-                    -right
-                } else {
-                    right
-                };
-        }
-        let _ = rows;
-        let _ = pairs;
-    }
-
-    /// Sum E's input-a, J^T input-b, and transposed-readout derivatives.
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, classes >= 2, pairs >= 1, width == 2 * pairs,
-        input.len() == rows * 2 * classes, input_gradient.len() == rows * width,
-        logit_gradient.len() == rows * classes, hidden.len() == rows * width,
-        out.len() == classes * width))]
-    pub fn simple_rotary_embedding_gradient<const S: usize>(
-        rows: usize,
-        classes: usize,
-        width: usize,
-        pairs: usize,
-        input: &[f32],
-        input_gradient: &[f32],
-        logit_gradient: &[f32],
-        hidden: &[f32],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let _ = S;
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let residue = item / width;
-            let channel = item % width;
-            let mut total = 0.0;
-            for row in 0..rows {
-                let paired = input_gradient[row * width + (channel ^ 1)];
-                let right = if channel.is_multiple_of(2) {
-                    paired
-                } else {
-                    -paired
-                };
-                total += input[row * 2 * classes + residue] * input_gradient[row * width + channel]
-                    + input[row * 2 * classes + classes + residue] * right
-                    + logit_gradient[row * classes + residue] * hidden[row * width + channel];
-            }
-            *output = total;
-        }
-        let _ = pairs;
-    }
-
-    /// z = f(h) E^T, reading the same E state as both operand embeddings.
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, classes >= 2, width >= 1,
-        input.len() == rows * width, weights.len() == classes * width,
-        out.len() == rows * classes))]
-    pub fn simple_tied_readout<const ACTIVATION: usize>(
-        rows: usize,
-        classes: usize,
-        width: usize,
-        input: &[f32],
-        weights: &[[f32; 3]],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let start = item / classes * width;
-            let class = item % classes;
-            let mut total = 0.0;
-            for channel in 0..width {
-                total += simple_activate(input[start + channel], ACTIVATION)
-                    * weights[class * width + channel][0];
-            }
-            *output = total;
-        }
-        let _ = rows;
-    }
-
-    #[kernel]
-    #[launch_bounds(128)]
-    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
-        rows >= 1, classes >= 2, width >= 1,
-        gradient.len() == rows * classes, weights.len() == classes * width,
-        before.len() == rows * width, out.len() == rows * width))]
-    pub fn simple_tied_readout_input_gradient<const ACTIVATION: usize>(
-        rows: usize,
-        classes: usize,
-        width: usize,
-        gradient: &[f32],
-        weights: &[[f32; 3]],
-        before: &[f32],
-        mut out: DisjointSlice<f32>,
-    ) {
-        let index = thread::index_1d();
-        let item = index.get();
-        if let Some(output) = out.get_mut(index) {
-            let start = item / width * classes;
-            let channel = item % width;
-            let mut total = 0.0;
-            for class in 0..classes {
-                total += gradient[start + class] * weights[class * width + channel][0];
-            }
-            *output = total * simple_slope(before[item], ACTIVATION);
         }
         let _ = rows;
     }
@@ -787,13 +555,149 @@ mod kernels {
         let _ = rows;
     }
 
-    /// `(softmax(logits[r]) - onehot(target)) / rows`. Targets are read through
-    /// the same minibatch indices as the gathered features.
+    /// `simple_rmsnorm_statistics` and `simple_rmsnorm_apply` in one pass
+    /// over rows of `WIDTH` channels: each warp reduces its row as the
+    /// statistics kernel does, then writes the row with the apply formula.
+    /// The reduction loop and both divisions use the runtime `width`. A known
+    /// trip count lets the compiler unroll the loop and pair products with
+    /// other additions: it fused a lane's only square into the first shuffle
+    /// sum, and the first square into the second instead of the second into
+    /// the first. A known power-of-two width would let it fuse the division
+    /// into the subtraction.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        WIDTH >= 1, width == WIDTH, rows >= 1, input.len() == rows * width,
+        gradient.len() == input.len(), normalized.len() == input.len(),
+        out.len() == input.len()))]
+    pub fn simple_rmsnorm_rows<const BACKWARD: usize, const WIDTH: usize>(
+        rows: usize,
+        width: usize,
+        input: &[f32],
+        gradient: &[f32],
+        normalized: &[f32],
+        mut out: DisjointSlice<f32, thread::StripedWarp<WIDTH>>,
+    ) {
+        let index = thread::index_1d();
+        let row = index.get() / 32;
+        let lane = index.get() % 32;
+        // Rows are whole warps, so every reduction below has all 32 lanes.
+        if row >= rows {
+            return;
+        }
+        let start = row * WIDTH;
+        let mut squares = 0.0;
+        let mut dot = 0.0;
+        for channel in (lane..width).step_by(32) {
+            let value = input[start + channel];
+            squares += value * value;
+            if BACKWARD == 1 {
+                dot += gradient[start + channel] * normalized[start + channel];
+            }
+        }
+        let squares = warp::reduce_sum_f32(squares);
+        let dot = warp::reduce_sum_f32(dot);
+        let inverse = 1.0 / (squares / width as f32 + RMSNORM_EPSILON).sqrt();
+        // The lane's cells are channels `lane`, `lane + 32`, ... of its row.
+        let mut cells = thread::striped_columns::<WIDTH>();
+        for channel in (lane..WIDTH).step_by(32) {
+            if let Some(cell) = cells.next()
+                && let Some(output) = out.get_mut(cell)
+            {
+                let item = start + channel;
+                *output = inverse
+                    * if BACKWARD == 1 {
+                        gradient[item] - normalized[item] * dot / width as f32
+                    } else {
+                        input[item]
+                    };
+            }
+        }
+    }
+
+    /// The first maximum of `values[start..start + count]` and its index, as
+    /// a sequential scan with `>` finds it, for every lane of a warp: lanes
+    /// scan their strided elements in order, and equal maxima keep the lowest
+    /// index, so the result keeps the sign of a zero maximum. NaN never wins;
+    /// without other values the maximum stays -inf and the index `u32::MAX`.
+    #[device]
+    fn simple_first_maximum(values: &[f32], start: usize, count: usize, lane: usize) -> (f32, u32) {
+        let mut maximum = f32::NEG_INFINITY;
+        let mut first = u32::MAX;
+        for index in (lane..count).step_by(32) {
+            if values[start + index] > maximum {
+                maximum = values[start + index];
+                first = index as u32;
+            }
+        }
+        let mut offset = 16;
+        while offset > 0 {
+            let other = warp::shuffle_xor_f32(maximum, offset);
+            let index = warp::shuffle_xor(first, offset);
+            if other > maximum || (other == maximum && index < first) {
+                maximum = other;
+                first = index;
+            }
+            offset /= 2;
+        }
+        (maximum, first)
+    }
+
+    /// The maximum logit of each row and the sum of `exp(logit - maximum)` in
+    /// class order, one warp per row. Every lane adds all exponentials in
+    /// class order, evaluating each itself so that the last multiply of the
+    /// exponential fuses into the sum exactly as in a one-thread loop.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, classes >= 2, logits.len() == rows * classes, out.len() == rows))]
+    pub fn simple_softmax_statistics<const S: usize>(
+        rows: usize,
+        classes: usize,
+        logits: &[f32],
+        mut out: DisjointSlice<[f32; 2], thread::WarpIndex>,
+    ) {
+        let _ = S;
+        let index = thread::index_1d();
+        let row = index.get() / 32;
+        let lane = index.get() % 32;
+        // Rows are whole warps, so every shuffle below has all 32 lanes.
+        if row >= rows {
+            return;
+        }
+        let start = row * classes;
+        let (maximum, _) = simple_first_maximum(logits, start, classes, lane);
+        let mut sum = 0.0;
+        let mut base = 0;
+        while base < classes {
+            let class = base + lane;
+            let value = if class < classes {
+                logits[start + class]
+            } else {
+                0.0
+            };
+            let count = (classes - base).min(32);
+            let mut source = 0;
+            while source < count {
+                sum += (warp::shuffle_f32(value, source as u32) - maximum).exp();
+                source += 1;
+            }
+            base += 32;
+        }
+        if let Some(output) = simple_warp_output(&mut out) {
+            *output = [maximum, sum];
+        }
+    }
+
+    /// `(softmax(logits[r]) - onehot(target)) / rows` from the row statistics.
+    /// Targets are read through the same minibatch indices as the gathered
+    /// features.
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         rows >= 1, classes >= 2, offset + rows <= indices.len(), targets.len() >= 1,
-        logits.len() == rows * classes, out.len() == logits.len()))]
+        logits.len() == rows * classes, statistics.len() == rows,
+        out.len() == logits.len()))]
     pub fn simple_cross_entropy_gradient<const S: usize>(
         rows: usize,
         classes: usize,
@@ -801,6 +705,7 @@ mod kernels {
         indices: &[u32],
         targets: &[u32],
         logits: &[f32],
+        statistics: &[[f32; 2]],
         mut out: DisjointSlice<f32>,
     ) {
         let _ = S;
@@ -808,20 +713,60 @@ mod kernels {
         let item = index.get();
         if let Some(output) = out.get_mut(index) {
             let row = item / classes;
-            let start = row * classes;
-            let mut maximum = f32::NEG_INFINITY;
-            for class in 0..classes {
-                if logits[start + class] > maximum {
-                    maximum = logits[start + class];
-                }
-            }
-            let mut sum = 0.0;
-            for class in 0..classes {
-                sum += (logits[start + class] - maximum).exp();
-            }
+            let [maximum, sum] = statistics[row];
             let target = targets[indices[offset + row] as usize] as usize;
-            let indicator = if item - start == target { 1.0 } else { 0.0 };
+            let indicator = if item - row * classes == target {
+                1.0
+            } else {
+                0.0
+            };
             *output = ((logits[item] - maximum).exp() / sum - indicator) / rows as f32;
+        }
+    }
+
+    /// The class with the highest logit of each row, the first one on ties,
+    /// or `u32::MAX` when the row holds a value that is not finite. One warp
+    /// scans each row.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
+        rows >= 1, classes >= 2, logits.len() == rows * classes, out.len() == rows))]
+    pub fn simple_predictions<const S: usize>(
+        rows: usize,
+        classes: usize,
+        logits: &[f32],
+        mut out: DisjointSlice<u32, thread::WarpIndex>,
+    ) {
+        let _ = S;
+        let index = thread::index_1d();
+        let row = index.get() / 32;
+        let lane = index.get() % 32;
+        // Rows are whole warps, so every shuffle and vote has all 32 lanes.
+        if row >= rows {
+            return;
+        }
+        let start = row * classes;
+        let mut finite = true;
+        for class in (lane..classes).step_by(32) {
+            finite &= logits[start + class].is_finite();
+        }
+        let finite = warp::all(finite);
+        let (_, prediction) = simple_first_maximum(logits, start, classes, lane);
+        if let Some(output) = simple_warp_output(&mut out) {
+            *output = if finite { prediction } else { u32::MAX };
+        }
+    }
+
+    /// The weights of AdamW states without their moments.
+    #[kernel]
+    #[launch_bounds(128)]
+    #[launch_contract(domain = 1, block = (128, 1, 1), requires = (out.len() == state.len()))]
+    pub fn simple_weights<const S: usize>(state: &[[f32; 3]], mut out: DisjointSlice<f32>) {
+        let _ = S;
+        let index = thread::index_1d();
+        let item = index.get();
+        if let Some(output) = out.get_mut(index) {
+            *output = state[item][0];
         }
     }
 
@@ -969,6 +914,36 @@ struct Workspace {
     statistics: DeviceBuffer<[f32; 2]>,
 }
 
+/// One table's logits and predictions, held on the device while the rest of
+/// an evaluation runs.
+struct Readback {
+    logits: DeviceBuffer<f32>,
+    predictions: DeviceBuffer<u32>,
+}
+
+/// The logits and predicted class of every row of one table, in row order.
+pub struct Evaluation {
+    /// `modulus` logits per row, in page-locked memory that the device fills
+    /// directly. `GpuSimpleModel::reuse` takes the buffer back.
+    pub logits: PinnedHostBuffer<f32>,
+    /// The class with the highest logit of each row, the first one on ties.
+    pub predictions: Vec<u32>,
+}
+
+/// Page-locked host buffers, reused by length, so that copies back skip both
+/// the staging copy of pageable memory and fresh allocations.
+#[derive(Default)]
+struct HostBuffers(Vec<PinnedHostBuffer<f32>>);
+
+impl HostBuffers {
+    fn take(&mut self, context: &Arc<CudaContext>, len: usize) -> Result<PinnedHostBuffer<f32>> {
+        match self.0.iter().position(|buffer| buffer.len() == len) {
+            Some(index) => Ok(self.0.swap_remove(index)),
+            None => Ok(PinnedHostBuffer::zeroed(context, len)?),
+        }
+    }
+}
+
 impl Workspace {
     fn new(stream: &Arc<CudaStream>, config: SimpleConfig, rows: usize) -> Result<Self> {
         let (values, adjoints) = buffer_widths(config);
@@ -1034,10 +1009,44 @@ fn buffer_widths(config: SimpleConfig) -> (Vec<usize>, Vec<usize>) {
     }
 }
 
+/// Prepared launches by kernel specialization and launch configuration.
+/// Preparing a launch queries the driver and the module's function table;
+/// a prepared launch is reused without either, while each launch still checks
+/// its buffers against the kernel's contract.
+#[derive(Default)]
+struct Launches(Mutex<BTreeMap<TypeId, Vec<Prepared>>>);
+
+/// A launch configuration and its `PreparedLaunch` for one specialization.
+type Prepared = (LaunchConfig1D, Box<dyn Any + Send>);
+
+impl Launches {
+    fn get<C: KernelLaunchContract<Config = LaunchConfig1D> + 'static>(
+        &self,
+        config: LaunchConfig1D,
+        prepare: impl FnOnce(
+            LaunchConfig1D,
+        ) -> std::result::Result<PreparedLaunch<C>, LaunchContractError>,
+    ) -> Result<PreparedLaunch<C>> {
+        let mut launches = self.0.lock().map_err(|_| "launch cache poisoned")?;
+        let prepared = launches.entry(TypeId::of::<C>()).or_default();
+        let cached = prepared
+            .iter()
+            .filter(|(prepared, _)| *prepared == config)
+            .find_map(|(_, launch)| launch.downcast_ref::<PreparedLaunch<C>>());
+        if let Some(launch) = cached {
+            return Ok(launch.clone());
+        }
+        let launch = prepare(config)?;
+        prepared.push((config, Box::new(launch.clone())));
+        Ok(launch)
+    }
+}
+
 struct Kernels {
     stream: Arc<CudaStream>,
     module: kernels::LoadedModule,
     tiled: dense_tiled::Kernels,
+    launches: Launches,
 }
 
 // Launch wrappers mirror their kernels' argument lists.
@@ -1051,9 +1060,9 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [source, target, offset, copied] = shape;
-        let launch = self
-            .module
-            .prepare_simple_copy_columns::<0>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_copy_columns::<0>(c)
+        })?;
         self.module.simple_copy_columns(
             &self.stream,
             &launch,
@@ -1077,9 +1086,9 @@ impl Kernels {
         if width < 2 {
             return Err("pair rotation needs a width of at least two".into());
         }
-        let launch = self
-            .module
-            .prepare_simple_pair_rotation::<TRANSPOSE>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_pair_rotation::<TRANSPOSE>(c)
+        })?;
         self.module.simple_pair_rotation(
             &self.stream,
             &launch,
@@ -1099,9 +1108,9 @@ impl Kernels {
         weights: &DeviceBuffer<[f32; 3]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_two_parent::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_two_parent::<ACTIVATION>(c)
+        })?;
         self.module.simple_two_parent(
             &self.stream,
             &launch,
@@ -1125,9 +1134,10 @@ impl Kernels {
         before: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_two_parent_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module
+                .prepare_simple_two_parent_input_gradient::<ACTIVATION>(c)
+        })?;
         self.module.simple_two_parent_input_gradient(
             &self.stream,
             &launch,
@@ -1151,9 +1161,10 @@ impl Kernels {
         gradient: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_two_parent_weight_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module
+                .prepare_simple_two_parent_weight_gradient::<ACTIVATION>(c)
+        })?;
         self.module.simple_two_parent_weight_gradient(
             &self.stream,
             &launch,
@@ -1176,9 +1187,9 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let rows = out.len() / (table.features.len() / table.rows);
-        let launch = self
-            .module
-            .prepare_simple_gather::<0>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_gather::<0>(c)
+        })?;
         self.module.simple_gather(
             &self.stream,
             &launch,
@@ -1193,7 +1204,8 @@ impl Kernels {
     }
 
     /// `columns` holds the input row stride and the first feature the layer
-    /// reads; `ACTIVATION` applies to those inputs.
+    /// reads; `ACTIVATION` applies to those inputs. Dense products of every
+    /// size use the register-blocked kernels.
     fn dense<const ACTIVATION: usize>(
         &self,
         layer: Dense,
@@ -1203,28 +1215,8 @@ impl Kernels {
         weights: &DeviceBuffer<[f32; 3]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let [stride, offset] = columns;
-        if layer.inputs >= 512 || layer.outputs >= 512 {
-            return self
-                .tiled
-                .forward::<ACTIVATION>(layer, rows, input, columns, weights, out);
-        }
-        let launch = self
-            .module
-            .prepare_simple_dense::<ACTIVATION>(config::<1>(out.len())?)?;
-        self.module.simple_dense(
-            &self.stream,
-            &launch,
-            rows,
-            layer.inputs,
-            layer.outputs,
-            stride,
-            offset,
-            input,
-            weights,
-            out,
-        )?;
-        Ok(())
+        self.tiled
+            .forward::<ACTIVATION>(layer, rows, input, columns, weights, out)
     }
 
     /// `before` holds the pre-activation values of the layer input.
@@ -1237,26 +1229,8 @@ impl Kernels {
         before: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        if layer.inputs >= 512 || layer.outputs >= 512 {
-            return self
-                .tiled
-                .input_gradient::<ACTIVATION>(layer, rows, gradient, weights, before, out);
-        }
-        let launch = self
-            .module
-            .prepare_simple_dense_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
-        self.module.simple_dense_input_gradient(
-            &self.stream,
-            &launch,
-            rows,
-            layer.inputs,
-            layer.outputs,
-            gradient,
-            weights,
-            before,
-            out,
-        )?;
-        Ok(())
+        self.tiled
+            .input_gradient::<ACTIVATION>(layer, rows, gradient, weights, before, out)
     }
 
     fn weight_gradient<const ACTIVATION: usize>(
@@ -1268,28 +1242,8 @@ impl Kernels {
         gradient: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let [stride, offset] = columns;
-        if layer.inputs >= 512 || layer.outputs >= 512 {
-            return self
-                .tiled
-                .weight_gradient::<ACTIVATION>(layer, rows, input, columns, gradient, out);
-        }
-        let launch = self
-            .module
-            .prepare_simple_dense_weight_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
-        self.module.simple_dense_weight_gradient(
-            &self.stream,
-            &launch,
-            rows,
-            layer.inputs,
-            layer.outputs,
-            stride,
-            offset,
-            input,
-            gradient,
-            out,
-        )?;
-        Ok(())
+        self.tiled
+            .weight_gradient::<ACTIVATION>(layer, rows, input, columns, gradient, out)
     }
 
     fn concat_embedding(
@@ -1300,9 +1254,9 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [rows, classes, width] = shape;
-        let launch = self
-            .module
-            .prepare_simple_concat_embedding::<0>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_concat_embedding::<0>(c)
+        })?;
         self.module.simple_concat_embedding(
             &self.stream,
             &launch,
@@ -1316,6 +1270,7 @@ impl Kernels {
         Ok(())
     }
 
+    /// E(a) + J E(b), where J rotates each adjacent pair by +90 degrees.
     fn rotary_embedding(
         &self,
         shape: [usize; 3],
@@ -1323,24 +1278,10 @@ impl Kernels {
         weights: &DeviceBuffer<[f32; 3]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let [rows, classes, width] = shape;
-        let launch = self
-            .module
-            .prepare_simple_rotary_embedding::<0>(config::<1>(out.len())?)?;
-        self.module.simple_rotary_embedding(
-            &self.stream,
-            &launch,
-            rows,
-            classes,
-            width,
-            width / 2,
-            input,
-            weights,
-            out,
-        )?;
-        Ok(())
+        self.tiled.rotary_embedding(shape, input, weights, out)
     }
 
+    /// Sum E's input-a, J^T input-b, and transposed-readout derivatives.
     fn rotary_embedding_gradient(
         &self,
         shape: [usize; 3],
@@ -1350,26 +1291,17 @@ impl Kernels {
         hidden: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let [rows, classes, width] = shape;
-        let launch = self
-            .module
-            .prepare_simple_rotary_embedding_gradient::<0>(config::<1>(out.len())?)?;
-        self.module.simple_rotary_embedding_gradient(
-            &self.stream,
-            &launch,
-            rows,
-            classes,
-            width,
-            width / 2,
+        self.tiled.rotary_embedding_gradient(
+            shape,
             input,
             input_gradient,
             logit_gradient,
             hidden,
             out,
-        )?;
-        Ok(())
+        )
     }
 
+    /// z = f(h) E^T, reading the same E state as both operand embeddings.
     fn tied_readout<const ACTIVATION: usize>(
         &self,
         shape: [usize; 3],
@@ -1377,21 +1309,8 @@ impl Kernels {
         weights: &DeviceBuffer<[f32; 3]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let [rows, classes, width] = shape;
-        let launch = self
-            .module
-            .prepare_simple_tied_readout::<ACTIVATION>(config::<1>(out.len())?)?;
-        self.module.simple_tied_readout(
-            &self.stream,
-            &launch,
-            rows,
-            classes,
-            width,
-            input,
-            weights,
-            out,
-        )?;
-        Ok(())
+        self.tiled
+            .tied_readout::<ACTIVATION>(shape, input, weights, out)
     }
 
     fn tied_readout_input_gradient<const ACTIVATION: usize>(
@@ -1402,22 +1321,8 @@ impl Kernels {
         before: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let [rows, classes, width] = shape;
-        let launch = self
-            .module
-            .prepare_simple_tied_readout_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
-        self.module.simple_tied_readout_input_gradient(
-            &self.stream,
-            &launch,
-            rows,
-            classes,
-            width,
-            gradient,
-            weights,
-            before,
-            out,
-        )?;
-        Ok(())
+        self.tiled
+            .tied_readout_input_gradient::<ACTIVATION>(shape, gradient, weights, before, out)
     }
 
     fn shared_embedding_gradient<const ACTIVATION: usize>(
@@ -1430,9 +1335,10 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [rows, classes, width] = shape;
-        let launch = self
-            .module
-            .prepare_simple_shared_embedding_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module
+                .prepare_simple_shared_embedding_gradient::<ACTIVATION>(c)
+        })?;
         self.module.simple_shared_embedding_gradient(
             &self.stream,
             &launch,
@@ -1454,9 +1360,9 @@ impl Kernels {
         right: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_combine::<OPERATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_combine::<OPERATION>(c)
+        })?;
         self.module
             .simple_combine(&self.stream, &launch, left, right, out)?;
         Ok(())
@@ -1468,9 +1374,9 @@ impl Kernels {
         branch: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_activated_sum::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_activated_sum::<ACTIVATION>(c)
+        })?;
         self.module
             .simple_activated_sum(&self.stream, &launch, stream, branch, out)?;
         Ok(())
@@ -1482,9 +1388,10 @@ impl Kernels {
         gradient: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_activation_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module
+                .prepare_simple_activation_gradient::<ACTIVATION>(c)
+        })?;
         self.module
             .simple_activation_gradient(&self.stream, &launch, branch, gradient, out)?;
         Ok(())
@@ -1501,9 +1408,9 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [width, parents, stride] = mesh;
-        let launch = self
-            .module
-            .prepare_simple_mesh::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_mesh::<ACTIVATION>(c)
+        })?;
         self.module.simple_mesh(
             &self.stream,
             &launch,
@@ -1529,9 +1436,10 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [width, parents, stride] = mesh;
-        let launch = self
-            .module
-            .prepare_simple_mesh_input_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module
+                .prepare_simple_mesh_input_gradient::<ACTIVATION>(c)
+        })?;
         self.module.simple_mesh_input_gradient(
             &self.stream,
             &launch,
@@ -1556,9 +1464,10 @@ impl Kernels {
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
         let [width, parents, stride] = mesh;
-        let launch = self
-            .module
-            .prepare_simple_mesh_weight_gradient::<ACTIVATION>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module
+                .prepare_simple_mesh_weight_gradient::<ACTIVATION>(c)
+        })?;
         self.module.simple_mesh_weight_gradient(
             &self.stream,
             &launch,
@@ -1574,6 +1483,8 @@ impl Kernels {
     }
 
     /// Forward reads `[x, x, x]`; backward reads `[x, dn, n]` and writes `dx`.
+    /// Common widths take one pass; other widths keep `statistics` between
+    /// two.
     fn rmsnorm<const BACKWARD: usize>(
         &self,
         rows: usize,
@@ -1582,10 +1493,54 @@ impl Kernels {
         statistics: &mut DeviceBuffer<[f32; 2]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
+        match width {
+            16 => self.rmsnorm_rows::<BACKWARD, 16>(rows, inputs, out),
+            32 => self.rmsnorm_rows::<BACKWARD, 32>(rows, inputs, out),
+            64 => self.rmsnorm_rows::<BACKWARD, 64>(rows, inputs, out),
+            128 => self.rmsnorm_rows::<BACKWARD, 128>(rows, inputs, out),
+            256 => self.rmsnorm_rows::<BACKWARD, 256>(rows, inputs, out),
+            512 => self.rmsnorm_rows::<BACKWARD, 512>(rows, inputs, out),
+            1024 => self.rmsnorm_rows::<BACKWARD, 1024>(rows, inputs, out),
+            _ => self.rmsnorm_split::<BACKWARD>(rows, width, inputs, statistics, out),
+        }
+    }
+
+    fn rmsnorm_rows<const BACKWARD: usize, const WIDTH: usize>(
+        &self,
+        rows: usize,
+        inputs: [&DeviceBuffer<f32>; 3],
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
         let [input, gradient, normalized] = inputs;
-        let launch = self
-            .module
-            .prepare_simple_rmsnorm_statistics::<BACKWARD>(config::<32>(rows)?)?;
+        let launch = self.launches.get(config::<32>(rows)?, |c| {
+            self.module
+                .prepare_simple_rmsnorm_rows::<BACKWARD, WIDTH>(c)
+        })?;
+        self.module.simple_rmsnorm_rows(
+            &self.stream,
+            &launch,
+            rows,
+            WIDTH,
+            input,
+            gradient,
+            normalized,
+            out,
+        )?;
+        Ok(())
+    }
+
+    fn rmsnorm_split<const BACKWARD: usize>(
+        &self,
+        rows: usize,
+        width: usize,
+        inputs: [&DeviceBuffer<f32>; 3],
+        statistics: &mut DeviceBuffer<[f32; 2]>,
+        out: &mut DeviceBuffer<f32>,
+    ) -> Result<()> {
+        let [input, gradient, normalized] = inputs;
+        let launch = self.launches.get(config::<32>(rows)?, |c| {
+            self.module.prepare_simple_rmsnorm_statistics::<BACKWARD>(c)
+        })?;
         self.module.simple_rmsnorm_statistics(
             &self.stream,
             &launch,
@@ -1596,9 +1551,9 @@ impl Kernels {
             normalized,
             statistics,
         )?;
-        let launch = self
-            .module
-            .prepare_simple_rmsnorm_apply::<BACKWARD>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_rmsnorm_apply::<BACKWARD>(c)
+        })?;
         self.module.simple_rmsnorm_apply(
             &self.stream,
             &launch,
@@ -1612,6 +1567,7 @@ impl Kernels {
         Ok(())
     }
 
+    /// `statistics` receives each row's maximum logit and softmax denominator.
     fn cross_entropy_gradient(
         &self,
         classes: usize,
@@ -1619,22 +1575,59 @@ impl Kernels {
         indices: &DeviceBuffer<u32>,
         targets: &DeviceBuffer<u32>,
         logits: &DeviceBuffer<f32>,
+        statistics: &mut DeviceBuffer<[f32; 2]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_cross_entropy_gradient::<0>(config::<1>(out.len())?)?;
+        let rows = logits.len() / classes;
+        let launch = self.launches.get(config::<32>(rows)?, |c| {
+            self.module.prepare_simple_softmax_statistics::<0>(c)
+        })?;
+        self.module.simple_softmax_statistics(
+            &self.stream,
+            &launch,
+            rows,
+            classes,
+            logits,
+            statistics,
+        )?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_cross_entropy_gradient::<0>(c)
+        })?;
         self.module.simple_cross_entropy_gradient(
             &self.stream,
             &launch,
-            logits.len() / classes,
+            rows,
             classes,
             offset,
             indices,
             targets,
             logits,
+            statistics,
             out,
         )?;
+        Ok(())
+    }
+
+    fn predictions(
+        &self,
+        classes: usize,
+        logits: &DeviceBuffer<f32>,
+        out: &mut DeviceBuffer<u32>,
+    ) -> Result<()> {
+        let launch = self.launches.get(config::<32>(out.len())?, |c| {
+            self.module.prepare_simple_predictions::<0>(c)
+        })?;
+        self.module
+            .simple_predictions(&self.stream, &launch, out.len(), classes, logits, out)?;
+        Ok(())
+    }
+
+    fn weights(&self, state: &DeviceBuffer<[f32; 3]>, out: &mut DeviceBuffer<f32>) -> Result<()> {
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_weights::<0>(c)
+        })?;
+        self.module
+            .simple_weights(&self.stream, &launch, state, out)?;
         Ok(())
     }
 
@@ -1644,9 +1637,9 @@ impl Kernels {
         corrections: [f32; 2],
         group: &mut Parameters,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_adam::<0>(config::<1>(group.state.len())?)?;
+        let launch = self.launches.get(config::<1>(group.state.len())?, |c| {
+            self.module.prepare_simple_adam::<0>(c)
+        })?;
         self.module.simple_adam(
             &self.stream,
             &launch,
@@ -1673,9 +1666,9 @@ impl Kernels {
         readout: &DeviceBuffer<[f32; 3]>,
         out: &mut DeviceBuffer<f32>,
     ) -> Result<()> {
-        let launch = self
-            .module
-            .prepare_simple_channel_decay::<0>(config::<1>(out.len())?)?;
+        let launch = self.launches.get(config::<1>(out.len())?, |c| {
+            self.module.prepare_simple_channel_decay::<0>(c)
+        })?;
         self.module.simple_channel_decay(
             &self.stream,
             &launch,
@@ -1701,9 +1694,9 @@ impl Kernels {
         group: &mut Parameters,
     ) -> Result<()> {
         let [stride, width] = channels;
-        let launch = self
-            .module
-            .prepare_simple_adam_channels::<0>(config::<1>(group.state.len())?)?;
+        let launch = self.launches.get(config::<1>(group.state.len())?, |c| {
+            self.module.prepare_simple_adam_channels::<0>(c)
+        })?;
         self.module.simple_adam_channels(
             &self.stream,
             &launch,
@@ -1736,7 +1729,12 @@ pub struct GpuSimpleModel {
     mesh_gradients: Vec<DeviceBuffer<f32>>,
     /// Hidden-channel decay multipliers when weight decay imitates more factors.
     channel_decay: Option<DeviceBuffer<f32>>,
+    /// Each group's weights without their moments, for copying back.
+    weights: Vec<DeviceBuffer<f32>>,
     workspaces: Vec<Workspace>,
+    /// The results of the latest evaluation, reused by the next one.
+    readbacks: Vec<Readback>,
+    host_buffers: HostBuffers,
     beta1_power: f32,
     beta2_power: f32,
 }
@@ -1752,6 +1750,7 @@ impl GpuSimpleModel {
         let initial = config.initial_parameters(seed);
         let groups = config.groups();
         let mut parameters = Vec::with_capacity(groups.len());
+        let mut weights = Vec::with_capacity(groups.len());
         let mut offset = 0;
         for size in groups {
             let state: Vec<_> = initial[offset..offset + size]
@@ -1762,6 +1761,7 @@ impl GpuSimpleModel {
                 state: DeviceBuffer::from_host(&stream, &state)?,
                 gradient: DeviceBuffer::zeroed(&stream, size)?,
             });
+            weights.push(DeviceBuffer::zeroed(&stream, size)?);
             offset += size;
         }
         let tied = config.stored_mesh_layers() < config.mesh_layers()
@@ -1784,11 +1784,15 @@ impl GpuSimpleModel {
                 stream,
                 module,
                 tiled,
+                launches: Launches::default(),
             },
             parameters,
             mesh_gradients,
             channel_decay,
+            weights,
             workspaces: Vec::new(),
+            readbacks: Vec::new(),
+            host_buffers: HostBuffers::default(),
             beta1_power: 1.0,
             beta2_power: 1.0,
         })
@@ -1798,19 +1802,41 @@ impl GpuSimpleModel {
         self.config
     }
 
-    pub fn parameters(&self) -> Result<Vec<f32>> {
-        let mut values = Vec::with_capacity(self.config.parameter_count());
-        for group in &self.parameters {
-            values.extend(
-                group
-                    .state
-                    .to_host_vec(&self.kernels.stream)?
-                    .iter()
-                    .map(|s| s[0]),
-            );
-        }
-        validate_finite(&values, "parameters")?;
+    /// The weights alone, separated from their moments on the device so that
+    /// a third of the state crosses the bus.
+    pub fn parameters(&mut self) -> Result<Vec<f32>> {
+        let mut values = vec![0.0; self.config.parameter_count()];
+        self.copy_parameters(&mut values)?;
         Ok(values)
+    }
+
+    /// `parameters` in page-locked memory that `reuse` takes back.
+    pub fn pinned_parameters(&mut self) -> Result<PinnedHostBuffer<f32>> {
+        let context = self.kernels.stream.context();
+        let mut values = self
+            .host_buffers
+            .take(context, self.config.parameter_count())?;
+        self.copy_parameters(&mut values)?;
+        Ok(values)
+    }
+
+    /// Takes back the page-locked logits or parameters of earlier results,
+    /// so that later copies skip allocating them.
+    pub fn reuse(&mut self, buffer: PinnedHostBuffer<f32>) {
+        self.host_buffers.0.push(buffer);
+    }
+
+    fn copy_parameters(&mut self, values: &mut [f32]) -> Result<()> {
+        for (group, weights) in self.parameters.iter().zip(&mut self.weights) {
+            self.kernels.weights(&group.state, weights)?;
+        }
+        let mut offset = 0;
+        for weights in &self.weights {
+            let end = offset + weights.len();
+            weights.copy_to_host(&self.kernels.stream, &mut values[offset..end])?;
+            offset = end;
+        }
+        validate_finite(values, "parameters")
     }
 
     /// Sets weights and resets AdamW's moments and step count.
@@ -1876,17 +1902,77 @@ impl GpuSimpleModel {
 
     /// Logits for every table row in order, `modulus` classes per row.
     pub fn logits(&mut self, table: &DeviceTable) -> Result<Vec<f32>> {
-        let mut workspace = self.take_workspace(table.rows)?;
-        let result = (|| {
-            self.kernels
-                .gather(table, &table.identity, 0, &mut workspace.inputs)?;
-            self.forward(&mut workspace)?;
-            let logits = workspace.logits.to_host_vec(&self.kernels.stream)?;
-            validate_finite(&logits, "logits")?;
-            Ok(logits)
+        let [evaluation] = self.evaluate([table])?;
+        let logits = evaluation.logits.to_vec();
+        self.reuse(evaluation.logits);
+        Ok(logits)
+    }
+
+    /// Logits and predictions for every row of each table. All tables run on
+    /// the device before the first copy back, so the host waits once.
+    pub fn evaluate<const N: usize>(
+        &mut self,
+        tables: [&DeviceTable; N],
+    ) -> Result<[Evaluation; N]> {
+        let classes = self.config.modulus;
+        let mut readbacks = Vec::with_capacity(N);
+        for table in tables {
+            let cached = self
+                .readbacks
+                .iter()
+                .position(|readback| readback.predictions.len() == table.rows);
+            readbacks.push(match cached {
+                Some(index) => self.readbacks.remove(index),
+                None => Readback {
+                    logits: DeviceBuffer::zeroed(&self.kernels.stream, table.rows * classes)?,
+                    predictions: DeviceBuffer::zeroed(&self.kernels.stream, table.rows)?,
+                },
+            });
+        }
+        let result = (|| -> Result<Vec<Evaluation>> {
+            for (table, readback) in tables.into_iter().zip(&mut readbacks) {
+                let mut workspace = self.take_workspace(table.rows)?;
+                let queued = (|| -> Result<()> {
+                    self.kernels
+                        .gather(table, &table.identity, 0, &mut workspace.inputs)?;
+                    self.forward(&mut workspace)?;
+                    self.kernels.predictions(
+                        classes,
+                        &workspace.logits,
+                        &mut readback.predictions,
+                    )?;
+                    // Every forward pass overwrites all logits, so the
+                    // workspace may continue with the previous readback buffer.
+                    std::mem::swap(&mut workspace.logits, &mut readback.logits);
+                    Ok(())
+                })();
+                self.workspaces.push(workspace);
+                queued?;
+            }
+            let stream = &self.kernels.stream;
+            let mut evaluations = Vec::with_capacity(N);
+            for readback in &readbacks {
+                let predictions = readback.predictions.to_host_vec(stream)?;
+                // The predictions kernel marks rows that hold a value that
+                // is not finite.
+                if predictions.contains(&u32::MAX) {
+                    return Err("logits must contain only finite values".into());
+                }
+                let mut logits = self
+                    .host_buffers
+                    .take(stream.context(), readback.logits.len())?;
+                readback.logits.copy_to_host(stream, &mut logits)?;
+                evaluations.push(Evaluation {
+                    logits,
+                    predictions,
+                });
+            }
+            Ok(evaluations)
         })();
-        self.workspaces.push(workspace);
-        result
+        self.readbacks = readbacks;
+        result?
+            .try_into()
+            .map_err(|_| "evaluation lost a table".into())
     }
 
     /// The mean answer cross-entropy and every parameter gradient on the
@@ -2012,6 +2098,7 @@ impl GpuSimpleModel {
                 &batches.indices,
                 &table.targets,
                 &workspace.logits,
+                &mut workspace.statistics,
                 &mut workspace.logit_gradient,
             )?;
             self.backward(&mut workspace)?;
@@ -3097,6 +3184,7 @@ mod verification {
 
         fn verify_selected(device: usize, architecture: Option<Architecture>) -> Result<()> {
             dense_tiled::verify(device)?;
+            verify_row_reductions(device)?;
             for config in configurations()
                 .into_iter()
                 .filter(|config| architecture.is_none_or(|model| config.architecture == model))
@@ -3867,6 +3955,155 @@ mod verification {
             return Err("AdamW steps are not bitwise repeatable after a reset".into());
         }
         Ok([logit_error, gradient_error])
+    }
+
+    /// The warp-per-row reductions against one-thread scans: predictions and
+    /// softmax maxima bit for bit, softmax denominators against f64, on rows
+    /// with ties, zeros of both signs and values that are not finite. One-pass
+    /// RMSNorm must match the two-pass kernels bit for bit, which catches a
+    /// compiler that fuses its products into other additions.
+    fn verify_row_reductions(device: usize) -> Result<()> {
+        let config = SimpleConfig {
+            modulus: 7,
+            width: 4,
+            ..SimpleConfig::default()
+        };
+        let model = GpuSimpleModel::new(device, config, 1)?;
+        let k = &model.kernels;
+        for classes in [2, 7, 31, 32, 33, 97] {
+            let with = |fill: f32, cells: &[(usize, f32)]| {
+                let mut row = vec![fill; classes];
+                for &(class, value) in cells {
+                    row[class] = value;
+                }
+                row
+            };
+            let last = classes - 1;
+            let mut rows: Vec<Vec<f32>> = (0..40)
+                .map(|row| {
+                    (0..classes)
+                        .map(|class| ((row * 31 + class * 17) % 23) as f32 * 0.37 - 4.0)
+                        .collect()
+                })
+                .collect();
+            rows.extend([
+                with(1.5, &[]),
+                with(-1.0, &[(classes / 2, 2.0), (last, 2.0)]),
+                with(-1.0, &[(0, -0.0), (last, 0.0)]),
+                with(-1.0, &[(0, 0.0), (last, -0.0)]),
+                with(0.5, &[(last, f32::NAN)]),
+                with(0.5, &[(0, f32::NAN)]),
+                with(0.5, &[(1, f32::INFINITY)]),
+                with(0.5, &[(last, f32::NEG_INFINITY)]),
+                with(f32::NEG_INFINITY, &[]),
+            ]);
+            let count = rows.len();
+            let logits = DeviceBuffer::from_host(&k.stream, &rows.concat())?;
+            let identity: Vec<_> = (0..count as u32).collect();
+            let indices = DeviceBuffer::from_host(&k.stream, &identity)?;
+            let targets = DeviceBuffer::from_host(&k.stream, &vec![0_u32; count])?;
+            let mut predictions = DeviceBuffer::zeroed(&k.stream, count)?;
+            let mut statistics = DeviceBuffer::zeroed(&k.stream, count)?;
+            let mut gradient = DeviceBuffer::zeroed(&k.stream, count * classes)?;
+            k.predictions(classes, &logits, &mut predictions)?;
+            k.cross_entropy_gradient(
+                classes,
+                0,
+                &indices,
+                &targets,
+                &logits,
+                &mut statistics,
+                &mut gradient,
+            )?;
+            let predictions = predictions.to_host_vec(&k.stream)?;
+            let statistics = statistics.to_host_vec(&k.stream)?;
+            for (row, (&prediction, &[maximum, sum])) in
+                rows.iter().zip(predictions.iter().zip(&statistics))
+            {
+                let mut expected = 0;
+                let mut expected_maximum = f32::NEG_INFINITY;
+                for (class, &value) in row.iter().enumerate() {
+                    if value > row[expected] {
+                        expected = class;
+                    }
+                    if value > expected_maximum {
+                        expected_maximum = value;
+                    }
+                }
+                let finite = row.iter().all(|value| value.is_finite());
+                let expected = if finite { expected as u32 } else { u32::MAX };
+                let expected_sum: f64 = row
+                    .iter()
+                    .map(|&value| f64::from(value - expected_maximum).exp())
+                    .sum();
+                let sum_matches = if expected_sum.is_nan() {
+                    sum.is_nan()
+                } else {
+                    (f64::from(sum) - expected_sum).abs() <= 1e-5 * expected_sum
+                };
+                if prediction != expected
+                    || maximum.to_bits() != expected_maximum.to_bits()
+                    || !sum_matches
+                {
+                    return Err(format!(
+                        "row reductions over {classes} classes differ on {row:?}: prediction {prediction}, maximum {maximum}, sum {sum}"
+                    )
+                    .into());
+                }
+            }
+        }
+        for width in [16, 32, 64, 128, 256, 512, 1024] {
+            // A different rounding in one lane's partial sum of squares
+            // changes the inverse RMS of only about 0.4% of rows at width
+            // 1024, so the check needs thousands of rows with full mantissas.
+            let rows = 4096;
+            let values = |seed: u32| -> Vec<f32> {
+                (0..rows * width)
+                    .map(|item| {
+                        let scale = 10.0_f32.powi((item / width) as i32 % 7 - 3);
+                        let hash = (item as u32)
+                            .wrapping_mul(0x9E37_79B1)
+                            .wrapping_add(seed.wrapping_mul(0x85EB_CA77));
+                        ((hash >> 8) as f32 / 16_777_216.0 * 8.0 - 4.0) * scale
+                    })
+                    .collect()
+            };
+            let mut input = values(0);
+            input[..width].fill(0.0);
+            let upload = |values: &[f32]| DeviceBuffer::from_host(&k.stream, values);
+            let x = upload(&input)?;
+            let (dn, n) = (upload(&values(5))?, upload(&values(11))?);
+            let mut statistics = DeviceBuffer::zeroed(&k.stream, rows)?;
+            let mut one_pass = DeviceBuffer::zeroed(&k.stream, rows * width)?;
+            let mut two_passes = DeviceBuffer::zeroed(&k.stream, rows * width)?;
+            for backward in [false, true] {
+                if backward {
+                    let inputs = [&x, &dn, &n];
+                    k.rmsnorm::<1>(rows, width, inputs, &mut statistics, &mut one_pass)?;
+                    k.rmsnorm_split::<1>(rows, width, inputs, &mut statistics, &mut two_passes)?;
+                } else {
+                    let inputs = [&x, &x, &x];
+                    k.rmsnorm::<0>(rows, width, inputs, &mut statistics, &mut one_pass)?;
+                    k.rmsnorm_split::<0>(rows, width, inputs, &mut statistics, &mut two_passes)?;
+                }
+                let one_pass = one_pass.to_host_vec(&k.stream)?;
+                let two_passes = two_passes.to_host_vec(&k.stream)?;
+                if one_pass
+                    .iter()
+                    .zip(&two_passes)
+                    .any(|(a, b)| a.to_bits() != b.to_bits())
+                {
+                    return Err(format!(
+                        "one-pass RMSNorm (backward: {backward}) differs from two passes at width {width}"
+                    )
+                    .into());
+                }
+            }
+        }
+        println!(
+            "PASS simple-model row reductions: predictions and softmax maxima match one-thread scans bit for bit, denominators match f64, with ties, signed zeros and values that are not finite; one-pass RMSNorm matches two passes bit for bit"
+        );
+        Ok(())
     }
 
     fn verify_validation(device: usize) -> Result<()> {

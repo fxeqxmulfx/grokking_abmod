@@ -1,0 +1,9 @@
+{
+  "binarySha256": {
+    "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/register-blocks/mesh-gpt": "48576263518e58991c75d8788ea49406b510c0514fe92e8941b6921653872a0d",
+    "/home/misha/rust_projects/grokking_abmod/target/optimizer-grid/cuda-build/release/mesh-gpt": "a0023655f9ca33098143295104310a00012edc5cc9b05ec6fd78497fa14e7b0e",
+    "/home/misha/rust_projects/grokking_abmod/target/grok-div97-dense-embedding-normal-width/bin/mesh-gpt": "53419ce2a547980b61ca0bd30c21a97495e816eebd2c1676749c124d4b7c140d"
+  },
+  "sourceSha256": "9c54ae97661dcf8b3568aef9c94fb1171ce9b9cb0a603c25c855a568ea283509",
+  "completed": true
+}

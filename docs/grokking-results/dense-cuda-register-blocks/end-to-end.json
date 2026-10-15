@@ -1,0 +1,233 @@
+{
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU, 16 multiprocessors",
+  "command": "mesh-gpt grok-simple --model tied-rotary-residual-dense-mlp --width W --depth 1 --activation relu --encoding one-hot --dense-embedding-initialization normal-width --operation div --modulus 97 --train-fraction 0.5 --learning-rate LR --weight-decay WD --seed SEED --batch 512 --epochs EPOCHS --report-every 10 --stop-validation-accuracy 0.99",
+  "baseline": "16x16 shared-memory tiles for Dense layers with at least 512 channels, the original kernels otherwise",
+  "baselineBinarySha256": "f4bf53b5cdddeff673f6762ec8932bc2403039e18e6907f2ff6c5ddecd2dfb31",
+  "registerBlockBinarySha256": "48576263518e58991c75d8788ea49406b510c0514fe92e8941b6921653872a0d",
+  "identical": "loss.csv apart from elapsed_seconds, run.txt apart from elapsed_seconds, initial-model.bin, model.bin and predictions.csv are byte for byte equal",
+  "timing": [
+    {
+      "width": 16,
+      "epochs": 300,
+      "baselineMsPerEpoch": [
+        10.72,
+        10.69,
+        10.61
+      ],
+      "registerBlockMsPerEpoch": [
+        3.11,
+        3.11,
+        3.13
+      ],
+      "medianSpeedup": 3.44
+    },
+    {
+      "width": 32,
+      "epochs": 300,
+      "baselineMsPerEpoch": [
+        12.69,
+        12.68,
+        12.75
+      ],
+      "registerBlockMsPerEpoch": [
+        3.27,
+        3.25,
+        3.25
+      ],
+      "medianSpeedup": 3.9
+    },
+    {
+      "width": 128,
+      "epochs": 300,
+      "baselineMsPerEpoch": [
+        28.1,
+        28.2,
+        28.23
+      ],
+      "registerBlockMsPerEpoch": [
+        5.08,
+        5.09,
+        5.11
+      ],
+      "medianSpeedup": 5.54
+    },
+    {
+      "width": 1024,
+      "epochs": 60,
+      "baselineMsPerEpoch": [
+        314.24,
+        315.03,
+        315.27
+      ],
+      "registerBlockMsPerEpoch": [
+        38.14,
+        38.23,
+        38.2
+      ],
+      "medianSpeedup": 8.25
+    }
+  ],
+  "timingMethod": "learning rate 0.001, weight decay 0.1, seed 11, no early stop; the two binaries alternate three times per width; milliseconds per epoch from the second record to the last",
+  "pairs": [
+    {
+      "width": 16,
+      "learningRate": 0.001,
+      "weightDecay": 0.1,
+      "seed": 11,
+      "epochs": 20,
+      "records": 21,
+      "baselineMsPerEpoch": 11.44,
+      "registerBlockMsPerEpoch": 3.93,
+      "identical": true,
+      "modelSha256": "43b80f3572ce928b8d4e4e9d6a6383b120777fae8c0c4b4beb1c357d039daf80"
+    },
+    {
+      "width": 32,
+      "learningRate": 0.001,
+      "weightDecay": 0.1,
+      "seed": 11,
+      "epochs": 20,
+      "records": 21,
+      "baselineMsPerEpoch": 12.48,
+      "registerBlockMsPerEpoch": 4.12,
+      "identical": true,
+      "modelSha256": "fee777da715090958725544909e24e1c98b40bedc48c6b761695d2db5daadd4f"
+    },
+    {
+      "width": 128,
+      "learningRate": 0.001,
+      "weightDecay": 0.1,
+      "seed": 11,
+      "epochs": 20,
+      "records": 21,
+      "baselineMsPerEpoch": 26.83,
+      "registerBlockMsPerEpoch": 6.09,
+      "identical": true,
+      "modelSha256": "d097482bbc8595802ab8adbd62a8294e73efdb937d988ac6a8bce7463f3c2bea"
+    },
+    {
+      "width": 1024,
+      "learningRate": 0.001,
+      "weightDecay": 0.1,
+      "seed": 11,
+      "epochs": 10,
+      "records": 11,
+      "baselineMsPerEpoch": 289.38,
+      "registerBlockMsPerEpoch": 35.97,
+      "identical": true,
+      "modelSha256": "6af3f235dd462d89b4bf5920c7ee077433e510c357f04855e31e9fa073879bb4"
+    },
+    {
+      "width": 16,
+      "learningRate": 1,
+      "weightDecay": 1,
+      "seed": 17,
+      "epochs": 20,
+      "records": 21,
+      "baselineMsPerEpoch": 10.19,
+      "registerBlockMsPerEpoch": 3.38,
+      "identical": true,
+      "modelSha256": "d6f39f130a025e99d3a0f527cfbd02c515a4350f9713c8bc9499e00d87fedd9a"
+    },
+    {
+      "width": 128,
+      "learningRate": 0.1,
+      "weightDecay": 0,
+      "seed": 23,
+      "epochs": 20,
+      "records": 21,
+      "baselineMsPerEpoch": 26.96,
+      "registerBlockMsPerEpoch": 6.09,
+      "identical": true,
+      "modelSha256": "904e543857ebbcf35d7a342b28cf801c4513ac2f1c9149faccb0d46c825d6b05"
+    },
+    {
+      "width": 1024,
+      "learningRate": 0.01,
+      "weightDecay": 0.0001,
+      "seed": 17,
+      "epochs": 5,
+      "records": 6,
+      "baselineMsPerEpoch": 274.87,
+      "registerBlockMsPerEpoch": 34.97,
+      "identical": true,
+      "modelSha256": "e26d3b0c162a6b050b26ff685f845cc4e3d298537c958d080601d26450c21f00"
+    },
+    {
+      "width": 128,
+      "learningRate": 0.003,
+      "weightDecay": 1,
+      "seed": 11,
+      "epochs": 200,
+      "records": 82,
+      "baselineMsPerEpoch": 27.69,
+      "registerBlockMsPerEpoch": 4.99,
+      "identical": true,
+      "modelSha256": "3a83dfe2086668b7977011618c3b920001c939a69a6c2e8121d1bc03c423947f"
+    },
+    {
+      "width": 32,
+      "learningRate": 0.003,
+      "weightDecay": 0,
+      "seed": 17,
+      "epochs": 400,
+      "records": 293,
+      "baselineMsPerEpoch": 13,
+      "registerBlockMsPerEpoch": 3.2,
+      "identical": true,
+      "modelSha256": "f348cbc94b2b291df406e82068762d1dd9738a4779aec526a56a63d24513fc52"
+    }
+  ],
+  "gridTrials": [
+    {
+      "trial": "screen-w16-s11-lr0.003-wd0.1",
+      "records": 2001,
+      "savedTrainingSeconds": 20.62,
+      "registerBlockTrainingSeconds": 6.19,
+      "identical": true
+    },
+    {
+      "trial": "screen-w32-s11-lr0.003-wd0.1",
+      "records": 737,
+      "savedTrainingSeconds": 9.66,
+      "registerBlockTrainingSeconds": 2.36,
+      "identical": true
+    },
+    {
+      "trial": "confirm-w32-s23-lr0.003-wd0",
+      "records": 392,
+      "savedTrainingSeconds": 4.93,
+      "registerBlockTrainingSeconds": 1.27,
+      "identical": true
+    },
+    {
+      "trial": "screen-w128-s11-lr0.001-wd0.1",
+      "records": 606,
+      "savedTrainingSeconds": 17.15,
+      "registerBlockTrainingSeconds": 3.1,
+      "identical": true
+    },
+    {
+      "trial": "confirm-w128-s17-lr0.003-wd1",
+      "records": 83,
+      "savedTrainingSeconds": 2.28,
+      "registerBlockTrainingSeconds": 0.42,
+      "identical": true
+    },
+    {
+      "trial": "screen-w1024-s11-lr0.001-wd0.1",
+      "records": 271,
+      "savedTrainingSeconds": 82.52,
+      "registerBlockTrainingSeconds": 10.18,
+      "identical": true
+    },
+    {
+      "trial": "confirm-w1024-s23-lr0.003-wd1",
+      "records": 59,
+      "savedTrainingSeconds": 18.03,
+      "registerBlockTrainingSeconds": 2.18,
+      "identical": true
+    }
+  ],
+  "gridTrialComparison": "saved optimizer-grid trials from docs/grokking-results/dense-optimizer-grid, rerun with their saved arguments; loss.csv apart from elapsed_seconds and run.txt apart from elapsed_seconds are equal"
+}
