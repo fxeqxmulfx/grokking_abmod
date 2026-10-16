@@ -80,6 +80,11 @@ and [native commands](docs/dense-cuda-kernels.md#local-residual-and-scalar-regre
 The [MLP diagnostic plan](experiments/local-mlp-diagnostics.json) adds smaller
 tasks, training subsets, 8/16-layer networks, and targeted capacity and optimizer
 comparisons; training artifacts stay under ignored `target/`.
+Experiment summaries, settings, figures and checkpoint hashes are kept in Git.
+Full compressed learning curves (`loss.csv.gz`, `histories.csv.gz`) and FP32
+checkpoints (`*.f32`) are ignored local artifacts; the documented training and
+archive commands regenerate them. Archived `git_head` values identify commits
+before the artifact cleanup; source file hashes still identify the measured code.
 The frontend, local preview server and validation tools use strict TypeScript.
 Shared E now starts Normal(0, variance 1/W); A uses Kaiming normal (2/W).
 With the earlier lr 0.001 and weight decay 0.1, on native seed 11, W1024 has a
