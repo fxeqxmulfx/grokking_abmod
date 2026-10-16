@@ -1,0 +1,504 @@
+{
+  "date": "2026-10-16",
+  "git_head": "57311881ad311b1b32eeaa30c0c20c757c463804",
+  "source_state": "Uncommitted experiment changes; hashes identify the executed implementation.",
+  "sha256": {
+    "Cargo.toml": "8f89307107e78806d9970623dd0afed8ea1be98ba8866d9ff3b5cadb9c814e13",
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb",
+    "rust-toolchain.toml": "1bde0579b695cab3712ce035f1003db16327efce3bc6e56c87d9d44a6e8490e6",
+    "src/simple/mod.rs": "f11bc435a145121313c2b11bbf490bff75cff6bceda9bf4d21d0241880eaf1ad",
+    "src/simple/gpu.rs": "72809d3f1fa15e290d43ea44462b99ea5415b891289dc19e42bc29d029dbe464",
+    "src/simple/reference.rs": "37b33e77a18ce2aaf0f294e573b78179caec64036999609958f5ddec4fee0ba9",
+    "src/simple/numerical.rs": "4447634e8b986bc5b77054f16d2e56223c9edeedff30be380210c94428963e27",
+    "src/bin/numerical-div97.rs": "f452e7ee465437ec8067fa8ef1fe7998a41e5661d7ebeb443ffd327bef866d77",
+    "scripts/archive-numerical-div97.mjs": "ef885cac940eabc3aa5f941f69195460a30245edbd0e0c98bf2fc51f43a6a0ce",
+    "target/release/numerical-div97": "80941f3c671dfebd0b1074761b856c34c26b06391dc0c2ae71537c4c3bab1d97"
+  },
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU, sm_86, 4096 MiB",
+  "validation": [
+    "cargo test --lib --locked: 72 passed",
+    "cargo clippy --all-targets --locked: passed",
+    "cargo fmt --all -- --check: passed",
+    "numerical-div97 --verify-only: 18 cases passed"
+  ],
+  "matched_prefix_records_across_budgets": 0,
+  "series": [
+    {
+      "directory": "random-bits-div97-20261016",
+      "status": "complete",
+      "operation": "div",
+      "modulus": 97,
+      "train_fraction": 0.5,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "beta1": 0.9,
+      "beta2": 0.98,
+      "warmup_updates": 10,
+      "batch_size": 512,
+      "core": "one pre-RMSNorm residual FFN, expansion 1, ReLU, final RMSNorm",
+      "operand_combination": "shared e(a) + Rotate90(e(b))",
+      "output": "97 independent trainable class vectors",
+      "code_norm": "unit for every residue",
+      "random_code_seed": "fixed independently of split and model seeds",
+      "split_scope": "held-out equations; all residue identities appear in training",
+      "runs": [
+        {
+          "name": "random-mlp-w64-h8-seed11",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 650,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.316870032,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.8984499299825283e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 6.31398309813236e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "716b64eacc5ffc1e6a74e9a9ea1bfab1f7a13729c41747fc23613b69c334393d"
+        },
+        {
+          "name": "random-mlp-w64-h8-seed17",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.347834579,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.123711532873833e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0001977235662466805,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "c2ad0bcf3603bd11088a09fc051d75bc0db31502dee4fea616a8165010b06ce8"
+        },
+        {
+          "name": "random-mlp-w64-h8-seed23",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.356778389,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.952838355593933e-7,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000028623418061721416,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "c7d4592d4381334df143d2dcfcc938242908f2c6e1de50150452eb76eb364cc9"
+        },
+        {
+          "name": "random-bits-mlp-w64-h8-seed11",
+          "method": "random-bits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.379789715,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 6.935626581793714e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000006042831643682054,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "7db44189597fe6d3cd1949643fc1ba007994111fc4a6e7a0b1f204778b3107f3",
+          "codebook": "codebooks/random-bits-h8-codes.csv",
+          "codebook_sha256": "a638bcf8c2643f6308f547e7ed1b97d594d0fdc45ac594e9ed7c33f764b9b589"
+        },
+        {
+          "name": "random-bits-mlp-w64-h8-seed17",
+          "method": "random-bits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 950,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.397855183,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 4.4864739785808914e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00004645943192098641,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "065152a71825946f4212b44ab75a21e13df476d7d023111fcc9757046cece296",
+          "codebook": "codebooks/random-bits-h8-codes.csv",
+          "codebook_sha256": "a638bcf8c2643f6308f547e7ed1b97d594d0fdc45ac594e9ed7c33f764b9b589"
+        },
+        {
+          "name": "random-bits-mlp-w64-h8-seed23",
+          "method": "random-bits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 850,
+          "best_recorded_test_accuracy": 0.9959192439862543,
+          "elapsed_seconds": 8.354695307,
+          "train": {
+            "correct": 4653,
+            "rows": 4656,
+            "accuracy": 0.9993556701030928,
+            "cross_entropy": 0.0019169914562413685,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4553,
+            "rows": 4656,
+            "accuracy": 0.9778780068728522,
+            "cross_entropy": 0.15169051393047114,
+            "zero_numerator": [
+              42,
+              43
+            ]
+          },
+          "checkpoint_sha256": "50e28e308f4e785392a0bc1c3ee9a7fa40e249bc40ced26a2ea2c737250cb6d6",
+          "codebook": "codebooks/random-bits-h8-codes.csv",
+          "codebook_sha256": "a638bcf8c2643f6308f547e7ed1b97d594d0fdc45ac594e9ed7c33f764b9b589"
+        },
+        {
+          "name": "random-mlp-w32-h8-seed11",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.711114354,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.538505019144728e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000021035670081824414,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "ec702e6b013057eb1f4eec8386c89076ab38111e69445d1782752ceb82798797"
+        },
+        {
+          "name": "random-mlp-w32-h8-seed17",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.882946735395189,
+          "elapsed_seconds": 6.77564988,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000021411302620030416,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4106,
+            "rows": 4656,
+            "accuracy": 0.881872852233677,
+            "cross_entropy": 0.9015667647563718,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "6680a6d251b1a82f0c6318f270ff704bc1fc104e1eaae73cbbc5e082ec3b7d1f"
+        },
+        {
+          "name": "random-mlp-w32-h8-seed23",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.8784364261168385,
+          "elapsed_seconds": 6.736045119,
+          "train": {
+            "correct": 4438,
+            "rows": 4656,
+            "accuracy": 0.9531786941580757,
+            "cross_entropy": 0.2219077672644251,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 3699,
+            "rows": 4656,
+            "accuracy": 0.7944587628865979,
+            "cross_entropy": 1.9448149681874707,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "820d1efaed1d72da3404bc78b9d4e0f735575b265711d08fccf0232f9431bcaf"
+        },
+        {
+          "name": "random-bits-mlp-w32-h8-seed11",
+          "method": "random-bits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.8573883161512027,
+          "elapsed_seconds": 6.737225526,
+          "train": {
+            "correct": 4620,
+            "rows": 4656,
+            "accuracy": 0.9922680412371134,
+            "cross_entropy": 0.02860918522159783,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 3846,
+            "rows": 4656,
+            "accuracy": 0.8260309278350515,
+            "cross_entropy": 1.4946554319113055,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "fb0a7ae2f58825691dc7c279c1a582d9ca5645fa93c19504e8bbb70d7bc7bba5",
+          "codebook": "codebooks/random-bits-h8-codes.csv",
+          "codebook_sha256": "a638bcf8c2643f6308f547e7ed1b97d594d0fdc45ac594e9ed7c33f764b9b589"
+        },
+        {
+          "name": "random-bits-mlp-w32-h8-seed17",
+          "method": "random-bits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 450,
+          "best_recorded_test_accuracy": 0.9976374570446735,
+          "elapsed_seconds": 6.74121392,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000015307020632642129,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4632,
+            "rows": 4656,
+            "accuracy": 0.9948453608247423,
+            "cross_entropy": 0.020190732420460274,
+            "zero_numerator": [
+              43,
+              44
+            ]
+          },
+          "checkpoint_sha256": "62f3a1d7e4086855a53be7bd7f2bc176086967894898d59558225fdf74b31dc1",
+          "codebook": "codebooks/random-bits-h8-codes.csv",
+          "codebook_sha256": "a638bcf8c2643f6308f547e7ed1b97d594d0fdc45ac594e9ed7c33f764b9b589"
+        },
+        {
+          "name": "random-bits-mlp-w32-h8-seed23",
+          "method": "random-bits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.41881443298969073,
+          "elapsed_seconds": 6.756078394,
+          "train": {
+            "correct": 4529,
+            "rows": 4656,
+            "accuracy": 0.9727233676975945,
+            "cross_entropy": 0.08069307502199034,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 1918,
+            "rows": 4656,
+            "accuracy": 0.4119415807560137,
+            "cross_entropy": 8.071917599552068,
+            "zero_numerator": [
+              42,
+              43
+            ]
+          },
+          "checkpoint_sha256": "97717f1b8957e40be7af1795dc9ed06dcc310e48357c28807b477e462a937e65",
+          "codebook": "codebooks/random-bits-h8-codes.csv",
+          "codebook_sha256": "a638bcf8c2643f6308f547e7ed1b97d594d0fdc45ac594e9ed7c33f764b9b589"
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,8 @@ use crate::{
     mesh::Random,
 };
 
+pub use gpu::anchors::{AnchorEncoding, GpuAnchoredModel};
+pub use gpu::numerical::{GpuNumericalModel, NumericalCode};
 pub use gpu::regression::{
     GpuRegressionMlp, RegressionBiasInitialization, RegressionConfig, RegressionTable,
 };

@@ -1,0 +1,4 @@
+PASS input interpolation linear: loss and every parameter gradient vs independent f64 reference
+PASS input interpolation linear-scaled: loss and every parameter gradient vs independent f64 reference
+PASS input interpolation cubic: loss and every parameter gradient vs independent f64 reference
+PASS input interpolation shepard: loss and every parameter gradient vs independent f64 reference

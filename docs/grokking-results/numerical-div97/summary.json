@@ -1,0 +1,4794 @@
+{
+  "date": "2026-10-16",
+  "git_head": "57311881ad311b1b32eeaa30c0c20c757c463804",
+  "source_state": "Uncommitted experiment changes; hashes identify the executed implementation.",
+  "sha256": {
+    "Cargo.toml": "8f89307107e78806d9970623dd0afed8ea1be98ba8866d9ff3b5cadb9c814e13",
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb",
+    "rust-toolchain.toml": "1bde0579b695cab3712ce035f1003db16327efce3bc6e56c87d9d44a6e8490e6",
+    "src/simple/mod.rs": "f11bc435a145121313c2b11bbf490bff75cff6bceda9bf4d21d0241880eaf1ad",
+    "src/simple/gpu.rs": "72809d3f1fa15e290d43ea44462b99ea5415b891289dc19e42bc29d029dbe464",
+    "src/simple/reference.rs": "37b33e77a18ce2aaf0f294e573b78179caec64036999609958f5ddec4fee0ba9",
+    "src/simple/numerical.rs": "cce977ade4418bc166a0f42f1d775f459381611d552724795f9d6aa3dd09d4cf",
+    "src/bin/numerical-div97.rs": "453663c2f79b08cef639baa8a77233aafa8dd6128b369d5b47c77eb0e578bedb",
+    "scripts/archive-numerical-div97.mjs": "dbfce5e24287d40545c91c36895466668e310c0ad38af9efeaf649ee647e53e6",
+    "target/release/numerical-div97": "90fbf73404cbae5a9d9caf8f4aca410a872432bbb29ae57877f1bb07b0717d51"
+  },
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU, sm_86, 4096 MiB",
+  "validation": [
+    "cargo test --lib --locked: 71 passed",
+    "cargo clippy --all-targets --locked: passed",
+    "cargo fmt --all -- --check: passed",
+    "numerical-div97 --verify-only: 16 cases passed"
+  ],
+  "matched_prefix_records_across_budgets": 246,
+  "series": [
+    {
+      "directory": "numerical-div97-20261016",
+      "status": "complete",
+      "operation": "div",
+      "modulus": 97,
+      "train_fraction": 0.5,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "beta1": 0.9,
+      "beta2": 0.98,
+      "warmup_updates": 10,
+      "batch_size": 512,
+      "core": "one pre-RMSNorm residual FFN, expansion 1, ReLU, final RMSNorm",
+      "operand_combination": "shared e(a) + Rotate90(e(b))",
+      "output": "97 independent trainable class vectors",
+      "code_norm": "unit for every residue",
+      "random_code_seed": "fixed independently of split and model seeds",
+      "split_scope": "held-out equations; all residue identities appear in training",
+      "runs": [
+        {
+          "name": "table-linear-w16-h8-seed11",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 3616,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 5.907693367,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000017924880520789742,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00024270416027074383,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "0dd4a1898b9ae5b38bfa4cfc91c2b7d4b01049348fd91628ea5331810196fc26"
+        },
+        {
+          "name": "table-linear-w16-h8-seed17",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 3616,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 150,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 5.864604232,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 9.896998058203167e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000029390271629217864,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "1737ae0310247af7cc1024982f6b4b8f7fecdb1a9fd53dd09279b61444be1206"
+        },
+        {
+          "name": "table-linear-w16-h8-seed23",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 3616,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.7824312714776632,
+          "elapsed_seconds": 5.874001046,
+          "train": {
+            "correct": 4633,
+            "rows": 4656,
+            "accuracy": 0.9950601374570447,
+            "cross_entropy": 0.020109709699066513,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 3643,
+            "rows": 4656,
+            "accuracy": 0.7824312714776632,
+            "cross_entropy": 1.0535084991233752,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "5f8cbadc62da104f35189ae7f25ce6f5571bec69ed23deff18ec5e9fa6e8b88d"
+        },
+        {
+          "name": "table-mlp-w16-h8-seed11",
+          "method": "table",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 3872,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.09686426116838488,
+          "elapsed_seconds": 6.39237386,
+          "train": {
+            "correct": 1104,
+            "rows": 4656,
+            "accuracy": 0.23711340206185566,
+            "cross_entropy": 2.4374242839551417,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 451,
+            "rows": 4656,
+            "accuracy": 0.09686426116838488,
+            "cross_entropy": 3.4079773336315733,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "f25f73945874e35f49f5351a8015ae472e2af37d409c4d403656309ae8bc8589"
+        },
+        {
+          "name": "table-mlp-w16-h8-seed17",
+          "method": "table",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 3872,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.7540807560137457,
+          "elapsed_seconds": 6.404959703,
+          "train": {
+            "correct": 3976,
+            "rows": 4656,
+            "accuracy": 0.8539518900343642,
+            "cross_entropy": 0.5474931835712992,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 3511,
+            "rows": 4656,
+            "accuracy": 0.7540807560137457,
+            "cross_entropy": 1.1805773806881847,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "87415b48706fba03c47bac5692ee6bcc40d90c86b8208224910a9cd099a87e1c"
+        },
+        {
+          "name": "table-mlp-w16-h8-seed23",
+          "method": "table",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 3872,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.17869415807560138,
+          "elapsed_seconds": 6.399750612,
+          "train": {
+            "correct": 1782,
+            "rows": 4656,
+            "accuracy": 0.38273195876288657,
+            "cross_entropy": 1.901202362123439,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 785,
+            "rows": 4656,
+            "accuracy": 0.16859965635738833,
+            "cross_entropy": 2.632660425837171,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "3c0f58f9f7bd851cdedf4a2a1e2473bd7205632f3c557d3dfbc975adc5acff26"
+        },
+        {
+          "name": "bits-linear-w16-h8-seed11",
+          "method": "bits",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 2176,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03243127147766323,
+          "elapsed_seconds": 5.427733351,
+          "train": {
+            "correct": 506,
+            "rows": 4656,
+            "accuracy": 0.10867697594501718,
+            "cross_entropy": 4.088114741750653,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 133,
+            "rows": 4656,
+            "accuracy": 0.02856529209621993,
+            "cross_entropy": 7.199249166775941,
+            "zero_numerator": [
+              43,
+              52
+            ]
+          },
+          "checkpoint_sha256": "f0f7f710c4c3d27cb7e4bcf50e75708198ef06c585dc3b6daf290bd1a40ab0f3"
+        },
+        {
+          "name": "bits-linear-w16-h8-seed17",
+          "method": "bits",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 2176,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029424398625429553,
+          "elapsed_seconds": 5.432615254,
+          "train": {
+            "correct": 506,
+            "rows": 4656,
+            "accuracy": 0.10867697594501718,
+            "cross_entropy": 4.091505110717286,
+            "zero_numerator": [
+              51,
+              52
+            ]
+          },
+          "test": {
+            "correct": 120,
+            "rows": 4656,
+            "accuracy": 0.02577319587628866,
+            "cross_entropy": 6.61071280434138,
+            "zero_numerator": [
+              40,
+              44
+            ]
+          },
+          "checkpoint_sha256": "01649e0d8995d11b577ce12cda117f0d5b0113ffef942b15c2ad82292adfd9cd"
+        },
+        {
+          "name": "bits-linear-w16-h8-seed23",
+          "method": "bits",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 2176,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.027491408934707903,
+          "elapsed_seconds": 5.438123974,
+          "train": {
+            "correct": 460,
+            "rows": 4656,
+            "accuracy": 0.09879725085910653,
+            "cross_entropy": 4.09262348590534,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 109,
+            "rows": 4656,
+            "accuracy": 0.0234106529209622,
+            "cross_entropy": 6.77680283150001,
+            "zero_numerator": [
+              34,
+              43
+            ]
+          },
+          "checkpoint_sha256": "047ef37b4609aa9faa9865eba34a07952b19a82e0ee428927077d090ee43847f"
+        },
+        {
+          "name": "bits-mlp-w16-h8-seed11",
+          "method": "bits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 2432,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.039304123711340205,
+          "elapsed_seconds": 5.895267382,
+          "train": {
+            "correct": 749,
+            "rows": 4656,
+            "accuracy": 0.16086769759450173,
+            "cross_entropy": 3.626709256155889,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 179,
+            "rows": 4656,
+            "accuracy": 0.038445017182130586,
+            "cross_entropy": 5.236035104908201,
+            "zero_numerator": [
+              49,
+              52
+            ]
+          },
+          "checkpoint_sha256": "43418b42b5ac5df0d365e9603c024e1bbae69fa2ba85f9f1b68fc0ca05eaf17c"
+        },
+        {
+          "name": "bits-mlp-w16-h8-seed17",
+          "method": "bits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 2432,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.06142611683848797,
+          "elapsed_seconds": 5.907194651,
+          "train": {
+            "correct": 808,
+            "rows": 4656,
+            "accuracy": 0.17353951890034364,
+            "cross_entropy": 3.0647953494860345,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 260,
+            "rows": 4656,
+            "accuracy": 0.05584192439862543,
+            "cross_entropy": 4.066774492318999,
+            "zero_numerator": [
+              43,
+              44
+            ]
+          },
+          "checkpoint_sha256": "120a4a724bf5c10438a3b1512980a2e838a9d29ed6157caafe94a9dec58bb524"
+        },
+        {
+          "name": "bits-mlp-w16-h8-seed23",
+          "method": "bits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 2432,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04768041237113402,
+          "elapsed_seconds": 5.917699438,
+          "train": {
+            "correct": 815,
+            "rows": 4656,
+            "accuracy": 0.17504295532646047,
+            "cross_entropy": 3.2551494790746363,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 222,
+            "rows": 4656,
+            "accuracy": 0.04768041237113402,
+            "cross_entropy": 4.343673316434282,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "2f9256929a1f32ec59613ebad141494e8e31a7283432f38c005572b8ff43b070"
+        },
+        {
+          "name": "digits-linear-w16-h8-seed11",
+          "method": "digits",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 2384,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.023195876288659795,
+          "elapsed_seconds": 5.553481002,
+          "train": {
+            "correct": 562,
+            "rows": 4656,
+            "accuracy": 0.12070446735395189,
+            "cross_entropy": 3.975679762085781,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 87,
+            "rows": 4656,
+            "accuracy": 0.018685567010309278,
+            "cross_entropy": 8.340512252299217,
+            "zero_numerator": [
+              48,
+              52
+            ]
+          },
+          "checkpoint_sha256": "8e080a7fe2c62fddef8cf9aeb1c3c3d450831dd7c2164cb3b64c1f510e497f51"
+        },
+        {
+          "name": "digits-linear-w16-h8-seed17",
+          "method": "digits",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 2384,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.024484536082474227,
+          "elapsed_seconds": 5.556276087,
+          "train": {
+            "correct": 590,
+            "rows": 4656,
+            "accuracy": 0.12671821305841924,
+            "cross_entropy": 3.9403020970085487,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 91,
+            "rows": 4656,
+            "accuracy": 0.0195446735395189,
+            "cross_entropy": 8.333657761019811,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "54c094ba798217706d7eede71a345c1a3cb4e963a11ac9986e7b9bc178ee3b70"
+        },
+        {
+          "name": "digits-linear-w16-h8-seed23",
+          "method": "digits",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 2384,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.021692439862542955,
+          "elapsed_seconds": 5.556515865,
+          "train": {
+            "correct": 654,
+            "rows": 4656,
+            "accuracy": 0.1404639175257732,
+            "cross_entropy": 3.9441834431606346,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 89,
+            "rows": 4656,
+            "accuracy": 0.01911512027491409,
+            "cross_entropy": 9.173182443645077,
+            "zero_numerator": [
+              39,
+              43
+            ]
+          },
+          "checkpoint_sha256": "487c89cae22753a49327861b36c49eda9d8fac608f58da14959c779085e8c590"
+        },
+        {
+          "name": "digits-mlp-w16-h8-seed11",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 2640,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.23367697594501718,
+          "elapsed_seconds": 6.032314156,
+          "train": {
+            "correct": 1922,
+            "rows": 4656,
+            "accuracy": 0.41280068728522334,
+            "cross_entropy": 1.4471975299091886,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 1088,
+            "rows": 4656,
+            "accuracy": 0.23367697594501718,
+            "cross_entropy": 2.1208730874015753,
+            "zero_numerator": [
+              48,
+              52
+            ]
+          },
+          "checkpoint_sha256": "7674e8340253b7b15e30fd770d2ded1ff7fb3960ad0accba3c1a110569725545"
+        },
+        {
+          "name": "digits-mlp-w16-h8-seed17",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 2640,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.3073453608247423,
+          "elapsed_seconds": 6.030243916,
+          "train": {
+            "correct": 2426,
+            "rows": 4656,
+            "accuracy": 0.5210481099656358,
+            "cross_entropy": 1.1756566418796142,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 1431,
+            "rows": 4656,
+            "accuracy": 0.3073453608247423,
+            "cross_entropy": 1.856365393603018,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "057df275135b774355d49c811d8aeb98a5d2c2b6e160b101632fb5a1eb7fde6c"
+        },
+        {
+          "name": "digits-mlp-w16-h8-seed23",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 2640,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.5150343642611683,
+          "elapsed_seconds": 6.065056502,
+          "train": {
+            "correct": 3414,
+            "rows": 4656,
+            "accuracy": 0.7332474226804123,
+            "cross_entropy": 0.7027445533648345,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 2398,
+            "rows": 4656,
+            "accuracy": 0.5150343642611683,
+            "cross_entropy": 1.2243891211892288,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "07b3105d56e08ec6fd07866f72215ae675bc7e2dec49a7b7b702bbb737893a26"
+        },
+        {
+          "name": "fone-linear-w16-h8-seed11",
+          "method": "fone",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 2128,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04209621993127148,
+          "elapsed_seconds": 5.349539813,
+          "train": {
+            "correct": 396,
+            "rows": 4656,
+            "accuracy": 0.08505154639175258,
+            "cross_entropy": 4.167521923928275,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 178,
+            "rows": 4656,
+            "accuracy": 0.03823024054982818,
+            "cross_entropy": 5.518381181494654,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "b54797e9a56cd2d1ceaf0bdc8117f79808a6ed0a24992e13489b329a280f4cff"
+        },
+        {
+          "name": "fone-linear-w16-h8-seed17",
+          "method": "fone",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 2128,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04209621993127148,
+          "elapsed_seconds": 5.348087685,
+          "train": {
+            "correct": 366,
+            "rows": 4656,
+            "accuracy": 0.07860824742268041,
+            "cross_entropy": 4.1994014165354905,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 192,
+            "rows": 4656,
+            "accuracy": 0.041237113402061855,
+            "cross_entropy": 5.024997861302462,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "914a85c906efe286bec81eb36f0cf5730d9b160d70e972cae1be4274950ee82c"
+        },
+        {
+          "name": "fone-linear-w16-h8-seed23",
+          "method": "fone",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 2128,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.040807560137457045,
+          "elapsed_seconds": 5.34710125,
+          "train": {
+            "correct": 350,
+            "rows": 4656,
+            "accuracy": 0.07517182130584192,
+            "cross_entropy": 4.203925017622405,
+            "zero_numerator": [
+              52,
+              53
+            ]
+          },
+          "test": {
+            "correct": 173,
+            "rows": 4656,
+            "accuracy": 0.03715635738831615,
+            "cross_entropy": 5.061136175846757,
+            "zero_numerator": [
+              41,
+              43
+            ]
+          },
+          "checkpoint_sha256": "cd539ddb68e07111217568d100f7818ab14598dd968f8ef1e0b510bcfeaf1a92"
+        },
+        {
+          "name": "fone-mlp-w16-h8-seed11",
+          "method": "fone",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 2384,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03243127147766323,
+          "elapsed_seconds": 5.816791712,
+          "train": {
+            "correct": 524,
+            "rows": 4656,
+            "accuracy": 0.11254295532646048,
+            "cross_entropy": 4.0507896579498475,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 151,
+            "rows": 4656,
+            "accuracy": 0.03243127147766323,
+            "cross_entropy": 6.604031968340512,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "e68512d4b58a2afab3ac738ff36a2e0c443aed3be03c3a680087c8e068538070"
+        },
+        {
+          "name": "fone-mlp-w16-h8-seed17",
+          "method": "fone",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 2384,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03414948453608247,
+          "elapsed_seconds": 5.904764064,
+          "train": {
+            "correct": 546,
+            "rows": 4656,
+            "accuracy": 0.1172680412371134,
+            "cross_entropy": 4.003277236577561,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 145,
+            "rows": 4656,
+            "accuracy": 0.031142611683848798,
+            "cross_entropy": 6.1419980584808105,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "1c080fa96348b9b28c7b5310daecb885022fb25e2aaad1d22c1adc94c6a32838"
+        },
+        {
+          "name": "fone-mlp-w16-h8-seed23",
+          "method": "fone",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 2384,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03457903780068729,
+          "elapsed_seconds": 5.834909086,
+          "train": {
+            "correct": 546,
+            "rows": 4656,
+            "accuracy": 0.1172680412371134,
+            "cross_entropy": 3.9874553927075196,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 148,
+            "rows": 4656,
+            "accuracy": 0.03178694158075601,
+            "cross_entropy": 6.092096849566421,
+            "zero_numerator": [
+              40,
+              43
+            ]
+          },
+          "checkpoint_sha256": "34b6b8304376b39d64940480bbd66e79e9b6824bf65ba41b90979de271bccd50"
+        },
+        {
+          "name": "binary-fourier-linear-w16-h8-seed11",
+          "method": "binary-fourier",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 2288,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.06743986254295532,
+          "elapsed_seconds": 5.494812074,
+          "train": {
+            "correct": 664,
+            "rows": 4656,
+            "accuracy": 0.14261168384879724,
+            "cross_entropy": 3.9030979857876575,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 279,
+            "rows": 4656,
+            "accuracy": 0.059922680412371136,
+            "cross_entropy": 5.200363058480331,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "f173398ecc382c73da4afcfdc953ec4d05c6b55b407c72266b9725d217fc5fce"
+        },
+        {
+          "name": "binary-fourier-linear-w16-h8-seed17",
+          "method": "binary-fourier",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 2288,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.019329896907216496,
+          "elapsed_seconds": 5.524339143,
+          "train": {
+            "correct": 507,
+            "rows": 4656,
+            "accuracy": 0.10889175257731959,
+            "cross_entropy": 4.032530610240094,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 59,
+            "rows": 4656,
+            "accuracy": 0.012671821305841924,
+            "cross_entropy": 8.54924497978153,
+            "zero_numerator": [
+              39,
+              44
+            ]
+          },
+          "checkpoint_sha256": "133eb4bbfbd24658c241a0be410d8ac9057ab9fc1ea24bb31a4f68e7b6438a14"
+        },
+        {
+          "name": "binary-fourier-linear-w16-h8-seed23",
+          "method": "binary-fourier",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 2288,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.05627147766323024,
+          "elapsed_seconds": 5.503388717,
+          "train": {
+            "correct": 673,
+            "rows": 4656,
+            "accuracy": 0.14454467353951891,
+            "cross_entropy": 3.9195260788930293,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 244,
+            "rows": 4656,
+            "accuracy": 0.05240549828178694,
+            "cross_entropy": 5.69595824154739,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "0ac6018ef09bd90a08acd131729dfdd9292c79e4e58a45ee2b51bf05cfd4a35d"
+        },
+        {
+          "name": "binary-fourier-mlp-w16-h8-seed11",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 2544,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.4632731958762887,
+          "elapsed_seconds": 5.965876218,
+          "train": {
+            "correct": 2980,
+            "rows": 4656,
+            "accuracy": 0.6400343642611683,
+            "cross_entropy": 1.0000615488425868,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 2090,
+            "rows": 4656,
+            "accuracy": 0.4488831615120275,
+            "cross_entropy": 1.4220373746121364,
+            "zero_numerator": [
+              50,
+              52
+            ]
+          },
+          "checkpoint_sha256": "1003c300616568b6b0968d992c30c76fb058def7309e7c09155a708afe8b0fe3"
+        },
+        {
+          "name": "binary-fourier-mlp-w16-h8-seed17",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 2544,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.2774914089347079,
+          "elapsed_seconds": 5.973680892,
+          "train": {
+            "correct": 1973,
+            "rows": 4656,
+            "accuracy": 0.42375429553264604,
+            "cross_entropy": 1.5583460663670168,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 1292,
+            "rows": 4656,
+            "accuracy": 0.2774914089347079,
+            "cross_entropy": 2.0895507999576646,
+            "zero_numerator": [
+              43,
+              44
+            ]
+          },
+          "checkpoint_sha256": "aa1853bbb75c643cc45818295d301d1cb69bf9434fb975249ef70b89b15df813"
+        },
+        {
+          "name": "binary-fourier-mlp-w16-h8-seed23",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 2544,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.4417955326460481,
+          "elapsed_seconds": 5.9720866390000005,
+          "train": {
+            "correct": 2855,
+            "rows": 4656,
+            "accuracy": 0.6131872852233677,
+            "cross_entropy": 0.9925294414307653,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 2057,
+            "rows": 4656,
+            "accuracy": 0.4417955326460481,
+            "cross_entropy": 1.4569218212222539,
+            "zero_numerator": [
+              40,
+              43
+            ]
+          },
+          "checkpoint_sha256": "7cf84dba1d84deb4ec602ea09ab865e704f67c8422ca73ccc346719a0a4acb84"
+        },
+        {
+          "name": "fourier-linear-w16-h8-seed11",
+          "method": "fourier",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2320,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.020618556701030927,
+          "elapsed_seconds": 5.585316935,
+          "train": {
+            "correct": 470,
+            "rows": 4656,
+            "accuracy": 0.10094501718213059,
+            "cross_entropy": 4.0703896282873755,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 73,
+            "rows": 4656,
+            "accuracy": 0.0156786941580756,
+            "cross_entropy": 7.142817391127362,
+            "zero_numerator": [
+              35,
+              52
+            ]
+          },
+          "checkpoint_sha256": "85d64e21bdf371e992e4c6aa3ac980dc1810a1b7c8034f4b00bd1ec8e5d6cca1"
+        },
+        {
+          "name": "fourier-linear-w16-h8-seed17",
+          "method": "fourier",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2320,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01911512027491409,
+          "elapsed_seconds": 5.619887017,
+          "train": {
+            "correct": 432,
+            "rows": 4656,
+            "accuracy": 0.09278350515463918,
+            "cross_entropy": 4.071120325984183,
+            "zero_numerator": [
+              49,
+              52
+            ]
+          },
+          "test": {
+            "correct": 77,
+            "rows": 4656,
+            "accuracy": 0.016537800687285224,
+            "cross_entropy": 6.8720579200551235,
+            "zero_numerator": [
+              39,
+              44
+            ]
+          },
+          "checkpoint_sha256": "8d0a703d39015dec557dce650fe4a17f7615f27dd47159fb49530ad7ad86915f"
+        },
+        {
+          "name": "fourier-linear-w16-h8-seed23",
+          "method": "fourier",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2320,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.02534364261168385,
+          "elapsed_seconds": 5.641178809,
+          "train": {
+            "correct": 497,
+            "rows": 4656,
+            "accuracy": 0.10674398625429553,
+            "cross_entropy": 4.05279891102789,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 118,
+            "rows": 4656,
+            "accuracy": 0.02534364261168385,
+            "cross_entropy": 6.328870539253983,
+            "zero_numerator": [
+              41,
+              43
+            ]
+          },
+          "checkpoint_sha256": "9bd323677587ccebc6b47dd037ec14520d170d17d267020b4be60b83694f93bd"
+        },
+        {
+          "name": "fourier-mlp-w16-h8-seed11",
+          "method": "fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2576,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.022551546391752577,
+          "elapsed_seconds": 6.115416738,
+          "train": {
+            "correct": 634,
+            "rows": 4656,
+            "accuracy": 0.13616838487972507,
+            "cross_entropy": 3.961666662455824,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 85,
+            "rows": 4656,
+            "accuracy": 0.01825601374570447,
+            "cross_entropy": 8.793441081208917,
+            "zero_numerator": [
+              43,
+              52
+            ]
+          },
+          "checkpoint_sha256": "9a50f96820c8390c998693e5a00bff22176ae25f1f5fc38e363e23e5cf97cb20"
+        },
+        {
+          "name": "fourier-mlp-w16-h8-seed17",
+          "method": "fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2576,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.021262886597938145,
+          "elapsed_seconds": 6.084568233,
+          "train": {
+            "correct": 598,
+            "rows": 4656,
+            "accuracy": 0.12843642611683848,
+            "cross_entropy": 3.965935881152096,
+            "zero_numerator": [
+              51,
+              52
+            ]
+          },
+          "test": {
+            "correct": 82,
+            "rows": 4656,
+            "accuracy": 0.01761168384879725,
+            "cross_entropy": 8.503614122799286,
+            "zero_numerator": [
+              41,
+              44
+            ]
+          },
+          "checkpoint_sha256": "46a5b766474ba003c955ebc3327afd35393e3358eec559104283d4042a54568e"
+        },
+        {
+          "name": "fourier-mlp-w16-h8-seed23",
+          "method": "fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2576,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.024484536082474227,
+          "elapsed_seconds": 6.091041937,
+          "train": {
+            "correct": 533,
+            "rows": 4656,
+            "accuracy": 0.11447594501718213,
+            "cross_entropy": 3.995110369726608,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 102,
+            "rows": 4656,
+            "accuracy": 0.02190721649484536,
+            "cross_entropy": 6.823147105906036,
+            "zero_numerator": [
+              40,
+              43
+            ]
+          },
+          "checkpoint_sha256": "c7c9b5f891855b73ec2364e7b9de07e3ec38e990af6429f66762add9828414f5"
+        },
+        {
+          "name": "log-fourier-linear-w16-h8-seed11",
+          "method": "log-fourier",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 2336,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 200,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 5.607549884,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000032455415286096425,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4653,
+            "rows": 4656,
+            "accuracy": 0.9993556701030928,
+            "cross_entropy": 0.0009136505760764476,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "9728b6be476918a604c2d1aa1c0fb8b07c854317ef61abd4683c39fd2971f3ad"
+        },
+        {
+          "name": "log-fourier-linear-w16-h8-seed17",
+          "method": "log-fourier",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 2336,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9716494845360825,
+          "elapsed_seconds": 5.615520146,
+          "train": {
+            "correct": 4512,
+            "rows": 4656,
+            "accuracy": 0.9690721649484536,
+            "cross_entropy": 0.09500700833797594,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4394,
+            "rows": 4656,
+            "accuracy": 0.9437285223367697,
+            "cross_entropy": 0.17825374349651088,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "f250ca57d8aae71fbb8b721685678713efcc753fab286228decccf954025b183"
+        },
+        {
+          "name": "log-fourier-linear-w16-h8-seed23",
+          "method": "log-fourier",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 2336,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9372852233676976,
+          "elapsed_seconds": 5.623172075,
+          "train": {
+            "correct": 4505,
+            "rows": 4656,
+            "accuracy": 0.9675687285223368,
+            "cross_entropy": 0.07638707739287992,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4312,
+            "rows": 4656,
+            "accuracy": 0.9261168384879725,
+            "cross_entropy": 0.19517016439250146,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "a732dd5bb8f51e232df1ead5c31105b9592f8efec71e055bb54c0bdafae6ce89"
+        },
+        {
+          "name": "log-fourier-mlp-w16-h8-seed11",
+          "method": "log-fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 2592,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.045501759,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000025053501158133478,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0004238453738389966,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "002d955a7f8443b0eedfa8f1ea181a662cb52b854090209959a1e0a04c2a992d"
+        },
+        {
+          "name": "log-fourier-mlp-w16-h8-seed17",
+          "method": "log-fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 2592,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.05606473,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00023315173662837417,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4647,
+            "rows": 4656,
+            "accuracy": 0.9980670103092784,
+            "cross_entropy": 0.005445899329873086,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "34119a7a7cf5a86fef4704e8dd144c33fd7a552bdbdbd24fe11a05b435a0656d"
+        },
+        {
+          "name": "log-fourier-mlp-w16-h8-seed23",
+          "method": "log-fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 2592,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 0.9980670103092784,
+          "elapsed_seconds": 6.058884568,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00017081849001142018,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4643,
+            "rows": 4656,
+            "accuracy": 0.9972079037800687,
+            "cross_entropy": 0.0071867268869749016,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "0089b1bcd6e48245c73f3415fa12c6aa277c10c4bc52030f29efede299413d2e"
+        },
+        {
+          "name": "random-linear-w16-h8-seed11",
+          "method": "random",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2320,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.018900343642611683,
+          "elapsed_seconds": 5.602290004,
+          "train": {
+            "correct": 528,
+            "rows": 4656,
+            "accuracy": 0.1134020618556701,
+            "cross_entropy": 4.05060576293728,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 83,
+            "rows": 4656,
+            "accuracy": 0.017826460481099655,
+            "cross_entropy": 9.110123444865339,
+            "zero_numerator": [
+              45,
+              52
+            ]
+          },
+          "checkpoint_sha256": "94789f460300a0be696acaa6dc01effaa2aba018e34ac2fac4a51e2e0f7df36d"
+        },
+        {
+          "name": "random-linear-w16-h8-seed17",
+          "method": "random",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2320,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01761168384879725,
+          "elapsed_seconds": 5.6015647699999995,
+          "train": {
+            "correct": 553,
+            "rows": 4656,
+            "accuracy": 0.11877147766323023,
+            "cross_entropy": 3.9753062289012906,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 67,
+            "rows": 4656,
+            "accuracy": 0.014390034364261168,
+            "cross_entropy": 7.686185319346466,
+            "zero_numerator": [
+              38,
+              44
+            ]
+          },
+          "checkpoint_sha256": "4d2662ef08cfec6438ecd3a5fa9a83898840681706829e41106e64a26007e175"
+        },
+        {
+          "name": "random-linear-w16-h8-seed23",
+          "method": "random",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2320,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01804123711340206,
+          "elapsed_seconds": 5.605857411,
+          "train": {
+            "correct": 563,
+            "rows": 4656,
+            "accuracy": 0.1209192439862543,
+            "cross_entropy": 4.020489215577531,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 66,
+            "rows": 4656,
+            "accuracy": 0.014175257731958763,
+            "cross_entropy": 8.606008880112014,
+            "zero_numerator": [
+              34,
+              43
+            ]
+          },
+          "checkpoint_sha256": "2f0dcbcb2532cdeede2c052e93da7290d378279f5e2bc20b8cc7679abd42f98f"
+        },
+        {
+          "name": "random-mlp-w16-h8-seed11",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2576,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.42826460481099654,
+          "elapsed_seconds": 6.085848894,
+          "train": {
+            "correct": 2963,
+            "rows": 4656,
+            "accuracy": 0.6363831615120275,
+            "cross_entropy": 0.9236504723182908,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 1994,
+            "rows": 4656,
+            "accuracy": 0.42826460481099654,
+            "cross_entropy": 1.5454737864460986,
+            "zero_numerator": [
+              50,
+              52
+            ]
+          },
+          "checkpoint_sha256": "19c46c9c851b22224b0e4cf27011c0002086b84156d5a2f53ecc58d94833deb7"
+        },
+        {
+          "name": "random-mlp-w16-h8-seed17",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2576,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.19308419243986255,
+          "elapsed_seconds": 6.076933451,
+          "train": {
+            "correct": 1835,
+            "rows": 4656,
+            "accuracy": 0.3941151202749141,
+            "cross_entropy": 1.3794240800980124,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 899,
+            "rows": 4656,
+            "accuracy": 0.19308419243986255,
+            "cross_entropy": 1.9935652366216665,
+            "zero_numerator": [
+              43,
+              44
+            ]
+          },
+          "checkpoint_sha256": "c64fe9f99730b749f6f12bf4940d5357b284946d5186789021e9ef26ca2650f0"
+        },
+        {
+          "name": "random-mlp-w16-h8-seed23",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 16,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 2576,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.38101374570446733,
+          "elapsed_seconds": 6.074760719,
+          "train": {
+            "correct": 2384,
+            "rows": 4656,
+            "accuracy": 0.5120274914089347,
+            "cross_entropy": 1.1475410231678052,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 1472,
+            "rows": 4656,
+            "accuracy": 0.3161512027491409,
+            "cross_entropy": 1.9066298077114447,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "15f5ffa4b3453dc24cbacaed3e6d93c6b0f31e82cb85d51ff5fb95e860b79654"
+        },
+        {
+          "name": "table-linear-w64-h8-seed11",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 20608,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 150,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.97361049,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.7981551572933894e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000011078268809766342,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "8a2b5aa6afb84bbef5305017411c838c12f128b9a6f0e4211520b21028868d5a"
+        },
+        {
+          "name": "table-linear-w64-h8-seed17",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 20608,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 50,
+          "best_recorded_test_accuracy": 0.9993556701030928,
+          "elapsed_seconds": 7.9969543210000005,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.363609810688032e-11,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4653,
+            "rows": 4656,
+            "accuracy": 0.9993556701030928,
+            "cross_entropy": 0.0094014198472423,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "3a09655c80ad39786fce4d18bb3b72146da6652895798783732386d55633ba3d"
+        },
+        {
+          "name": "table-linear-w64-h8-seed23",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 20608,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 0.9993556701030928,
+          "elapsed_seconds": 8.010170675,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 4.474839178088623e-9,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4653,
+            "rows": 4656,
+            "accuracy": 0.9993556701030928,
+            "cross_entropy": 0.0025869799102510027,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "d18591b71736eb07c11424947d8ed6de09c37d33d6b7c3c8edc5fb53bcca36c7"
+        },
+        {
+          "name": "table-mlp-w64-h8-seed11",
+          "method": "table",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 24704,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.7291666666666666,
+          "elapsed_seconds": 8.960179153,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 8.518919528715035e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 3395,
+            "rows": 4656,
+            "accuracy": 0.7291666666666666,
+            "cross_entropy": 2.252086089026651,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "5adf4ba915c2760d0f1daf82a80bf211fd3b4d6af61997ce4a20c5192d190672"
+        },
+        {
+          "name": "table-mlp-w64-h8-seed17",
+          "method": "table",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 24704,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 900,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.976387546,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.3082677203500682e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000044857298575183,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "3bf7ef5417617e1b67bfb9a88ad46c6bec564de8a64bcb596a15bae07fb1b178"
+        },
+        {
+          "name": "table-mlp-w64-h8-seed23",
+          "method": "table",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 24704,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 200,
+          "best_recorded_test_accuracy": 0.9980670103092784,
+          "elapsed_seconds": 8.868259031000001,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 8.244902279045423e-12,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4647,
+            "rows": 4656,
+            "accuracy": 0.9980670103092784,
+            "cross_entropy": 0.007537003852068198,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "e9b389a7677698bd521b6abf0ac450f191420a4cac76c58cfa67013cba3ed2f6"
+        },
+        {
+          "name": "bits-linear-w64-h8-seed11",
+          "method": "bits",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 14848,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03801546391752577,
+          "elapsed_seconds": 7.598150039,
+          "train": {
+            "correct": 1287,
+            "rows": 4656,
+            "accuracy": 0.2764175257731959,
+            "cross_entropy": 3.205867202879881,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 161,
+            "rows": 4656,
+            "accuracy": 0.03457903780068729,
+            "cross_entropy": 12.956384369183713,
+            "zero_numerator": [
+              43,
+              52
+            ]
+          },
+          "checkpoint_sha256": "e2c1f3aed53d576dec057b62bcecbb8c3ad76ef2ddf70bfca515727506d881c6"
+        },
+        {
+          "name": "bits-linear-w64-h8-seed17",
+          "method": "bits",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 14848,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03457903780068729,
+          "elapsed_seconds": 7.615001297,
+          "train": {
+            "correct": 1409,
+            "rows": 4656,
+            "accuracy": 0.3026202749140893,
+            "cross_entropy": 3.1394666428651927,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 148,
+            "rows": 4656,
+            "accuracy": 0.03178694158075601,
+            "cross_entropy": 16.457538841178458,
+            "zero_numerator": [
+              41,
+              44
+            ]
+          },
+          "checkpoint_sha256": "081693379b0833ec0094c3af2d6e1461df71e4e34ed307e824a82881a9bde02b"
+        },
+        {
+          "name": "bits-linear-w64-h8-seed23",
+          "method": "bits",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 14848,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03457903780068729,
+          "elapsed_seconds": 7.642610654,
+          "train": {
+            "correct": 1384,
+            "rows": 4656,
+            "accuracy": 0.2972508591065292,
+            "cross_entropy": 3.123209168217411,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 152,
+            "rows": 4656,
+            "accuracy": 0.03264604810996564,
+            "cross_entropy": 14.794040367428098,
+            "zero_numerator": [
+              39,
+              43
+            ]
+          },
+          "checkpoint_sha256": "a50d6cf7bd3854f1ad6487954a31d9502bf6b53e54805ca417ef9fbe368115f3"
+        },
+        {
+          "name": "bits-mlp-w64-h8-seed11",
+          "method": "bits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 18944,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.16022336769759452,
+          "elapsed_seconds": 8.667776465,
+          "train": {
+            "correct": 4325,
+            "rows": 4656,
+            "accuracy": 0.9289089347079038,
+            "cross_entropy": 0.2284027424994673,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 695,
+            "rows": 4656,
+            "accuracy": 0.14926975945017182,
+            "cross_entropy": 21.724955817726876,
+            "zero_numerator": [
+              48,
+              52
+            ]
+          },
+          "checkpoint_sha256": "1e3b32f27aa4d62ac3ff728a2ecaeb15561cd1076dd008faabf88b42238972d2"
+        },
+        {
+          "name": "bits-mlp-w64-h8-seed17",
+          "method": "bits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 18944,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.062285223367697595,
+          "elapsed_seconds": 8.654067994,
+          "train": {
+            "correct": 4299,
+            "rows": 4656,
+            "accuracy": 0.9233247422680413,
+            "cross_entropy": 0.27007534293899926,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 290,
+            "rows": 4656,
+            "accuracy": 0.062285223367697595,
+            "cross_entropy": 30.258244388814802,
+            "zero_numerator": [
+              38,
+              44
+            ]
+          },
+          "checkpoint_sha256": "e65ef4add8dcc6d66537b8e649c3e9b9901db5c172efd8ac1ecca04a5d023ca2"
+        },
+        {
+          "name": "bits-mlp-w64-h8-seed23",
+          "method": "bits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 7,
+          "whole_value_input_rows": 0,
+          "parameters": 18944,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.1013745704467354,
+          "elapsed_seconds": 8.662785214,
+          "train": {
+            "correct": 4445,
+            "rows": 4656,
+            "accuracy": 0.9546821305841925,
+            "cross_entropy": 0.15046678825383933,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 436,
+            "rows": 4656,
+            "accuracy": 0.0936426116838488,
+            "cross_entropy": 24.310254518013096,
+            "zero_numerator": [
+              37,
+              43
+            ]
+          },
+          "checkpoint_sha256": "2b56f12def778446f7d2b2ce9e12f5d8cce50e6602880fa98b639d9b8db72db0"
+        },
+        {
+          "name": "digits-linear-w64-h8-seed11",
+          "method": "digits",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 15680,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03157216494845361,
+          "elapsed_seconds": 7.703999675,
+          "train": {
+            "correct": 2137,
+            "rows": 4656,
+            "accuracy": 0.45897766323024053,
+            "cross_entropy": 2.327288053818162,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 140,
+            "rows": 4656,
+            "accuracy": 0.03006872852233677,
+            "cross_entropy": 23.543082574432166,
+            "zero_numerator": [
+              45,
+              52
+            ]
+          },
+          "checkpoint_sha256": "6dd49de89bed75e0b57d7b206b82c30e52913dfea0164329f69b7f58cdea07c6"
+        },
+        {
+          "name": "digits-linear-w64-h8-seed17",
+          "method": "digits",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 15680,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.035438144329896906,
+          "elapsed_seconds": 7.703894251,
+          "train": {
+            "correct": 1982,
+            "rows": 4656,
+            "accuracy": 0.4256872852233677,
+            "cross_entropy": 2.477138751654406,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 150,
+            "rows": 4656,
+            "accuracy": 0.03221649484536082,
+            "cross_entropy": 23.563577513340203,
+            "zero_numerator": [
+              41,
+              44
+            ]
+          },
+          "checkpoint_sha256": "dcc1f12d46bcf39e90ba5e2620febd08f8fa0e243c76b0b83fbd5eac35a112fc"
+        },
+        {
+          "name": "digits-linear-w64-h8-seed23",
+          "method": "digits",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 15680,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03243127147766323,
+          "elapsed_seconds": 7.715708493,
+          "train": {
+            "correct": 2233,
+            "rows": 4656,
+            "accuracy": 0.4795962199312715,
+            "cross_entropy": 2.2423456503990833,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 135,
+            "rows": 4656,
+            "accuracy": 0.028994845360824743,
+            "cross_entropy": 21.840780985191667,
+            "zero_numerator": [
+              38,
+              43
+            ]
+          },
+          "checkpoint_sha256": "92f4fd3893c80ad73a6a14a29feae83ec6bacf6ce1bfddef36df4b19610d4fd5"
+        },
+        {
+          "name": "digits-mlp-w64-h8-seed11",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 19776,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.702121141,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.194197113974568e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000026949993751919626,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "7f36fd7fc1fec36eff44110fe5cb434a8a7d77c3521afeef5f928d6e67eb593c"
+        },
+        {
+          "name": "digits-mlp-w64-h8-seed17",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 19776,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.11791237113402062,
+          "elapsed_seconds": 8.730616059,
+          "train": {
+            "correct": 4586,
+            "rows": 4656,
+            "accuracy": 0.9849656357388317,
+            "cross_entropy": 0.07505522076652009,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 533,
+            "rows": 4656,
+            "accuracy": 0.11447594501718213,
+            "cross_entropy": 36.70452256054638,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "4b89bfbf917b982c1707513b3f26edaf9e5b65662fad9c7732fd02383ad5fb94"
+        },
+        {
+          "name": "digits-mlp-w64-h8-seed23",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 19776,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 600,
+          "best_recorded_test_accuracy": 0.9991408934707904,
+          "elapsed_seconds": 8.728477361,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.5872079824564879e-10,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4644,
+            "rows": 4656,
+            "accuracy": 0.9974226804123711,
+            "cross_entropy": 0.030494762304723245,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "5f4fdc8052411eab8d0f108fdf612d3e0f7a8aef35cb1231e268e66b536e396b"
+        },
+        {
+          "name": "fone-linear-w64-h8-seed11",
+          "method": "fone",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 14656,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04188144329896907,
+          "elapsed_seconds": 7.528811396,
+          "train": {
+            "correct": 986,
+            "rows": 4656,
+            "accuracy": 0.21176975945017182,
+            "cross_entropy": 3.4899968401170676,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 185,
+            "rows": 4656,
+            "accuracy": 0.039733676975945015,
+            "cross_entropy": 9.066384738788996,
+            "zero_numerator": [
+              45,
+              52
+            ]
+          },
+          "checkpoint_sha256": "ad2c75ffb7de4a6f8b0163a015dc2a43b83bfb3a1c4563787a46e4f9323711ad"
+        },
+        {
+          "name": "fone-linear-w64-h8-seed17",
+          "method": "fone",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 14656,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04381443298969072,
+          "elapsed_seconds": 7.543059432,
+          "train": {
+            "correct": 1201,
+            "rows": 4656,
+            "accuracy": 0.25794673539518903,
+            "cross_entropy": 3.344765598416613,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 182,
+            "rows": 4656,
+            "accuracy": 0.0390893470790378,
+            "cross_entropy": 11.699449819794012,
+            "zero_numerator": [
+              40,
+              44
+            ]
+          },
+          "checkpoint_sha256": "89c8a9c95bf9e5b4ed943e91733ec057c5474b1900895384a93f554953a5591c"
+        },
+        {
+          "name": "fone-linear-w64-h8-seed23",
+          "method": "fone",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 14656,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03865979381443299,
+          "elapsed_seconds": 7.549525451,
+          "train": {
+            "correct": 1162,
+            "rows": 4656,
+            "accuracy": 0.2495704467353952,
+            "cross_entropy": 3.355289242927468,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 166,
+            "rows": 4656,
+            "accuracy": 0.03565292096219931,
+            "cross_entropy": 11.255342186681496,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "63216c3123c6423dbae10a9dac66430e90beba322b66f2e0b765d165d71d37cc"
+        },
+        {
+          "name": "fone-mlp-w64-h8-seed11",
+          "method": "fone",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 18752,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03629725085910653,
+          "elapsed_seconds": 8.565484,
+          "train": {
+            "correct": 1967,
+            "rows": 4656,
+            "accuracy": 0.4224656357388316,
+            "cross_entropy": 2.450419050186021,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 109,
+            "rows": 4656,
+            "accuracy": 0.0234106529209622,
+            "cross_entropy": 21.283210563994427,
+            "zero_numerator": [
+              41,
+              52
+            ]
+          },
+          "checkpoint_sha256": "df9926efd1900469d3719b7bf955d0b82deaa19bd8dd882a3ea3d85565471378"
+        },
+        {
+          "name": "fone-mlp-w64-h8-seed17",
+          "method": "fone",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 18752,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029424398625429553,
+          "elapsed_seconds": 8.565958815,
+          "train": {
+            "correct": 2075,
+            "rows": 4656,
+            "accuracy": 0.44566151202749144,
+            "cross_entropy": 2.2475242507791964,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 103,
+            "rows": 4656,
+            "accuracy": 0.022121993127147768,
+            "cross_entropy": 17.486055254447898,
+            "zero_numerator": [
+              42,
+              44
+            ]
+          },
+          "checkpoint_sha256": "e1319f7d334f3afcc699743f614b9a8331b18331ad6db26b3e0438950f7e3b59"
+        },
+        {
+          "name": "fone-mlp-w64-h8-seed23",
+          "method": "fone",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 4,
+          "whole_value_input_rows": 0,
+          "parameters": 18752,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.030283505154639175,
+          "elapsed_seconds": 8.56625379,
+          "train": {
+            "correct": 2064,
+            "rows": 4656,
+            "accuracy": 0.44329896907216493,
+            "cross_entropy": 2.3357814489675155,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 116,
+            "rows": 4656,
+            "accuracy": 0.02491408934707904,
+            "cross_entropy": 22.34501305852249,
+            "zero_numerator": [
+              41,
+              43
+            ]
+          },
+          "checkpoint_sha256": "f9d0e54298e457612949f9c9ce591353daef557a6e144026395fedf667889ac2"
+        },
+        {
+          "name": "binary-fourier-linear-w64-h8-seed11",
+          "method": "binary-fourier",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 15296,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.048539518900343644,
+          "elapsed_seconds": 7.64352594,
+          "train": {
+            "correct": 1697,
+            "rows": 4656,
+            "accuracy": 0.3644759450171821,
+            "cross_entropy": 2.7853422025708907,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 205,
+            "rows": 4656,
+            "accuracy": 0.04402920962199313,
+            "cross_entropy": 12.83713973968935,
+            "zero_numerator": [
+              49,
+              52
+            ]
+          },
+          "checkpoint_sha256": "1ad2276117c52d7deef79317f477875cd3c956facdd8b95931aebbadf505d929"
+        },
+        {
+          "name": "binary-fourier-linear-w64-h8-seed17",
+          "method": "binary-fourier",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 15296,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.05412371134020619,
+          "elapsed_seconds": 7.645408383,
+          "train": {
+            "correct": 1621,
+            "rows": 4656,
+            "accuracy": 0.3481529209621993,
+            "cross_entropy": 2.8526064625941676,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 184,
+            "rows": 4656,
+            "accuracy": 0.03951890034364261,
+            "cross_entropy": 12.098180402171097,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "cf828a4e0ee530f80b6b659cc623f4503f4c046a003a035def8e8c9d67609458"
+        },
+        {
+          "name": "binary-fourier-linear-w64-h8-seed23",
+          "method": "binary-fourier",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 15296,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.05777491408934708,
+          "elapsed_seconds": 7.642325438,
+          "train": {
+            "correct": 1781,
+            "rows": 4656,
+            "accuracy": 0.38251718213058417,
+            "cross_entropy": 2.6823814003577904,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 209,
+            "rows": 4656,
+            "accuracy": 0.04488831615120275,
+            "cross_entropy": 11.987551339518522,
+            "zero_numerator": [
+              38,
+              43
+            ]
+          },
+          "checkpoint_sha256": "25d551c3a90d3dadc6dc7dbda8e0d013aa3d4f42f87d70d5276996cca720e17f"
+        },
+        {
+          "name": "binary-fourier-mlp-w64-h8-seed11",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 19392,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.7953178694158075,
+          "elapsed_seconds": 8.675348079,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 4.4345967209938185e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 3328,
+            "rows": 4656,
+            "accuracy": 0.7147766323024055,
+            "cross_entropy": 2.4977931817848233,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "f5d744509fb964f6394b197e6410cd5f01fb903ed6187828f7bbc7daa1b21aac"
+        },
+        {
+          "name": "binary-fourier-mlp-w64-h8-seed17",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 19392,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.5049398625429553,
+          "elapsed_seconds": 8.688694131,
+          "train": {
+            "correct": 4638,
+            "rows": 4656,
+            "accuracy": 0.9961340206185567,
+            "cross_entropy": 0.023497928559103938,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 2201,
+            "rows": 4656,
+            "accuracy": 0.4727233676975945,
+            "cross_entropy": 6.668488958585966,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "ef2b775ef45b952600349c6d1550e7bfc8945f28c188cfd4f0ff256c17642a9b"
+        },
+        {
+          "name": "binary-fourier-mlp-w64-h8-seed23",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 19392,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.44329896907216493,
+          "elapsed_seconds": 8.632760788,
+          "train": {
+            "correct": 4545,
+            "rows": 4656,
+            "accuracy": 0.976159793814433,
+            "cross_entropy": 0.07357887782053553,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 1781,
+            "rows": 4656,
+            "accuracy": 0.38251718213058417,
+            "cross_entropy": 7.733313926704025,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "9a07549b39b024d7c0e7ddd2d4cb9778c45d51ef27913499fb33bb9482e00286"
+        },
+        {
+          "name": "fourier-linear-w64-h8-seed11",
+          "method": "fourier",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 15424,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03243127147766323,
+          "elapsed_seconds": 7.7146629749999995,
+          "train": {
+            "correct": 1468,
+            "rows": 4656,
+            "accuracy": 0.31529209621993126,
+            "cross_entropy": 2.8510785560222764,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 151,
+            "rows": 4656,
+            "accuracy": 0.03243127147766323,
+            "cross_entropy": 11.358214075481728,
+            "zero_numerator": [
+              38,
+              52
+            ]
+          },
+          "checkpoint_sha256": "dba9f907b27bd6a8ff2accd835ecc970c189202c27dbd4d38148ae1c44599e3b"
+        },
+        {
+          "name": "fourier-linear-w64-h8-seed17",
+          "method": "fourier",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 15424,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.027706185567010308,
+          "elapsed_seconds": 7.761717246,
+          "train": {
+            "correct": 1696,
+            "rows": 4656,
+            "accuracy": 0.3642611683848797,
+            "cross_entropy": 2.719461652337609,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 114,
+            "rows": 4656,
+            "accuracy": 0.024484536082474227,
+            "cross_entropy": 15.702043273215628,
+            "zero_numerator": [
+              40,
+              44
+            ]
+          },
+          "checkpoint_sha256": "2fada6af84d523b416f153e6e173de2238d4b151ef50c47e94d0881798a9cc8f"
+        },
+        {
+          "name": "fourier-linear-w64-h8-seed23",
+          "method": "fourier",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 15424,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.030927835051546393,
+          "elapsed_seconds": 7.768472509,
+          "train": {
+            "correct": 1440,
+            "rows": 4656,
+            "accuracy": 0.30927835051546393,
+            "cross_entropy": 2.8730027790496924,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 134,
+            "rows": 4656,
+            "accuracy": 0.028780068728522335,
+            "cross_entropy": 11.143678772494102,
+            "zero_numerator": [
+              41,
+              43
+            ]
+          },
+          "checkpoint_sha256": "da232b3016c7dad4613333efbfb1cfaa7c7942ec99ae475c61ceeb0c632f5a2a"
+        },
+        {
+          "name": "fourier-mlp-w64-h8-seed11",
+          "method": "fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.02491408934707904,
+          "elapsed_seconds": 8.81037477,
+          "train": {
+            "correct": 3081,
+            "rows": 4656,
+            "accuracy": 0.6617268041237113,
+            "cross_entropy": 1.3431245145696122,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 103,
+            "rows": 4656,
+            "accuracy": 0.022121993127147768,
+            "cross_entropy": 32.13399553777392,
+            "zero_numerator": [
+              48,
+              52
+            ]
+          },
+          "checkpoint_sha256": "daa7ba4b2e1e4626f08e7483fdd1eb441d2242ab689211174cba3dfc2d5ea689"
+        },
+        {
+          "name": "fourier-mlp-w64-h8-seed17",
+          "method": "fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03994845360824742,
+          "elapsed_seconds": 8.763302364,
+          "train": {
+            "correct": 3986,
+            "rows": 4656,
+            "accuracy": 0.8560996563573883,
+            "cross_entropy": 0.49354955511735027,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 182,
+            "rows": 4656,
+            "accuracy": 0.0390893470790378,
+            "cross_entropy": 29.659014805846393,
+            "zero_numerator": [
+              38,
+              44
+            ]
+          },
+          "checkpoint_sha256": "f2e1459881409358f9dc1a087c60dd695ddfe4995fc023e46659974ab72b2f45"
+        },
+        {
+          "name": "fourier-mlp-w64-h8-seed23",
+          "method": "fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.023195876288659795,
+          "elapsed_seconds": 8.760350179,
+          "train": {
+            "correct": 3071,
+            "rows": 4656,
+            "accuracy": 0.6595790378006873,
+            "cross_entropy": 1.3982932151457421,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 88,
+            "rows": 4656,
+            "accuracy": 0.018900343642611683,
+            "cross_entropy": 30.3575779762393,
+            "zero_numerator": [
+              39,
+              43
+            ]
+          },
+          "checkpoint_sha256": "92baf1aeb5080ae50a754ae71b846f55e03223a60bd43b6b96d5eacf6b05120a"
+        },
+        {
+          "name": "log-fourier-linear-w64-h8-seed11",
+          "method": "log-fourier",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 15488,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.650320083,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.905138656126977e-9,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.3030096644273698e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "0eaecaf242efb7721cf13cf920fd966220c9c3dd5b1325c651be03a87cf95b47"
+        },
+        {
+          "name": "log-fourier-linear-w64-h8-seed17",
+          "method": "log-fourier",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 15488,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 50,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.634698975,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 6.573795802804846e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000001023589369228466,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "eb54c245c668518d076405801677c2d50397fb9d565615f13879027dc1a90a1d"
+        },
+        {
+          "name": "log-fourier-linear-w64-h8-seed23",
+          "method": "log-fourier",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 15488,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.651661514,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.8493743446422214e-7,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000002625119948978098,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "3ab522586a4187618fc388eff18fde40f9d012cad2f460539d3cfe8a43900fed"
+        },
+        {
+          "name": "log-fourier-mlp-w64-h8-seed11",
+          "method": "log-fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 19584,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.658363366,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.3037632043003827e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000011681956265712972,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "497f2c2a3bae3b554248d59bf6a92d8a7aaae14c98990d8cfacbc0785bdd74a6"
+        },
+        {
+          "name": "log-fourier-mlp-w64-h8-seed17",
+          "method": "log-fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 19584,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.638391788,
+          "train": {
+            "correct": 4650,
+            "rows": 4656,
+            "accuracy": 0.9987113402061856,
+            "cross_entropy": 0.0040413036993444,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4649,
+            "rows": 4656,
+            "accuracy": 0.9984965635738832,
+            "cross_entropy": 0.004507257873471601,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "9413163e4a6f4bb3f7116737a4c885a11c8261391eca80ec86edca666998179c"
+        },
+        {
+          "name": "log-fourier-mlp-w64-h8-seed23",
+          "method": "log-fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 17,
+          "whole_value_input_rows": 0,
+          "parameters": 19584,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.661500362,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 4.079718237555816e-7,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000002381686418158798,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "ef456802d892d09a5d671c0af48c20cf58c922c9955bbc565bd72af2cfc150e5"
+        },
+        {
+          "name": "random-linear-w64-h8-seed11",
+          "method": "random",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 15424,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.019329896907216496,
+          "elapsed_seconds": 7.716115757,
+          "train": {
+            "correct": 1788,
+            "rows": 4656,
+            "accuracy": 0.38402061855670105,
+            "cross_entropy": 2.706782482245408,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 84,
+            "rows": 4656,
+            "accuracy": 0.01804123711340206,
+            "cross_entropy": 26.065713584206232,
+            "zero_numerator": [
+              45,
+              52
+            ]
+          },
+          "checkpoint_sha256": "771fe7ca5670ea9a57fbb807f4e4efce64d0a6f7fca18e1c4d329fafe08d98c1"
+        },
+        {
+          "name": "random-linear-w64-h8-seed17",
+          "method": "random",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 15424,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.017826460481099655,
+          "elapsed_seconds": 7.724826449,
+          "train": {
+            "correct": 1875,
+            "rows": 4656,
+            "accuracy": 0.4027061855670103,
+            "cross_entropy": 2.6761424036318218,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 70,
+            "rows": 4656,
+            "accuracy": 0.015034364261168385,
+            "cross_entropy": 26.934197513628,
+            "zero_numerator": [
+              33,
+              44
+            ]
+          },
+          "checkpoint_sha256": "33ab40413892ae43a53c1a8f220b3c5b8acd79e5051a045ae0a14c2204a3488e"
+        },
+        {
+          "name": "random-linear-w64-h8-seed23",
+          "method": "random",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 15424,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01911512027491409,
+          "elapsed_seconds": 7.727768872,
+          "train": {
+            "correct": 1845,
+            "rows": 4656,
+            "accuracy": 0.3962628865979381,
+            "cross_entropy": 2.6986601271518906,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 81,
+            "rows": 4656,
+            "accuracy": 0.017396907216494846,
+            "cross_entropy": 27.5398406196979,
+            "zero_numerator": [
+              38,
+              43
+            ]
+          },
+          "checkpoint_sha256": "2a0c502d853b0ef8e3cee5accc01f6bbf09558f9961a26aa1d5b6abd7ed13c61"
+        },
+        {
+          "name": "random-mlp-w64-h8-seed11",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 650,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.774041026999999,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.8984499299825283e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 6.31398309813236e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "716b64eacc5ffc1e6a74e9a9ea1bfab1f7a13729c41747fc23613b69c334393d"
+        },
+        {
+          "name": "random-mlp-w64-h8-seed17",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.760442237,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.123711532873833e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0001977235662466805,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "c2ad0bcf3603bd11088a09fc051d75bc0db31502dee4fea616a8165010b06ce8"
+        },
+        {
+          "name": "random-mlp-w64-h8-seed23",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 19520,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.770305754,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.952838355593933e-7,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000028623418061721416,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "c7d4592d4381334df143d2dcfcc938242908f2c6e1de50150452eb76eb364cc9"
+        }
+      ]
+    },
+    {
+      "directory": "numerical-div97-20261016-middle",
+      "status": "complete",
+      "operation": "div",
+      "modulus": 97,
+      "train_fraction": 0.5,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "beta1": 0.9,
+      "beta2": 0.98,
+      "warmup_updates": 10,
+      "batch_size": 512,
+      "core": "one pre-RMSNorm residual FFN, expansion 1, ReLU, final RMSNorm",
+      "operand_combination": "shared e(a) + Rotate90(e(b))",
+      "output": "97 independent trainable class vectors",
+      "code_norm": "unit for every residue",
+      "random_code_seed": "fixed independently of split and model seeds",
+      "split_scope": "held-out equations; all residue identities appear in training",
+      "runs": [
+        {
+          "name": "digits-mlp-w32-h8-seed11",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 6816,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.717730165,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0004186043766719708,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4651,
+            "rows": 4656,
+            "accuracy": 0.998926116838488,
+            "cross_entropy": 0.00441226394902906,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "c8c4b274bda6f44c664a2116825a1b42cf93bfbfecbcaa0339f076d61b672087"
+        },
+        {
+          "name": "digits-mlp-w32-h8-seed17",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 6816,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9267611683848798,
+          "elapsed_seconds": 6.692485415,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000008668064149882953,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4315,
+            "rows": 4656,
+            "accuracy": 0.9267611683848798,
+            "cross_entropy": 0.36857528541356516,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "225c048dc203ee02014c413a457315d3374828cf8749ae13836f591f1b3345d9"
+        },
+        {
+          "name": "digits-mlp-w32-h8-seed23",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 6816,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9753006872852233,
+          "elapsed_seconds": 6.7199928060000005,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 8.833503446851214e-9,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4541,
+            "rows": 4656,
+            "accuracy": 0.9753006872852233,
+            "cross_entropy": 0.3235659617072732,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "9a225a93352e213a9bd0942ea56839209170820ee918e5239253184a15e356d2"
+        },
+        {
+          "name": "binary-fourier-mlp-w32-h8-seed11",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 6624,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9645618556701031,
+          "elapsed_seconds": 6.690058381,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000007920684913433849,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4486,
+            "rows": 4656,
+            "accuracy": 0.9634879725085911,
+            "cross_entropy": 0.2737483648445569,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "28c2585c4d31e16908de3d111522ae9c06938de4413e76f772776fe8b2c4f270"
+        },
+        {
+          "name": "binary-fourier-mlp-w32-h8-seed17",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 6624,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.6492697594501718,
+          "elapsed_seconds": 6.725636014,
+          "train": {
+            "correct": 4393,
+            "rows": 4656,
+            "accuracy": 0.9435137457044673,
+            "cross_entropy": 0.15575049598266344,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 2877,
+            "rows": 4656,
+            "accuracy": 0.6179123711340206,
+            "cross_entropy": 1.8924608588555074,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "cb97e98bc67f6bdea6aff4186fdd75b964613a60c67ed0f5d40f842a1d0603b4"
+        },
+        {
+          "name": "binary-fourier-mlp-w32-h8-seed23",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 6624,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.5584192439862543,
+          "elapsed_seconds": 6.675702657,
+          "train": {
+            "correct": 4587,
+            "rows": 4656,
+            "accuracy": 0.9851804123711341,
+            "cross_entropy": 0.04788605886402784,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 2574,
+            "rows": 4656,
+            "accuracy": 0.5528350515463918,
+            "cross_entropy": 3.312721827980054,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "9e0125c19c3ab641ed60d011299a99f346d7bf8d786a25a00a9b9a7933758877"
+        },
+        {
+          "name": "random-mlp-w32-h8-seed11",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.763294886,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.538505019144728e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000021035670081824414,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "ec702e6b013057eb1f4eec8386c89076ab38111e69445d1782752ceb82798797"
+        },
+        {
+          "name": "random-mlp-w32-h8-seed17",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.882946735395189,
+          "elapsed_seconds": 6.750629614,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000021411302620030416,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4106,
+            "rows": 4656,
+            "accuracy": 0.881872852233677,
+            "cross_entropy": 0.9015667647563718,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "6680a6d251b1a82f0c6318f270ff704bc1fc104e1eaae73cbbc5e082ec3b7d1f"
+        },
+        {
+          "name": "random-mlp-w32-h8-seed23",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 6688,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.8784364261168385,
+          "elapsed_seconds": 6.765244804,
+          "train": {
+            "correct": 4438,
+            "rows": 4656,
+            "accuracy": 0.9531786941580757,
+            "cross_entropy": 0.2219077672644251,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 3699,
+            "rows": 4656,
+            "accuracy": 0.7944587628865979,
+            "cross_entropy": 1.9448149681874707,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "820d1efaed1d72da3404bc78b9d4e0f735575b265711d08fccf0232f9431bcaf"
+        },
+        {
+          "name": "digits-mlp-w48-h8-seed11",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 12528,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.5487542955326461,
+          "elapsed_seconds": 7.924004279,
+          "train": {
+            "correct": 4609,
+            "rows": 4656,
+            "accuracy": 0.989905498281787,
+            "cross_entropy": 0.02992474646172516,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 2555,
+            "rows": 4656,
+            "accuracy": 0.5487542955326461,
+            "cross_entropy": 6.778949779026977,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "17ce61a72c4e96117214b0f7f00920b08df942ec0033df7b54b5925fb955d94f"
+        },
+        {
+          "name": "digits-mlp-w48-h8-seed17",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 12528,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 1300,
+          "best_recorded_test_accuracy": 0.9965635738831615,
+          "elapsed_seconds": 7.917114952,
+          "train": {
+            "correct": 4643,
+            "rows": 4656,
+            "accuracy": 0.9972079037800687,
+            "cross_entropy": 0.010375446776524404,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4564,
+            "rows": 4656,
+            "accuracy": 0.9802405498281787,
+            "cross_entropy": 0.09826746709870206,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "24dfab8132e696247b4c4cfad2329fe2ffeab1c3b1506f94345eb6a1873e923b"
+        },
+        {
+          "name": "digits-mlp-w48-h8-seed23",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 12528,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.21713917525773196,
+          "elapsed_seconds": 7.961067038,
+          "train": {
+            "correct": 4644,
+            "rows": 4656,
+            "accuracy": 0.9974226804123711,
+            "cross_entropy": 0.008340101965724966,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 1003,
+            "rows": 4656,
+            "accuracy": 0.21542096219931273,
+            "cross_entropy": 17.680542399584695,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "1209c4d1e4d6a1db2e07010540d14d665c36b22cd496005fea2db7db4776f163"
+        },
+        {
+          "name": "binary-fourier-mlp-w48-h8-seed11",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 12240,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 300,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.961858347,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 5.64214571472804e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4655,
+            "rows": 4656,
+            "accuracy": 0.9997852233676976,
+            "cross_entropy": 0.0008341354805676617,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "970660b1546302750c9b855503ede6de2ea94f7a3e8d2b162bffdbbfffccc2c8"
+        },
+        {
+          "name": "binary-fourier-mlp-w48-h8-seed17",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 12240,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.25300687285223367,
+          "elapsed_seconds": 7.986458216,
+          "train": {
+            "correct": 4493,
+            "rows": 4656,
+            "accuracy": 0.9649914089347079,
+            "cross_entropy": 0.10707860905376065,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 1131,
+            "rows": 4656,
+            "accuracy": 0.24291237113402062,
+            "cross_entropy": 11.792401155640716,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "3476182ee0b70c25e036bcac761ca5e4987ee8ebf946314f588fb0d8e83cdff7"
+        },
+        {
+          "name": "binary-fourier-mlp-w48-h8-seed23",
+          "method": "binary-fourier",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 14,
+          "whole_value_input_rows": 0,
+          "parameters": 12240,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 200,
+          "best_recorded_test_accuracy": 0.9993556701030928,
+          "elapsed_seconds": 7.989287782,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.7464529745978995e-7,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4653,
+            "rows": 4656,
+            "accuracy": 0.9993556701030928,
+            "cross_entropy": 0.0016596143191928922,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "92d9a26188c944dbe6256188a949a20de0a3744aacb93bedacec51ec5c49c851"
+        },
+        {
+          "name": "random-mlp-w48-h8-seed11",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 12336,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9424398625429553,
+          "elapsed_seconds": 8.101445237,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.6602224467287792e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4388,
+            "rows": 4656,
+            "accuracy": 0.9424398625429553,
+            "cross_entropy": 0.3306023820884323,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "e6bc15b70e7de43246ac79a662390fc6dd48a8fcc0f607910601a505d6771bbc"
+        },
+        {
+          "name": "random-mlp-w48-h8-seed17",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 12336,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 1800,
+          "best_recorded_test_accuracy": 0.9922680412371134,
+          "elapsed_seconds": 8.090370738,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.1304746867785787e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4620,
+            "rows": 4656,
+            "accuracy": 0.9922680412371134,
+            "cross_entropy": 0.022387263028491634,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "c85ce34e42cf13de3b9ac176f8c1161a8be559a5c6a1b0fb1a02ba54cabec6cd"
+        },
+        {
+          "name": "random-mlp-w48-h8-seed23",
+          "method": "random",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 16,
+          "whole_value_input_rows": 0,
+          "parameters": 12336,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 8.086157383,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0000011948886413114423,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4655,
+            "rows": 4656,
+            "accuracy": 0.9997852233676976,
+            "cross_entropy": 0.0010671710665590831,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "1af41c1b6908d98311e62f3c606348153480504ac66dd5161e2775fbd532b5a2"
+        }
+      ]
+    },
+    {
+      "directory": "numerical-div97-20261016-middle-control",
+      "status": "complete",
+      "operation": "div",
+      "modulus": 97,
+      "train_fraction": 0.5,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "beta1": 0.9,
+      "beta2": 0.98,
+      "warmup_updates": 10,
+      "batch_size": 512,
+      "core": "one pre-RMSNorm residual FFN, expansion 1, ReLU, final RMSNorm",
+      "operand_combination": "shared e(a) + Rotate90(e(b))",
+      "output": "97 independent trainable class vectors",
+      "code_norm": "unit for every residue",
+      "random_code_seed": "fixed independently of split and model seeds",
+      "split_scope": "held-out equations; all residue identities appear in training",
+      "runs": [
+        {
+          "name": "table-linear-w32-h8-seed11",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 8256,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.39564286,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.339747808134403e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 4.884723755410278e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "c835654f5f6f80877f4cc6d45b0e9434f8bdc2d53d60e747f4051d98defea649"
+        },
+        {
+          "name": "table-linear-w32-h8-seed17",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 8256,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 50,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.38041739,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.7183627336931387e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.5910920929546837e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "9c3d7e877e25caa5af8b31b7c3fc2e28d39b7d65b147524bca1cffaffc07510a"
+        },
+        {
+          "name": "table-linear-w32-h8-seed23",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 32,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 8256,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 6.382864367,
+          "train": {
+            "correct": 4655,
+            "rows": 4656,
+            "accuracy": 0.9997852233676976,
+            "cross_entropy": 0.0008647705276101751,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4643,
+            "rows": 4656,
+            "accuracy": 0.9972079037800687,
+            "cross_entropy": 0.012404065400176554,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "8b3db9139f0a97e3c0ee7ba7fb1b0f5638a52a22d4728343c479c2a4a579ba32"
+        },
+        {
+          "name": "table-linear-w48-h8-seed11",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 13920,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 150,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.588337821,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00006538420969405836,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4648,
+            "rows": 4656,
+            "accuracy": 0.9982817869415808,
+            "cross_entropy": 0.004685901596017837,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "5bf973f0df9a054bc5af94c8388a9c3eb11d7e232d260d86bebb739f5a209f3e"
+        },
+        {
+          "name": "table-linear-w48-h8-seed17",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 13920,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 200,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.593417073,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.700999621569037e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.9650540733593915e-7,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "0a361246af375d560aa039308b61f9f6ac6df989ce11c3413ed4509136d70de2"
+        },
+        {
+          "name": "table-linear-w48-h8-seed23",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 48,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 13920,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 7.593071858,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.4990892898428193e-10,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4634,
+            "rows": 4656,
+            "accuracy": 0.9952749140893471,
+            "cross_entropy": 0.03989968739146647,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "dbad86880fb4e7b0cedf062a3fe2e1e6e4e61b4776ae1fe9ef4923ae4bcab05f"
+        }
+      ]
+    },
+    {
+      "directory": "numerical-div97-20261016-long",
+      "status": "complete",
+      "operation": "div",
+      "modulus": 97,
+      "train_fraction": 0.5,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "beta1": 0.9,
+      "beta2": 0.98,
+      "warmup_updates": 10,
+      "batch_size": 512,
+      "core": "one pre-RMSNorm residual FFN, expansion 1, ReLU, final RMSNorm",
+      "operand_combination": "shared e(a) + Rotate90(e(b))",
+      "output": "97 independent trainable class vectors",
+      "code_norm": "unit for every residue",
+      "random_code_seed": "fixed independently of split and model seeds",
+      "split_scope": "held-out equations; all residue identities appear in training",
+      "runs": [
+        {
+          "name": "digits-mlp-w64-h8-seed11",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 19776,
+          "epochs": 10000,
+          "updates": 100000,
+          "first_recorded_test_99_epoch": 250,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 42.700838774,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 5.704533996759983e-10,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.000008838504744396086,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "f3620d94825d8fef4715cf33a2c0b0884258cce3e5b65a4a990394f320d9768f"
+        },
+        {
+          "name": "digits-mlp-w64-h8-seed17",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 19776,
+          "epochs": 10000,
+          "updates": 100000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.16301546391752578,
+          "elapsed_seconds": 42.859980633,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 3.0181652592733454e-8,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 759,
+            "rows": 4656,
+            "accuracy": 0.16301546391752578,
+            "cross_entropy": 32.69952003404752,
+            "zero_numerator": [
+              43,
+              44
+            ]
+          },
+          "checkpoint_sha256": "2b3f32992043c565bf9dd87a08551ec007cce76bacdb315710aee1702d4ac03e"
+        },
+        {
+          "name": "digits-mlp-w64-h8-seed23",
+          "method": "digits",
+          "encoder": "mlp",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 20,
+          "whole_value_input_rows": 0,
+          "parameters": 19776,
+          "epochs": 10000,
+          "updates": 100000,
+          "first_recorded_test_99_epoch": 600,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 42.7860868,
+          "train": {
+            "correct": 4652,
+            "rows": 4656,
+            "accuracy": 0.9991408934707904,
+            "cross_entropy": 0.0031680101163953063,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4638,
+            "rows": 4656,
+            "accuracy": 0.9961340206185567,
+            "cross_entropy": 0.026115036606479878,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "03f8205da90145b786b643e0f86893a5245a016ebf1e84869d79b8f3a5ae8386"
+        }
+      ]
+    },
+    {
+      "directory": "numerical-div97-20261016-long-control",
+      "status": "complete",
+      "operation": "div",
+      "modulus": 97,
+      "train_fraction": 0.5,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "beta1": 0.9,
+      "beta2": 0.98,
+      "warmup_updates": 10,
+      "batch_size": 512,
+      "core": "one pre-RMSNorm residual FFN, expansion 1, ReLU, final RMSNorm",
+      "operand_combination": "shared e(a) + Rotate90(e(b))",
+      "output": "97 independent trainable class vectors",
+      "code_norm": "unit for every residue",
+      "random_code_seed": "fixed independently of split and model seeds",
+      "split_scope": "held-out equations; all residue identities appear in training",
+      "runs": [
+        {
+          "name": "table-linear-w64-h8-seed11",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 11,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 20608,
+          "epochs": 10000,
+          "updates": 100000,
+          "first_recorded_test_99_epoch": 150,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 39.689876361,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.1785488357930285e-8,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 4.4607454380304535e-7,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "checkpoint_sha256": "e553ab4cc48819613c29f0e8c180beff211df8d2e072de1dde48c890da6b3adb"
+        },
+        {
+          "name": "table-linear-w64-h8-seed17",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 17,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 20608,
+          "epochs": 10000,
+          "updates": 100000,
+          "first_recorded_test_99_epoch": 50,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 39.799862174,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 2.566403642483841e-9,
+            "zero_numerator": [
+              52,
+              52
+            ]
+          },
+          "test": {
+            "correct": 4655,
+            "rows": 4656,
+            "accuracy": 0.9997852233676976,
+            "cross_entropy": 0.001405903849986791,
+            "zero_numerator": [
+              44,
+              44
+            ]
+          },
+          "checkpoint_sha256": "bbe721405fa8fac41d749e5d5c5d9455fd77e5dfd60a5a7800d3703f7eed8a91"
+        },
+        {
+          "name": "table-linear-w64-h8-seed23",
+          "method": "table",
+          "encoder": "linear",
+          "seed": 23,
+          "width": 64,
+          "harmonics": 8,
+          "code_features": 97,
+          "whole_value_input_rows": 97,
+          "parameters": 20608,
+          "epochs": 10000,
+          "updates": 100000,
+          "first_recorded_test_99_epoch": 100,
+          "best_recorded_test_accuracy": 1,
+          "elapsed_seconds": 39.753232313,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 1.1043213006130302e-8,
+            "zero_numerator": [
+              53,
+              53
+            ]
+          },
+          "test": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00009210186492289088,
+            "zero_numerator": [
+              43,
+              43
+            ]
+          },
+          "checkpoint_sha256": "b6d37b0773829de76d16d694ba528c44ceea6f4b433449a85d613492478ca4a5"
+        }
+      ]
+    }
+  ]
+}

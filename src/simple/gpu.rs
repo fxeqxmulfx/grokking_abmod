@@ -33,6 +33,12 @@ mod dense_tiled;
 #[path = "regression.rs"]
 pub(super) mod regression;
 
+#[path = "anchor_modular.rs"]
+pub(super) mod anchors;
+
+#[path = "numerical.rs"]
+pub(super) mod numerical;
+
 #[cuda_module]
 // Flat row-major tensors keep every index explicit.
 #[allow(clippy::too_many_arguments)]

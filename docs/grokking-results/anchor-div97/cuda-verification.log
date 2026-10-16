@@ -1,0 +1,5 @@
+PASS anchored CUDA K=3 rotate=true: f64 loss/all gradients, tied input+output, offset/repeated batch, AdamW
+PASS anchored CUDA K=3 rotate=false: f64 loss/all gradients, tied input+output, offset/repeated batch, AdamW
+PASS full anchor vocabulary: bitwise equivalence to the original CUDA model after AdamW
+PASS anchored CUDA K=7 rotate=true: f64 loss/all gradients, tied input+output, offset/repeated batch, AdamW
+PASS anchored CUDA K=1 rotate=true: f64 loss/all gradients, tied input+output, offset/repeated batch, AdamW

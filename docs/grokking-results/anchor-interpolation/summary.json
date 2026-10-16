@@ -1,0 +1,5792 @@
+{
+  "date": "2026-10-16",
+  "git_head": "57311881ad311b1b32eeaa30c0c20c757c463804",
+  "source_state": "Uncommitted experiment changes; file hashes identify the executed implementation.",
+  "sha256": {
+    "Cargo.toml": "8f89307107e78806d9970623dd0afed8ea1be98ba8866d9ff3b5cadb9c814e13",
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb",
+    "rust-toolchain.toml": "1bde0579b695cab3712ce035f1003db16327efce3bc6e56c87d9d44a6e8490e6",
+    "src/simple/gpu.rs": "1be0ea9f6c01008c916e94f4aed7457464de262c1a40b2dce57eb0d7358bdea4",
+    "src/simple/mod.rs": "36984b31763ca4f8348572b2124bee4bd9ab50675beafb33df5adcb4d9e3c89c",
+    "src/simple/anchor_modular.rs": "539c1972ce5a9658f3d9caf5023f17fc8581e53ada1bc8e99bbfbbacbb35ae11",
+    "src/bin/anchor-div97.rs": "cd261f973ddbe41c517503edca761e4a9cc37bcc8a6035d63144536945c26bd9",
+    "scripts/archive-anchor-div97.mjs": "fff448920462dbf145d4e39f5d21a48bd61ff82a64ee396016a213a5a30fbe73",
+    "target/release/anchor-div97": "a6d799821aaa41a740548cb0457fb81d9fe6cc151d90314b505affc04173c9ca",
+    "src/bin/anchor-interpolation.rs": "efafed928af306e574df8a44e42057d3ffab3769bdcfbaf41c428e7de41a9d6d",
+    "target/release/anchor-interpolation": "7908b0499bcdc02f4536ad54d9d1859884a1cf9036528d2812e7a00099eed631"
+  },
+  "rust_toolchain": "[toolchain]\nchannel = \"nightly-2026-10-09\"\ncomponents = [\"rust-src\", \"rustc-dev\", \"llvm-tools\", \"rust-analyzer\", \"rustfmt\", \"clippy\"]\nprofile = \"minimal\"",
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU, sm_86, 4096 MiB",
+  "validation": [
+    "cargo test --lib --locked: 70 passed",
+    "cargo clippy --all-targets --locked: passed",
+    "cargo fmt --all -- --check: passed",
+    "anchor-interpolation --verify-only: passed",
+    "cargo test --bin anchor-interpolation --locked: 1 passed"
+  ],
+  "series": [
+    {
+      "directory": "linear",
+      "task": "a / b mod 97",
+      "status": "complete",
+      "width": 16,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "input_only": true,
+      "method": "linear",
+      "output": "97 independently trainable class vectors; anchor rows shared with input",
+      "membership": "fixed uniformly spaced canonical residues",
+      "stratum_counts": "[correct, rows]",
+      "runs": [
+        {
+          "seed": 11,
+          "dictionary_size": 97,
+          "anchors": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.9894759450171822,
+          "elapsed_seconds": 4.057641401,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.0010569619026431156,
+            "off_dictionary_operands": [
+              [
+                4656,
+                4656
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                4656,
+                4656
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              0,
+              0
+            ]
+          },
+          "test": {
+            "correct": 4598,
+            "rows": 4656,
+            "accuracy": 0.9875429553264605,
+            "cross_entropy": 0.03583325819211585,
+            "off_dictionary_operands": [
+              [
+                4598,
+                4656
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                4598,
+                4656
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              0,
+              0
+            ]
+          },
+          "checkpoint_sha256": "ff7a7988deee66c3136e5b0bcb4ed3daa83d78c0b9a5d6dd1944bdecff334011"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.044243986254295535,
+          "elapsed_seconds": 3.9380119430000002,
+          "train": {
+            "correct": 579,
+            "rows": 4656,
+            "accuracy": 0.12435567010309279,
+            "cross_entropy": 3.695362090870427,
+            "off_dictionary_operands": [
+              [
+                243,
+                1178
+              ],
+              [
+                252,
+                2332
+              ],
+              [
+                84,
+                1146
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                222,
+                2303
+              ],
+              [
+                357,
+                2353
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              73,
+              622
+            ]
+          },
+          "test": {
+            "correct": 192,
+            "rows": 4656,
+            "accuracy": 0.041237113402061855,
+            "cross_entropy": 4.563788405592771,
+            "off_dictionary_operands": [
+              [
+                63,
+                1174
+              ],
+              [
+                92,
+                2324
+              ],
+              [
+                37,
+                1158
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                98,
+                2401
+              ],
+              [
+                94,
+                2255
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              32,
+              596
+            ]
+          },
+          "checkpoint_sha256": "5017860016f44719c1822bcab13ee97d868aa1ba97d2fb8e0e205bf3fc162d84"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.022336769759450172,
+          "elapsed_seconds": 3.926597068,
+          "train": {
+            "correct": 470,
+            "rows": 4656,
+            "accuracy": 0.10094501718213059,
+            "cross_entropy": 4.13428181926968,
+            "off_dictionary_operands": [
+              [
+                50,
+                308
+              ],
+              [
+                220,
+                1739
+              ],
+              [
+                200,
+                2609
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                107,
+                1169
+              ],
+              [
+                363,
+                3487
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              183,
+              2001
+            ]
+          },
+          "test": {
+            "correct": 72,
+            "rows": 4656,
+            "accuracy": 0.015463917525773196,
+            "cross_entropy": 6.7051509852377125,
+            "off_dictionary_operands": [
+              [
+                9,
+                292
+              ],
+              [
+                44,
+                1789
+              ],
+              [
+                19,
+                2575
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                45,
+                1231
+              ],
+              [
+                27,
+                3425
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              18,
+              1912
+            ]
+          },
+          "checkpoint_sha256": "834111e963b9bccae426edc5256649a079dac928b16b5039d3e7cb53d819ff28"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.025558419243986254,
+          "elapsed_seconds": 3.955220485,
+          "train": {
+            "correct": 331,
+            "rows": 4656,
+            "accuracy": 0.07109106529209622,
+            "cross_entropy": 4.228117034470168,
+            "off_dictionary_operands": [
+              [
+                14,
+                86
+              ],
+              [
+                122,
+                1044
+              ],
+              [
+                195,
+                3526
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                69,
+                629
+              ],
+              [
+                262,
+                4027
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              178,
+              3080
+            ]
+          },
+          "test": {
+            "correct": 98,
+            "rows": 4656,
+            "accuracy": 0.02104810996563574,
+            "cross_entropy": 5.773762142469916,
+            "off_dictionary_operands": [
+              [
+                9,
+                70
+              ],
+              [
+                49,
+                1056
+              ],
+              [
+                40,
+                3530
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                54,
+                619
+              ],
+              [
+                44,
+                4037
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              37,
+              3105
+            ]
+          },
+          "checkpoint_sha256": "1e0c952dc916a7f6a22a68b4a9c5c0e4507e5b41dda39b1bd8909ae9119e0c75"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.030927835051546393,
+          "elapsed_seconds": 3.974437086,
+          "train": {
+            "correct": 255,
+            "rows": 4656,
+            "accuracy": 0.0547680412371134,
+            "cross_entropy": 4.32203236362607,
+            "off_dictionary_operands": [
+              [
+                9,
+                25
+              ],
+              [
+                81,
+                571
+              ],
+              [
+                165,
+                4060
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                52,
+                332
+              ],
+              [
+                203,
+                4324
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              161,
+              3809
+            ]
+          },
+          "test": {
+            "correct": 141,
+            "rows": 4656,
+            "accuracy": 0.030283505154639175,
+            "cross_entropy": 5.31955579631449,
+            "off_dictionary_operands": [
+              [
+                5,
+                17
+              ],
+              [
+                50,
+                599
+              ],
+              [
+                86,
+                4040
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                54,
+                340
+              ],
+              [
+                87,
+                4316
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              83,
+              3787
+            ]
+          },
+          "checkpoint_sha256": "56b5999939b56242a72815a0533642cb9c49af6a7bd420927ffa78e99ad26c12"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 97,
+          "anchors": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 650,
+          "best_recorded_test_accuracy": 0.9954896907216495,
+          "elapsed_seconds": 4.00574262,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00024168079651705848,
+            "off_dictionary_operands": [
+              [
+                4656,
+                4656
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                4656,
+                4656
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              0,
+              0
+            ]
+          },
+          "test": {
+            "correct": 4627,
+            "rows": 4656,
+            "accuracy": 0.9937714776632303,
+            "cross_entropy": 0.02577859347588682,
+            "off_dictionary_operands": [
+              [
+                4627,
+                4656
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                4627,
+                4656
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              0,
+              0
+            ]
+          },
+          "checkpoint_sha256": "8acccf0e6472a6abd3d18eb05d8d62da7b935a5eca23746797bd7056b717dfe2"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.0195446735395189,
+          "elapsed_seconds": 3.9451174399999998,
+          "train": {
+            "correct": 531,
+            "rows": 4656,
+            "accuracy": 0.11404639175257732,
+            "cross_entropy": 4.026503114330077,
+            "off_dictionary_operands": [
+              [
+                190,
+                1148
+              ],
+              [
+                264,
+                2326
+              ],
+              [
+                77,
+                1182
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                178,
+                2324
+              ],
+              [
+                353,
+                2332
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              69,
+              627
+            ]
+          },
+          "test": {
+            "correct": 78,
+            "rows": 4656,
+            "accuracy": 0.01675257731958763,
+            "cross_entropy": 7.4265116529593636,
+            "off_dictionary_operands": [
+              [
+                28,
+                1204
+              ],
+              [
+                43,
+                2330
+              ],
+              [
+                7,
+                1122
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                52,
+                2380
+              ],
+              [
+                26,
+                2276
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              7,
+              591
+            ]
+          },
+          "checkpoint_sha256": "83e51c88f86cea56a52518db3806a439d39ac57999d92d9f1c1dbd52b79b5fad"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.0234106529209622,
+          "elapsed_seconds": 3.932750139,
+          "train": {
+            "correct": 412,
+            "rows": 4656,
+            "accuracy": 0.08848797250859107,
+            "cross_entropy": 4.115845891404417,
+            "off_dictionary_operands": [
+              [
+                59,
+                300
+              ],
+              [
+                197,
+                1741
+              ],
+              [
+                156,
+                2615
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                88,
+                1177
+              ],
+              [
+                324,
+                3479
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              149,
+              1982
+            ]
+          },
+          "test": {
+            "correct": 105,
+            "rows": 4656,
+            "accuracy": 0.022551546391752577,
+            "cross_entropy": 5.913313947058741,
+            "off_dictionary_operands": [
+              [
+                16,
+                300
+              ],
+              [
+                51,
+                1787
+              ],
+              [
+                38,
+                2569
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                52,
+                1223
+              ],
+              [
+                53,
+                3433
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              36,
+              1931
+            ]
+          },
+          "checkpoint_sha256": "35bef34dcb51f749075f766ec45e47fc61d0b05b5fb7c5190a0d9437cde6a496"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.023625429553264604,
+          "elapsed_seconds": 3.952255371,
+          "train": {
+            "correct": 325,
+            "rows": 4656,
+            "accuracy": 0.06980240549828179,
+            "cross_entropy": 4.209726914722673,
+            "off_dictionary_operands": [
+              [
+                26,
+                76
+              ],
+              [
+                121,
+                1033
+              ],
+              [
+                178,
+                3547
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                62,
+                616
+              ],
+              [
+                263,
+                4040
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              173,
+              3119
+            ]
+          },
+          "test": {
+            "correct": 94,
+            "rows": 4656,
+            "accuracy": 0.020189003436426118,
+            "cross_entropy": 5.733084277649218,
+            "off_dictionary_operands": [
+              [
+                4,
+                80
+              ],
+              [
+                44,
+                1067
+              ],
+              [
+                46,
+                3509
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                46,
+                632
+              ],
+              [
+                48,
+                4024
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              44,
+              3066
+            ]
+          },
+          "checkpoint_sha256": "29c91b600a7a9b1bf311df3c3b8b19d720db8b20ec7f79d3955edf60e63ec43f"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03350515463917526,
+          "elapsed_seconds": 3.962283199,
+          "train": {
+            "correct": 304,
+            "rows": 4656,
+            "accuracy": 0.06529209621993128,
+            "cross_entropy": 4.253874676554924,
+            "off_dictionary_operands": [
+              [
+                7,
+                21
+              ],
+              [
+                95,
+                599
+              ],
+              [
+                202,
+                4036
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                61,
+                326
+              ],
+              [
+                243,
+                4330
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              194,
+              3797
+            ]
+          },
+          "test": {
+            "correct": 156,
+            "rows": 4656,
+            "accuracy": 0.03350515463917526,
+            "cross_entropy": 5.051883902049525,
+            "off_dictionary_operands": [
+              [
+                3,
+                21
+              ],
+              [
+                44,
+                571
+              ],
+              [
+                109,
+                4064
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                51,
+                346
+              ],
+              [
+                105,
+                4310
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              100,
+              3799
+            ]
+          },
+          "checkpoint_sha256": "e2927972d7ba76d389863967148ca8e0144bc0938580b8d635c4e9d6e5a95f1a"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 97,
+          "anchors": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": 200,
+          "best_recorded_test_accuracy": 0.9995704467353952,
+          "elapsed_seconds": 4.008962378,
+          "train": {
+            "correct": 4656,
+            "rows": 4656,
+            "accuracy": 1,
+            "cross_entropy": 0.00003073036429243724,
+            "off_dictionary_operands": [
+              [
+                4656,
+                4656
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                4656,
+                4656
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              0,
+              0
+            ]
+          },
+          "test": {
+            "correct": 4653,
+            "rows": 4656,
+            "accuracy": 0.9993556701030928,
+            "cross_entropy": 0.0038553356768223548,
+            "off_dictionary_operands": [
+              [
+                4653,
+                4656
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                4653,
+                4656
+              ],
+              [
+                0,
+                0
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              0,
+              0
+            ]
+          },
+          "checkpoint_sha256": "62b2bbbe83c16dc478c6c1101b581e0b883537a24bd47b7dea357ecf61b7a726"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01997422680412371,
+          "elapsed_seconds": 3.959882849,
+          "train": {
+            "correct": 462,
+            "rows": 4656,
+            "accuracy": 0.09922680412371133,
+            "cross_entropy": 4.053075688184256,
+            "off_dictionary_operands": [
+              [
+                186,
+                1157
+              ],
+              [
+                202,
+                2372
+              ],
+              [
+                74,
+                1127
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                157,
+                2339
+              ],
+              [
+                305,
+                2317
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              64,
+              628
+            ]
+          },
+          "test": {
+            "correct": 86,
+            "rows": 4656,
+            "accuracy": 0.018470790378006873,
+            "cross_entropy": 6.4016907963199925,
+            "off_dictionary_operands": [
+              [
+                25,
+                1195
+              ],
+              [
+                44,
+                2284
+              ],
+              [
+                17,
+                1177
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                55,
+                2365
+              ],
+              [
+                31,
+                2291
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              14,
+              590
+            ]
+          },
+          "checkpoint_sha256": "d9bb8922a41a4f8eaaa61fb0191b6e45465bf669629f802fc1076ff1d237462a"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.020618556701030927,
+          "elapsed_seconds": 3.961314465,
+          "train": {
+            "correct": 380,
+            "rows": 4656,
+            "accuracy": 0.08161512027491409,
+            "cross_entropy": 4.164222406166266,
+            "off_dictionary_operands": [
+              [
+                65,
+                296
+              ],
+              [
+                192,
+                1758
+              ],
+              [
+                123,
+                2602
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                80,
+                1207
+              ],
+              [
+                300,
+                3449
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              117,
+              1979
+            ]
+          },
+          "test": {
+            "correct": 92,
+            "rows": 4656,
+            "accuracy": 0.019759450171821305,
+            "cross_entropy": 5.943603076747248,
+            "off_dictionary_operands": [
+              [
+                10,
+                304
+              ],
+              [
+                44,
+                1770
+              ],
+              [
+                38,
+                2582
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                46,
+                1193
+              ],
+              [
+                46,
+                3463
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              35,
+              1934
+            ]
+          },
+          "checkpoint_sha256": "60ad315578845c0bf90cd7428fd1bd13caa16eb56693dd14398fcd3c03bd1605"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029209621993127148,
+          "elapsed_seconds": 3.9801638070000003,
+          "train": {
+            "correct": 349,
+            "rows": 4656,
+            "accuracy": 0.07495704467353952,
+            "cross_entropy": 4.2090117389781065,
+            "off_dictionary_operands": [
+              [
+                21,
+                75
+              ],
+              [
+                129,
+                1058
+              ],
+              [
+                199,
+                3523
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                69,
+                625
+              ],
+              [
+                280,
+                4031
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              189,
+              3095
+            ]
+          },
+          "test": {
+            "correct": 127,
+            "rows": 4656,
+            "accuracy": 0.0272766323024055,
+            "cross_entropy": 5.379216615820065,
+            "off_dictionary_operands": [
+              [
+                8,
+                81
+              ],
+              [
+                43,
+                1042
+              ],
+              [
+                76,
+                3533
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                46,
+                623
+              ],
+              [
+                81,
+                4033
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              72,
+              3090
+            ]
+          },
+          "checkpoint_sha256": "37512330fdaf79e04438bf36d8226c846d39e0e0bf93761f6130ed1286cb8f3d"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "linear",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029424398625429553,
+          "elapsed_seconds": 3.98588936,
+          "train": {
+            "correct": 273,
+            "rows": 4656,
+            "accuracy": 0.0586340206185567,
+            "cross_entropy": 4.28904406702624,
+            "off_dictionary_operands": [
+              [
+                7,
+                17
+              ],
+              [
+                82,
+                593
+              ],
+              [
+                184,
+                4046
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                62,
+                360
+              ],
+              [
+                211,
+                4296
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              177,
+              3777
+            ]
+          },
+          "test": {
+            "correct": 121,
+            "rows": 4656,
+            "accuracy": 0.025987972508591067,
+            "cross_entropy": 5.171816387290323,
+            "off_dictionary_operands": [
+              [
+                7,
+                25
+              ],
+              [
+                39,
+                577
+              ],
+              [
+                75,
+                4054
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                45,
+                312
+              ],
+              [
+                76,
+                4344
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              71,
+              3819
+            ]
+          },
+          "checkpoint_sha256": "d683cc0f9dfa771fedb484cff35f8901f6c8664c55bb9e97c1a9dc033c6110c8"
+        }
+      ]
+    },
+    {
+      "directory": "linear-scaled",
+      "task": "a / b mod 97",
+      "status": "complete",
+      "width": 16,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "input_only": true,
+      "method": "linear-scaled",
+      "output": "97 independently trainable class vectors; anchor rows shared with input",
+      "membership": "fixed uniformly spaced canonical residues",
+      "stratum_counts": "[correct, rows]",
+      "runs": [
+        {
+          "seed": 11,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.058848797250859106,
+          "elapsed_seconds": 4.056165661,
+          "train": {
+            "correct": 683,
+            "rows": 4656,
+            "accuracy": 0.14669243986254296,
+            "cross_entropy": 3.609040958330935,
+            "off_dictionary_operands": [
+              [
+                329,
+                1178
+              ],
+              [
+                284,
+                2332
+              ],
+              [
+                70,
+                1146
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                258,
+                2303
+              ],
+              [
+                425,
+                2353
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              56,
+              622
+            ]
+          },
+          "test": {
+            "correct": 230,
+            "rows": 4656,
+            "accuracy": 0.04939862542955326,
+            "cross_entropy": 4.469006208598777,
+            "off_dictionary_operands": [
+              [
+                95,
+                1174
+              ],
+              [
+                105,
+                2324
+              ],
+              [
+                30,
+                1158
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                99,
+                2401
+              ],
+              [
+                131,
+                2255
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              24,
+              596
+            ]
+          },
+          "checkpoint_sha256": "778d4e9f163f0bc174aa7668c6f7ffd6116ea8aac7f00cea6fd56a307afc6593"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.022551546391752577,
+          "elapsed_seconds": 3.9909922,
+          "train": {
+            "correct": 386,
+            "rows": 4656,
+            "accuracy": 0.08290378006872852,
+            "cross_entropy": 4.146983439764006,
+            "off_dictionary_operands": [
+              [
+                58,
+                308
+              ],
+              [
+                188,
+                1739
+              ],
+              [
+                140,
+                2609
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                85,
+                1169
+              ],
+              [
+                301,
+                3487
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              131,
+              2001
+            ]
+          },
+          "test": {
+            "correct": 101,
+            "rows": 4656,
+            "accuracy": 0.021692439862542955,
+            "cross_entropy": 5.566606667391573,
+            "off_dictionary_operands": [
+              [
+                13,
+                292
+              ],
+              [
+                56,
+                1789
+              ],
+              [
+                32,
+                2575
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                47,
+                1231
+              ],
+              [
+                54,
+                3425
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              31,
+              1912
+            ]
+          },
+          "checkpoint_sha256": "7a5a926d68d3656f935692cf52f4be5421e2fd02f06ce4d6189f9cfb2d3cdf03"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.022121993127147768,
+          "elapsed_seconds": 3.9615447230000003,
+          "train": {
+            "correct": 384,
+            "rows": 4656,
+            "accuracy": 0.08247422680412371,
+            "cross_entropy": 4.188036110525464,
+            "off_dictionary_operands": [
+              [
+                16,
+                86
+              ],
+              [
+                153,
+                1044
+              ],
+              [
+                215,
+                3526
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                71,
+                629
+              ],
+              [
+                313,
+                4027
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              199,
+              3080
+            ]
+          },
+          "test": {
+            "correct": 90,
+            "rows": 4656,
+            "accuracy": 0.019329896907216496,
+            "cross_entropy": 6.138852161501396,
+            "off_dictionary_operands": [
+              [
+                9,
+                70
+              ],
+              [
+                47,
+                1056
+              ],
+              [
+                34,
+                3530
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                50,
+                619
+              ],
+              [
+                40,
+                4037
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              32,
+              3105
+            ]
+          },
+          "checkpoint_sha256": "be62fafa8473ce60cdae03a5a4ab57b8d6ecb30104bd6978782131e4dff960ac"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.033934707903780066,
+          "elapsed_seconds": 3.978795955,
+          "train": {
+            "correct": 254,
+            "rows": 4656,
+            "accuracy": 0.054553264604811,
+            "cross_entropy": 4.308366868145384,
+            "off_dictionary_operands": [
+              [
+                8,
+                25
+              ],
+              [
+                71,
+                571
+              ],
+              [
+                175,
+                4060
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                51,
+                332
+              ],
+              [
+                203,
+                4324
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              170,
+              3809
+            ]
+          },
+          "test": {
+            "correct": 140,
+            "rows": 4656,
+            "accuracy": 0.03006872852233677,
+            "cross_entropy": 5.166659397473492,
+            "off_dictionary_operands": [
+              [
+                4,
+                17
+              ],
+              [
+                46,
+                599
+              ],
+              [
+                90,
+                4040
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                50,
+                340
+              ],
+              [
+                90,
+                4316
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              86,
+              3787
+            ]
+          },
+          "checkpoint_sha256": "7699621d680158127c141f02b4bec6b86899806beb5c14ea19b8f7c98bdab55d"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04639175257731959,
+          "elapsed_seconds": 3.973110715,
+          "train": {
+            "correct": 596,
+            "rows": 4656,
+            "accuracy": 0.12800687285223367,
+            "cross_entropy": 3.7170654352443293,
+            "off_dictionary_operands": [
+              [
+                242,
+                1148
+              ],
+              [
+                263,
+                2326
+              ],
+              [
+                91,
+                1182
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                197,
+                2324
+              ],
+              [
+                399,
+                2332
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              76,
+              627
+            ]
+          },
+          "test": {
+            "correct": 181,
+            "rows": 4656,
+            "accuracy": 0.038874570446735396,
+            "cross_entropy": 4.601260502335267,
+            "off_dictionary_operands": [
+              [
+                74,
+                1204
+              ],
+              [
+                84,
+                2330
+              ],
+              [
+                23,
+                1122
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                66,
+                2380
+              ],
+              [
+                115,
+                2276
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              21,
+              591
+            ]
+          },
+          "checkpoint_sha256": "3e23cc0d7ccb4f56e74cc41edaaeb24eef69c1526f8d09610029c6e30d65f7fd"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.02620274914089347,
+          "elapsed_seconds": 3.97116253,
+          "train": {
+            "correct": 425,
+            "rows": 4656,
+            "accuracy": 0.09128006872852233,
+            "cross_entropy": 4.114798632201168,
+            "off_dictionary_operands": [
+              [
+                70,
+                300
+              ],
+              [
+                193,
+                1741
+              ],
+              [
+                162,
+                2615
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                85,
+                1177
+              ],
+              [
+                340,
+                3479
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              158,
+              1982
+            ]
+          },
+          "test": {
+            "correct": 108,
+            "rows": 4656,
+            "accuracy": 0.023195876288659795,
+            "cross_entropy": 5.855818031379116,
+            "off_dictionary_operands": [
+              [
+                15,
+                300
+              ],
+              [
+                52,
+                1787
+              ],
+              [
+                41,
+                2569
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                49,
+                1223
+              ],
+              [
+                59,
+                3433
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              38,
+              1931
+            ]
+          },
+          "checkpoint_sha256": "5db5249644c688784bdd15e08b893712f71aa27d587958100a31b07fc6046f7c"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03264604810996564,
+          "elapsed_seconds": 3.987684303,
+          "train": {
+            "correct": 326,
+            "rows": 4656,
+            "accuracy": 0.0700171821305842,
+            "cross_entropy": 4.2147716643475786,
+            "off_dictionary_operands": [
+              [
+                21,
+                76
+              ],
+              [
+                97,
+                1033
+              ],
+              [
+                208,
+                3547
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                73,
+                616
+              ],
+              [
+                253,
+                4040
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              193,
+              3119
+            ]
+          },
+          "test": {
+            "correct": 152,
+            "rows": 4656,
+            "accuracy": 0.03264604810996564,
+            "cross_entropy": 5.101796862772922,
+            "off_dictionary_operands": [
+              [
+                9,
+                80
+              ],
+              [
+                52,
+                1067
+              ],
+              [
+                91,
+                3509
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                55,
+                632
+              ],
+              [
+                97,
+                4024
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              82,
+              3066
+            ]
+          },
+          "checkpoint_sha256": "6ccb5a181d118505c00a29bf7a3a263e9753e87d1a703d19fea0fea93402662a"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.0234106529209622,
+          "elapsed_seconds": 3.978182191,
+          "train": {
+            "correct": 253,
+            "rows": 4656,
+            "accuracy": 0.05433848797250859,
+            "cross_entropy": 4.277388285185601,
+            "off_dictionary_operands": [
+              [
+                7,
+                21
+              ],
+              [
+                85,
+                599
+              ],
+              [
+                161,
+                4036
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                64,
+                326
+              ],
+              [
+                189,
+                4330
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              152,
+              3797
+            ]
+          },
+          "test": {
+            "correct": 88,
+            "rows": 4656,
+            "accuracy": 0.018900343642611683,
+            "cross_entropy": 5.063902101358676,
+            "off_dictionary_operands": [
+              [
+                2,
+                21
+              ],
+              [
+                45,
+                571
+              ],
+              [
+                41,
+                4064
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                49,
+                346
+              ],
+              [
+                39,
+                4310
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              36,
+              3799
+            ]
+          },
+          "checkpoint_sha256": "efaa2be3b4b82058762aca1778a7c314bcc8e254cd39bffae2cb49ae7ea5af48"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04596219931271478,
+          "elapsed_seconds": 3.966721127,
+          "train": {
+            "correct": 617,
+            "rows": 4656,
+            "accuracy": 0.1325171821305842,
+            "cross_entropy": 3.687703573781425,
+            "off_dictionary_operands": [
+              [
+                249,
+                1157
+              ],
+              [
+                278,
+                2372
+              ],
+              [
+                90,
+                1127
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                238,
+                2339
+              ],
+              [
+                379,
+                2317
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              72,
+              628
+            ]
+          },
+          "test": {
+            "correct": 214,
+            "rows": 4656,
+            "accuracy": 0.04596219931271478,
+            "cross_entropy": 4.59987944483193,
+            "off_dictionary_operands": [
+              [
+                78,
+                1195
+              ],
+              [
+                102,
+                2284
+              ],
+              [
+                34,
+                1177
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                102,
+                2365
+              ],
+              [
+                112,
+                2291
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              28,
+              590
+            ]
+          },
+          "checkpoint_sha256": "f1bdda48bca943bb507ef32cbbb93db8fe7b23260e97ad0bc4efce1cc0a59d94"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.017826460481099655,
+          "elapsed_seconds": 3.962462824,
+          "train": {
+            "correct": 350,
+            "rows": 4656,
+            "accuracy": 0.07517182130584192,
+            "cross_entropy": 4.178245563214063,
+            "off_dictionary_operands": [
+              [
+                70,
+                296
+              ],
+              [
+                175,
+                1758
+              ],
+              [
+                105,
+                2602
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                79,
+                1207
+              ],
+              [
+                271,
+                3449
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              101,
+              1979
+            ]
+          },
+          "test": {
+            "correct": 75,
+            "rows": 4656,
+            "accuracy": 0.01610824742268041,
+            "cross_entropy": 5.891592999665359,
+            "off_dictionary_operands": [
+              [
+                9,
+                304
+              ],
+              [
+                45,
+                1770
+              ],
+              [
+                21,
+                2582
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                40,
+                1193
+              ],
+              [
+                35,
+                3463
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              20,
+              1934
+            ]
+          },
+          "checkpoint_sha256": "a6902c84fd123516c230baf8167e61da194ee039274f4d1068a26eea3a32ba96"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.024484536082474227,
+          "elapsed_seconds": 3.980853834,
+          "train": {
+            "correct": 324,
+            "rows": 4656,
+            "accuracy": 0.06958762886597938,
+            "cross_entropy": 4.211108765653873,
+            "off_dictionary_operands": [
+              [
+                22,
+                75
+              ],
+              [
+                92,
+                1058
+              ],
+              [
+                210,
+                3523
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                68,
+                625
+              ],
+              [
+                256,
+                4031
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              203,
+              3095
+            ]
+          },
+          "test": {
+            "correct": 110,
+            "rows": 4656,
+            "accuracy": 0.023625429553264604,
+            "cross_entropy": 5.424522903596392,
+            "off_dictionary_operands": [
+              [
+                9,
+                81
+              ],
+              [
+                48,
+                1042
+              ],
+              [
+                53,
+                3533
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                47,
+                623
+              ],
+              [
+                63,
+                4033
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              49,
+              3090
+            ]
+          },
+          "checkpoint_sha256": "7eb77792b717c2247422a06707f0cc43afc6b7db4749f0168779f108c62fd83a"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "linear-scaled",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03157216494845361,
+          "elapsed_seconds": 3.997498949,
+          "train": {
+            "correct": 264,
+            "rows": 4656,
+            "accuracy": 0.05670103092783505,
+            "cross_entropy": 4.28528599116387,
+            "off_dictionary_operands": [
+              [
+                4,
+                17
+              ],
+              [
+                77,
+                593
+              ],
+              [
+                183,
+                4046
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                78,
+                360
+              ],
+              [
+                186,
+                4296
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              160,
+              3777
+            ]
+          },
+          "test": {
+            "correct": 124,
+            "rows": 4656,
+            "accuracy": 0.02663230240549828,
+            "cross_entropy": 5.1331068253669665,
+            "off_dictionary_operands": [
+              [
+                7,
+                25
+              ],
+              [
+                45,
+                577
+              ],
+              [
+                72,
+                4054
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                62,
+                312
+              ],
+              [
+                62,
+                4344
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              55,
+              3819
+            ]
+          },
+          "checkpoint_sha256": "8dd1f2dfe0a7daf021488bdf2dcf7394cde98ee4d8b9749ca599abed692dec71"
+        }
+      ]
+    },
+    {
+      "directory": "cubic",
+      "task": "a / b mod 97",
+      "status": "complete",
+      "width": 16,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "input_only": true,
+      "method": "cubic",
+      "output": "97 independently trainable class vectors; anchor rows shared with input",
+      "membership": "fixed uniformly spaced canonical residues",
+      "stratum_counts": "[correct, rows]",
+      "runs": [
+        {
+          "seed": 11,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01997422680412371,
+          "elapsed_seconds": 3.97405087,
+          "train": {
+            "correct": 511,
+            "rows": 4656,
+            "accuracy": 0.10975085910652921,
+            "cross_entropy": 4.06080906511356,
+            "off_dictionary_operands": [
+              [
+                169,
+                1178
+              ],
+              [
+                256,
+                2332
+              ],
+              [
+                86,
+                1146
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                217,
+                2303
+              ],
+              [
+                294,
+                2353
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              63,
+              622
+            ]
+          },
+          "test": {
+            "correct": 88,
+            "rows": 4656,
+            "accuracy": 0.018900343642611683,
+            "cross_entropy": 7.126963839345599,
+            "off_dictionary_operands": [
+              [
+                33,
+                1174
+              ],
+              [
+                47,
+                2324
+              ],
+              [
+                8,
+                1158
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                62,
+                2401
+              ],
+              [
+                26,
+                2255
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              8,
+              596
+            ]
+          },
+          "checkpoint_sha256": "4a68630861fd8c652594f336ce0a6e0384c66b3fc5c17cdf0e4b8edd1adfa7f4"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.02147766323024055,
+          "elapsed_seconds": 3.9777731149999997,
+          "train": {
+            "correct": 474,
+            "rows": 4656,
+            "accuracy": 0.1018041237113402,
+            "cross_entropy": 4.136400695980788,
+            "off_dictionary_operands": [
+              [
+                47,
+                308
+              ],
+              [
+                190,
+                1739
+              ],
+              [
+                237,
+                2609
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                91,
+                1169
+              ],
+              [
+                383,
+                3487
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              223,
+              2001
+            ]
+          },
+          "test": {
+            "correct": 94,
+            "rows": 4656,
+            "accuracy": 0.020189003436426118,
+            "cross_entropy": 6.441820561349417,
+            "off_dictionary_operands": [
+              [
+                16,
+                292
+              ],
+              [
+                49,
+                1789
+              ],
+              [
+                29,
+                2575
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                45,
+                1231
+              ],
+              [
+                49,
+                3425
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              28,
+              1912
+            ]
+          },
+          "checkpoint_sha256": "843f9017052b39f73fc3b85a3a2bcbaedac5e2b485b974f5960d22a11ddc2af6"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.021692439862542955,
+          "elapsed_seconds": 3.971671355,
+          "train": {
+            "correct": 297,
+            "rows": 4656,
+            "accuracy": 0.06378865979381443,
+            "cross_entropy": 4.22452556896772,
+            "off_dictionary_operands": [
+              [
+                10,
+                86
+              ],
+              [
+                108,
+                1044
+              ],
+              [
+                179,
+                3526
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                62,
+                629
+              ],
+              [
+                235,
+                4027
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              165,
+              3080
+            ]
+          },
+          "test": {
+            "correct": 83,
+            "rows": 4656,
+            "accuracy": 0.017826460481099655,
+            "cross_entropy": 5.928807494630873,
+            "off_dictionary_operands": [
+              [
+                9,
+                70
+              ],
+              [
+                47,
+                1056
+              ],
+              [
+                27,
+                3530
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                51,
+                619
+              ],
+              [
+                32,
+                4037
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              26,
+              3105
+            ]
+          },
+          "checkpoint_sha256": "962f5c5459b41fd27b4d9b5d41fda8e3dc2b11ccf4ea09e2229fb545ce6d0c1e"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03221649484536082,
+          "elapsed_seconds": 3.999619264,
+          "train": {
+            "correct": 230,
+            "rows": 4656,
+            "accuracy": 0.04939862542955326,
+            "cross_entropy": 4.335705719184272,
+            "off_dictionary_operands": [
+              [
+                5,
+                25
+              ],
+              [
+                58,
+                571
+              ],
+              [
+                167,
+                4060
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                62,
+                332
+              ],
+              [
+                168,
+                4324
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              152,
+              3809
+            ]
+          },
+          "test": {
+            "correct": 138,
+            "rows": 4656,
+            "accuracy": 0.029639175257731958,
+            "cross_entropy": 5.0116497485021005,
+            "off_dictionary_operands": [
+              [
+                7,
+                17
+              ],
+              [
+                49,
+                599
+              ],
+              [
+                82,
+                4040
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                63,
+                340
+              ],
+              [
+                75,
+                4316
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              70,
+              3787
+            ]
+          },
+          "checkpoint_sha256": "bef8c1941fdc01ffd695b976bf8e0d01beaeca3147b4839b48c9008d7d847d60"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.043170103092783504,
+          "elapsed_seconds": 3.973380036,
+          "train": {
+            "correct": 590,
+            "rows": 4656,
+            "accuracy": 0.12671821305841924,
+            "cross_entropy": 3.6777483366888872,
+            "off_dictionary_operands": [
+              [
+                202,
+                1148
+              ],
+              [
+                274,
+                2326
+              ],
+              [
+                114,
+                1182
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                212,
+                2324
+              ],
+              [
+                378,
+                2332
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              85,
+              627
+            ]
+          },
+          "test": {
+            "correct": 198,
+            "rows": 4656,
+            "accuracy": 0.04252577319587629,
+            "cross_entropy": 4.531187063319926,
+            "off_dictionary_operands": [
+              [
+                64,
+                1204
+              ],
+              [
+                94,
+                2330
+              ],
+              [
+                40,
+                1122
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                95,
+                2380
+              ],
+              [
+                103,
+                2276
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              28,
+              591
+            ]
+          },
+          "checkpoint_sha256": "529b2060e4abf07234b5ceb569500717cbd791d22830784dd00f4e75b969d22c"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.026417525773195876,
+          "elapsed_seconds": 3.980563395,
+          "train": {
+            "correct": 443,
+            "rows": 4656,
+            "accuracy": 0.09514604810996563,
+            "cross_entropy": 4.1100448244854,
+            "off_dictionary_operands": [
+              [
+                55,
+                300
+              ],
+              [
+                205,
+                1741
+              ],
+              [
+                183,
+                2615
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                76,
+                1177
+              ],
+              [
+                367,
+                3479
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              177,
+              1982
+            ]
+          },
+          "test": {
+            "correct": 120,
+            "rows": 4656,
+            "accuracy": 0.02577319587628866,
+            "cross_entropy": 6.3688755511988715,
+            "off_dictionary_operands": [
+              [
+                11,
+                300
+              ],
+              [
+                54,
+                1787
+              ],
+              [
+                55,
+                2569
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                46,
+                1223
+              ],
+              [
+                74,
+                3433
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              52,
+              1931
+            ]
+          },
+          "checkpoint_sha256": "f939a255f03fcd8cfa60b6ad45081279035f4e04dbd07b5dd8e014cd91089595"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03243127147766323,
+          "elapsed_seconds": 3.995720384,
+          "train": {
+            "correct": 365,
+            "rows": 4656,
+            "accuracy": 0.078393470790378,
+            "cross_entropy": 4.177813793377156,
+            "off_dictionary_operands": [
+              [
+                24,
+                76
+              ],
+              [
+                129,
+                1033
+              ],
+              [
+                212,
+                3547
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                74,
+                616
+              ],
+              [
+                291,
+                4040
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              199,
+              3119
+            ]
+          },
+          "test": {
+            "correct": 142,
+            "rows": 4656,
+            "accuracy": 0.03049828178694158,
+            "cross_entropy": 5.528694621143857,
+            "off_dictionary_operands": [
+              [
+                12,
+                80
+              ],
+              [
+                48,
+                1067
+              ],
+              [
+                82,
+                3509
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                52,
+                632
+              ],
+              [
+                90,
+                4024
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              74,
+              3066
+            ]
+          },
+          "checkpoint_sha256": "22ba9eacac46f8759a69a6c5484dc49534900b2a04159b771e159534dc51a784"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.02491408934707904,
+          "elapsed_seconds": 4.000172424,
+          "train": {
+            "correct": 257,
+            "rows": 4656,
+            "accuracy": 0.05519759450171821,
+            "cross_entropy": 4.276903674812367,
+            "off_dictionary_operands": [
+              [
+                8,
+                21
+              ],
+              [
+                80,
+                599
+              ],
+              [
+                169,
+                4036
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                60,
+                326
+              ],
+              [
+                197,
+                4330
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              162,
+              3797
+            ]
+          },
+          "test": {
+            "correct": 110,
+            "rows": 4656,
+            "accuracy": 0.023625429553264604,
+            "cross_entropy": 5.390201519076009,
+            "off_dictionary_operands": [
+              [
+                3,
+                21
+              ],
+              [
+                49,
+                571
+              ],
+              [
+                58,
+                4064
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                44,
+                346
+              ],
+              [
+                66,
+                4310
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              57,
+              3799
+            ]
+          },
+          "checkpoint_sha256": "b781ac41001d44a762048cdb0e37254b89520fff355a7f21075c56698790cca2"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.044243986254295535,
+          "elapsed_seconds": 4.006572292,
+          "train": {
+            "correct": 496,
+            "rows": 4656,
+            "accuracy": 0.10652920962199312,
+            "cross_entropy": 3.6935133069380415,
+            "off_dictionary_operands": [
+              [
+                179,
+                1157
+              ],
+              [
+                225,
+                2372
+              ],
+              [
+                92,
+                1127
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                205,
+                2339
+              ],
+              [
+                291,
+                2317
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              69,
+              628
+            ]
+          },
+          "test": {
+            "correct": 206,
+            "rows": 4656,
+            "accuracy": 0.044243986254295535,
+            "cross_entropy": 4.389119012115845,
+            "off_dictionary_operands": [
+              [
+                75,
+                1195
+              ],
+              [
+                95,
+                2284
+              ],
+              [
+                36,
+                1177
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                110,
+                2365
+              ],
+              [
+                96,
+                2291
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              23,
+              590
+            ]
+          },
+          "checkpoint_sha256": "d50c4f84f04463a634e9313635f68bdab6d45d96bc63c9f477c4fc865ff3d697"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.01675257731958763,
+          "elapsed_seconds": 3.9954068879999998,
+          "train": {
+            "correct": 411,
+            "rows": 4656,
+            "accuracy": 0.08827319587628867,
+            "cross_entropy": 4.151194594190435,
+            "off_dictionary_operands": [
+              [
+                55,
+                296
+              ],
+              [
+                194,
+                1758
+              ],
+              [
+                162,
+                2602
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                84,
+                1207
+              ],
+              [
+                327,
+                3449
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              154,
+              1979
+            ]
+          },
+          "test": {
+            "correct": 74,
+            "rows": 4656,
+            "accuracy": 0.015893470790378006,
+            "cross_entropy": 6.693780175047891,
+            "off_dictionary_operands": [
+              [
+                9,
+                304
+              ],
+              [
+                41,
+                1770
+              ],
+              [
+                24,
+                2582
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                39,
+                1193
+              ],
+              [
+                35,
+                3463
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              24,
+              1934
+            ]
+          },
+          "checkpoint_sha256": "03f6f3426f4101d461e44230b27c6a6f8212468626f2ec5d6c9bd2a94b7fada1"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.022121993127147768,
+          "elapsed_seconds": 3.999501249,
+          "train": {
+            "correct": 307,
+            "rows": 4656,
+            "accuracy": 0.06593642611683849,
+            "cross_entropy": 4.236637570825545,
+            "off_dictionary_operands": [
+              [
+                19,
+                75
+              ],
+              [
+                98,
+                1058
+              ],
+              [
+                190,
+                3523
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                64,
+                625
+              ],
+              [
+                243,
+                4031
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              184,
+              3095
+            ]
+          },
+          "test": {
+            "correct": 98,
+            "rows": 4656,
+            "accuracy": 0.02104810996563574,
+            "cross_entropy": 5.293643191265418,
+            "off_dictionary_operands": [
+              [
+                8,
+                81
+              ],
+              [
+                44,
+                1042
+              ],
+              [
+                46,
+                3533
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                47,
+                623
+              ],
+              [
+                51,
+                4033
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              41,
+              3090
+            ]
+          },
+          "checkpoint_sha256": "8e43b2bf6ebb20fb9596fdb7492d1ff2120f8f666b342fe8999f5a01a04d615f"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "cubic",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.030283505154639175,
+          "elapsed_seconds": 4.009054381,
+          "train": {
+            "correct": 284,
+            "rows": 4656,
+            "accuracy": 0.06099656357388316,
+            "cross_entropy": 4.26471583278732,
+            "off_dictionary_operands": [
+              [
+                7,
+                17
+              ],
+              [
+                84,
+                593
+              ],
+              [
+                193,
+                4046
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                75,
+                360
+              ],
+              [
+                209,
+                4296
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              176,
+              3777
+            ]
+          },
+          "test": {
+            "correct": 123,
+            "rows": 4656,
+            "accuracy": 0.026417525773195876,
+            "cross_entropy": 5.11587239369583,
+            "off_dictionary_operands": [
+              [
+                8,
+                25
+              ],
+              [
+                40,
+                577
+              ],
+              [
+                75,
+                4054
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                50,
+                312
+              ],
+              [
+                73,
+                4344
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              67,
+              3819
+            ]
+          },
+          "checkpoint_sha256": "283dae1a1c04ff646facd72e05eeb81ef3c76bc570f780b06a7574f130c3b842"
+        }
+      ]
+    },
+    {
+      "directory": "shepard",
+      "task": "a / b mod 97",
+      "status": "complete",
+      "width": 16,
+      "learning_rate": 0.1,
+      "weight_decay": 0,
+      "input_only": true,
+      "method": "shepard",
+      "output": "97 independently trainable class vectors; anchor rows shared with input",
+      "membership": "fixed uniformly spaced canonical residues",
+      "stratum_counts": "[correct, rows]",
+      "runs": [
+        {
+          "seed": 11,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.020833333333333332,
+          "elapsed_seconds": 3.996042016,
+          "train": {
+            "correct": 520,
+            "rows": 4656,
+            "accuracy": 0.11168384879725086,
+            "cross_entropy": 4.045972520312262,
+            "off_dictionary_operands": [
+              [
+                191,
+                1178
+              ],
+              [
+                265,
+                2332
+              ],
+              [
+                64,
+                1146
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                204,
+                2303
+              ],
+              [
+                316,
+                2353
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              56,
+              622
+            ]
+          },
+          "test": {
+            "correct": 82,
+            "rows": 4656,
+            "accuracy": 0.01761168384879725,
+            "cross_entropy": 6.562842257291116,
+            "off_dictionary_operands": [
+              [
+                24,
+                1174
+              ],
+              [
+                50,
+                2324
+              ],
+              [
+                8,
+                1158
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                59,
+                2401
+              ],
+              [
+                23,
+                2255
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              6,
+              596
+            ]
+          },
+          "checkpoint_sha256": "fb4052c2ce9bb3c55be76d23e35a53b86c874bf63a661b9190cef216587c1a65"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.021262886597938145,
+          "elapsed_seconds": 3.97955881,
+          "train": {
+            "correct": 384,
+            "rows": 4656,
+            "accuracy": 0.08247422680412371,
+            "cross_entropy": 4.181468086734189,
+            "off_dictionary_operands": [
+              [
+                46,
+                308
+              ],
+              [
+                161,
+                1739
+              ],
+              [
+                177,
+                2609
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                75,
+                1169
+              ],
+              [
+                309,
+                3487
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              168,
+              2001
+            ]
+          },
+          "test": {
+            "correct": 84,
+            "rows": 4656,
+            "accuracy": 0.01804123711340206,
+            "cross_entropy": 5.960067974125559,
+            "off_dictionary_operands": [
+              [
+                10,
+                292
+              ],
+              [
+                43,
+                1789
+              ],
+              [
+                31,
+                2575
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                48,
+                1231
+              ],
+              [
+                36,
+                3425
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              28,
+              1912
+            ]
+          },
+          "checkpoint_sha256": "21e6fca65f53f4833a4abd1c84f29edd3e61983c9e541a3323a4002e81e2d96e"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.02491408934707904,
+          "elapsed_seconds": 3.990167884,
+          "train": {
+            "correct": 282,
+            "rows": 4656,
+            "accuracy": 0.06056701030927835,
+            "cross_entropy": 4.245482983660641,
+            "off_dictionary_operands": [
+              [
+                17,
+                86
+              ],
+              [
+                88,
+                1044
+              ],
+              [
+                177,
+                3526
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                65,
+                629
+              ],
+              [
+                217,
+                4027
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              164,
+              3080
+            ]
+          },
+          "test": {
+            "correct": 107,
+            "rows": 4656,
+            "accuracy": 0.02298109965635739,
+            "cross_entropy": 5.310067572261119,
+            "off_dictionary_operands": [
+              [
+                11,
+                70
+              ],
+              [
+                48,
+                1056
+              ],
+              [
+                48,
+                3530
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                57,
+                619
+              ],
+              [
+                50,
+                4037
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              41,
+              3105
+            ]
+          },
+          "checkpoint_sha256": "6ece57f7af3165132c4b24d75faf1d0daee42acb474afb8fc916eee06640830a"
+        },
+        {
+          "seed": 11,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.03329037800687285,
+          "elapsed_seconds": 4.002169627,
+          "train": {
+            "correct": 217,
+            "rows": 4656,
+            "accuracy": 0.046606529209621994,
+            "cross_entropy": 4.364573307220601,
+            "off_dictionary_operands": [
+              [
+                9,
+                25
+              ],
+              [
+                58,
+                571
+              ],
+              [
+                150,
+                4060
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                58,
+                332
+              ],
+              [
+                159,
+                4324
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              137,
+              3809
+            ]
+          },
+          "test": {
+            "correct": 150,
+            "rows": 4656,
+            "accuracy": 0.03221649484536082,
+            "cross_entropy": 4.865524454892024,
+            "off_dictionary_operands": [
+              [
+                6,
+                17
+              ],
+              [
+                49,
+                599
+              ],
+              [
+                95,
+                4040
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                60,
+                340
+              ],
+              [
+                90,
+                4316
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              86,
+              3787
+            ]
+          },
+          "checkpoint_sha256": "a43fe76a7946805dcc0ca8d35e457f31ce76b77bd46196c3a1c94da3a8c9b33e"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.04252577319587629,
+          "elapsed_seconds": 3.99787814,
+          "train": {
+            "correct": 561,
+            "rows": 4656,
+            "accuracy": 0.12048969072164949,
+            "cross_entropy": 3.6002144620115115,
+            "off_dictionary_operands": [
+              [
+                263,
+                1148
+              ],
+              [
+                225,
+                2326
+              ],
+              [
+                73,
+                1182
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                214,
+                2324
+              ],
+              [
+                347,
+                2332
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              47,
+              627
+            ]
+          },
+          "test": {
+            "correct": 185,
+            "rows": 4656,
+            "accuracy": 0.039733676975945015,
+            "cross_entropy": 4.344047905008949,
+            "off_dictionary_operands": [
+              [
+                63,
+                1204
+              ],
+              [
+                92,
+                2330
+              ],
+              [
+                30,
+                1122
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                98,
+                2380
+              ],
+              [
+                87,
+                2276
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              24,
+              591
+            ]
+          },
+          "checkpoint_sha256": "a626466d252663d3265eca71352977eb3c7b07b4218ff1ed6cd72a96b6c3c525"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.026847079037800686,
+          "elapsed_seconds": 3.994770178,
+          "train": {
+            "correct": 368,
+            "rows": 4656,
+            "accuracy": 0.07903780068728522,
+            "cross_entropy": 4.149070365705773,
+            "off_dictionary_operands": [
+              [
+                50,
+                300
+              ],
+              [
+                164,
+                1741
+              ],
+              [
+                154,
+                2615
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                69,
+                1177
+              ],
+              [
+                299,
+                3479
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              152,
+              1982
+            ]
+          },
+          "test": {
+            "correct": 117,
+            "rows": 4656,
+            "accuracy": 0.025128865979381444,
+            "cross_entropy": 5.769794952533512,
+            "off_dictionary_operands": [
+              [
+                18,
+                300
+              ],
+              [
+                50,
+                1787
+              ],
+              [
+                49,
+                2569
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                50,
+                1223
+              ],
+              [
+                67,
+                3433
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              45,
+              1931
+            ]
+          },
+          "checkpoint_sha256": "39796a7fe4776003cdf509973b9d5c3b2c0020ba652466747a71b9bcc23ad85f"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029853951890034366,
+          "elapsed_seconds": 3.997639076,
+          "train": {
+            "correct": 311,
+            "rows": 4656,
+            "accuracy": 0.06679553264604811,
+            "cross_entropy": 4.2183630849249525,
+            "off_dictionary_operands": [
+              [
+                18,
+                76
+              ],
+              [
+                101,
+                1033
+              ],
+              [
+                192,
+                3547
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                80,
+                616
+              ],
+              [
+                231,
+                4040
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              174,
+              3119
+            ]
+          },
+          "test": {
+            "correct": 132,
+            "rows": 4656,
+            "accuracy": 0.028350515463917526,
+            "cross_entropy": 5.124431924108043,
+            "off_dictionary_operands": [
+              [
+                10,
+                80
+              ],
+              [
+                44,
+                1067
+              ],
+              [
+                78,
+                3509
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                61,
+                632
+              ],
+              [
+                71,
+                4024
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              60,
+              3066
+            ]
+          },
+          "checkpoint_sha256": "5531340d04ba9fcd3226d540140371aa43073663ce40f87f4e0ef1e51a82ed02"
+        },
+        {
+          "seed": 17,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029424398625429553,
+          "elapsed_seconds": 3.9984728179999998,
+          "train": {
+            "correct": 247,
+            "rows": 4656,
+            "accuracy": 0.05304982817869416,
+            "cross_entropy": 4.331863205143074,
+            "off_dictionary_operands": [
+              [
+                8,
+                21
+              ],
+              [
+                70,
+                599
+              ],
+              [
+                169,
+                4036
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                70,
+                326
+              ],
+              [
+                177,
+                4330
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              156,
+              3797
+            ]
+          },
+          "test": {
+            "correct": 128,
+            "rows": 4656,
+            "accuracy": 0.027491408934707903,
+            "cross_entropy": 4.817376412892532,
+            "off_dictionary_operands": [
+              [
+                6,
+                21
+              ],
+              [
+                47,
+                571
+              ],
+              [
+                75,
+                4064
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                57,
+                346
+              ],
+              [
+                71,
+                4310
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              64,
+              3799
+            ]
+          },
+          "checkpoint_sha256": "9ffbb707358a6b1ed53bc3b6ce4846e8c9a902624d125067e4df23ea278e2148"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 49,
+          "anchors": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62,
+            64,
+            66,
+            68,
+            70,
+            72,
+            74,
+            76,
+            78,
+            80,
+            82,
+            84,
+            86,
+            88,
+            90,
+            92,
+            94,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.046176975945017185,
+          "elapsed_seconds": 3.986626674,
+          "train": {
+            "correct": 590,
+            "rows": 4656,
+            "accuracy": 0.12671821305841924,
+            "cross_entropy": 3.578805486743372,
+            "off_dictionary_operands": [
+              [
+                265,
+                1157
+              ],
+              [
+                251,
+                2372
+              ],
+              [
+                74,
+                1127
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                257,
+                2339
+              ],
+              [
+                333,
+                2317
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              52,
+              628
+            ]
+          },
+          "test": {
+            "correct": 192,
+            "rows": 4656,
+            "accuracy": 0.041237113402061855,
+            "cross_entropy": 4.361956204903369,
+            "off_dictionary_operands": [
+              [
+                66,
+                1195
+              ],
+              [
+                86,
+                2284
+              ],
+              [
+                40,
+                1177
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                93,
+                2365
+              ],
+              [
+                99,
+                2291
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              29,
+              590
+            ]
+          },
+          "checkpoint_sha256": "c4336ceb94ad3015edbbd4fe82d18a801a7777e5573ef2f1871be2e12b440e51"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 25,
+          "anchors": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            32,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            68,
+            72,
+            76,
+            80,
+            84,
+            88,
+            92,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.020618556701030927,
+          "elapsed_seconds": 3.990414785,
+          "train": {
+            "correct": 373,
+            "rows": 4656,
+            "accuracy": 0.08011168384879726,
+            "cross_entropy": 4.167506219538473,
+            "off_dictionary_operands": [
+              [
+                50,
+                296
+              ],
+              [
+                172,
+                1758
+              ],
+              [
+                151,
+                2602
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                88,
+                1207
+              ],
+              [
+                285,
+                3449
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              143,
+              1979
+            ]
+          },
+          "test": {
+            "correct": 96,
+            "rows": 4656,
+            "accuracy": 0.020618556701030927,
+            "cross_entropy": 6.224578904358374,
+            "off_dictionary_operands": [
+              [
+                12,
+                304
+              ],
+              [
+                39,
+                1770
+              ],
+              [
+                45,
+                2582
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                43,
+                1193
+              ],
+              [
+                53,
+                3463
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              39,
+              1934
+            ]
+          },
+          "checkpoint_sha256": "f2c22f75b9e6ad4ac2d8eb4314b4c2f7a99673dd0cbea9a421bddd7efe3b212e"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 13,
+          "anchors": [
+            0,
+            8,
+            16,
+            24,
+            32,
+            40,
+            48,
+            56,
+            64,
+            72,
+            80,
+            88,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.022551546391752577,
+          "elapsed_seconds": 3.99700477,
+          "train": {
+            "correct": 292,
+            "rows": 4656,
+            "accuracy": 0.0627147766323024,
+            "cross_entropy": 4.228138791716515,
+            "off_dictionary_operands": [
+              [
+                19,
+                75
+              ],
+              [
+                91,
+                1058
+              ],
+              [
+                182,
+                3523
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                66,
+                625
+              ],
+              [
+                226,
+                4031
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              176,
+              3095
+            ]
+          },
+          "test": {
+            "correct": 105,
+            "rows": 4656,
+            "accuracy": 0.022551546391752577,
+            "cross_entropy": 5.358996832090825,
+            "off_dictionary_operands": [
+              [
+                6,
+                81
+              ],
+              [
+                43,
+                1042
+              ],
+              [
+                56,
+                3533
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                43,
+                623
+              ],
+              [
+                62,
+                4033
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              52,
+              3090
+            ]
+          },
+          "checkpoint_sha256": "13291c47922a8659220e2b854658c442c9a5cf7ecccf989794907e5abf566572"
+        },
+        {
+          "seed": 23,
+          "dictionary_size": 7,
+          "anchors": [
+            0,
+            16,
+            32,
+            48,
+            64,
+            80,
+            96
+          ],
+          "method": "shepard",
+          "rotate": false,
+          "input_only": true,
+          "parameters": 1808,
+          "epochs": 2000,
+          "updates": 20000,
+          "first_recorded_test_99_epoch": null,
+          "best_recorded_test_accuracy": 0.029209621993127148,
+          "elapsed_seconds": 3.997116444,
+          "train": {
+            "correct": 247,
+            "rows": 4656,
+            "accuracy": 0.05304982817869416,
+            "cross_entropy": 4.323327296549208,
+            "off_dictionary_operands": [
+              [
+                7,
+                17
+              ],
+              [
+                68,
+                593
+              ],
+              [
+                172,
+                4046
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                82,
+                360
+              ],
+              [
+                165,
+                4296
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              146,
+              3777
+            ]
+          },
+          "test": {
+            "correct": 123,
+            "rows": 4656,
+            "accuracy": 0.026417525773195876,
+            "cross_entropy": 5.072191092880728,
+            "off_dictionary_operands": [
+              [
+                7,
+                25
+              ],
+              [
+                41,
+                577
+              ],
+              [
+                75,
+                4054
+              ]
+            ],
+            "off_dictionary_answer": [
+              [
+                56,
+                312
+              ],
+              [
+                67,
+                4344
+              ]
+            ],
+            "both_operands_and_answer_outside": [
+              63,
+              3819
+            ]
+          },
+          "checkpoint_sha256": "73f725a28df3e8094ebbf8726e5c38607dad1a26fc83715e21f90faa7f561c07"
+        }
+      ]
+    }
+  ]
+}
