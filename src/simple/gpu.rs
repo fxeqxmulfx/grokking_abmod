@@ -30,6 +30,9 @@ const WORKSPACE_CAPACITY: usize = 4;
 #[path = "dense_tiled.rs"]
 mod dense_tiled;
 
+#[path = "regression.rs"]
+pub(super) mod regression;
+
 #[cuda_module]
 // Flat row-major tensors keep every index explicit.
 #[allow(clippy::too_many_arguments)]
@@ -454,12 +457,13 @@ mod kernels {
         }
     }
 
-    /// Add an activated branch to the unchanged residual stream.
+    /// Activate a branch, optionally adding the unchanged residual stream.
     #[kernel]
     #[launch_bounds(128)]
     #[launch_contract(domain = 1, block = (128, 1, 1), requires = (
         stream.len() == out.len(), branch.len() == out.len()))]
     pub fn simple_activated_sum<const ACTIVATION: usize>(
+        residual: bool,
         stream: &[f32],
         branch: &[f32],
         mut out: DisjointSlice<f32>,
@@ -467,7 +471,11 @@ mod kernels {
         let index = thread::index_1d();
         let item = index.get();
         if let Some(output) = out.get_mut(index) {
-            *output = stream[item] + simple_activate(branch[item], ACTIVATION);
+            *output = if residual {
+                stream[item] + simple_activate(branch[item], ACTIVATION)
+            } else {
+                simple_activate(branch[item], ACTIVATION)
+            };
         }
     }
 
@@ -1370,6 +1378,7 @@ impl Kernels {
 
     fn activated_sum<const ACTIVATION: usize>(
         &self,
+        residual: bool,
         stream: &DeviceBuffer<f32>,
         branch: &DeviceBuffer<f32>,
         out: &mut DeviceBuffer<f32>,
@@ -1378,7 +1387,7 @@ impl Kernels {
             self.module.prepare_simple_activated_sum::<ACTIVATION>(c)
         })?;
         self.module
-            .simple_activated_sum(&self.stream, &launch, stream, branch, out)?;
+            .simple_activated_sum(&self.stream, &launch, residual, stream, branch, out)?;
         Ok(())
     }
 
@@ -2190,7 +2199,7 @@ impl GpuSimpleModel {
                         branches + layer,
                         joined + layer + 1,
                     ])?;
-                    k.activated_sum::<ACTIVATION>(stream, branch, after)?;
+                    k.activated_sum::<ACTIVATION>(true, stream, branch, after)?;
                 }
                 let [before, after] = values.get_disjoint_mut([joined + c.depth, final_norm])?;
                 k.rmsnorm::<0>(
@@ -2408,7 +2417,7 @@ impl GpuSimpleModel {
                     let branch = mesh_values + (block + 1) * branch_depth - 1;
                     let [h, branch, next] = values.get_disjoint_mut([block, branch, block + 1])?;
                     if c.residual_branch_activation() {
-                        k.activated_sum::<ACTIVATION>(h, branch, next)?;
+                        k.activated_sum::<ACTIVATION>(c.dense_residual, h, branch, next)?;
                     } else {
                         k.combine::<ADD>(h, branch, next)?;
                     }
@@ -2954,9 +2963,13 @@ impl GpuSimpleModel {
                         &mut workspace.statistics,
                         branch,
                     )?;
-                    let [dh, branch, sum] = adjoints.get_disjoint_mut([DH, BRANCH, SUM])?;
-                    k.combine::<ADD>(dh, branch, sum)?;
-                    adjoints.swap(DH, SUM);
+                    if c.dense_residual {
+                        let [dh, branch, sum] = adjoints.get_disjoint_mut([DH, BRANCH, SUM])?;
+                        k.combine::<ADD>(dh, branch, sum)?;
+                        adjoints.swap(DH, SUM);
+                    } else {
+                        adjoints.swap(DH, BRANCH);
+                    }
                 }
                 if c.architecture.rotary_embeddings() {
                     k.rotary_embedding_gradient(
@@ -3722,6 +3735,14 @@ mod verification {
                 width: 6,
                 depth: 2,
                 dense_embedding_initialization: DenseEmbeddingInitialization::NormalWidth,
+                dense_residual: false,
+                ..base
+            },
+            SimpleConfig {
+                architecture: Architecture::TiedRotaryResidualDenseMlp,
+                width: 6,
+                depth: 2,
+                dense_embedding_initialization: DenseEmbeddingInitialization::NormalWidth,
                 ..base
             },
             SimpleConfig {
@@ -4209,7 +4230,7 @@ mod verification {
         k.mesh::<RELU>(2, own, &hidden, &gains, &mut exact)?;
         k.mesh_input_gradient::<RELU>(2, own, &hidden, &gains, &hidden, &mut exact)?;
         k.mesh_weight_gradient::<RELU>(2, own, &hidden, &exact, &mut gain_gradient)?;
-        k.activated_sum::<SQUARE>(&hidden, &hidden, &mut exact)?;
+        k.activated_sum::<SQUARE>(true, &hidden, &hidden, &mut exact)?;
         k.activation_gradient::<SQUARE>(&hidden, &hidden, &mut exact)?;
         let sparse = TwoParentLayer {
             inputs: width,
@@ -4293,9 +4314,9 @@ mod verification {
                 .is_ok()
             || k.gather(&table, &batches.indices, 2, &mut normalized)
                 .is_ok()
-            || k.activated_sum::<SQUARE>(&long, &hidden, &mut exact)
+            || k.activated_sum::<SQUARE>(true, &long, &hidden, &mut exact)
                 .is_ok()
-            || k.activated_sum::<SQUARE>(&hidden, &long, &mut exact)
+            || k.activated_sum::<SQUARE>(true, &hidden, &long, &mut exact)
                 .is_ok()
             || k.activation_gradient::<SQUARE>(&long, &hidden, &mut exact)
                 .is_ok()

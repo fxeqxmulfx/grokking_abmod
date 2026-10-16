@@ -392,11 +392,15 @@ fn forward(
                     if config.residual_branch_activation() {
                         branch = activate(&mut tape, &branch);
                     }
-                    hidden = hidden
-                        .iter()
-                        .zip(&branch)
-                        .map(|(&a, &b)| tape.add(a, b))
-                        .collect();
+                    hidden = if config.dense_residual {
+                        hidden
+                            .iter()
+                            .zip(&branch)
+                            .map(|(&a, &b)| tape.add(a, b))
+                            .collect()
+                    } else {
+                        branch
+                    };
                 }
                 let normalized = rmsnorm(&mut tape, &[hidden], 1).remove(0);
                 if tied {

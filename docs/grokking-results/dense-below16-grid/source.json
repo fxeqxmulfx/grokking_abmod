@@ -1,0 +1,140 @@
+{
+  "completed": true,
+  "searchStoppedByUser": true,
+  "finalActiveWidths": [
+    16
+  ],
+  "collection": "Only complete recorded histories are included; interrupted trials are excluded, not counted as failures.",
+  "inputs": {
+    "target/optimizer-grid/below-w16-2026-10-15": {
+      "completed": true,
+      "sourceSha256": "76954efa7e3302d97bb98814368ced12a2b183dce5ad19211db032cb1ec20642",
+      "runsSha256": "946bfe1c9e35aeac375feb531947b859e36b219126c08a128c7a0405321715c4"
+    },
+    "target/optimizer-grid/below16-refinement-2026-10-15": {
+      "completed": false,
+      "sourceSha256": "054ca611b614eef84b27d5a8e476bda552a14f712a3cbc214964fa12c474a2d6",
+      "runsSha256": "fbcf9a5fd10788ef7c89f5123ed458a7b2278ae181845b8e027a55c817ba6cf9"
+    },
+    "target/optimizer-grid/below16-confirmations-2026-10-15": {
+      "completed": false,
+      "sourceSha256": "054ca611b614eef84b27d5a8e476bda552a14f712a3cbc214964fa12c474a2d6",
+      "runsSha256": "812ebc75947625ad79abc3aa33f7010bfea36f8d5fed8e9ebdc1883d53520dd2"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.1-wd0": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "3308715be57744f1c0a0d388c4895d4ed2e281fa46ac5467d923a1cf30496078"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.1-wd0.001": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "69e36e9873e5447cf70869109121f707ed465b7fe2a80d6e3182eb2eeae3d8a1"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.2-wd0": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "8564ea055646573ca53e86dea7d455007c61b30d3adb7af54975100a05a5bfae"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.2-wd0.001": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "ed450bde4da00669035f7b9446c5e46fafd0035d5e445ecbe1fc775e27f5801b"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.03-wd0.01": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "c8e7a7b3738be428c263d802e4680fcedbb7ec58c655b48cbb4918c354672256"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.3-wd0": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "2699be52ddefd9f3fe56f4de013c7066a52d89dbfa3c629c4ab370df684e63e8"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.03-wd0.001": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "fc0fcec4db16432307aa30944e8e87166d81b3bd89f69bef0435fd47b61fb8f1"
+    },
+    "target/optimizer-grid/w16-final-confirmations-2026-10-16/lr0.3-wd0.0001": {
+      "completed": true,
+      "sourceSha256": "cbddf658ffa9abc6abfd67293fbbb18251b068e4d45319313fcebcb9419c9d43",
+      "runsSha256": "01a865c02e0a0d391d129ca1e589ba99b35e8c0f34f7c7846985de6096aa140f"
+    }
+  },
+  "interruptedTrials": [
+    {
+      "width": 10,
+      "seed": 11,
+      "learningRate": 0.05,
+      "weightDecay": 0,
+      "stage": "plateau",
+      "directory": "target/optimizer-grid/below16-refinement-2026-10-15/plateau-w10-s11-lr0.05-wd0",
+      "completedEpochs": 7259,
+      "status": "interrupted",
+      "excludedFromResults": true
+    },
+    {
+      "width": 10,
+      "seed": 11,
+      "learningRate": 0.05,
+      "weightDecay": 0.0001,
+      "stage": "plateau",
+      "directory": "target/optimizer-grid/below16-refinement-2026-10-15/plateau-w10-s11-lr0.05-wd0.0001",
+      "completedEpochs": 7145,
+      "status": "interrupted",
+      "excludedFromResults": true
+    },
+    {
+      "width": 10,
+      "seed": 11,
+      "learningRate": 0.05,
+      "weightDecay": 0.001,
+      "stage": "plateau",
+      "directory": "target/optimizer-grid/below16-refinement-2026-10-15/plateau-w10-s11-lr0.05-wd0.001",
+      "completedEpochs": 7067,
+      "status": "interrupted",
+      "excludedFromResults": true
+    },
+    {
+      "width": 10,
+      "seed": 11,
+      "learningRate": 0.05,
+      "weightDecay": 0.01,
+      "stage": "plateau",
+      "directory": "target/optimizer-grid/below16-refinement-2026-10-15/plateau-w10-s11-lr0.05-wd0.01",
+      "completedEpochs": 7077,
+      "status": "interrupted",
+      "excludedFromResults": true
+    },
+    {
+      "width": 14,
+      "seed": 23,
+      "learningRate": 0.2,
+      "weightDecay": 0,
+      "stage": "plateau",
+      "directory": "target/optimizer-grid/below16-confirmations-2026-10-15/plateau-w14-s23-lr0.2-wd0",
+      "completedEpochs": 8655,
+      "status": "interrupted",
+      "excludedFromResults": true
+    }
+  ],
+  "binarySha256": {
+    "target/optimizer-grid/register-blocks/mesh-gpt": "48576263518e58991c75d8788ea49406b510c0514fe92e8941b6921653872a0d",
+    "target/grok-div97-dense-embedding-normal-width/bin/mesh-gpt": "53419ce2a547980b61ca0bd30c21a97495e816eebd2c1676749c124d4b7c140d"
+  },
+  "nativeSourceSha256": {
+    "src/simple/mod.rs": "ac8890b383d0500ea6f7ffa67cef58d5446334626bf3e238c25f283a4c150aec",
+    "src/simple/gpu.rs": "a9f305ce9a6e9e803cd2b505793647c8700ae35e94a02b83585dd52707e970fc",
+    "src/simple/dense_tiled.rs": "599a28bf0749aa5bd187681c92c72d1ee4b500e4fd7972239722a1208bf12711",
+    "src/simple/reference.rs": "39c9d3786d5239d6388e26e02eeb930fcb398b8a0a3fb47515b8d7469b8ca7fc",
+    "src/bin/mesh-gpt/simple.rs": "0f9c2bc61ffc81dccec55aa2d1a5f298952a684f9329a95493d6df97c68b6a20",
+    "Cargo.lock": "433688a6828749c32c553e551dd4ba191aa6f1698c9ac2749996f2c537a9eddb"
+  },
+  "driverSha256": "9c54ae97661dcf8b3568aef9c94fb1171ce9b9cb0a603c25c855a568ea283509",
+  "priorBinaryComparisonSha256": "b6ae945667a34b6ddab81a2e487907fad2fccc4f3e7dc509b58f4425c810803c",
+  "cudaVerificationSha256": "c895571ab13374829c4e15e552c9f6516883484a2a52ab84aa311577e648531e",
+  "planSha256": "298d759a5a8f3abb9d0843171500f6968b9acd602a990b6bf56611e30e8f03c7",
+  "analyzerSha256": "cb044d51b9b9643f892f09374cbc165dd107a93396dd9ec326f2e8d2994c5dd4",
+  "w16ReplayVerificationSha256": "ac101fbe4cc58e10635d57b59d1aa0da615879c78738f40560ec002b0ad9ee31"
+}

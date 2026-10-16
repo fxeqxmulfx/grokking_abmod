@@ -1,0 +1,49 @@
+{
+  "localOnly": true,
+  "reason": "Small-modulus and mod-97 subset controls reach 100% training accuracy, while the original full-data minibatch/constant-lr grid remains below 10%. Test a guided joint recipe: centered inputs, first-layer domain-anchored biases, eight layers, full gradients, slower beta2 and cosine annealing. This is a composite optimization pilot, not an isolated causal attribution. Preserve all original control/bias/deep grids. Confirm useful fixed settings on seeds 17 and 23 and compare individual factors subsequently.",
+  "budget": "10000 complete full-batch epochs, hence 10000 updates. The original 10000-epoch minibatch runs use 100000 updates; report both counts and identical visits per equation.",
+  "trials": [
+    {
+      "operation": "div",
+      "modulus": 97,
+      "trainLimit": null,
+      "scale": "centered",
+      "width": 128,
+      "depth": 8,
+      "preRmsnorm": false,
+      "residual": false,
+      "biasInitialization": "domain",
+      "biasScale": 1,
+      "learningRate": 0.01,
+      "weightDecay": 0,
+      "beta2": 0.999,
+      "schedule": "cosine",
+      "minLrRatio": 0.001,
+      "batch": 4656,
+      "epochs": 10000,
+      "reportEvery": 100,
+      "seed": 11
+    },
+    {
+      "operation": "mul",
+      "modulus": 97,
+      "trainLimit": null,
+      "scale": "centered",
+      "width": 128,
+      "depth": 8,
+      "preRmsnorm": false,
+      "residual": false,
+      "biasInitialization": "domain",
+      "biasScale": 1,
+      "learningRate": 0.01,
+      "weightDecay": 0,
+      "beta2": 0.999,
+      "schedule": "cosine",
+      "minLrRatio": 0.001,
+      "batch": 4704,
+      "epochs": 10000,
+      "reportEvery": 100,
+      "seed": 11
+    }
+  ]
+}

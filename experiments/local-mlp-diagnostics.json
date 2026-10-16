@@ -1,0 +1,61 @@
+{
+  "scope": "Local Rust/CUDA only. No commits, pushes, deployments or uploads.",
+  "purpose": "Explain low scalar-MLP training accuracy, including deeper networks, while retaining the original residual ablation and full scalar grid.",
+  "prerequisite": "Finish experiments/local-residual-regression.json with its frozen binary before scheduling additional GPU trials.",
+  "seeds": [11, 17, 23],
+  "screenSeed": 11,
+  "optimizer": {"name": "AdamW", "beta1": 0.9, "beta2": 0.98, "epsilon": 1e-8, "warmupUpdates": 10},
+  "controls": {
+    "datasets": [
+      {"modulus": 7, "trainLimit": null},
+      {"modulus": 31, "trainLimit": null},
+      {"modulus": 97, "trainLimit": 64},
+      {"modulus": 97, "trainLimit": 256},
+      {"modulus": 97, "trainLimit": null}
+    ],
+    "operations": ["div", "mul"],
+    "scales": ["unit", "centered"],
+    "width": 128,
+    "depth": 4,
+    "flags": [
+      {"preRmsnorm": false, "residual": false},
+      {"preRmsnorm": true, "residual": true}
+    ],
+    "learningRates": [0.001, 0.01],
+    "weightDecay": 0,
+    "schedule": "cosine",
+    "minimumLrRatio": 0.001,
+    "updates": 10000,
+    "batch": 512,
+    "selection": "Inspect train fit on smaller tasks and subsets. These controls do not replace full-modulus-97 experiments."
+  },
+  "deep": {
+    "modulus": 97,
+    "operations": ["div", "mul"],
+    "scales": ["unit", "raw"],
+    "widths": [64, 128],
+    "depths": [8, 16],
+    "preRmsnorm": [false, true],
+    "residual": [false, true],
+    "learningRates": [0.001, 0.01],
+    "weightDecays": [0, 0.1],
+    "schedule": "constant",
+    "batch": 512,
+    "screenEpochs": 1000,
+    "finalEpochs": 10000,
+    "selection": "For each operation/scale task, retain the best finite screen by train RMSE and the best by held-out RMSE; deduplicate configurations and run all three seeds. Report both selection criteria explicitly."
+  },
+  "adaptiveFollowup": {
+    "purpose": "Use control and deep-network evidence to choose matched optimization and capacity follow-ups, rather than interpreting a failed initial grid as an impossibility result.",
+    "candidateWidths": [256, 512],
+    "candidateDepths": [4, 8, 16],
+    "candidateScales": ["unit", "raw", "centered"],
+    "candidateSchedules": ["constant", "cosine"],
+    "candidateBeta2": [0.98, 0.999],
+    "candidateBiasInitializations": ["zero", "uniform", "domain"],
+    "biasControl": "Keep every Kaiming matrix identical. Uniform and domain modes use identical later-layer biases; domain changes only the first-layer bias rule to place hinges through the operand box.",
+    "confirmationSeeds": [11, 17, 23],
+    "rule": "Save each concrete follow-up configuration and its reason before launch; use matched seeds and update budgets for causal comparisons."
+  },
+  "reporting": "Record final and peak logged train accuracy, held-out accuracy, residue RMSE, update counts, divergence and initialization/source hashes. Distinguish memorization from generalization and finite-budget evidence from representational impossibility."
+}

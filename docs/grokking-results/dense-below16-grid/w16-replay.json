@@ -1,0 +1,13 @@
+{
+  "width": 16,
+  "seed": 11,
+  "learningRate": 0.1,
+  "weightDecay": 0,
+  "firstTest99": 1033,
+  "identicalLearningCurveExceptElapsedSeconds": true,
+  "identicalInitialWeights": true,
+  "identicalFinalWeights": true,
+  "modelSha256": "70c4bdec3e16bd27c25180ee536398785210a06335a9e03ce8e359c72597079a",
+  "originalBinarySha256": "53419ce2a547980b61ca0bd30c21a97495e816eebd2c1676749c124d4b7c140d",
+  "currentBinarySha256": "48576263518e58991c75d8788ea49406b510c0514fe92e8941b6921653872a0d"
+}

@@ -16,6 +16,7 @@ if(runs.some(run=>run.exitCode!==0||run.error))throw new Error('A CUDA trial fai
 await mkdir(destination,{recursive:true});
 const manifest=[];
 const classified=new Map();
+const archivedDirectories=new Map();
 const identity=run=>`${run.stage}/${run.width}/${run.seed}/${run.learningRate}/${run.weightDecay}`;
 for(const run of runs) {
   const name=basename(run.directory),location=join(destination,name);
@@ -29,6 +30,7 @@ for(const run of runs) {
   }
   run.grokking={plateau:criterion.plateau,perfect:criterion.perfect,riseEpochs:criterion.rise,event:criterion.event};
   classified.set(identity(run),run.grokking);
+  archivedDirectories.set(identity(run),name);
   await writeFile(join(location,'loss.csv.gz'),gzipSync(history,{level:9}));
   await copyFile(join(run.directory,'arguments.json'),join(location,'arguments.json'));
   await copyFile(join(run.directory,'run.txt'),join(location,'run.txt'));
@@ -37,7 +39,11 @@ for(const run of runs) {
 }
 for(const result of summary.results) {
   for(const profile of [...(result.profiles??[]),...(result.winner?[result.winner]:[])])
-    for(const run of profile.runs)run.grokking=classified.get(identity(run));
+    for(const run of profile.runs) {
+      const key=identity(run),location=archivedDirectories.get(key);
+      if(!location)throw new Error(`Missing archived history: ${key}`);
+      run.grokking=classified.get(key);run.directory=location;
+    }
 }
 // Paths in the compact results refer to the archived evidence.
 const portable=object=>JSON.parse(JSON.stringify(object,(_key,value)=>typeof value==='string'&&value.startsWith(source+'/')?basename(value):value));

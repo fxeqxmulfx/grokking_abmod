@@ -1,0 +1,50 @@
+{
+  "publication": "Local only; no commits, pushes, deployments or external uploads.",
+  "seeds": [11, 17, 23],
+  "modulus": 97,
+  "trainFraction": 0.5,
+  "batch": 512,
+  "optimizer": {"name": "AdamW", "beta1": 0.9, "beta2": 0.98, "epsilon": 1e-8, "warmupUpdates": 10},
+  "rotaryAblation": {
+    "width": 128,
+    "depth": 1,
+    "architecture": "tied-rotary-residual-dense-mlp",
+    "embeddingInitialization": "normal-width",
+    "operation": "div",
+    "residual": [true, false],
+    "epochs": 10000,
+    "stopTestAccuracy": 0.99,
+    "profiles": [
+      {"name": "fast", "learningRate": 0.01, "weightDecay": 1},
+      {"name": "plateau", "learningRate": 0.0003, "weightDecay": 0},
+      {"name": "slow", "learningRate": 0.00005, "weightDecay": 0.3}
+    ],
+    "controlPolicy": "Preserve every setting, random weight, split and training order; change only skip addition. Reuse conclusive verified residual controls and replay the fast seed-11 control with the new binary. Retain both pre-block and final RMSNorm."
+  },
+  "scalarMlp": {
+    "operations": ["div", "mul"],
+    "scales": ["unit", "raw"],
+    "widths": [16, 64, 128],
+    "depths": [1, 2, 4],
+    "preRmsnorm": [false, true],
+    "residual": [false, true],
+    "learningRates": [0.001, 0.01, 0.1],
+    "weightDecays": [0, 0.1],
+    "screenSeed": 11,
+    "screenEpochs": 1000,
+    "finalEpochs": 10000,
+    "screenReportEveryEpochs": 10,
+    "finalReportEveryEpochs": 10,
+    "finalistsPerFamily": 1,
+    "family": ["operation", "scale", "preRmsnorm", "residual"],
+    "selection": "Within each of the 16 families, select the best seed-11 screen by final test RMSE in original residue units, then rounded test accuracy, then parameter count. Rerun its seed 11 to the full budget and repeat its fixed configuration on seeds 17 and 23. Selection uses the held-out split, so results are exploratory validation results, not an independent final test estimate.",
+    "oneLayerPolicy": "At depth 1, RMSNorm and residual have no eligible hidden layer. Run this common baseline once, and make it eligible for every family without inventing separate trials.",
+    "architecture": "2 -> affine + ReLU -> width-preserving affine + ReLU hidden layers -> affine -> 1; optional pre-RMSNorm and skip only on width-preserving hidden layers; no output activation or final RMSNorm.",
+    "initialization": "Kaiming normal variance 2/fan_in for hidden matrices; linear gain variance 1/fan_in for readout; zero biases. Identical seeds preserve matrices across norm/skip controls.",
+    "weightDecayPolicy": "AdamW decays all trainable weights and biases; RMSNorm has no gain or bias.",
+    "unitScale": "Inputs a/96 and b/96; target answer/96.",
+    "rawScale": "Inputs and target are unscaled floating-point residue values.",
+    "metrics": "MSE in training units, RMSE in original residue units, and exact residue accuracy after rounding without clipping or modulo reduction.",
+    "nonfinitePolicy": "Record nonfinite training as divergence rather than a CUDA implementation error; do not treat interrupted trials as negative results."
+  }
+}

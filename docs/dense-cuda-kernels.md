@@ -271,3 +271,162 @@ held-out column is the lowest over all settings and seeds:
   wd 0.1.
 
 The archive is in `docs/grokking-results/dense-plateau/`.
+
+## Local residual and scalar regression experiments
+
+The rotary dense model supports `grok-simple --no-residual`: each block becomes
+`ReLU(Dense(RMSNorm(h)))`. The pre-block and final RMSNorm, shared E, tied
+readout, matrices and initialization remain identical. The flag is rejected
+for other architectures. The independent f64 reference and CUDA verification
+include the ablation with repeated blocks and gathered minibatches.
+
+`scalar-mlp` is a separate numeric-regression baseline. It reads two float32
+features, applies an affine/ReLU input layer, optional additional hidden
+layers of the same width, and one affine scalar readout. Hidden matrices use
+Kaiming normal variance `2/fan_in`; the linear readout uses variance
+`1/fan_in`. Every affine layer has a trainable bias, initialized to zero by default. Depth
+counts all ReLU hidden layers. `--pre-rmsnorm` normalizes inputs to hidden
+layers after the first; `--residual` adds skips around those same layers.
+Neither applies to the two-feature input or scalar readout, and there is no
+final RMSNorm. Depth 1 therefore has one common baseline with both flags off.
+RMSNorm has epsilon 1e-5 and no trainable gain or bias.
+
+Forward products, bias/activation operations, MSE derivatives, all parameter
+gradients and AdamW updates run on CUDA through checked launch contracts.
+Tables, parameters and optimizer moments stay on the GPU. Rust prepares the
+seeded epoch order and aggregates evaluation metrics; the scalar f64 tape is
+used only for verification. `--scale unit` divides operands and targets by 96;
+`--scale raw` leaves them as numeric residue values. The loss is mean squared
+error in those training units. Reports also give RMSE in original residue
+units and exact answer accuracy after rounding, without clipping or modulo
+reduction. A training-mean constant predictor supplies the MSE baseline.
+
+```sh
+cargo oxide build --arch sm_86 --cargo-target-dir target/local-ablations/build -- --release --locked --bin mesh-gpt --bin scalar-mlp
+target/local-ablations/build/release/mesh-gpt grok-simple --verify-model tied-rotary-residual-dense-mlp
+target/local-ablations/build/release/scalar-mlp --verify
+node scripts/local-rotary-ablation.mjs target/local-ablations/build/release/mesh-gpt target/local-ablations/rotary
+node scripts/local-scalar-grid.mjs target/local-ablations/build/release/scalar-mlp target/local-ablations/scalar
+node scripts/summarize-local-ablations.mjs target/local-ablations
+uv run --locked scripts/plot-local-ablations.py target/local-ablations
+```
+
+The [local plan](../experiments/local-residual-regression.json) fixes paired
+W128 comparisons for Fast, Plateau and Slow, and a staged scalar grid over
+division/multiplication, raw/unit scales, width, depth, norms, skips, lr and
+weight decay. Scalar screens use 1,000 epochs on seed 11. Each selected fixed
+configuration runs for 10,000 epochs on seeds 11, 17 and 23. Selection uses
+the held-out split, so these are exploratory validation results. The drivers
+retain exact arguments, manifests, complete evaluation histories, initial and
+final weights, and nonfinite statuses. Artifacts stay under ignored `target/`;
+the scripts do not commit, push, deploy or upload results.
+
+The [MLP diagnostic follow-up](../experiments/local-mlp-diagnostics.json)
+retains this original grid and adds smaller moduli, seeded subsets of the
+training half, and deeper networks with 8 and 16 hidden layers. It selects
+deep configurations separately for training fit and held-out fit. Both
+selection criteria use the same three confirmation seeds. Planned adaptive
+capacity and optimizer comparisons must record their concrete settings before
+launch. These controls distinguish poor training fit from poor generalization;
+a failed finite grid does not prove that a ReLU MLP cannot represent the task.
+
+Diagnostic CLI options include `--modulus`, `--train-limit`, `--scale centered`,
+`--schedule cosine`, `--min-lr-ratio` and `--beta2`. Unit scaling divides by
+`modulus - 1`; centered scaling also subtracts 0.5 from both operands and the
+target. Predictions are restored to original residue units before rounding.
+The cosine schedule retains the ten-update warmup and reaches the requested
+minimum learning-rate ratio at the last update. A train limit takes a prefix
+of the seeded training half; the original held-out half remains disjoint and
+unchanged, and unused training equations do not become held-out examples.
+
+```sh
+node scripts/verify-scalar-diagnostics.mjs ORIGINAL_BINARY DIAGNOSTIC_BINARY target/local-ablations/diagnostic-verification
+node scripts/local-mlp-diagnostics.mjs DIAGNOSTIC_BINARY target/local-ablations controls
+node scripts/local-mlp-diagnostics.mjs DIAGNOSTIC_BINARY target/local-ablations deep
+```
+
+The diagnostic driver requires the original experiment to finish first. Freeze
+its binary and source snapshot before rebuilding the extended CLI. The replay
+check compares all default-mode metrics, both checkpoints and final saved
+predictions bit for bit. It also independently checks modular targets, scale
+restoration, partial report intervals and a short final minibatch. Diagnostic
+trial manifests record actual training rows, updates, scale offsets, optimizer
+settings and schedules, in addition to the original metrics and checkpoints.
+
+`--bias-init uniform` initializes biases uniformly in
+`[-scale/sqrt(fan_in), scale/sqrt(fan_in)]`, with `--bias-scale` defaulting to 1.
+At the default bias scale of 1, `--bias-init domain` puts each first-layer hinge
+through a random point
+in the inner 90% of the operand box, using the actual input scale and valid
+divisor range. Later biases are identical to uniform mode. Independent
+per-layer streams keep all Kaiming matrices paired across every bias mode.
+The [paired bias screen](../experiments/local-mlp-bias-screen.json) fixes both
+operations, three input/target scales, three bias modes and two learning rates
+at width 128, depth 4 and zero weight decay. Its 36 seed-11 runs each use 1,000
+complete epochs and cosine decay. Native CLI initialization checks are in
+`scripts/verify-mlp-initialization.mjs`.
+
+Additional concrete grids can use the same checked local driver:
+
+```sh
+node scripts/local-mlp-diagnostics.mjs DIAGNOSTIC_BINARY target/local-ablations followup --trials experiments/local-mlp-bias-screen.json --label bias-screen
+```
+
+Each follow-up file records a reason and explicit trial settings before launch;
+the source fingerprint includes its hash. Trial identities include the batch,
+bias mode, decay schedule, epoch budget and seed, allowing matched optimizer
+and capacity comparisons without changing completed experimental protocols.
+
+`examples/scalar-relu-arithmetic.rs` is a separate representability control.
+It constructs a plain raw-input W128 D8 network for division and multiplication
+mod 97 and checks both complete operation tables on CUDA. The construction
+interpolates the inverse divisor, multiplies through integer square identities,
+and reduces via ReLU sawtooth hinges. It uses hand-set weights and does not run
+an optimizer; it must never be presented as a Kaiming-trained accuracy result.
+
+The combined investigation audit can also run while additional trials are
+pending. It writes explicitly marked partial reports, validates the recorded
+predictions and paired initializations, checks the Cartesian grid coverage,
+and independently applies the prescribed finalist selection rules:
+
+```sh
+node scripts/summarize-mlp-investigation.mjs target/local-ablations --partial
+```
+
+After every planned phase and selected confirmation is complete, omit
+`--partial` to require complete evidence and generate the final report:
+
+```sh
+node scripts/summarize-mlp-investigation.mjs target/local-ablations
+uv run --locked scripts/plot-local-ablations.py target/local-ablations
+```
+
+The full-batch, width and optimizer comparisons have separate concrete plans in
+`experiments/local-mlp-fullbatch-pilot.json`,
+`experiments/local-mlp-capacity-pilot.json` and
+`experiments/local-mlp-optimization-ablations.json`. Batch comparisons retain
+the same number of complete epochs and visits per equation; full-batch and
+minibatch update counts differ and are reported explicitly. Runtime measurements
+share a busy local GPU and are not isolated speed benchmarks.
+
+The [selected confirmation plan](../experiments/local-mlp-selected-confirmations.json)
+records fixed training recipes before their seed-17/23 runs and reuses completed
+seed-11 trials with checkpoint, initializer and history hashes. The combined
+audit checks that their settings match and reports each seed separately.
+Each seed changes the data partition, initialization and training order together;
+variation across these runs does not isolate initialization from the data split.
+
+`examples/scalar-mlp-evaluate.rs` reloads a completed model through the checked
+parameter-loading API, recreates its seeded train/held-out split and exports
+both prediction tables. It refuses an existing output directory. The independent
+Node audit checks modular targets, split completeness and disjointness, all
+reported metrics, the original held-out predictions and unchanged input hashes:
+
+```sh
+cargo oxide build --arch sm_86 --cargo-target-dir target/local-ablations/build -- --release --locked --example scalar-mlp-evaluate
+node scripts/verify-mlp-checkpoints.mjs target/local-ablations/build/release/examples/scalar-mlp-evaluate target/local-ablations/checkpoint-verification-selected RUN_DIRECTORY...
+```
+
+The final combined report requires these checkpoint replays for every completed
+model in the selected three-seed cohorts. This verifies actual saved weights in
+addition to the training logs; it does not rerun optimization.

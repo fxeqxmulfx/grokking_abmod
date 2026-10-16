@@ -90,6 +90,7 @@ impl Options {
                 "--dense-embedding-initialization" => {
                     options.config.dense_embedding_initialization = value(&mut arguments, &flag)?
                 }
+                "--no-residual" => options.config.dense_residual = false,
                 "--decay-factors" => options.config.decay_factors = value(&mut arguments, &flag)?,
                 "--mesh-learning-rate-multiplier" => {
                     options.config.mesh_learning_rate_multiplier = value(&mut arguments, &flag)?
@@ -159,6 +160,7 @@ pub fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
                                   ([v==0, centered log to a primitive root]; prime p)\n\
             --activation NAME     relu (default) or square; bilinear has none\n\
             --width N             MLP hidden width, residual stream, or bilinear rank (default: 128)\n\
+            --no-residual         Rotary dense model: remove skip additions, retaining both RMSNorms\n\
             --depth N             MLP hidden layers or residual blocks, 1..64 (default: 1);\n\
                                   a mesh MLP's layers after the first are mesh layers\n\
             --expansion N         Residual block hidden width / stream width (default: 4)\n\
@@ -426,6 +428,7 @@ fn train(mut options: Options) -> Result<()> {
             "dense_embedding_initialization={}\nembedding_initial_variance={variance:.12}\nembedding_scale_constraint=initialization_only\ndense_branch_initialization=kaiming_normal_variance_2_over_width",
             config.dense_embedding_initialization
         )?;
+        writeln!(metadata, "dense_residual={}", config.dense_residual)?;
     }
     if config.architecture == Architecture::FullMeshMlp {
         let mut metadata = OpenOptions::new()

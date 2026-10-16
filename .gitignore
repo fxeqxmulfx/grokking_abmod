@@ -1,4 +1,6 @@
 /target
+# Generated PDF reports stay local.
+*.pdf
 /.oxide-artifacts/
 /papers/
 /*.ptx

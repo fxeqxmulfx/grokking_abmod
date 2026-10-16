@@ -1,0 +1,52 @@
+{
+  "architecture": "tied-rotary-residual-dense-mlp",
+  "widths": [16, 14, 12, 10, 8],
+  "minimumWidth": 8,
+  "finalActiveWidths": [16],
+  "learningRates": [0.03, 0.1, 0.2, 0.3],
+  "weightDecays": [0, 0.0001, 0.001, 0.01],
+  "screenSeed": 11,
+  "confirmationSeeds": [17, 23],
+  "epochs": 10000,
+  "stopTestAccuracy": 0.99,
+  "confirmationWidths": [16, 12],
+  "confirmationPolicy": "Repeat every successful W16 and W12 seed-11 configuration on seeds 17 and 23 with the same full epoch budget. W14 confirmations were stopped when the user restricted further work to W16; retain only completed trials.",
+  "refinements": [
+    {
+      "widths": [12],
+      "learningRates": [0.01, 0.05, 0.15],
+      "weightDecays": [0, 0.0001, 0.001, 0.01],
+      "reason": "Fill learning-rate gaps at W12 before deciding whether a smaller width merits further work."
+    },
+    {
+      "widths": [10],
+      "learningRates": [0.01],
+      "weightDecays": [0, 0.0001, 0.001, 0.01],
+      "reason": "Four previously queued trials had completed when the lower-width queue was stopped. Retain this historical evidence without scheduling further W10 work."
+    }
+  ],
+  "selection": "Report widths with one fixed learning rate and weight decay reaching 99% test accuracy on all three seeds; rank confirmed configurations by worst-seed crossing epoch, then median. Incomplete W14 confirmation coverage cannot establish a lower bound.",
+  "stopDecision": "W12 had no configuration confirmed on all three seeds. The user stopped further work below W12 and then restricted all subsequent trials to W16. Completed earlier results are retained; interrupted trials do not count as failures.",
+  "fixed": {
+    "depth": 1,
+    "activation": "relu",
+    "encoding": "one-hot",
+    "embeddingInitialization": "normal-width",
+    "operation": "div",
+    "modulus": 97,
+    "trainFraction": 0.5,
+    "batch": 512,
+    "beta1": 0.9,
+    "beta2": 0.98,
+    "epsilon": 1e-8,
+    "warmupUpdates": 10,
+    "evaluationEveryEpoch": true
+  },
+  "execution": {
+    "driver": "scripts/plateau-search.mjs",
+    "jobs": 4,
+    "simultaneousConfirmationJobs": 1,
+    "automaticPlateauConfirmations": 0,
+    "reuse": "Conclusive W16 runs from the existing optimizer searches; retain original histories, arguments and binary hashes."
+  }
+}

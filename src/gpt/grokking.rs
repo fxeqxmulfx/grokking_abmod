@@ -12,6 +12,7 @@ pub const EQUATION_CONTEXT: usize = 4;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModularOperation {
     Add,
+    Multiply,
     Subtract,
     Divide,
     Mixed,
@@ -26,6 +27,7 @@ impl ModularOperation {
     pub fn name(self) -> &'static str {
         match self {
             Self::Add => "add",
+            Self::Multiply => "mul",
             Self::Subtract => "sub",
             Self::Divide => "div",
             Self::Mixed => "mixed",
@@ -40,6 +42,7 @@ impl ModularOperation {
     pub fn symbol(self) -> char {
         match self {
             Self::Add => '+',
+            Self::Multiply => '*',
             Self::Subtract => '-',
             Self::Divide => '/',
             _ => '\u{2218}',
@@ -49,6 +52,7 @@ impl ModularOperation {
     fn apply(self, a: usize, b: usize, modulus: usize) -> usize {
         match self {
             Self::Add => (a + b) % modulus,
+            Self::Multiply => a * b % modulus,
             Self::Subtract => (a + modulus - b) % modulus,
             Self::Divide => a * inverse(b, modulus) % modulus,
             Self::Mixed if b % 2 == 1 => a * inverse(b, modulus) % modulus,
@@ -74,6 +78,7 @@ impl FromStr for ModularOperation {
     fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
         match value {
             "add" => Ok(Self::Add),
+            "mul" => Ok(Self::Multiply),
             "sub" => Ok(Self::Subtract),
             "div" => Ok(Self::Divide),
             "mixed" => Ok(Self::Mixed),
@@ -309,6 +314,7 @@ mod tests {
     fn equations_are_disjoint_complete_reproducible_and_abstract() {
         for operation in [
             ModularOperation::Add,
+            ModularOperation::Multiply,
             ModularOperation::Subtract,
             ModularOperation::Divide,
             ModularOperation::Mixed,
@@ -326,6 +332,9 @@ mod tests {
                 match operation {
                     ModularOperation::Add => {
                         assert_eq!(equation.answer, (equation.a + equation.b) % 7)
+                    }
+                    ModularOperation::Multiply => {
+                        assert_eq!(equation.answer, equation.a * equation.b % 7)
                     }
                     ModularOperation::Subtract => {
                         assert_eq!((equation.answer + equation.b) % 7, equation.a)

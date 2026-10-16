@@ -71,6 +71,15 @@ runs entirely in the browser on GitHub Pages. The project is licensed under
 the [MIT License](LICENSE).
 Pre-RMSNorm remains inside the single residual branch, with final RMSNorm
 before the tied readout.
+For local CUDA experiments, `mesh-gpt grok-simple --no-residual` removes the
+rotary dense model's skip while preserving both normalizations. The separate
+`scalar-mlp` binary trains two numeric inputs and one linear output with MSE,
+Kaiming-normal hidden weights, zero biases by default, optional pre-RMSNorm and hidden
+skips. See the [local experiment plan](experiments/local-residual-regression.json)
+and [native commands](docs/dense-cuda-kernels.md#local-residual-and-scalar-regression-experiments).
+The [MLP diagnostic plan](experiments/local-mlp-diagnostics.json) adds smaller
+tasks, training subsets, 8/16-layer networks, and targeted capacity and optimizer
+comparisons; training artifacts stay under ignored `target/`.
 The frontend, local preview server and validation tools use strict TypeScript.
 Shared E now starts Normal(0, variance 1/W); A uses Kaiming normal (2/W).
 With the earlier lr 0.001 and weight decay 0.1, on native seed 11, W1024 has a
@@ -78,6 +87,7 @@ With the earlier lr 0.001 and weight decay 0.1, on native seed 11, W1024 has a
 accuracy of 99% at epoch 270. W128 reaches 99% at epoch 605 without a
 qualifying plateau. See
 [initialization comparison](docs/rotary-dense-embedding-results.md),
+[small-width optimizer grid and W16 baseline](docs/rotary-dense-small-width-results.md),
 [Dense Rust measurements](docs/rotary-dense-results.md),
 [earlier Neighbor measurements](docs/rotary-neighbor-results.md), and
 [earlier model comparisons](docs/grokking-browser-models.md).

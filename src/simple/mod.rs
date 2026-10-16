@@ -14,6 +14,9 @@ use crate::{
     mesh::Random,
 };
 
+pub use gpu::regression::{
+    GpuRegressionMlp, RegressionBiasInitialization, RegressionConfig, RegressionTable,
+};
 pub use gpu::{DeviceBatches, DeviceTable, Evaluation, GpuSimpleModel};
 pub use reference::ReferenceSimpleModel;
 
@@ -527,6 +530,8 @@ pub struct SimpleConfig {
     pub shared_embedding_initialization: SharedEmbeddingInitialization,
     /// Initialization-only distribution of E in the rotary dense residual model.
     pub dense_embedding_initialization: DenseEmbeddingInitialization,
+    /// Ablation of the skip addition in rotary dense blocks; norms stay unchanged.
+    pub dense_residual: bool,
     /// Factors per hidden channel whose balanced L2 penalty the weight decay
     /// imitates. For `n` other than 2, AdamW decays the input column and
     /// readout row of channel `c` at `λ s_c^(2/n - 1)`, where
@@ -557,6 +562,7 @@ impl Default for SimpleConfig {
             embedding_mesh_depth: 4,
             shared_embedding_initialization: SharedEmbeddingInitialization::NearIdentity,
             dense_embedding_initialization: DenseEmbeddingInitialization::UniformFanIn,
+            dense_residual: true,
             decay_factors: 2,
             mesh_learning_rate_multiplier: 1,
         }
@@ -565,6 +571,9 @@ impl Default for SimpleConfig {
 
 impl SimpleConfig {
     pub fn validate(&self) -> Result<()> {
+        if !self.dense_residual && !self.architecture.residual_dense() {
+            return Err("the skip ablation is only supported by the rotary dense model".into());
+        }
         if self.dense_embedding_initialization != DenseEmbeddingInitialization::UniformFanIn
             && self.architecture != Architecture::TiedRotaryResidualDenseMlp
         {
