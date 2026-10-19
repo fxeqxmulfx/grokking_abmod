@@ -224,6 +224,71 @@ seed 23 with one and four. Seed 17, which crosses at 1,333 on CUDA, stays below
 99% for all 10,000 epochs with one, two and four threads. W128 Plateau crosses
 354 epochs after CUDA on seed 11.
 
+## Offline SwiGLU and ScheduleFree comparison
+
+The 2026-10-20 CUDA comparison replaces the residual branch with
+`(SiLU(r G) * (r U)) D`, using hidden width 43 at W128 and 85 at W256.
+Parameter counts are 28,928 and 90,112, compared with ReLU's 28,800 and
+90,368. E, its initialization, the division task, split and minibatch orders
+are shared. G starts with variance 2/W, U with 1/W and D with 1/hidden.
+
+The actual model and `ScheduleFreeAdamW` come from the local `transformer`
+checkout at `4f764a4d08420f73af1fe8672deda49461e7c149`. All 24 confirmation
+runs complete 1,000 epochs with seeds 11, 17 and 23, weight decay 1, betas
+0.9/0.98, epsilon 1e-8 and ten inclusive warmup updates (one epoch).
+PyTorch 2.14.1+cu126 uses deterministic FP32 operations with TF32 disabled;
+AdamW uses `foreach=False`. Full splits are evaluated every epoch.
+The seed-11 pilot also participates in confirmation; seeds 17 and 23 are
+the additional seeds after selecting learning rates.
+
+| SwiGLU optimizer | lr | First test >=99%, W128, seeds 11 / 17 / 23 | First test >=99%, W256 | Later observations below 99% |
+| --- | ---: | --- | --- | --- |
+| AdamW | 0.01 | 14 / 15 / 16 | 15 / 17 / 14 | Yes; worst test accuracy 69.65% |
+| AdamW | 0.003 | 30 / 35 / 30 | 36 / 35 / 35 | None |
+| ScheduleFreeAdamW | 0.01 | 27 / 32 / 26 | 32 / 29 / 29 | None for averaged weights |
+| ScheduleFreeAdamW | 0.03 | 13 / 19 / 14 | 14 / 15 / 12 | None for averaged weights |
+
+ScheduleFree results evaluate its averaged weights with `optimizer.eval()`;
+`optimizer.train()` restores the query before the next training forward.
+The query still has losses of fit, reaching 19.24% held-out accuracy at
+lr 0.03. Averaging supplies the observed evaluation stability through this
+finite budget. Earlier ReLU runs at the same ScheduleFree lr 0.03 first
+reached 99% at 27 / 28 / 26 epochs (W128) and 28 / 27 / 27 (W256).
+No confirmation run has the browser criterion's 25-epoch memorization
+plateau. Every final evaluated model reaches 100% on both splits.
+
+[Comparison JSON](../../docs/rotate90-swiglu-results/comparison.json),
+[per-seed CSV](../../docs/rotate90-swiglu-results/summary.csv),
+[original environment and source hashes](../../docs/rotate90-swiglu-results/metadata.json)
+and the [original local artifact manifest](../../docs/rotate90-swiglu-results/artifact-manifest.json)
+retain compact evidence. The original complete bundle is local at
+`/tmp/grokking-swiglu-20261020/`. Its 24 saved checkpoints reproduce their
+metrics exactly, including both ScheduleFree weight modes; replay of all
+36 trajectories agrees with the browser classifier. Full curves and
+checkpoints stay local.
+
+To regenerate from the repository root, use the pinned transformer checkout.
+`ROTATE90_TRANSFORMER_ROOT` defaults to `~/lean_projects/transformer`:
+
+```sh
+uv run --locked scripts/compare-rotate90.py
+uv run --locked scripts/compare-rotate90.py --verify
+node scripts/verify-rotate90-criterion.mjs target/rotate90-swiglu
+```
+
+Outputs default to ignored `target/rotate90-swiglu/`. A short training check is:
+
+```sh
+uv run --locked scripts/compare-rotate90.py \
+  --plan docs/rotate90-swiglu-results/smoke.json \
+  --output target/rotate90-swiglu-smoke
+```
+
+The committed harness removes temporary helper imports and keeps the original
+training operations. Its checkpoint verification reproduces the retained run
+metrics exactly. Epoch counts compare this PyTorch backend; they are not
+wall-clock speed measurements or byte-identical browser trajectories.
+
 ## PyTorch source export
 
 The **PyTorch .py** button exports a standalone CPU training script with the

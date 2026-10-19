@@ -1,0 +1,26 @@
+[
+  {
+    "id": "smoke-relu-w128",
+    "width": 128,
+    "hidden": 43,
+    "branch": "relu",
+    "optimizer": "adamw",
+    "lr": 0.01,
+    "weight_decay": 1,
+    "warmup": 10,
+    "seed": 11,
+    "max_epochs": 32
+  },
+  {
+    "id": "smoke-swiglu-w128",
+    "width": 128,
+    "hidden": 43,
+    "branch": "swiglu",
+    "optimizer": "schedule_free_adamw",
+    "lr": 0.03,
+    "weight_decay": 1,
+    "warmup": 10,
+    "seed": 11,
+    "max_epochs": 32
+  }
+]

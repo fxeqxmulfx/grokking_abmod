@@ -1,0 +1,552 @@
+{
+  "full_runs": 24,
+  "epochs_per_run": 1000,
+  "checkpoint_metrics_exactly_reproduced": true,
+  "query_checkpoint_metrics_exactly_reproduced": true,
+  "all_pilot_prefixes_reproduced": true,
+  "groups": [
+    {
+      "width": 128,
+      "optimizer": "adamw",
+      "lr": 0.003,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        30,
+        35,
+        30
+      ],
+      "minimum_test_percent_after99": [
+        99.35567010309279,
+        99.39862542955326,
+        99.80670103092784
+      ],
+      "later_epochs_below99": [
+        0,
+        0,
+        0
+      ],
+      "stable_from_through_budget": [
+        30,
+        35,
+        30
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "width": 128,
+      "optimizer": "adamw",
+      "lr": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        14,
+        15,
+        16
+      ],
+      "minimum_test_percent_after99": [
+        90.27061855670104,
+        93.62113402061856,
+        93.25601374570446
+      ],
+      "later_epochs_below99": [
+        24,
+        15,
+        17
+      ],
+      "stable_from_through_budget": [
+        946,
+        961,
+        986
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "width": 128,
+      "optimizer": "schedule_free_adamw",
+      "lr": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        27,
+        32,
+        26
+      ],
+      "minimum_test_percent_after99": [
+        99.52749140893471,
+        99.48453608247422,
+        99.50601374570446
+      ],
+      "later_epochs_below99": [
+        0,
+        0,
+        0
+      ],
+      "stable_from_through_budget": [
+        27,
+        32,
+        26
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ],
+      "query": {
+        "first_test99": [
+          25,
+          29,
+          24
+        ],
+        "minimum_test_percent_after99": [
+          87.02749140893471,
+          89.06786941580755,
+          87.73625429553265
+        ],
+        "later_epochs_below99": [
+          5,
+          5,
+          9
+        ],
+        "stable_from_through_budget": [
+          878,
+          928,
+          975
+        ],
+        "final_test_percent": [
+          100,
+          100,
+          100
+        ]
+      }
+    },
+    {
+      "width": 128,
+      "optimizer": "schedule_free_adamw",
+      "lr": 0.03,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        13,
+        19,
+        14
+      ],
+      "minimum_test_percent_after99": [
+        99.7852233676976,
+        99.87113402061856,
+        99.6778350515464
+      ],
+      "later_epochs_below99": [
+        0,
+        0,
+        0
+      ],
+      "stable_from_through_budget": [
+        13,
+        19,
+        14
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ],
+      "query": {
+        "first_test99": [
+          12,
+          18,
+          14
+        ],
+        "minimum_test_percent_after99": [
+          61.74828178694158,
+          58.376288659793815,
+          48.324742268041234
+        ],
+        "later_epochs_below99": [
+          24,
+          16,
+          11
+        ],
+        "stable_from_through_budget": [
+          null,
+          895,
+          848
+        ],
+        "final_test_percent": [
+          94.22250859106529,
+          100,
+          100
+        ]
+      }
+    },
+    {
+      "width": 256,
+      "optimizer": "adamw",
+      "lr": 0.003,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        36,
+        35,
+        35
+      ],
+      "minimum_test_percent_after99": [
+        99.3127147766323,
+        99.35567010309279,
+        99.5704467353952
+      ],
+      "later_epochs_below99": [
+        0,
+        0,
+        0
+      ],
+      "stable_from_through_budget": [
+        36,
+        35,
+        35
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "width": 256,
+      "optimizer": "adamw",
+      "lr": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        15,
+        17,
+        14
+      ],
+      "minimum_test_percent_after99": [
+        88.55240549828179,
+        69.6520618556701,
+        86.2328178694158
+      ],
+      "later_epochs_below99": [
+        24,
+        33,
+        28
+      ],
+      "stable_from_through_budget": [
+        946,
+        997,
+        961
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ]
+    },
+    {
+      "width": 256,
+      "optimizer": "schedule_free_adamw",
+      "lr": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        32,
+        29,
+        29
+      ],
+      "minimum_test_percent_after99": [
+        99.03350515463917,
+        99.61340206185567,
+        99.29123711340206
+      ],
+      "later_epochs_below99": [
+        0,
+        0,
+        0
+      ],
+      "stable_from_through_budget": [
+        32,
+        29,
+        29
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ],
+      "query": {
+        "first_test99": [
+          30,
+          27,
+          27
+        ],
+        "minimum_test_percent_after99": [
+          90.16323024054984,
+          84.47164948453609,
+          88.89604810996563
+        ],
+        "later_epochs_below99": [
+          3,
+          1,
+          3
+        ],
+        "stable_from_through_budget": [
+          909,
+          756,
+          726
+        ],
+        "final_test_percent": [
+          100,
+          100,
+          100
+        ]
+      }
+    },
+    {
+      "width": 256,
+      "optimizer": "schedule_free_adamw",
+      "lr": 0.03,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        14,
+        15,
+        12
+      ],
+      "minimum_test_percent_after99": [
+        99.69931271477664,
+        99.0979381443299,
+        99.2053264604811
+      ],
+      "later_epochs_below99": [
+        0,
+        0,
+        0
+      ],
+      "stable_from_through_budget": [
+        14,
+        15,
+        12
+      ],
+      "plateau_epochs": [
+        0,
+        0,
+        0
+      ],
+      "strict_grokking": [
+        false,
+        false,
+        false
+      ],
+      "final_test_percent": [
+        100,
+        100,
+        100
+      ],
+      "query": {
+        "first_test99": [
+          13,
+          15,
+          12
+        ],
+        "minimum_test_percent_after99": [
+          19.243986254295532,
+          21.413230240549826,
+          19.394329896907216
+        ],
+        "later_epochs_below99": [
+          23,
+          20,
+          21
+        ],
+        "stable_from_through_budget": [
+          974,
+          972,
+          982
+        ],
+        "final_test_percent": [
+          100,
+          100,
+          100
+        ]
+      }
+    }
+  ],
+  "prior_relu_baselines": [
+    {
+      "branch": "relu",
+      "width": 128,
+      "optimizer": "adamw",
+      "lr": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        29,
+        31,
+        30
+      ],
+      "parameter_count": 28800
+    },
+    {
+      "branch": "relu",
+      "width": 128,
+      "optimizer": "schedule_free_adamw",
+      "lr": 0.03,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        27,
+        28,
+        26
+      ],
+      "parameter_count": 28800
+    },
+    {
+      "branch": "relu",
+      "width": 256,
+      "optimizer": "adamw",
+      "lr": 0.01,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        31,
+        32,
+        27
+      ],
+      "parameter_count": 90368
+    },
+    {
+      "branch": "relu",
+      "width": 256,
+      "optimizer": "schedule_free_adamw",
+      "lr": 0.03,
+      "seeds": [
+        11,
+        17,
+        23
+      ],
+      "first_test99": [
+        28,
+        27,
+        27
+      ],
+      "parameter_count": 90368
+    }
+  ],
+  "baseline_source": {
+    "path": "/tmp/grokking-schedule-free-20261020/full-study-results.json",
+    "sha256": "909178db013b49fe810c51faea7179fb4f7ee8c7d83e77bad9f9b2153c452209",
+    "scope": "Earlier ReLU comparison stopped at first 99%; valid for first-crossing comparison, no long-budget stability claim"
+  }
+}
